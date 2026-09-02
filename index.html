@@ -1003,27 +1003,94 @@
         // --- FILE SWITCHER & MANAGEMENT SYSTEM ---
         let clientFileCache = {};
 
+        // Load clientFileCache from localStorage on startup
+        try {
+            const savedCache = localStorage.getItem('socn_file_cache_index');
+            if (savedCache) {
+                const index = JSON.parse(savedCache);
+                index.forEach(fn => {
+                    const saved = localStorage.getItem('socn_file_' + fn);
+                    if (saved) {
+                        try { clientFileCache[fn] = JSON.parse(saved); } catch(e) {}
+                    }
+                });
+            }
+        } catch(e) {}
+
+        function saveFileToLocalStorage(filename, dataObj) {
+            try {
+                // Save without rawRows to avoid localStorage quota (rawRows can be huge)
+                const toSave = Object.assign({}, dataObj);
+                delete toSave.rawRows;
+                localStorage.setItem('socn_file_' + filename, JSON.stringify(toSave));
+                const index = JSON.parse(localStorage.getItem('socn_file_cache_index') || '[]');
+                if (!index.includes(filename)) {
+                    index.unshift(filename); // newest first
+                    // keep max 10 files to avoid quota
+                    if (index.length > 10) {
+                        const removed = index.splice(10);
+                        removed.forEach(fn => localStorage.removeItem('socn_file_' + fn));
+                    }
+                    localStorage.setItem('socn_file_cache_index', JSON.stringify(index));
+                }
+                localStorage.setItem('socn_last_file', filename);
+            } catch(e) {
+                console.warn('localStorage quota exceeded, skipping save:', e);
+            }
+        }
+
         function fetchFileList(currentFilename) {
             const selectEl = document.getElementById('activeFileSelect');
             if (!selectEl) return;
+
+            // Always merge localStorage files into clientFileCache
+            try {
+                const savedIndex = JSON.parse(localStorage.getItem('socn_file_cache_index') || '[]');
+                savedIndex.forEach(fn => {
+                    if (!clientFileCache[fn]) {
+                        const saved = localStorage.getItem('socn_file_' + fn);
+                        if (saved) {
+                            try { clientFileCache[fn] = JSON.parse(saved); } catch(e) {}
+                        }
+                    }
+                });
+            } catch(e) {}
+
+            const localFilenames = Object.keys(clientFileCache);
 
             if (window.location.protocol.startsWith('http')) {
                 fetch('/api/list-files')
                     .then(res => res.json())
                     .then(data => {
+                        let options = '';
                         if (data.success && data.files && data.files.length > 0) {
-                            selectEl.innerHTML = data.files.map(f => {
+                            options += data.files.map(f => {
                                 const selected = (currentFilename && (f.filename === currentFilename || currentFilename.includes(f.filename))) ? 'selected' : '';
-                                return `<option value="${f.filename}" ${selected}>📄 ${f.filename} (${f.location})</option>`;
+                                return `<option value="${f.filename}" ${selected}>📄 ${f.filename} (server)</option>`;
                             }).join('');
                         }
+                        // Also add local-only files
+                        localFilenames.forEach(fn => {
+                            const alreadyShown = data.files && data.files.some(f => f.filename === fn);
+                            if (!alreadyShown) {
+                                const selected = (currentFilename && fn === currentFilename) ? 'selected' : '';
+                                options += `<option value="${fn}" ${selected}>📄 ${fn} (local)</option>`;
+                            }
+                        });
+                        if (options) selectEl.innerHTML = options;
                     })
-                    .catch(() => {});
+                    .catch(() => {
+                        if (localFilenames.length > 0) {
+                            selectEl.innerHTML = localFilenames.map(fn => {
+                                const selected = (currentFilename && fn === currentFilename) ? 'selected' : '';
+                                return `<option value="${fn}" ${selected}>📄 ${fn}</option>`;
+                            }).join('');
+                        }
+                    });
             } else {
-                // Client-side local file list
-                const filenames = Object.keys(clientFileCache);
-                if (filenames.length > 0) {
-                    selectEl.innerHTML = filenames.map(fn => {
+                // Static hosting: use localStorage only
+                if (localFilenames.length > 0) {
+                    selectEl.innerHTML = localFilenames.map(fn => {
                         const selected = (currentFilename && fn === currentFilename) ? 'selected' : '';
                         return `<option value="${fn}" ${selected}>📄 ${fn}</option>`;
                     }).join('');
@@ -1447,12 +1514,18 @@
                     };
 
                     allRawRecords = lateRawRows;
+
+                    // Save parsed data to localStorage for persistence & static hosting
+                    clientFileCache[file.name] = Object.assign({}, parsedData, { rawRows: rows });
+                    saveFileToLocalStorage(file.name, parsedData);
+                    fetchFileList(file.name);
+
                     updateDashboard(parsedData);
                     // Also process skip data from same CSV rows
                     if (typeof processSkipData === 'function') {
                         processSkipData(rows);
                     }
-                    showStatus(`✅ Parsed "${file.name}" (${totalLate.toLocaleString()} late records)`, 'success');
+                    showStatus(`✅ Parsed "${file.name}" (${totalLate.toLocaleString()} late records) — บันทึกแล้ว 💾`, 'success');
                 },
                 error: function(err) {
                     showStatus(`Error reading CSV: ${err.message}`, 'error');
@@ -1467,7 +1540,7 @@
             }
 
             if (window.location.protocol.startsWith('http')) {
-                showStatus(`Saving "${file.name}" to uploads/ folder...`, 'loading');
+                showStatus(`กำลังอัปโหลด "${file.name}"...`, 'loading');
                 const formData = new FormData();
                 formData.append('file', file);
 
@@ -1478,10 +1551,12 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        showStatus(`✅ Saved "${file.name}" in uploads/ & dashboard updated!`, 'success');
+                        // Save to localStorage for persistence
+                        clientFileCache[file.name] = data;
+                        saveFileToLocalStorage(file.name, data);
+                        showStatus(`✅ อัปโหลด "${file.name}" สำเร็จ — บันทึกแล้ว 💾`, 'success');
                         updateDashboard(data);
                         fetchFileList(file.name);
-                        // Run skip analysis on raw rows from server response
                         if (typeof processSkipData === 'function' && data.rawRows) {
                             processSkipData(data.rawRows);
                         }
@@ -1809,16 +1884,36 @@
 
         // Initialize with default dataset
         window.addEventListener('DOMContentLoaded', () => {
+            // Step 1: Load default data as baseline
             if (typeof INITIAL_DATA !== 'undefined') {
                 updateDashboard(INITIAL_DATA);
             }
+
+            // Step 2: Restore last uploaded file from localStorage (works on static hosting!)
+            try {
+                const lastFile = localStorage.getItem('socn_last_file');
+                if (lastFile) {
+                    const savedData = localStorage.getItem('socn_file_' + lastFile);
+                    if (savedData) {
+                        const parsed = JSON.parse(savedData);
+                        updateDashboard(parsed);
+                        showStatus(`📂 โหลดข้อมูลล่าสุด: "${lastFile}" จากเบราว์เซอร์`, 'success');
+                        fetchFileList(lastFile);
+                    }
+                }
+            } catch(e) {}
+
+            // Step 3: If running on Flask server, also check for newer server-side data
             if (window.location.protocol.startsWith('http')) {
                 fetch('/api/current-data')
                     .then(res => res.json())
                     .then(data => {
                         if (data.success) {
                             updateDashboard(data);
-                            showStatus(`Loaded dataset: ${data.filename}`, 'success');
+                            clientFileCache[data.filename] = data;
+                            saveFileToLocalStorage(data.filename, data);
+                            showStatus(`✅ โหลดข้อมูลจาก Server: ${data.filename}`, 'success');
+                            fetchFileList(data.filename);
                         }
                     })
                     .catch(() => {});
