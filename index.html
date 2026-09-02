@@ -1013,8 +1013,12 @@
             if (!APPS_SCRIPT_URL) return { success: false, error: 'ยังไม่ได้ตั้งค่า APPS_SCRIPT_URL' };
             try {
                 const url = APPS_SCRIPT_URL + '?' + new URLSearchParams(params).toString();
-                const res = await fetch(url);
-                return await res.json();
+                const res = await fetch(url, { redirect: 'follow' });
+                const text = await res.text();
+                if (text.trim().startsWith('<')) {
+                    return { success: false, error: 'ติดสิทธิ์ Google Login — กรุณาตั้งค่า Web App ใน Apps Script ให้เป็น "Anyone"' };
+                }
+                return JSON.parse(text);
             } catch(e) {
                 return { success: false, error: e.message };
             }
@@ -1025,9 +1029,16 @@
             try {
                 const res = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
+                    mode: 'cors',
+                    redirect: 'follow',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(body)
                 });
-                return await res.json();
+                const text = await res.text();
+                if (text.trim().startsWith('<')) {
+                    return { success: false, error: 'ติดสิทธิ์ Google Login — กรุณาตั้งค่า Web App ใน Apps Script ให้เป็น "Anyone"' };
+                }
+                return JSON.parse(text);
             } catch(e) {
                 return { success: false, error: e.message };
             }
@@ -1996,6 +2007,9 @@
                     showStatus(`☁️ โหลดข้อมูลล่าสุดจาก Google Drive: "${driveRes.data.filename || driveRes.data._sourceFile || 'ดึงเรียบร้อย'}"`, 'success');
                     fetchFileList(driveRes.data.filename);
                     return;
+                } else {
+                    const err = (driveRes && driveRes.error) ? driveRes.error : 'เชื่อมต่อไม่ได้';
+                    showStatus(`⚠️ Drive: ${err} — สลับใช้ข้อมูลในเครื่องแทน`, 'error');
                 }
             }
 
