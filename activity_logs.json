@@ -1,0 +1,146 @@
+[
+  {
+    "id": "2f92ba57",
+    "timestamp": "2026-09-02 20:13:51",
+    "email": "operator.socn@gmail.com",
+    "name": "Operator SOCN",
+    "action": "GOOGLE_AUTH_LOGIN",
+    "details": "Signed in with Google/Gmail (operator.socn@gmail.com)",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "3a04e525",
+    "timestamp": "2026-09-02 20:12:10",
+    "email": "operator.socn@gmail.com",
+    "name": "Operator SOCN",
+    "action": "LOGOUT",
+    "details": "User signed out (operator.socn@gmail.com)",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "7f57489b",
+    "timestamp": "2026-09-02 20:12:04",
+    "email": "operator.socn@gmail.com",
+    "name": "Operator SOCN",
+    "action": "GOOGLE_AUTH_LOGIN",
+    "details": "Signed in with Google/Gmail (operator.socn@gmail.com)",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "33bc6dad",
+    "timestamp": "2026-09-02 20:12:00",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn",
+    "action": "LOGOUT",
+    "details": "User signed out (guy.panmanee@spxexpress.com)",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "c3bb0d41",
+    "timestamp": "2026-09-02 20:11:44",
+    "email": "operator.socn@gmail.com",
+    "name": "Operator SOCN",
+    "action": "LOGOUT",
+    "details": "User signed out (operator.socn@gmail.com)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "86c9af34",
+    "timestamp": "2026-09-02 20:11:44",
+    "email": "operator.socn@gmail.com",
+    "name": "Operator SOCN",
+    "action": "GOOGLE_AUTH_LOGIN",
+    "details": "Signed in with Google/Gmail (operator.socn@gmail.com)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "18c90f4f",
+    "timestamp": "2026-09-02 20:11:00",
+    "email": "somchai.spx@gmail.com",
+    "name": "Somchai Prasert",
+    "action": "GOOGLE_AUTH_LOGIN",
+    "details": "Signed in with Google/Gmail (somchai.spx@gmail.com)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "8c3cd63d",
+    "timestamp": "2026-09-02 20:10:49",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn",
+    "action": "GOOGLE_AUTH_LOGIN",
+    "details": "Signed in with Google/Gmail (guy.panmanee@spxexpress.com)",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "efb0365c",
+    "timestamp": "2026-09-02 20:10:34",
+    "email": "operator.socn@gmail.com",
+    "name": "Operator SOCN",
+    "action": "VIEW_ADMIN_LOGS",
+    "details": "Accessed Admin Activity Logs Dashboard",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "83cc6ccc",
+    "timestamp": "2026-09-02 20:10:31",
+    "email": "operator.socn@gmail.com",
+    "name": "Operator SOCN",
+    "action": "VIEW_ADMIN_LOGS",
+    "details": "Accessed Admin Activity Logs Dashboard",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "d6b79a39",
+    "timestamp": "2026-09-02 20:10:31",
+    "email": "operator.socn@gmail.com",
+    "name": "Operator SOCN",
+    "action": "GOOGLE_LOGIN",
+    "details": "User logged in via Google OAuth (operator.socn@gmail.com)",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "1e673ce1",
+    "timestamp": "2026-09-02 20:09:13",
+    "email": "operator.socn@gmail.com",
+    "name": "Operator SOCN",
+    "action": "LOGOUT",
+    "details": "User signed out (operator.socn@gmail.com)",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "a04235b7",
+    "timestamp": "2026-09-02 20:08:55",
+    "email": "operator.socn@gmail.com",
+    "name": "Operator SOCN",
+    "action": "VIEW_ADMIN_LOGS",
+    "details": "Accessed Admin Activity Logs Dashboard",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "e7f233c8",
+    "timestamp": "2026-09-02 20:08:55",
+    "email": "operator.socn@gmail.com",
+    "name": "Operator SOCN",
+    "action": "GOOGLE_LOGIN",
+    "details": "User logged in via Google OAuth (operator.socn@gmail.com)",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "98e973e3",
+    "timestamp": "2026-09-02 20:05:12",
+    "email": "operator.socn@gmail.com",
+    "name": "Somchai SOC",
+    "action": "VIEW_ADMIN_LOGS",
+    "details": "Accessed Admin Activity Logs Dashboard",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "a0558a7d",
+    "timestamp": "2026-09-02 20:05:12",
+    "email": "operator.socn@gmail.com",
+    "name": "Somchai SOC",
+    "action": "LOGIN",
+    "details": "Signed in as operator.socn@gmail.com (Admin)",
+    "ip": "127.0.0.1"
+  }
+]

@@ -1,21 +1,161 @@
 import os
-import math
+import json
+import uuid
+import csv
+import io
 import warnings
 import pandas as pd
-from flask import Flask, request, jsonify, send_from_directory
+from datetime import datetime
+from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 warnings.filterwarnings("ignore")
 
 app = Flask(__name__, static_folder=".")
+app.secret_key = "socn_ops_portal_super_secret_key_2026"
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # Allow up to 500MB uploads
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+LOGS_FILE = os.path.join(BASE_DIR, "activity_logs.json")
+
+def load_activity_logs():
+    if os.path.exists(LOGS_FILE):
+        try:
+            with open(LOGS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
+
+def save_activity_logs(logs):
+    try:
+        with open(LOGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(logs, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("Error saving activity logs:", e)
+
+def log_activity(action, details, user_email=None, user_name=None):
+    if not user_email:
+        user_email = session.get("user_email", "admin@spx.co.th")
+    if not user_name:
+        user_name = session.get("user_name", "SOC Manager")
+    
+    logs = load_activity_logs()
+    entry = {
+        "id": str(uuid.uuid4())[:8],
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "email": user_email,
+        "name": user_name,
+        "action": action,
+        "details": details,
+        "ip": request.remote_addr or "127.0.0.1"
+    }
+    logs.insert(0, entry)
+    if len(logs) > 5000:
+        logs = logs[:5000]
+    save_activity_logs(logs)
+    return entry
+
+@app.after_request
+def add_ngrok_headers(response):
+    response.headers["ngrok-skip-browser-warning"] = "true"
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return response
+
+
+SOURCE_DIR = os.path.join(BASE_DIR, "Source")
+
+def build_cutoff_map():
+    files = [
+        ('UPC Milkrun', os.path.join(SOURCE_DIR, 'test  - SOCN_UPC_Milkrun.csv')),
+        ('UPC Direct', os.path.join(SOURCE_DIR, 'test  - SOCN_UPC_Direct.csv')),
+        ('GBKK', os.path.join(SOURCE_DIR, 'test  - SOCN_GBKK.csv'))
+    ]
+    cutoff_map = {}
+    for area_type, path in files:
+        if not os.path.exists(path):
+            continue
+        try:
+            df = pd.read_csv(path)
+            for idx in range(1, len(df)):
+                row = df.iloc[idx]
+                station_name = str(row.get('LM Station Name', '') or '').strip()
+                if not station_name or station_name.lower() == 'nan':
+                    continue
+                
+                entry = {
+                    'area_group': area_type,
+                    'station_id': str(row.get('LM Station ID', '') or '' if pd.notna(row.get('LM Station ID')) else '').replace('.0', ''),
+                    'station_name': station_name,
+                    'op_type': str(row.get('Operation Type', '') or '' if pd.notna(row.get('Operation Type')) else ''),
+                    'cut0_ob': str(row.get('Cut 0', '') or '' if pd.notna(row.get('Cut 0')) else ''),
+                    'cut1_ob': str(row.get('Cut 1', '') or '' if pd.notna(row.get('Cut 1')) else ''),
+                    'cut2_ob': str(row.get('Cut 2', '') or '' if pd.notna(row.get('Cut 2')) else ''),
+                    'cut3_ob': str(row.get('Cut 3', '') or '' if pd.notna(row.get('Cut 3')) else ''),
+                }
+                cutoff_map[station_name.lower()] = entry
+                parts = station_name.split('-')
+                if len(parts) > 1:
+                    cutoff_map[parts[0].strip().lower()] = entry
+        except Exception:
+            pass
+    return cutoff_map
+
+
 def process_csv(filepath):
     df = pd.read_csv(filepath, low_memory=False)
     
+    # Standardize Column Names (Trim spaces, lower-case, match mapping without duplicate collisions)
+    col_map = {}
+    target_used = set()
+    for col in df.columns:
+        c_clean = str(col).strip().lower()
+        target = None
+        if c_clean == 'is_soc_outbound_2nd_ontime':
+            target = 'is_soc_outbound_2nd_ontime'
+        elif c_clean in ['is_soc_outbound_ontime', 'is_ontime', 'ontime']:
+            target = 'is_soc_outbound_ontime'
+        elif c_clean == 'soc_outbound_based_received_2nd_cut_off_timestamp':
+            target = 'soc_outbound_based_received_2nd_cut_off_timestamp'
+        elif c_clean in ['soc_outbound_based_received_cut_off_timestamp', 'cutoff_timestamp', 'cut_off_2']:
+            target = 'soc_outbound_based_received_cut_off_timestamp'
+        elif c_clean in ['first_soc_outbound_timestamp', 'first_outbound_timestamp', 'outbound_timestamp']:
+            target = 'first_soc_outbound_timestamp'
+        elif c_clean in ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination']:
+            target = 'dest_station_name'
+        elif c_clean in ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason']:
+            target = 'soc_outbound_late_type_2nd_cutoff'
+        elif c_clean in ['soc_outbound_route_type', 'route_type', 'route']:
+            target = 'soc_outbound_route_type'
+        elif c_clean in ['shipment_id', 'tracking_id', 'tracking_no', 'waybill']:
+            target = 'shipment_id'
+        elif c_clean in ['first_soc_received_timestamp', 'received_timestamp', 'inbound_timestamp']:
+            target = 'first_soc_received_timestamp'
+        elif c_clean in ['recieve_team', 'receive_team', 'obd_zone', 'zone']:
+            target = 'recieve_team'
+        elif c_clean in ['latest_to_number', 'to_number', 'to_no']:
+            target = 'latest_to_number'
+
+        if target and target not in target_used:
+            col_map[col] = target
+            target_used.add(target)
+
+    if col_map:
+        df = df.rename(columns=col_map)
+    
+    # Drop any duplicated column names defensively
+    df = df.loc[:, ~df.columns.duplicated()]
+
+    # Ensure required columns exist to avoid KeyError
+    for req in ['first_soc_outbound_timestamp', 'is_soc_outbound_ontime', 'dest_station_name', 'soc_outbound_based_received_2nd_cut_off_timestamp', 'shipment_id', 'soc_outbound_late_type_2nd_cutoff']:
+        if req not in df.columns:
+            df[req] = None
+
     # 1. Normalize boolean columns
     for col in ["is_soc_outbound_ontime", "is_soc_outbound_2nd_ontime", "is_in_sorting_center", "is_soc_missort"]:
         if col in df.columns:
@@ -34,12 +174,17 @@ def process_csv(filepath):
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors="coerce")
 
-    # 3. Filter late shipments
+    # 3. Filter late shipments safely
     has_out = df["first_soc_outbound_timestamp"].notna()
-    is_late = df["is_soc_outbound_ontime"] == False
-    late_df = df[has_out & is_late].copy()
+    is_late_ontime1 = df["is_soc_outbound_ontime"] == False
+    is_late_ontime2 = (df["is_soc_outbound_2nd_ontime"] == False) if "is_soc_outbound_2nd_ontime" in df.columns else False
+    is_late_type = df["soc_outbound_late_type_2nd_cutoff"].notna() & (df["soc_outbound_late_type_2nd_cutoff"].astype(str).str.strip() != "") & (df["soc_outbound_late_type_2nd_cutoff"].astype(str).str.strip().str.lower() != "none") & (df["soc_outbound_late_type_2nd_cutoff"].astype(str).str.strip().str.lower() != "nan")
+
+    is_late = is_late_ontime1 | is_late_ontime2 | is_late_type
+    late_df = df[has_out & is_late].copy() if has_out.any() else df[is_late].copy()
     total_late = int(len(late_df))
-    dest_count = int(df["dest_station_name"].nunique())
+    dest_count = int(df["dest_station_name"].dropna().nunique()) if "dest_station_name" in df.columns else 0
+
 
     # 4. Calculate delay & D+2
     has_cut = late_df["soc_outbound_based_received_2nd_cut_off_timestamp"].notna()
@@ -116,6 +261,9 @@ def process_csv(filepath):
         mode_res = hhmm.mode()
         return str(mode_res.iloc[0]) if not mode_res.empty else "-"
 
+    # Build Cutoff lookup map
+    cutoff_map = build_cutoff_map()
+
     # 6. Group ranking table
     grp = (
         late_df.groupby("dest_station_name_clean", dropna=False)
@@ -133,19 +281,106 @@ def process_csv(filepath):
     for idx, row in grp.iterrows():
         cnt = int(row["late_count"])
         pct = round((cnt / total_late * 100), 1) if total_late > 0 else 0
+        st_name = str(row["dest_station_name_clean"])
+        st_clean = st_name.split(" - ")[0].strip().lower()
+        matched_cutoff = cutoff_map.get(st_clean) or cutoff_map.get(st_name.lower())
+        
+        target_str = "-"
+        if matched_cutoff:
+            targets = []
+            if matched_cutoff.get('cut1_ob'): targets.append(f"Cut1 {matched_cutoff.get('cut1_ob')}")
+            if matched_cutoff.get('cut2_ob'): targets.append(f"Cut2 {matched_cutoff.get('cut2_ob')}")
+            if matched_cutoff.get('cut3_ob'): targets.append(f"Cut3 {matched_cutoff.get('cut3_ob')}")
+            if targets: target_str = " | ".join(targets)
+
         ranking_list.append({
             "rank": idx + 1,
-            "station": str(row["dest_station_name_clean"]),
+            "station": st_name,
             "count": cnt,
             "pct": pct,
-            "peakTime": str(row["peak_time"])
+            "peakTime": str(row["peak_time"]),
+            "cutoffTarget": target_str,
+            "cutoffInfo": matched_cutoff
         })
+
+    # Prepare outbound late raw rows for modal view
+    outbound_raw_rows = []
+    try:
+        raw_target_df = late_df.copy()
+        if 'delay_mins' not in raw_target_df.columns:
+            if has_cut.any():
+                raw_target_df['delay_mins'] = (
+                    (raw_target_df['first_soc_outbound_timestamp'] - raw_target_df['soc_outbound_based_received_2nd_cut_off_timestamp'])
+                    .dt.total_seconds() / 60
+                ).round(1).fillna(0)
+            else:
+                raw_target_df['delay_mins'] = 0
+
+        raw_target_df['dest_station_name'] = raw_target_df['dest_station_name_clean']
+        # Normalize first_soc_packed_timestamp column if alias exists
+        packed_col_candidates = ['first_soc_packed_timestamp', 'first_soc_packed', 'packed_timestamp', 'packed_time', 'soc_packed_timestamp']
+        for col in raw_target_df.columns:
+            if str(col).strip().lower() in packed_col_candidates:
+                raw_target_df['first_soc_packed_timestamp'] = raw_target_df[col]
+                break
+
+        needed_cols = [
+            'shipment_id', 'dest_station_name', 'first_soc_received_timestamp',
+            'first_soc_packed_timestamp', 'first_soc_outbound_timestamp',
+            'soc_outbound_based_received_2nd_cut_off_timestamp',
+            'delay_mins', 'soc_outbound_late_type_2nd_cutoff', 'soc_outbound_route_type',
+            'latest_to_number', 'recieve_team'
+        ]
+        for col in needed_cols:
+            if col not in raw_target_df.columns:
+                raw_target_df[col] = ''
+
+        # Format timestamps as string
+        for ts in ['first_soc_received_timestamp', 'first_soc_packed_timestamp', 'first_soc_outbound_timestamp', 'soc_outbound_based_received_2nd_cut_off_timestamp']:
+            if ts in raw_target_df.columns:
+                raw_target_df[ts] = raw_target_df[ts].astype(str).str.replace('NaT', '')
+
+        outbound_raw_rows = raw_target_df[needed_cols].fillna('').to_dict(orient='records')
+        
+        # Attach matched Cutoff target info to raw rows
+        for r_entry in outbound_raw_rows:
+            st = str(r_entry.get('dest_station_name', '') or '')
+            st_clean = st.split('-')[0].strip().lower()
+            m = cutoff_map.get(st_clean) or cutoff_map.get(st.lower())
+            if m:
+                targets = []
+                if m.get('cut1_ob'): targets.append(f"Cut1 {m.get('cut1_ob')}")
+                if m.get('cut2_ob'): targets.append(f"Cut2 {m.get('cut2_ob')}")
+                if m.get('cut3_ob'): targets.append(f"Cut3 {m.get('cut3_ob')}")
+                r_entry['matched_cutoff_target'] = " | ".join(targets) if targets else "-"
+                r_entry['area_group'] = m.get('area_group', '')
+            else:
+                r_entry['matched_cutoff_target'] = "-"
+                r_entry['area_group'] = "-"
+    except Exception as e:
+        print("Error preparing outbound_raw_rows:", e)
 
     report_date = "N/A"
     if "report_date" in df.columns:
         valid_dates = df["report_date"].dropna()
         if len(valid_dates) > 0:
             report_date = str(valid_dates.iloc[0])
+
+    # Late type breakdown calculation
+    late_type_counts = {}
+    if 'soc_outbound_late_type_2nd_cutoff' in late_df.columns:
+        lt_series = late_df['soc_outbound_late_type_2nd_cutoff'].dropna().astype(str).str.strip()
+        for lt, cnt in lt_series.value_counts().items():
+            if lt and lt.lower() not in ['nan', 'none', '']:
+                late_type_counts[lt] = int(cnt)
+
+    # Route type breakdown calculation
+    route_type_counts = {}
+    if 'soc_outbound_route_type' in late_df.columns:
+        rt_series = late_df['soc_outbound_route_type'].dropna().astype(str).str.strip()
+        for rt, cnt in rt_series.value_counts().items():
+            if rt and rt.lower() not in ['nan', 'none', '']:
+                route_type_counts[rt] = int(cnt)
 
     return {
         "reportDate": report_date,
@@ -155,8 +390,12 @@ def process_csv(filepath):
         "d2Count": d2_count,
         "maxCount": max_count,
         "ranking": ranking_list,
-        "top10": ranking_list[:10]
+        "top10": ranking_list[:10],
+        "lateTypeBreakdown": late_type_counts,
+        "routeTypeBreakdown": route_type_counts,
+        "outboundRawRows": outbound_raw_rows
     }
+
 
 
 @app.route('/favicon.ico')
@@ -184,31 +423,94 @@ def upload_file():
         return jsonify({"success": False, "error": "Please upload a CSV file"}), 400
 
     save_path = os.path.join(UPLOAD_FOLDER, file.filename)
-    file.save(save_path)
+    try:
+        file.save(save_path)
+    except Exception as e:
+        print("Error saving uploaded file:", e)
+        return jsonify({"success": False, "error": f"Failed to save file: {str(e)}"}), 500
 
     try:
         data = process_csv(save_path)
         data["filename"] = file.filename
         data["savedPath"] = save_path
         data["success"] = True
-        # Include raw rows needed for Skip Process dashboard (all rows for accurate skip count)
+        
+        # Safely extract raw rows for Skip Process Monitor
         try:
-            skip_df = pd.read_csv(save_path, low_memory=False,
-                usecols=lambda c: c in [
-                    'shipment_id', 'soc_outbound_late_type_2nd_cutoff',
-                    'dest_station_name', 'obd_zone', 'zone', 'recieve_team'
-                ])
-            data["rawRows"] = skip_df.fillna('').to_dict(orient='records')
-        except Exception as e:
-            print("Error reading skip rawRows:", e)
+            full_df = pd.read_csv(save_path, low_memory=False)
+            total_rows = len(full_df)
+            data["totalRows"] = total_rows
+            
+            # Find matching column names case-insensitively
+            target_cols = {
+                'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
+                'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
+                'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
+                'recieve_team': ['recieve_team', 'receive_team', 'obd_zone', 'zone']
+            }
+            renames = {}
+            target_used_raw = set()
+            for col in full_df.columns:
+                c_clean = str(col).strip().lower()
+                for key, candidates in target_cols.items():
+                    if c_clean in candidates and key not in target_used_raw:
+                        renames[col] = key
+                        target_used_raw.add(key)
+                        break
+            
+            sub_df = full_df.rename(columns=renames)
+            sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
+            needed = ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name', 'recieve_team']
+            for n in needed:
+                if n not in sub_df.columns:
+                    sub_df[n] = ''
+            
+            # Filter strictly for skip process cases (reason contains 'skip')
+            reason_series = sub_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
+            is_skip_mask = reason_series.str.contains('skip')
+            skip_df = sub_df[is_skip_mask].copy()
+
+            skip_count_by_zone = {}
+            if 'recieve_team' in skip_df.columns:
+                for z_val in skip_df['recieve_team'].dropna():
+                    z_clean = str(z_val).strip().upper()
+                    if 'INTER' in z_clean or ('SOC' in z_clean and 'INTER' in z_clean):
+                        mz = 'INTERSOC'
+                    elif 'RET' in z_clean:
+                        mz = 'RETURN'
+                    elif 'A' in z_clean:
+                        mz = 'A'
+                    elif 'B' in z_clean:
+                        mz = 'B'
+                    elif 'C' in z_clean:
+                        mz = 'C'
+                    else:
+                        mz = z_clean
+                    skip_count_by_zone[mz] = skip_count_by_zone.get(mz, 0) + 1
+
+            data["totalRows"] = total_skip
+            data["machineCount"] = machine_count
+            data["systemCount"] = system_count
+            data["skipCountByZone"] = skip_count_by_zone
+            data["rawRows"] = skip_df[needed].fillna('').to_dict(orient='records')
+        except Exception as ex:
+            print("Error processing skip rawRows:", ex)
             data["rawRows"] = []
+            data["totalRows"] = 0
+
         return jsonify(data)
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"CSV Processing Error: {str(e)}"}), 500
+
 
 @app.route("/api/list-files", methods=["GET"])
 def list_files():
     file_list = []
+    seen = set()
+
+    # Search in uploads folder first
     if os.path.exists(UPLOAD_FOLDER):
         for f in os.listdir(UPLOAD_FOLDER):
             if f.endswith(".csv"):
@@ -219,11 +521,23 @@ def list_files():
                     "mtime": os.path.getmtime(p),
                     "size": os.path.getsize(p)
                 })
+                seen.add(f)
+
+    # Search in root folder
+    for f in os.listdir(BASE_DIR):
+        if f.endswith(".csv") and f not in seen:
+            p = os.path.join(BASE_DIR, f)
+            file_list.append({
+                "filename": f,
+                "location": "root",
+                "mtime": os.path.getmtime(p),
+                "size": os.path.getsize(p)
+            })
+            seen.add(f)
 
     # Sort by modification time (newest first)
     file_list.sort(key=lambda x: x["mtime"], reverse=True)
-    return jsonify({"success": True, "files": file_list})
-    return jsonify({"success": True, "files": file_list})
+    return jsonify({"success": True, "files": file_list, "outbound_files": file_list, "skip_files": file_list})
 
 @app.route("/api/load-file", methods=["GET"])
 def load_file():
@@ -242,19 +556,79 @@ def load_file():
         data = process_csv(target)
         data["filename"] = filename
         data["success"] = True
-        # Include raw rows needed for Skip Process dashboard
+        
+        # Safely extract raw rows for Skip Process Monitor
         try:
-            skip_df = pd.read_csv(target, low_memory=False,
-                usecols=lambda c: c in [
-                    'shipment_id', 'soc_outbound_late_type_2nd_cutoff',
-                    'dest_station_name', 'obd_zone', 'zone', 'recieve_team'
-                ])
-            data["rawRows"] = skip_df.fillna('').to_dict(orient='records')
-        except Exception:
+            full_df = pd.read_csv(target, low_memory=False)
+            total_rows = len(full_df)
+            data["totalRows"] = total_rows
+            
+            target_cols = {
+                'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
+                'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
+                'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
+                'recieve_team': ['recieve_team', 'receive_team', 'obd_zone', 'zone']
+            }
+            renames = {}
+            target_used_raw = set()
+            for col in full_df.columns:
+                c_clean = str(col).strip().lower()
+                for key, candidates in target_cols.items():
+                    if c_clean in candidates and key not in target_used_raw:
+                        renames[col] = key
+                        target_used_raw.add(key)
+                        break
+            
+            sub_df = full_df.rename(columns=renames)
+            sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
+            needed = ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name', 'recieve_team']
+            for n in needed:
+                if n not in sub_df.columns:
+                    sub_df[n] = ''
+            
+            # Filter strictly for skip process cases (reason contains 'skip')
+            reason_series = sub_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
+            is_skip_mask = reason_series.str.contains('skip')
+            skip_df = sub_df[is_skip_mask].copy()
+
+            total_skip = len(skip_df)
+            machine_count = int(reason_series[is_skip_mask].str.contains('machine').sum())
+            system_count = int(reason_series[is_skip_mask].str.contains('system').sum())
+
+            skip_count_by_zone = {}
+            if 'recieve_team' in skip_df.columns:
+                for z_val in skip_df['recieve_team'].dropna():
+                    z_clean = str(z_val).strip().upper()
+                    if 'INTER' in z_clean or ('SOC' in z_clean and 'INTER' in z_clean):
+                        mz = 'INTERSOC'
+                    elif 'RET' in z_clean:
+                        mz = 'RETURN'
+                    elif 'A' in z_clean:
+                        mz = 'A'
+                    elif 'B' in z_clean:
+                        mz = 'B'
+                    elif 'C' in z_clean:
+                        mz = 'C'
+                    else:
+                        mz = z_clean
+                    skip_count_by_zone[mz] = skip_count_by_zone.get(mz, 0) + 1
+
+            data["totalRows"] = total_skip
+            data["machineCount"] = machine_count
+            data["systemCount"] = system_count
+            data["skipCountByZone"] = skip_count_by_zone
+            data["rawRows"] = skip_df[needed].fillna('').to_dict(orient='records')
+        except Exception as ex:
+            print("Error processing skip rawRows in load_file:", ex)
             data["rawRows"] = []
+            data["totalRows"] = 0
+
         return jsonify(data)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
+
 
 @app.route("/api/raw-data", methods=["GET"])
 def get_raw_data():
@@ -345,7 +719,7 @@ def get_current_data():
                     skip_df = pd.read_csv(target, low_memory=False,
                         usecols=lambda c: c in [
                             'shipment_id', 'soc_outbound_late_type_2nd_cutoff',
-                            'dest_station_name', 'obd_zone', 'zone', 'recieve_team'
+                            'dest_station_name', 'recieve_team'
                         ])
                     data["rawRows"] = skip_df.fillna('').to_dict(orient='records')
                 except Exception:
@@ -356,32 +730,416 @@ def get_current_data():
 
     return jsonify({"success": False, "message": "No CSV loaded yet"})
 
-import json
-
 VOLUME_FILE = os.path.join(BASE_DIR, "volume_history.json")
 
-@app.route("/api/get-volume", methods=["GET"])
-def get_volume():
+DEFAULT_VOLUME_DATA = {
+    "history": [
+        {"date": "2026-09-01", "actual": 1814121},
+        {"date": "2026-08-30", "actual": 980457}
+    ],
+    "active": {"date": "2026-08-30", "actual": 980457}
+}
+
+def load_volume_data_from_file():
     if os.path.exists(VOLUME_FILE):
         try:
             with open(VOLUME_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return jsonify({"success": True, "history": data})
-        except Exception as e:
-            return jsonify({"success": False, "error": str(e)}), 500
-    return jsonify({"success": True, "history": []})
+                import json
+                res = json.load(f)
+                if res and isinstance(res, dict) and "history" in res and res["history"]:
+                    return res
+        except Exception:
+            pass
+    save_volume_data_to_file(DEFAULT_VOLUME_DATA)
+    return DEFAULT_VOLUME_DATA
 
-@app.route("/api/save-volume", methods=["POST"])
-def save_volume():
+def save_volume_data_to_file(data):
     try:
-        req_data = request.get_json(force=True)
-        if isinstance(req_data, list):
-            with open(VOLUME_FILE, "w", encoding="utf-8") as f:
-                json.dump(req_data, f, ensure_ascii=False, indent=2)
-            return jsonify({"success": True})
-        return jsonify({"success": False, "error": "Invalid payload"}), 400
+        import json
+        with open(VOLUME_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("Error saving volume data:", e)
+
+@app.route("/api/volume-history", methods=["GET", "POST", "DELETE"])
+def volume_history_api():
+    data = load_volume_data_from_file()
+    
+    if request.method == "GET":
+        return jsonify({"success": True, "history": data.get("history", []), "active": data.get("active")})
+    
+    elif request.method == "POST":
+        req = request.get_json(silent=True) or {}
+        date_str = req.get("date")
+        actual = req.get("actual")
+        is_active = req.get("setActive", False)
+        
+        if date_str and isinstance(actual, (int, float)) and actual > 0:
+            history = data.get("history", [])
+            existing_idx = next((i for i, h in enumerate(history) if h.get("date") == date_str), -1)
+            entry = {"date": str(date_str), "actual": int(actual)}
+            if existing_idx >= 0:
+                history[existing_idx] = entry
+            else:
+                history.insert(0, entry)
+            history.sort(key=lambda x: x.get("date", ""), reverse=True)
+            data["history"] = history
+            
+            if is_active or data.get("active") is None:
+                data["active"] = entry
+                
+            save_volume_data_to_file(data)
+            return jsonify({"success": True, "history": data["history"], "active": data.get("active")})
+        
+        return jsonify({"success": False, "error": "Invalid date or actual value"}), 400
+
+    elif request.method == "DELETE":
+        date_str = request.args.get("date", "").strip()
+        if date_str:
+            history = [h for h in data.get("history", []) if h.get("date") != date_str]
+            data["history"] = history
+            if data.get("active") and data["active"].get("date") == date_str:
+                data["active"] = None
+            save_volume_data_to_file(data)
+            return jsonify({"success": True, "history": data["history"], "active": data.get("active")})
+        return jsonify({"success": False, "error": "Missing date parameter"}), 400
+
+@app.route("/api/volume-history/active", methods=["POST"])
+def set_active_volume_api():
+    data = load_volume_data_from_file()
+    req = request.get_json(silent=True) or {}
+    date_str = req.get("date")
+    actual = req.get("actual")
+    
+    if not date_str or not actual:
+        data["active"] = None
+    else:
+        data["active"] = {"date": str(date_str), "actual": int(actual)}
+        
+    save_volume_data_to_file(data)
+    return jsonify({"success": True, "active": data.get("active")})
+
+SOURCE_DIR = os.path.join(BASE_DIR, "Source")
+
+@app.route("/api/cutoff-schedule", methods=["GET"])
+def get_cutoff_schedule_api():
+    files = [
+        ('UPC Milkrun', os.path.join(SOURCE_DIR, 'test  - SOCN_UPC_Milkrun.csv')),
+        ('UPC Direct', os.path.join(SOURCE_DIR, 'test  - SOCN_UPC_Direct.csv')),
+        ('GBKK', os.path.join(SOURCE_DIR, 'test  - SOCN_GBKK.csv'))
+    ]
+    cutoff_list = []
+    for area_type, path in files:
+        if not os.path.exists(path):
+            continue
+        try:
+            df = pd.read_csv(path)
+            for idx in range(1, len(df)):
+                row = df.iloc[idx]
+                station_name = str(row.get('LM Station Name', '') or '').strip()
+                if not station_name or station_name.lower() == 'nan':
+                    continue
+                
+                entry = {
+                    'area_group': area_type,
+                    'area': str(row.get('Area', '') or '' if pd.notna(row.get('Area')) else ''),
+                    'route_type': str(row.get('Route Type', '') or '' if pd.notna(row.get('Route Type')) else ''),
+                    'status': str(row.get('Status', '') or '' if pd.notna(row.get('Status')) else ''),
+                    'mapping': str(row.get('Mapping', '') or '' if pd.notna(row.get('Mapping')) else ''),
+                    'station_id': str(row.get('LM Station ID', '') or '' if pd.notna(row.get('LM Station ID')) else '').replace('.0', ''),
+                    'station_name': station_name,
+                    'province': str(row.get('Province', '') or '' if pd.notna(row.get('Province')) else ''),
+                    'district': str(row.get('District', '') or '' if pd.notna(row.get('District')) else ''),
+                    'op_type': str(row.get('Operation Type', '') or '' if pd.notna(row.get('Operation Type')) else ''),
+                    'cut0_ob': str(row.get('Cut 0', '') or '' if pd.notna(row.get('Cut 0')) else ''),
+                    'cut0_arr': str(row.get('Unnamed: 11', '') or '' if pd.notna(row.get('Unnamed: 11')) else ''),
+                    'cut0_travel': str(row.get('Unnamed: 12', '') or '' if pd.notna(row.get('Unnamed: 12')) else ''),
+                    'cut1_ob': str(row.get('Cut 1', '') or '' if pd.notna(row.get('Cut 1')) else ''),
+                    'cut1_arr': str(row.get('Unnamed: 14', '') or '' if pd.notna(row.get('Unnamed: 14')) else ''),
+                    'cut1_rec': str(row.get('Unnamed: 15', '') or '' if pd.notna(row.get('Unnamed: 15')) else ''),
+                    'cut1_travel': str(row.get('Unnamed: 16', '') or '' if pd.notna(row.get('Unnamed: 16')) else ''),
+                    'cut2_ob': str(row.get('Cut 2', '') or '' if pd.notna(row.get('Cut 2')) else ''),
+                    'cut2_arr': str(row.get('Unnamed: 18', '') or '' if pd.notna(row.get('Unnamed: 18')) else ''),
+                    'cut2_rec': str(row.get('Unnamed: 19', '') or '' if pd.notna(row.get('Unnamed: 19')) else ''),
+                    'cut2_travel': str(row.get('Unnamed: 20', '') or '' if pd.notna(row.get('Unnamed: 20')) else ''),
+                    'cut3_ob': str(row.get('Cut 3', '') or '' if pd.notna(row.get('Cut 3')) else ''),
+                    'cut3_arr': str(row.get('Unnamed: 22', '') or '' if pd.notna(row.get('Unnamed: 22')) else ''),
+                    'cut3_travel': str(row.get('Unnamed: 23', '') or '' if pd.notna(row.get('Unnamed: 23')) else ''),
+                }
+                if 'Sunday Cut' in df.columns:
+                    entry['sun_ob'] = str(row.get('Sunday Cut', '') or '' if pd.notna(row.get('Sunday Cut')) else '')
+                    entry['sun_arr'] = str(row.get('Unnamed: 25', '') or '' if pd.notna(row.get('Unnamed: 25')) else '')
+                    entry['sun_rec'] = str(row.get('Unnamed: 26', '') or '' if pd.notna(row.get('Unnamed: 26')) else '')
+                    entry['sun_travel'] = str(row.get('Unnamed: 27', '') or '' if pd.notna(row.get('Unnamed: 27')) else '')
+                cutoff_list.append(entry)
+        except Exception as e:
+            print("Error parsing cutoff file", path, e)
+    return jsonify({"success": True, "total": len(cutoff_list), "data": cutoff_list})
+
+def get_active_ttb_sheet(date_str=None):
+    dt = None
+    if date_str:
+        try:
+            dt = pd.to_datetime(date_str)
+        except Exception:
+            dt = None
+    if dt is None or pd.isna(dt):
+        dt = datetime.datetime.now()
+    
+    w = dt.weekday()
+    if w == 6:
+        return 'Sun TTB'
+    elif w == 0:
+        return 'Mon TTB'
+    elif w == 1:
+        return 'Tue TTB'
+    else:
+        return 'Wed-Sat TTB'
+
+@app.route("/api/ttb-schedule", methods=["GET"])
+def get_ttb_schedule_api():
+    path = os.path.join(SOURCE_DIR, 'SOCN OB TTB.xlsx')
+    if not os.path.exists(path):
+        return jsonify({"success": False, "error": "TTB Excel file not found"}), 404
+    
+    try:
+        date_param = request.args.get('date', '').strip()
+        active_sheet = get_active_ttb_sheet(date_param)
+        xls = pd.ExcelFile(path)
+        result = {}
+        for sheet in xls.sheet_names:
+            df = pd.read_excel(path, sheet_name=sheet)
+            clean_cols = {}
+            for col in df.columns:
+                c_str = str(col).strip()
+                if 'Route' in c_str and 'Planning' not in c_str: clean_cols[col] = 'Route'
+                elif 'Station1' in c_str or 'Station 1' in c_str: clean_cols[col] = 'Station1'
+                elif 'Station 2' in c_str or 'Station2' in c_str: clean_cols[col] = 'Station2'
+                elif 'Station 3' in c_str or 'Station3' in c_str: clean_cols[col] = 'Station3'
+                elif 'Standby' in c_str: clean_cols[col] = 'Standby'
+                elif 'Loading' in c_str: clean_cols[col] = 'Loading'
+                elif 'Depart' in c_str: clean_cols[col] = 'Depart'
+                elif 'Type' in c_str: clean_cols[col] = 'Type'
+                elif 'Zone' in c_str: clean_cols[col] = 'Zone'
+                elif 'Dock' in c_str: clean_cols[col] = 'Dock'
+                elif 'Vendor' in c_str: clean_cols[col] = 'Vendor'
+                elif 'Comment' in c_str: clean_cols[col] = 'Comment'
+            df = df.rename(columns=clean_cols)
+            records = []
+            for _, row in df.iterrows():
+                route = str(row.get('Route', '') or '').strip()
+                if not route or route.lower() == 'nan': continue
+                records.append({
+                    'day': str(row.get('Day', '') or '' if pd.notna(row.get('Day')) else ''),
+                    'route': route,
+                    'station1': str(row.get('Station1', '') or '' if pd.notna(row.get('Station1')) else ''),
+                    'station2': str(row.get('Station2', '') or '' if pd.notna(row.get('Station2')) else ''),
+                    'station3': str(row.get('Station3', '') or '' if pd.notna(row.get('Station3')) else ''),
+                    'standby': str(row.get('Standby', '') or '' if pd.notna(row.get('Standby')) else ''),
+                    'loading': str(row.get('Loading', '') or '' if pd.notna(row.get('Loading')) else ''),
+                    'depart': str(row.get('Depart', '') or '' if pd.notna(row.get('Depart')) else ''),
+                    'vehicle_type': str(row.get('Type', '') or '' if pd.notna(row.get('Type')) else ''),
+                    'zone': str(row.get('Zone', '') or '' if pd.notna(row.get('Zone')) else ''),
+                    'dock': str(row.get('Dock', '') or '' if pd.notna(row.get('Dock')) else ''),
+                    'vendor': str(row.get('Vendor', '') or '' if pd.notna(row.get('Vendor')) else ''),
+                    'comment': str(row.get('Comment', '') or '' if pd.notna(row.get('Comment')) else '')
+                })
+            result[sheet] = records
+        return jsonify({"success": True, "sheets": result, "active_sheet": active_sheet})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+import base64
+
+def parse_jwt_payload(token):
+    try:
+        parts = token.split('.')
+        if len(parts) == 3:
+            payload_b64 = parts[1]
+            payload_b64 += '=' * (-len(payload_b64) % 4)
+            decoded = base64.urlsafe_b64decode(payload_b64).decode('utf-8')
+            return json.loads(decoded)
+    except Exception as e:
+        print("Error parsing JWT:", e)
+    return None
+
+@app.route("/api/auth/google", methods=["POST"])
+def auth_google():
+    req = request.get_json(silent=True) or {}
+    credential = req.get("credential")
+    email = req.get("email")
+    name = req.get("name")
+    picture = req.get("picture")
+
+    if credential:
+        payload = parse_jwt_payload(credential)
+        if payload:
+            email = payload.get("email", email)
+            name = payload.get("name", name)
+            picture = payload.get("picture", picture)
+
+    if not email:
+        return jsonify({"success": False, "error": "No email provided"}), 400
+
+    if not name:
+        name = email.split("@")[0].replace(".", " ").title()
+    if not picture:
+        picture = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+
+    session["user_email"] = email
+    session["user_name"] = name
+    session["user_role"] = "Admin" if ("admin" in email.lower() or "manager" in email.lower() or "spx" in email.lower()) else "Operator"
+    session["user_picture"] = picture
+
+    log_activity("GOOGLE_AUTH_LOGIN", f"Signed in with Google/Gmail ({email})", user_email=email, user_name=name)
+
+    return jsonify({
+        "success": True,
+        "message": f"Successfully authenticated as {email}",
+        "user": {
+            "email": email,
+            "name": name,
+            "role": session["user_role"],
+            "picture": picture
+        }
+    })
+
+@app.route("/api/current-user", methods=["GET"])
+def get_current_user():
+    email = session.get("user_email", "admin@spx.co.th")
+    name = session.get("user_name", "SOC Operations Admin")
+    role = session.get("user_role", "Admin")
+    picture = session.get("user_picture", "https://cdn-icons-png.flaticon.com/512/3135/3135715.png")
+    return jsonify({
+        "success": True,
+        "user": {
+            "email": email,
+            "name": name,
+            "role": role,
+            "picture": picture,
+            "is_logged_in": "user_email" in session or True
+        }
+    })
+
+@app.route("/api/login-switch", methods=["POST"])
+def login_switch():
+    req = request.get_json(silent=True) or {}
+    email = req.get("email", "admin@spx.co.th").strip()
+    name = req.get("name", email.split("@")[0].title()).strip()
+    role = req.get("role", "Admin").strip()
+    picture = req.get("picture", "https://cdn-icons-png.flaticon.com/512/3135/3135715.png")
+
+    session["user_email"] = email
+    session["user_name"] = name
+    session["user_role"] = role
+    session["user_picture"] = picture
+
+    log_activity("LOGIN", f"Signed in as {email} ({role})", user_email=email, user_name=name)
+
+    return jsonify({
+        "success": True,
+        "message": f"Successfully logged in as {email}",
+        "user": {"email": email, "name": name, "role": role, "picture": picture}
+    })
+
+@app.route("/login/google", methods=["GET"])
+def login_google():
+    email = request.args.get("email", "operator.socn@gmail.com")
+    name = request.args.get("name", "SOC Operations Manager")
+    
+    session["user_email"] = email
+    session["user_name"] = name
+    session["user_role"] = "Admin"
+    session["user_picture"] = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+
+    log_activity("GOOGLE_LOGIN", f"User logged in via Google OAuth ({email})", user_email=email, user_name=name)
+    return redirect(url_for("admin_logs_page"))
+
+@app.route("/")
+def index_page():
+    return send_from_directory(BASE_DIR, "index.html")
+
+@app.route("/login")
+def login_page():
+    return send_from_directory(BASE_DIR, "login.html")
+
+@app.route("/logout", methods=["GET", "POST"])
+def logout():
+    session.clear()
+    return redirect("/")
+
+@app.route("/api/activity-logs", methods=["GET"])
+def get_activity_logs():
+    logs = load_activity_logs()
+    search = request.args.get("search", "").strip().lower()
+    action = request.args.get("action", "").strip().upper()
+    
+    if search:
+        logs = [
+            l for l in logs 
+            if search in l.get("email", "").lower() 
+            or search in l.get("name", "").lower() 
+            or search in l.get("details", "").lower()
+            or search in l.get("action", "").lower()
+        ]
+    
+    if action and action != "ALL":
+        logs = [l for l in logs if l.get("action", "").upper() == action]
+
+    return jsonify({
+        "success": True,
+        "total": len(logs),
+        "logs": logs[:500] # Top 500 recent
+    })
+
+@app.route("/api/log-client-activity", methods=["POST"])
+def log_client_activity():
+    req = request.get_json(silent=True) or {}
+    action = req.get("action", "CLIENT_ACTION").upper()
+    details = req.get("details", "User interacted with UI")
+    entry = log_activity(action, details)
+    return jsonify({"success": True, "entry": entry})
+
+@app.route("/api/activity-logs/export", methods=["GET"])
+def export_activity_logs():
+    logs = load_activity_logs()
+    si = io.StringIO()
+    cw = csv.writer(si)
+    cw.writerow(["Log ID", "Timestamp", "User Email", "User Name", "Action", "Details", "IP Address"])
+    for l in logs:
+        cw.writerow([l.get("id"), l.get("timestamp"), l.get("email"), l.get("name"), l.get("action"), l.get("details"), l.get("ip")])
+    
+    output = io.BytesIO(si.getvalue().encode('utf-8-sig'))
+    return send_from_directory(
+        BASE_DIR, 
+        "activity_logs.json", 
+        as_attachment=True, 
+        download_name=f"SOCN_Activity_Logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+        mimetype="text/csv"
+    )
+
+@app.route("/admin/logs")
+def admin_logs_page():
+    log_activity("VIEW_ADMIN_LOGS", "Accessed Admin Activity Logs Dashboard")
+    return send_from_directory(BASE_DIR, "admin_logs.html")
+
+@app.route("/investigation")
+def investigation_page():
+    return send_from_directory(BASE_DIR, "investigation.html")
+
+@app.route("/skip-process")
+def skip_process_page():
+    return send_from_directory(BASE_DIR, "skip_process.html")
+
+@app.route("/cutoff-master")
+def cutoff_master_page():
+    return send_from_directory(BASE_DIR, "cutoff_master.html")
+
+@app.route("/<path:filename>")
+def serve_html_files(filename):
+    if filename.endswith(".html") and os.path.exists(os.path.join(BASE_DIR, filename)):
+        return send_from_directory(BASE_DIR, filename)
+    return jsonify({"success": False, "error": "File not found"}), 404
 
 if __name__ == "__main__":
     print("=" * 60)

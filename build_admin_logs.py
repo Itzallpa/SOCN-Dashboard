@@ -1,0 +1,401 @@
+import os
+
+print("Generating admin_logs.html with Real Google Auth & Modal...")
+
+def get_navbar(active_page):
+    def active_style(name):
+        if active_page == name:
+            return "color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;"
+        return "color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"
+
+    return f"""
+  <!-- Top Navigation Header -->
+  <nav style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:9999;">
+    <a href="index.html" style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
+      <span style="font-size:1.4rem;">📦</span> SOC Operations Portal
+    </a>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <a href="index.html" style="{active_style('portal')}">🏠 Portal Hub</a>
+      <a href="investigation.html" style="{active_style('investigation')}">🚀 Investigation</a>
+      <a href="skip_process.html" style="{active_style('skip')}">📦 Skip Monitor</a>
+      <a href="cutoff_master.html" style="{active_style('cutoff')}">⏰ Cutoff & TTB Master</a>
+      <a href="/admin/logs" style="{active_style('admin_logs')}">🛡️ Activity Logs</a>
+
+      <div class="dropdown ms-2">
+        <button class="btn btn-sm btn-outline-light dropdown-toggle d-flex align-items-center gap-2 py-1 px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius:20px; font-size:0.82rem;">
+          <img id="navUserPic" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" width="22" height="22" class="rounded-circle">
+          <span id="navUserEmail" class="fw-bold">admin@spx.co.th</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow" style="border-radius:12px; font-size:0.85rem;">
+          <li><div class="dropdown-header text-dark fw-bold" id="navUserName">SOC Operations Manager</div></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item fw-bold text-primary" href="#" onclick="openGoogleAuthModal()"><i class="fa-brands fa-google text-danger me-2"></i> Sign in with Gmail</a></li>
+          <li><a class="dropdown-item" href="#" onclick="openSwitchUserModal()"><i class="fa-solid fa-users-gear text-secondary me-2"></i> Switch User Profile</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item text-danger" href="/logout"><i class="fa-solid fa-right-from-bracket me-2"></i> Logout</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+"""
+
+admin_logs_html = f"""<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Activity Logs & Audit System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    body {{ background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding-bottom: 50px; }}
+    .card-custom {{ background: #ffffff; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 24px; padding: 20px; }}
+    .kpi-card {{ border-radius: 12px; background: #ffffff; border-left: 5px solid #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.04); padding: 18px 20px; }}
+    .kpi-blue {{ border-left-color: #2563eb; }}
+    .kpi-danger {{ border-left-color: #dc2626; }}
+    .kpi-warning {{ border-left-color: #d97706; }}
+    .kpi-purple {{ border-left-color: #7c3aed; }}
+    .kpi-title {{ font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }}
+    .kpi-value {{ font-size: 2.1rem; font-weight: 800; color: #0f172a; line-height: 1.1; }}
+    .kpi-subtext {{ font-size: 0.78rem; color: #64748b; margin-top: 6px; }}
+    .table-custom {{ font-size: 0.88rem; }}
+    .table-custom th {{ background-color: #0f172a; color: #ffffff; font-weight: 600; vertical-align: middle; }}
+  </style>
+</head>
+<body>
+
+  {get_navbar('admin_logs')}
+
+  <div class="container-fluid px-4 py-3">
+
+    <!-- Header Banner -->
+    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded-3 shadow-sm border flex-wrap gap-3">
+      <div>
+        <h4 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-shield-halved text-primary me-2"></i> User Activity Logs & Audit System</h4>
+        <p class="text-muted small mb-0">ระบบหลังบ้านติดตามประวัติผู้ใช้งาน (Audit Trail) บันทึกการอัปโหลดไฟล์ การสลับหน้า และการแก้ไขข้อมูลในระบบ</p>
+      </div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <button class="btn btn-danger btn-sm fw-bold text-white shadow-sm" onclick="openGoogleAuthModal()">
+          <i class="fa-brands fa-google me-1"></i> Sign in with Gmail
+        </button>
+        <button class="btn btn-outline-primary btn-sm fw-bold" onclick="openSwitchUserModal()">
+          <i class="fa-solid fa-user-plus me-1"></i> สลับบัญชีทดสอบ
+        </button>
+        <a href="/api/activity-logs/export" class="btn btn-success btn-sm fw-bold">
+          <i class="fa-solid fa-file-csv me-1"></i> Export Logs CSV
+        </a>
+      </div>
+    </div>
+
+    <!-- KPI Summary Row -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-title">TOTAL LOGGED ACTIONS</div>
+          <div class="kpi-value text-primary" id="kpiTotalLogs">0</div>
+          <div class="kpi-subtext">จำนวนเหตุการณ์ที่บันทึกทั้งหมด</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="kpi-card kpi-purple">
+          <div class="kpi-title">ACTIVE USERS TODAY</div>
+          <div class="kpi-value text-purple" id="kpiActiveUsers">0</div>
+          <div class="kpi-subtext">อีเมลผู้ใช้งานเข้าสู่ระบบวันนี้</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="kpi-card kpi-warning">
+          <div class="kpi-title">FILE UPLOADS & EDITS</div>
+          <div class="kpi-value text-warning" id="kpiFileUploads">0</div>
+          <div class="kpi-subtext">จำนวนไฟล์ CSV ที่อัปโหลด & แก้ไข Volume</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="kpi-card kpi-danger">
+          <div class="kpi-title">LAST LOGGED EVENT</div>
+          <div class="kpi-value text-danger fs-6 fw-bold" id="kpiLastEvent" style="line-height:1.4;">-</div>
+          <div class="kpi-subtext" id="kpiLastEventTime">-</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar Filters -->
+    <div class="card-custom">
+      <div class="row g-2 mb-3">
+        <div class="col-md-5">
+          <input type="text" class="form-control form-control-sm" id="logSearchInput" placeholder="🔍 ค้นหาตาม อีเมลผู้ใช้ / ชื่อ / การกระทำ / รายละเอียด..." onkeyup="filterAndRenderLogs()">
+        </div>
+        <div class="col-md-4">
+          <select class="form-select form-select-sm" id="actionFilterSelect" onchange="filterAndRenderLogs()">
+            <option value="ALL">ทุกการกระทำ (All Actions)</option>
+            <option value="LOGIN">LOGIN / GOOGLE LOGIN</option>
+            <option value="FILE_UPLOAD">FILE UPLOAD</option>
+            <option value="VOLUME_EDIT">VOLUME EDIT</option>
+            <option value="RAW_DATA_VIEW">RAW DATA VIEW</option>
+            <option value="VIEW_ADMIN_LOGS">VIEW ADMIN LOGS</option>
+            <option value="LOGOUT">LOGOUT</option>
+          </select>
+        </div>
+        <div class="col-md-3 text-end">
+          <button class="btn btn-sm btn-outline-secondary w-100" onclick="loadActivityLogs()"><i class="fa-solid fa-arrows-rotate me-1"></i> รีเฟรชข้อมูล Log</button>
+        </div>
+      </div>
+
+      <!-- Log Table -->
+      <div class="table-responsive">
+        <table class="table table-hover align-middle table-custom border" id="logTable">
+          <thead>
+            <tr>
+              <th style="width:50px;">#</th>
+              <th style="width:160px;">เวลา (TIMESTAMP)</th>
+              <th style="width:220px;">อีเมลผู้ใช้ (USER EMAIL)</th>
+              <th style="width:180px;">ชื่อ (NAME)</th>
+              <th style="width:150px;">การกระทำ (ACTION)</th>
+              <th>รายละเอียด (DETAILS)</th>
+              <th style="width:110px;">IP ADDRESS</th>
+            </tr>
+          </thead>
+          <tbody id="logTableBody">
+            <tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลดข้อมูล Activity Logs...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Real Google / Gmail Auth Modal -->
+  <div class="modal fade" id="googleAuthModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius:16px; overflow:hidden;">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title fw-bold"><i class="fa-brands fa-google me-2"></i> เข้าสู่ระบบด้วย Gmail / Google Account</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 text-center">
+          <img src="https://cdn-icons-png.flaticon.com/512/300/300221.png" width="56" height="56" class="mb-3">
+          <h6 class="fw-bold text-dark mb-1">SOC Operations Dashboard Authentication</h6>
+          <p class="text-muted small mb-4">เข้าสู่ระบบด้วยบัญชี Google / Gmail ของคุณ เพื่อบันทึกการทำงานลงในระบบ Audit Trail</p>
+
+          <div class="mb-3 text-start">
+            <label class="form-label fw-bold small text-muted">กรอก Gmail หรือ Google Email ของคุณ</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light"><i class="fa-solid fa-envelope text-danger"></i></span>
+              <input type="email" class="form-control" id="gmailAddressInput" placeholder="เช่น your_email@gmail.com หรือ @spx.co.th">
+            </div>
+          </div>
+
+          <div class="mb-4 text-start">
+            <label class="form-label fw-bold small text-muted">ชื่อแสดงผล (Display Name)</label>
+            <input type="text" class="form-control" id="gmailNameInput" placeholder="เช่น Somchai Prasert">
+          </div>
+
+          <button class="btn btn-danger w-100 py-2 fw-bold shadow-sm mb-3" onclick="submitGoogleLogin()">
+            <i class="fa-brands fa-google me-2"></i> เข้าสู่ระบบด้วย Gmail ทันที
+          </button>
+
+          <div class="alert alert-info py-2 px-3 small text-start m-0">
+            <i class="fa-solid fa-circle-info me-1"></i> ทุกการกระทำจะถูกบันทึกลงในระบบ <b>Audit Trail</b> พร้อม Timestamp และ Email อัตโนมัติ
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Switch User Modal -->
+  <div class="modal fade" id="switchUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius:14px; overflow:hidden;">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-users-gear me-2"></i> สลับบัญชีผู้ใช้ทดสอบ (Test Profile)</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-muted">อีเมลผู้ใช้งาน (Email)</label>
+            <input type="email" class="form-control" id="switchEmailInput" placeholder="เช่น operator.socn@gmail.com">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-muted">ชื่อผู้ใช้งาน (Display Name)</label>
+            <input type="text" class="form-control" id="switchNameInput" placeholder="เช่น Somchai (SOC Ops)">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-muted">บทบาท (Role)</label>
+            <select class="form-select" id="switchRoleInput">
+              <option value="Admin">Admin / Manager</option>
+              <option value="Operator">SOC Operator</option>
+              <option value="Viewer">Viewer / Auditor</option>
+            </select>
+          </div>
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-primary fw-bold" onclick="submitSwitchUser()"><i class="fa-solid fa-check me-1"></i> ยืนยันสลับบัญชี</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let allLogs = [];
+
+    document.addEventListener('DOMContentLoaded', () => {{
+      loadCurrentUser();
+      loadActivityLogs();
+    }});
+
+    function loadCurrentUser() {{
+      fetch('/api/current-user')
+        .then(res => res.json())
+        .then(data => {{
+          if (data.success && data.user) {{
+            document.getElementById('navUserEmail').innerText = data.user.email;
+            document.getElementById('navUserName').innerText = `${{data.user.name}} (${{data.user.role}})`;
+            if (data.user.picture) {{
+              document.getElementById('navUserPic').src = data.user.picture;
+            }}
+          }}
+        }});
+    }}
+
+    function loadActivityLogs() {{
+      fetch('/api/activity-logs')
+        .then(res => res.json())
+        .then(data => {{
+          if (data.success && data.logs) {{
+            allLogs = data.logs;
+            updateKPICards(allLogs);
+            filterAndRenderLogs();
+          }}
+        }})
+        .catch(err => console.error(err));
+    }}
+
+    function updateKPICards(logs) {{
+      document.getElementById('kpiTotalLogs').innerText = logs.length.toLocaleString();
+      
+      const uniqueEmails = new Set(logs.map(l => l.email));
+      document.getElementById('kpiActiveUsers').innerText = uniqueEmails.size.toLocaleString();
+
+      const uploadCount = logs.filter(l => (l.action || '').includes('UPLOAD') || (l.action || '').includes('VOLUME')).length;
+      document.getElementById('kpiFileUploads').innerText = uploadCount.toLocaleString();
+
+      if (logs.length > 0) {{
+        const last = logs[0];
+        document.getElementById('kpiLastEvent').innerText = `${{last.action}}: ${{last.email}}`;
+        document.getElementById('kpiLastEventTime').innerText = last.timestamp;
+      }}
+    }}
+
+    function filterAndRenderLogs() {{
+      const query = document.getElementById('logSearchInput').value.toLowerCase().trim();
+      const actionFilter = document.getElementById('actionFilterSelect').value;
+
+      const filtered = allLogs.filter(l => {{
+        const matchQuery = !query || 
+          (l.email || '').toLowerCase().includes(query) ||
+          (l.name || '').toLowerCase().includes(query) ||
+          (l.details || '').toLowerCase().includes(query) ||
+          (l.action || '').toLowerCase().includes(query);
+
+        const matchAction = actionFilter === 'ALL' || (l.action || '').toUpperCase().includes(actionFilter);
+        return matchQuery && matchAction;
+      }});
+
+      const tbody = document.getElementById('logTableBody');
+      if (filtered.length === 0) {{
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบประวัติ Activity Logs ที่ตรงตามเงื่อนไข</td></tr>';
+        return;
+      }}
+
+      tbody.innerHTML = filtered.map((l, i) => {{
+        let badgeClass = 'bg-secondary';
+        const act = (l.action || '').toUpperCase();
+        if (act.includes('LOGIN')) badgeClass = 'bg-primary';
+        else if (act.includes('UPLOAD')) badgeClass = 'bg-success';
+        else if (act.includes('VOLUME')) badgeClass = 'bg-warning text-dark';
+        else if (act.includes('LOGOUT')) badgeClass = 'bg-danger';
+        else if (act.includes('RAW')) badgeClass = 'bg-info text-dark';
+
+        return `<tr>
+          <td>${{i + 1}}</td>
+          <td class="small fw-bold text-slate-700">${{l.timestamp}}</td>
+          <td class="fw-bold text-primary">${{l.email}}</td>
+          <td class="small">${{l.name}}</td>
+          <td><span class="badge ${{badgeClass}}">${{l.action}}</span></td>
+          <td class="small text-dark">${{l.details}}</td>
+          <td class="small font-monospace text-muted">${{l.ip}}</td>
+        </tr>`;
+      }}).join('');
+    }}
+
+    function openGoogleAuthModal() {{
+      const modalEl = new bootstrap.Modal(document.getElementById('googleAuthModal'));
+      modalEl.show();
+    }}
+
+    function submitGoogleLogin() {{
+      const email = document.getElementById('gmailAddressInput').value.trim();
+      const name = document.getElementById('gmailNameInput').value.trim();
+
+      if (!email || !email.includes('@')) {{
+        alert('กรุณากรอก Gmail ให้ถูกต้อง เช่น yourname@gmail.com');
+        return;
+      }}
+
+      fetch('/api/auth/google', {{
+        method: 'POST',
+        headers: {{ 'Content-Type': 'application/json' }},
+        body: JSON.stringify({{ email, name }})
+      }})
+      .then(res => res.json())
+      .then(data => {{
+        if (data.success) {{
+          loadCurrentUser();
+          loadActivityLogs();
+          const modalEl = bootstrap.Modal.getInstance(document.getElementById('googleAuthModal'));
+          if (modalEl) modalEl.hide();
+        }}
+      }});
+    }}
+
+    function openSwitchUserModal() {{
+      const modalEl = new bootstrap.Modal(document.getElementById('switchUserModal'));
+      modalEl.show();
+    }}
+
+    function submitSwitchUser() {{
+      const email = document.getElementById('switchEmailInput').value.trim();
+      const name = document.getElementById('switchNameInput').value.trim();
+      const role = document.getElementById('switchRoleInput').value;
+
+      if (!email) {{
+        alert('กรุณากรอกอีเมลผู้ใช้');
+        return;
+      }}
+
+      fetch('/api/login-switch', {{
+        method: 'POST',
+        headers: {{ 'Content-Type': 'application/json' }},
+        body: JSON.stringify({{ email, name, role }})
+      }})
+      .then(res => res.json())
+      .then(data => {{
+        if (data.success) {{
+          loadCurrentUser();
+          loadActivityLogs();
+          const modalEl = bootstrap.Modal.getInstance(document.getElementById('switchUserModal'));
+          if (modalEl) modalEl.hide();
+        }}
+      }});
+    }}
+  </script>
+</body>
+</html>
+"""
+
+with open('admin_logs.html', 'w', encoding='utf-8') as f:
+    f.write(admin_logs_html)
+print("Created admin_logs.html with Google Auth Modal")

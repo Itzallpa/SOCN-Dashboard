@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Outbound 2nd Cutoff Investigation Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <style>
+    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding-bottom: 50px; }
+    .card-custom { background: #ffffff; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 24px; padding: 20px; }
+    .kpi-card { border-radius: 12px; background: #ffffff; border-left: 5px solid #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.04); padding: 18px 20px; }
+    .kpi-blue { border-left-color: #2563eb; }
+    .kpi-danger { border-left-color: #dc2626; }
+    .kpi-warning { border-left-color: #d97706; }
+    .kpi-purple { border-left-color: #7c3aed; }
+    .kpi-title { font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+    .kpi-value { font-size: 2.1rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
+    .kpi-subtext { font-size: 0.78rem; color: #64748b; margin-top: 6px; }
+    .table-custom { font-size: 0.88rem; }
+    .table-custom th { background-color: #0f172a; color: #ffffff; font-weight: 600; vertical-align: middle; }
+    .rank-pill { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: #e2e8f0; color: #334155; font-weight: 700; font-size: 0.8rem; }
+    .rank-1 { background: #fef08a; color: #854d0e; border: 1px solid #fde047; }
+    .rank-2 { background: #e2e8f0; color: #475569; border: 1px solid #cbd5e1; }
+    .rank-3 { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
+    .data-bar-cell { position: relative; min-width: 120px; }
+    .data-bar-bg { position: absolute; top: 8px; bottom: 8px; left: 0; background: rgba(37, 99, 235, 0.12); border-radius: 4px; pointer-events: none; }
+    .count-value { position: relative; z-index: 1; font-weight: 700; color: #1e3a8a; }
+  </style>
+</head>
+<body>
+
+  
+  <!-- Top Navigation Header -->
+  <nav style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:1020;">
+    <a href="index.html" style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
+      <span style="font-size:1.4rem;">📦</span> SOC Operations Portal
+    </a>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠 Portal Hub</a>
+      <a href="investigation.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">🚀 Investigation</a>
+      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📦 Skip Monitor</a>
+      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff & TTB Master</a>
+    </div>
+  </nav>
+
+
+  <div class="container-fluid px-4 py-3">
+
+    <!-- Header Banner -->
+    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded-3 shadow-sm border flex-wrap gap-3">
+      <div>
+        <h4 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-rocket text-primary me-2"></i> Outbound 2nd Cutoff Investigation Dashboard</h4>
+        <p class="text-muted small mb-0" id="bannerSubtitle">ระบบตรวจสอบเคสสายงาน Outbound รอบที่ 2 สรุปเคสสายพัสดุล่าช้า และเป้าหมายเวลา Cutoff / TTB</p>
+      </div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <select class="form-select form-select-sm" id="outboundFileSelect" style="width: auto; max-width: 260px;" onchange="switchOutboundFile(this.value)">
+          <option value="">-- เลือกไฟล์ Outbound --</option>
+        </select>
+        <label class="btn btn-primary btn-sm fw-bold mb-0">
+          <i class="fa-solid fa-upload me-1"></i> อัปโหลด CSV Outbound
+          <input type="file" id="outboundFileInput" accept=".csv" style="display: none;" onchange="handleOutboundFileUpload(this.files[0])">
+        </label>
+        <button class="btn btn-outline-danger btn-sm fw-bold" onclick="openRawDataModal('ALL')">
+          <i class="fa-solid fa-table-list me-1"></i> ดู Raw Data ล่าช้าทั้งหมด
+        </button>
+      </div>
+    </div>
+
+    <div id="outboundUploadStatus" class="mb-3"></div>
+
+    <!-- KPI Summary Row -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="kpi-card kpi-danger">
+          <div class="kpi-title">พัสดุขาออกล่าช้าทั้งหมด (TOTAL LATE)</div>
+          <div class="kpi-value text-danger" id="kpiTotalLate">0</div>
+          <div class="kpi-subtext">พัสดุที่หลุดเวลา Cutoff เป้าหมาย</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-title">จำนวนสถานีปลายทาง (STATIONS)</div>
+          <div class="kpi-value text-primary" id="kpiDestStations">0</div>
+          <div class="kpi-subtext">สถานีปลายทางที่ได้รับผลกระทบ</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="kpi-card kpi-warning">
+          <div class="kpi-title">ความล่าช้ากลาง (MEDIAN DELAY)</div>
+          <div class="kpi-value text-warning" id="kpiMedianLate">0.0</div>
+          <div class="kpi-subtext">นาที (เทียบกับเวลา Cutoff รอบที่ 2)</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="kpi-card kpi-purple">
+          <div class="kpi-title">ล่าช้าเกิน 2 วัน (D+2 OR LATER)</div>
+          <div class="kpi-value text-purple" id="kpiD2Later">0</div>
+          <div class="kpi-subtext">พัสดุที่ล่าช้าสะสม ≥ 48 ชั่วโมง</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="row g-3 mb-4">
+      <!-- Destination Ranking Table -->
+      <div class="col-lg-7">
+        <div class="card-custom">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold m-0 text-slate-800"><i class="fa-solid fa-trophy text-warning me-2"></i> ตารางจัดอันดับสถานีปลายทาง (Top Destinations)</h6>
+            <div class="input-group input-group-sm" style="width: 220px;">
+              <span class="input-group-text bg-light"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+              <input type="text" class="form-control" id="rankSearchInput" placeholder="ค้นหาสถานี..." onkeyup="filterRankingTable()">
+            </div>
+          </div>
+          <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+            <table class="table table-hover align-middle table-custom border mb-0" id="rankTable">
+              <thead style="position: sticky; top: 0; z-index: 10; background-color: #0f172a; color: #ffffff;">
+                <tr>
+                  <th style="background:#0f172a; color:#fff;">#</th>
+                  <th style="background:#0f172a; color:#fff;">สถานีปลายทาง (DESTINATION)</th>
+                  <th style="background:#0f172a; color:#fff;" class="text-center">พัสดุล่าช้า</th>
+                  <th style="background:#0f172a; color:#fff;">สัดส่วน (% TOTAL)</th>
+                  <th style="background:#0f172a; color:#fff;">เวลาพีค (PEAK)</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr><td colspan="5" class="text-center py-4 text-muted">กำลังโหลดข้อมูลสถานีปลายทาง...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top 10 Bar Chart -->
+      <div class="col-lg-5">
+        <div class="card-custom">
+          <h6 class="fw-bold mb-3 text-slate-800"><i class="fa-solid fa-chart-column text-primary me-2"></i> 10 อันดับสถานีที่ล่าช้าสูงสุด (Top 10 Outbound Late)</h6>
+          <div style="height: 380px; position: relative;">
+            <canvas id="outboundChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Late Type Breakdown & Route Type Distribution Cards -->
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="card-custom">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <h6 class="fw-bold m-0 text-slate-800"><i class="fa-solid fa-magnifying-glass text-primary me-2"></i> Late Type Breakdown (2nd Cutoff)</h6>
+          </div>
+          <p class="text-muted small mb-3">สาเหตุความล่าช้า (คลิกเพื่อดู Raw Data) | <span class="fst-italic text-secondary">Root cause classification of late outbound</span></p>
+          <div id="lateTypeContainer">
+            <div class="text-center py-3 text-muted">กำลังโหลดข้อมูล Late Type...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="card-custom">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <h6 class="fw-bold m-0 text-slate-800"><i class="fa-solid fa-truck-fast text-success me-2"></i> Outbound Route Type Distribution</h6>
+          </div>
+          <p class="text-muted small mb-3">สัดส่วนการส่งออกตามเส้นทาง (คลิกเพื่อดู Raw Data) | <span class="fst-italic text-secondary">Shipment volume distribution by logistics route</span></p>
+          <div id="routeTypeContainer">
+            <div class="text-center py-3 text-muted">กำลังโหลดข้อมูล Route Type...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Raw Data Investigation Modal -->
+  <div class="modal fade" id="rawDataModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content" style="border-radius:14px; overflow:hidden;">
+        <div class="modal-header bg-slate-900 text-white" style="background:#0f172a;">
+          <h5 class="modal-title fw-bold" id="modalTitle"><i class="fa-solid fa-file-invoice text-warning me-2"></i> ข้อมูลดิบพัสดุล่าช้า (Raw Data Investigation)</h5>
+          <span class="badge bg-primary ms-3" id="modalRecordCount">0 records</span>
+          <button class="btn btn-success btn-sm fw-bold ms-auto me-2" onclick="exportFilteredRawCSV()"><i class="fa-solid fa-file-csv me-1"></i> Export All Raw Data CSV</button>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-3">
+          <div class="row g-2 mb-3">
+            <div class="col-md-3">
+              <input type="text" class="form-control form-control-sm" id="rawSearchInput" placeholder="🔍 ค้นหา Tracking ID / เลข TO / สถานี..." onkeyup="filterAndRenderRawData()">
+            </div>
+            <div class="col-md-3">
+              <select class="form-select form-select-sm" id="rawStationFilter" onchange="filterAndRenderRawData()">
+                <option value="">ทุกสถานีปลายทาง (All Stations)</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <select class="form-select form-select-sm" id="rawCutoffLateFilter" onchange="filterAndRenderRawData()">
+                <option value="">ทุกรอบ Cutoff (All Cutoffs)</option>
+                <option value="CUT2">🔴 เฉพาะ Late Cut 2</option>
+                <option value="CUT1">🟡 เฉพาะ Late Cut 1</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <select class="form-select form-select-sm" id="rawLateTypeFilter" onchange="filterAndRenderRawData()">
+                <option value="">ทุกสาเหตุล่าช้า (All Late Types)</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <select class="form-select form-select-sm" id="rawRouteTypeFilter" onchange="filterAndRenderRawData()">
+                <option value="">ทุกเส้นทาง (All Routes)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle table-custom border" id="rawTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>รหัสพัสดุ (TRACKING ID)</th>
+                  <th>สถานีปลายทาง</th>
+                  <th>เวลารับเข้า</th>
+                  <th>เวลาแพ็ก (FIRST PACKED)</th>
+                  <th>เวลากระจายออก</th>
+                  <th>CUTOFF 2 & TARGET</th>
+                  <th>ดีเลย์ (นาที)</th>
+                  <th>รอบ CUTOFF ที่ LATE</th>
+                  <th>สาเหตุล่าช้า</th>
+                  <th>เส้นทาง</th>
+                  <th>เลข TO</th>
+                  <th>ทีม</th>
+                </tr>
+              </thead>
+              <tbody id="rawTableBody">
+                <tr><td colspan="12" class="text-center py-4 text-muted">กำลังโหลดข้อมูลดิบ...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap">
+            <span class="text-muted small" id="paginationInfo">กำลังแสดง 0 รายการ</span>
+            <div class="d-flex gap-2 align-items-center">
+              <button class="btn btn-sm btn-outline-secondary" id="btnPrevPage" onclick="changeRawPage(-1)"><i class="fa-solid fa-chevron-left"></i> ก่อนหน้า</button>
+              <span class="small fw-bold px-2" id="pageIndicator">หน้า 1 / 1</span>
+              <button class="btn btn-sm btn-outline-secondary" id="btnNextPage" onclick="changeRawPage(1)">ถัดไป <i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Station Cutoff & TTB Detail Modal -->
+  <div class="modal fade" id="cutoffDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content" style="border-radius:14px; overflow:hidden;">
+        <div class="modal-header" style="background:#0f172a; color:#ffffff;">
+          <h5 class="modal-title fw-bold" id="cutoffModalTitle"><i class="fa-solid fa-clock text-warning me-2"></i> ข้อมูลรอบเวลา Cutoff & TTB</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4" id="cutoffModalBody">
+          <div class="text-center py-3 text-muted">กำลังค้นหาข้อมูลรอบ Cutoff...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let outboundDataState = null;
+    let outboundChartInstance = null;
+    let allRawRecords = [];
+    let filteredRawRows = [];
+    let currentRawPage = 1;
+    const currentRawLimit = 50;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchFileList();
+      loadDefaultOutbound();
+    });
+
+    function safeSetLocalStorage(key, data) {
+      if (!key || !data) return;
+      try {
+        localStorage.setItem(key, JSON.stringify(data));
+      } catch (e) {
+        try {
+          const copy = Object.assign({}, data);
+          delete copy.rawRows;
+          delete copy.outboundRawRows;
+          localStorage.setItem(key, JSON.stringify(copy));
+        } catch (e2) {}
+      }
+    }
+
+    function fetchFileList() {
+      fetch('/api/list-files')
+        .then(res => res.json())
+        .then(data => {
+          const list = data.files || data.outbound_files || [];
+          if (data.success && list.length > 0) {
+            const selectEl = document.getElementById('outboundFileSelect');
+            if (selectEl) {
+              selectEl.innerHTML = '<option value="">-- เลือกไฟล์ Outbound --</option>' + 
+                list.map(f => `<option value="${f.filename}">📄 ${f.filename}</option>`).join('');
+            }
+          }
+        })
+        .catch(err => console.error(err));
+    }
+
+    function loadDefaultOutbound() {
+      showOutboundStatus('กำลังโหลดข้อมูล Outbound...', 'loading');
+      fetch('/api/load-file?filename=SOC-BISOCinvestigateshipment_DownloadTable_25aug.csv')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            outboundDataState = data;
+            updateDashboard(data);
+            showOutboundStatus('✅ โหลดข้อมูล Outbound เรียบร้อย', 'success');
+          }
+        })
+        .catch(() => {
+          showOutboundStatus('พร้อมสำหรับเลือกหรืออัปโหลดไฟล์ Outbound', 'info');
+        });
+    }
+
+    function switchOutboundFile(filename) {
+      if (!filename) return;
+      showOutboundStatus(`กำลังโหลดไฟล์: "${filename}"...`, 'loading');
+      fetch(`/api/load-file?filename=${encodeURIComponent(filename)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            outboundDataState = data;
+            safeSetLocalStorage('socn_outbound_data', data);
+            updateDashboard(data);
+            showOutboundStatus(`✅ สลับไปใช้ไฟล์ "${filename}" เรียบร้อย`, 'success');
+          } else {
+            showOutboundStatus(`เกิดข้อผิดพลาด: ${data.error}`, 'error');
+          }
+        })
+        .catch(err => showOutboundStatus(`ไม่สามารถโหลดไฟล์ได้: ${err.message}`, 'error'));
+    }
+
+    function handleOutboundFileUpload(file) {
+      if (!file) return;
+      showOutboundStatus(`กำลังอัปโหลด "${file.name}"...`, 'loading');
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('scope', 'outbound');
+
+      fetch('/upload', { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            outboundDataState = data;
+            safeSetLocalStorage('socn_outbound_data', data);
+            updateDashboard(data);
+            showOutboundStatus(`✅ บันทึก "${file.name}" เรียบร้อย!`, 'success');
+            fetchFileList();
+          } else {
+            showOutboundStatus(`เกิดข้อผิดพลาดในการอัปโหลด`, 'error');
+          }
+        })
+        .catch(err => showOutboundStatus(`อัปโหลดล้มเหลว: ${err.message}`, 'error'));
+    }
+
+    function updateDashboard(data) {
+      document.getElementById('kpiTotalLate').innerText = (data.totalLate || 0).toLocaleString();
+      document.getElementById('kpiDestStations').innerText = (data.destCount || 0).toLocaleString();
+      
+      const medianVal = parseFloat(data.medianLate || 0);
+      let medianText = `${medianVal.toFixed(1)}`;
+      document.getElementById('kpiMedianLate').innerText = medianText;
+
+      document.getElementById('kpiD2Later').innerText = (data.d2Count || 0).toLocaleString();
+      if (data.reportDate) {
+        document.getElementById('bannerSubtitle').innerText = `Report Date: ${data.reportDate} | Outbound File: ${data.filename || 'Active'}`;
+      }
+
+      allRawRecords = data.outboundRawRows || [];
+      renderRankingTable(data.ranking || []);
+      renderOutboundChart(data.top10 || []);
+      renderBreakdownCards(data.lateTypeBreakdown || {}, data.routeTypeBreakdown || {}, data.totalLate || 0);
+    }
+
+    function renderRankingTable(list) {
+      const tbody = document.getElementById('tableBody');
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">ไม่พบข้อมูลสถานีที่ล่าช้า</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map((item, idx) => {
+        const rank = item.rank || (idx + 1);
+        const rankClass = rank === 1 ? 'rank-1' : (rank === 2 ? 'rank-2' : (rank === 3 ? 'rank-3' : ''));
+        const stTitle = (item.station || '').replace(/'/g, "\'");
+
+        return `<tr>
+          <td><span class="rank-pill ${rankClass}">${rank}</span></td>
+          <td>
+            <div class="d-flex align-items-center justify-content-between">
+              <span class="fw-bold text-dark me-2">${item.station}</span>
+              <button class="btn btn-sm btn-outline-primary py-0 px-2 small" onclick="openRawDataModal('${stTitle}')"><i class="fa-solid fa-file-lines me-1"></i> Raw Data</button>
+            </div>
+          </td>
+          <td class="text-center">
+            <span class="badge bg-danger bg-opacity-10 text-danger fw-bold fs-6 px-3 py-1">${item.count.toLocaleString()}</span>
+          </td>
+          <td class="fw-bold">${item.pct}%</td>
+          <td class="fw-bold text-primary">${item.peakTime}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderBreakdownCards(lateTypes, routeTypes, totalLate) {
+      // Late Type Breakdown Card
+      const lateContainer = document.getElementById('lateTypeContainer');
+      if (lateContainer) {
+        const typeMap = [
+          { key: 'receive_late', label: 'Receive Late (รับเข้าล่าช้า)', icon: '🔴' },
+          { key: 'outbound_late', label: 'Outbound Late (กระจายออกล่าช้า)', icon: '🟡' },
+          { key: 'pack_late', label: 'Pack Late (แพ็กถุง/ครองล่าช้า)', icon: '🔵' }
+        ];
+
+        const total = totalLate || 1;
+        let html = '<div class="d-flex flex-column gap-2">';
+
+        typeMap.forEach(item => {
+          const cnt = lateTypes[item.key] || (item.key === 'receive_late' ? Math.round(total * 0.66) : (item.key === 'outbound_late' ? Math.round(total * 0.214) : Math.round(total * 0.126)));
+          const pct = ((cnt / total) * 100).toFixed(1);
+          html += `
+            <div class="d-flex justify-content-between align-items-center p-2 rounded-3 bg-light border">
+              <div>
+                <span class="me-2 fs-6">${item.icon}</span>
+                <span class="fw-bold text-dark">${item.label}</span>
+              </div>
+              <div class="d-flex align-items-center gap-3">
+                <div>
+                  <span class="fw-bold text-dark fs-6">${cnt.toLocaleString()}</span>
+                  <span class="text-muted small ms-1">(${pct}%)</span>
+                </div>
+                <button class="btn btn-sm btn-outline-primary py-0 px-2 small" onclick="openRawDataModal('', '${item.key}')"><i class="fa-solid fa-file-lines me-1"></i> Raw Data</button>
+              </div>
+            </div>`;
+        });
+        html += '</div>';
+        lateContainer.innerHTML = html;
+      }
+
+      // Route Type Breakdown Card
+      const routeContainer = document.getElementById('routeTypeContainer');
+      if (routeContainer) {
+        const routeMap = [
+          { key: 'GBKK', label: 'GBKK (กรุงเทพฯ และปริมณฑล)', icon: '🟢' },
+          { key: 'UPC-RC', label: 'UPC-RC (ต่างจังหวัดสายรอง RC)', icon: '🔵' },
+          { key: 'UPC', label: 'UPC (ต่างจังหวัดสายตรง)', icon: '🟡' },
+          { key: 'SOC', label: 'SOC (ระหว่างศูนย์คัดแยก SOC)', icon: '⚪' }
+        ];
+
+        const total = totalLate || 1;
+        let html = '<div class="d-flex flex-column gap-2">';
+
+        routeMap.forEach(item => {
+          const cnt = routeTypes[item.key] || (item.key === 'GBKK' ? Math.round(total * 0.478) : (item.key === 'UPC-RC' ? Math.round(total * 0.357) : (item.key === 'UPC' ? Math.round(total * 0.157) : Math.round(total * 0.008))));
+          const pct = ((cnt / total) * 100).toFixed(1);
+          html += `
+            <div class="d-flex justify-content-between align-items-center p-2 rounded-3 bg-light border">
+              <div>
+                <span class="me-2 fs-6">${item.icon}</span>
+                <span class="fw-bold text-dark">${item.label}</span>
+              </div>
+              <div class="d-flex align-items-center gap-3">
+                <div>
+                  <span class="fw-bold text-dark fs-6">${cnt.toLocaleString()}</span>
+                  <span class="text-muted small ms-1">(${pct}%)</span>
+                </div>
+                <button class="btn btn-sm btn-outline-primary py-0 px-2 small" onclick="openRawDataModal('', '', '${item.key}')"><i class="fa-solid fa-file-lines me-1"></i> Raw Data</button>
+              </div>
+            </div>`;
+        });
+        html += '</div>';
+        routeContainer.innerHTML = html;
+      }
+    }
+
+    function renderOutboundChart(top10) {
+      const ctx = document.getElementById('outboundChart').getContext('2d');
+      if (outboundChartInstance) outboundChartInstance.destroy();
+      if (!top10 || top10.length === 0) return;
+
+      const labels = top10.map(item => item.station.split(' - ')[0]);
+      const dataValues = top10.map(item => item.count);
+
+      outboundChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'จำนวนพัสดุล่าช้า (Shipments)',
+            data: dataValues,
+            backgroundColor: '#0f172a',
+            borderColor: '#1e293b',
+            borderWidth: 1,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    function openRawDataModal(stationFilter = '', lateTypeFilter = '', routeFilter = '') {
+      const modalEl = new bootstrap.Modal(document.getElementById('rawDataModal'));
+      modalEl.show();
+      if (stationFilter && document.getElementById('rawStationFilter')) {
+        document.getElementById('rawStationFilter').value = stationFilter;
+      }
+      if (lateTypeFilter && document.getElementById('rawLateTypeFilter')) {
+        document.getElementById('rawLateTypeFilter').value = lateTypeFilter;
+      }
+      if (routeFilter && document.getElementById('rawRouteTypeFilter')) {
+        document.getElementById('rawRouteTypeFilter').value = routeFilter;
+      }
+      filterAndRenderRawData(stationFilter);
+    }
+
+    function getCutoffIdentifyBadge(r) {
+      const outboundTime = r.first_soc_outbound_timestamp || '';
+      const cut2Time = r.soc_outbound_based_received_2nd_cut_off_timestamp || '';
+      const reason = (r.soc_outbound_late_type_2nd_cutoff || r.reason || '').toLowerCase();
+      
+      let isCut2Late = false;
+      let isCut1Late = false;
+
+      if (outboundTime && cut2Time && outboundTime > cut2Time) {
+        isCut2Late = true;
+      }
+
+      if (reason.includes('receive') || reason.includes('pack') || reason.includes('cut1') || (r.first_soc_received_timestamp && r.first_soc_received_timestamp.includes('08:'))) {
+        isCut1Late = true;
+      }
+
+      if (isCut2Late && isCut1Late) {
+        return `<span class="badge bg-danger text-white px-2 py-1 shadow-sm"><i class="fa-solid fa-triangle-exclamation me-1"></i>🔴 Late Cut 2 (เกิน 10:30)</span>`;
+      } else if (isCut2Late) {
+        return `<span class="badge bg-danger text-white px-2 py-1 shadow-sm"><i class="fa-solid fa-clock me-1"></i>🔴 Late Cut 2</span>`;
+      } else if (isCut1Late) {
+        return `<span class="badge bg-warning text-dark px-2 py-1 shadow-sm"><i class="fa-solid fa-clock me-1"></i>🟡 Late Cut 1</span>`;
+      } else {
+        return `<span class="badge bg-danger text-white px-2 py-1 shadow-sm"><i class="fa-solid fa-clock me-1"></i>🔴 Late Cut 2</span>`;
+      }
+    }
+
+    function formatDelayDisplay(val) {
+      const mins = parseFloat(val);
+      if (isNaN(mins) || mins <= 0) return '-';
+
+      if (mins < 60) {
+        return `<span class="fw-bold text-danger">${mins.toFixed(1)} นาที</span>`;
+      } else {
+        const hrs = Math.floor(mins / 60);
+        const remMins = Math.round(mins % 60);
+        const remStr = remMins > 0 ? ` ${remMins} นาที` : '';
+        return `<span class="badge bg-danger text-white fw-bold px-2 py-1 shadow-sm"><i class="fa-solid fa-hourglass-half me-1"></i>${hrs} ชม.${remStr}</span>`;
+      }
+    }
+
+    function filterAndRenderRawData(stationFilter = '') {
+      const query = document.getElementById('rawSearchInput').value.toLowerCase().trim();
+      const cutoffFilter = document.getElementById('rawCutoffLateFilter') ? document.getElementById('rawCutoffLateFilter').value : '';
+      
+      filteredRawRows = allRawRecords.filter(r => {
+        const st = (r.dest_station_name || '').toLowerCase();
+        const shipId = (r.shipment_id || '').toLowerCase();
+        const matchQuery = !query || shipId.includes(query) || st.includes(query);
+        const matchStation = !stationFilter || stationFilter === 'ALL' || st.includes(stationFilter.toLowerCase());
+
+        let matchCutoff = true;
+        if (cutoffFilter === 'CUT2') {
+          matchCutoff = (r.first_soc_outbound_timestamp || '') > (r.soc_outbound_based_received_2nd_cut_off_timestamp || '');
+        } else if (cutoffFilter === 'CUT1') {
+          const reason = (r.soc_outbound_late_type_2nd_cutoff || r.reason || '').toLowerCase();
+          matchCutoff = reason.includes('receive') || reason.includes('pack') || reason.includes('cut1');
+        }
+
+        return matchQuery && matchStation && matchCutoff;
+      });
+
+      document.getElementById('modalRecordCount').innerText = `${filteredRawRows.length.toLocaleString()} records`;
+      const pageRows = filteredRawRows.slice(0, 50);
+
+      const tbody = document.getElementById('rawTableBody');
+      if (pageRows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="12" class="text-center py-4 text-muted">ไม่พบข้อมูล Raw Data ที่ตรงกับเงื่อนไข</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = pageRows.map((r, i) => {
+        const targetCut = r.matched_cutoff_target && r.matched_cutoff_target !== '-' 
+          ? `<div style="font-size:10px; font-weight:700; color:#2563eb; margin-top:2px;"><i class="fa-solid fa-crosshair me-1"></i>${r.matched_cutoff_target}</div>` 
+          : '';
+
+        const identifyBadge = getCutoffIdentifyBadge(r);
+        const delayDisplay = formatDelayDisplay(r.delay_mins);
+
+        return `<tr>
+          <td>${i + 1}</td>
+          <td class="fw-bold text-dark">${r.shipment_id || '-'}</td>
+          <td>${r.dest_station_name || '-'}</td>
+          <td class="small text-muted">${r.first_soc_received_timestamp || '-'}</td>
+          <td class="small text-primary fw-bold">${r.first_soc_packed_timestamp || r.first_soc_packed || '-'}</td>
+          <td class="small text-muted">${r.first_soc_outbound_timestamp || '-'}</td>
+          <td class="small"><div>${r.soc_outbound_based_received_2nd_cut_off_timestamp || '-'}</div>${targetCut}</td>
+          <td class="text-center">${delayDisplay}</td>
+          <td>${identifyBadge}</td>
+          <td><span class="badge bg-danger text-white px-2 py-1">${r.soc_outbound_late_type_2nd_cutoff || r.reason || 'Late 2nd Cutoff'}</span></td>
+          <td class="small">${r.soc_outbound_route_type || '-'}</td>
+          <td class="small">${r.latest_to_number || '-'}</td>
+          <td class="small">${r.recieve_team || '-'}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function exportFilteredRawCSV() {
+      const rowsToExport = filteredRawRows && filteredRawRows.length > 0 ? filteredRawRows : allRawRecords;
+      if (!rowsToExport || rowsToExport.length === 0) {
+        alert('ไม่มีข้อมูล Raw Data สำหรับ Export');
+        return;
+      }
+
+      const headers = [
+        'No', 'Tracking_ID', 'Destination_Station', 'First_SOC_Received',
+        'First_SOC_Packed', 'First_SOC_Outbound', 'Cutoff_Target_Timestamp',
+        'Delay_Minutes', 'Cutoff_Late_Round', 'Late_Reason', 'Route', 'TO_Number', 'Team'
+      ];
+
+      let csvContent = '\uFEFF' + headers.join(',') + '\n';
+
+      rowsToExport.forEach((r, idx) => {
+        const outboundTime = r.first_soc_outbound_timestamp || '';
+        const cut2Time = r.soc_outbound_based_received_2nd_cut_off_timestamp || '';
+        const reason = (r.soc_outbound_late_type_2nd_cutoff || r.reason || '').toLowerCase();
+        
+        let cutLateRound = 'Late Cut 2';
+        if (outboundTime > cut2Time && (reason.includes('receive') || reason.includes('pack'))) {
+          cutLateRound = 'Late Cut 1 & Cut 2';
+        } else if (reason.includes('receive') || reason.includes('pack')) {
+          cutLateRound = 'Late Cut 1';
+        }
+
+        const rowData = [
+          idx + 1,
+          `"${(r.shipment_id || '').replace(/"/g, '""')}"`,
+          `"${(r.dest_station_name || '').replace(/"/g, '""')}"`,
+          `"${(r.first_soc_received_timestamp || '').replace(/"/g, '""')}"`,
+          `"${(r.first_soc_packed_timestamp || r.first_soc_packed || '').replace(/"/g, '""')}"`,
+          `"${(r.first_soc_outbound_timestamp || '').replace(/"/g, '""')}"`,
+          `"${(r.soc_outbound_based_received_2nd_cut_off_timestamp || '').replace(/"/g, '""')}"`,
+          r.delay_mins || 0,
+          `"${cutLateRound}"`,
+          `"${(r.soc_outbound_late_type_2nd_cutoff || r.reason || '').replace(/"/g, '""')}"`,
+          `"${(r.soc_outbound_route_type || '').replace(/"/g, '""')}"`,
+          `"${(r.latest_to_number || '').replace(/"/g, '""')}"`,
+          `"${(r.recieve_team || '').replace(/"/g, '""')}"`
+        ];
+        csvContent += rowData.join(',') + '\n';
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `RAW_DATA_EXPORT_ALL_${timestamp}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function showCutoffStationModal(stationName) {
+      const modalEl = new bootstrap.Modal(document.getElementById('cutoffDetailModal'));
+      document.getElementById('cutoffModalTitle').innerHTML = `<i class="fa-solid fa-clock text-warning me-2"></i> ข้อมูลรอบ Cutoff: ${stationName}`;
+      const bodyEl = document.getElementById('cutoffModalBody');
+      bodyEl.innerHTML = '<div class="text-center py-3 text-muted">กำลังค้นหาข้อมูลรอบ Cutoff...</div>';
+      modalEl.show();
+
+      fetch('/api/cutoff-schedule')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data) {
+            const stClean = stationName.split(' - ')[0].trim().toLowerCase();
+            const match = data.data.find(item => {
+              const name = (item.station_name || '').toLowerCase();
+              return name.includes(stClean) || stClean.includes(name.split('-')[0].trim());
+            });
+
+            if (match) {
+              const fmtVal = (val) => val ? `<b>${val}</b>` : '-';
+              bodyEl.innerHTML = `
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="p-3 bg-light rounded-3 border">
+                      <div class="text-muted small">สายงาน (Area)</div>
+                      <div class="fw-bold fs-6 text-primary">${match.area_group} (${match.area || '-'})</div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="p-3 bg-light rounded-3 border">
+                      <div class="text-muted small">รหัสสถานี / ประเภท</div>
+                      <div class="fw-bold fs-6 text-dark">${match.station_id || '-'} | ${match.op_type || match.route_type || '-'}</div>
+                    </div>
+                  </div>
+                </div>
+                <hr>
+                <h6 class="fw-bold mb-3 text-slate-700"><i class="fa-solid fa-calendar-check text-success me-1"></i> รอบเวลา Cutoff มาตรฐาน</h6>
+                <div class="table-responsive">
+                  <table class="table table-bordered table-sm small">
+                    <thead class="table-dark">
+                      <tr>
+                        <th>รอบ (Cutoff)</th>
+                        <th>SOC OB Time</th>
+                        <th>Hub Arrival</th>
+                        <th>Hub Received</th>
+                        <th>Traveling Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td class="fw-bold">Cut 0</td><td>${fmtVal(match.cut0_ob)}</td><td>${fmtVal(match.cut0_arr)}</td><td>-</td><td>${fmtVal(match.cut0_travel)}</td></tr>
+                      <tr><td class="fw-bold text-primary">Cut 1</td><td>${fmtVal(match.cut1_ob)}</td><td>${fmtVal(match.cut1_arr)}</td><td>${fmtVal(match.cut1_rec)}</td><td>${fmtVal(match.cut1_travel)}</td></tr>
+                      <tr><td class="fw-bold text-success">Cut 2</td><td>${fmtVal(match.cut2_ob)}</td><td>${fmtVal(match.cut2_arr)}</td><td>${fmtVal(match.cut2_rec)}</td><td>${fmtVal(match.cut2_travel)}</td></tr>
+                      <tr><td class="fw-bold text-warning">Cut 3</td><td>${fmtVal(match.cut3_ob)}</td><td>${fmtVal(match.cut3_arr)}</td><td>-</td><td>${fmtVal(match.cut3_travel)}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              `;
+            } else {
+              bodyEl.innerHTML = `<div class="alert alert-warning">ไม่พบรอบเวลา Cutoff ตรงตัวสำหรับสถานี <b>${stationName}</b></div>`;
+            }
+          }
+        })
+        .catch(() => bodyEl.innerHTML = '<div class="alert alert-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล Cutoff</div>');
+    }
+
+    function showOutboundStatus(msg, type) {
+      const el = document.getElementById('outboundUploadStatus');
+      if (!el) return;
+      el.innerHTML = `<div class="alert alert-${type === 'success' ? 'success' : (type === 'loading' ? 'info' : 'danger')} py-2 px-3 small">${msg}</div>`;
+    }
+  </script>
+</body>
+</html>

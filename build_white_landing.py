@@ -1,4 +1,8 @@
-<!DOCTYPE html>
+import os
+
+print("Generating clean white enterprise landing page (index.html)...")
+
+landing_html = """<!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8">
@@ -339,3 +343,8 @@
 
 </body>
 </html>
+"""
+
+with open('index.html', 'w', encoding='utf-8') as f:
+    f.write(landing_html)
+print("Created clean white enterprise index.html")

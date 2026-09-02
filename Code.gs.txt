@@ -2,157 +2,26 @@ const ROSTER_SPREADSHEET_ID = '1vN4L90zXupLEm6UYV-twF22JCDW47IWPMvEwMekehmA';
 const RAW_DATA_SPREADSHEET_ID = '1a7KdFxp5vZrMhRIeBRg2dFC0pJBzZZtmSoTe_2FEgig';
 const VOLUME_SPREADSHEET_ID = '1Z5sAcsGSQBu1A_7crK51a1wnWvSO_NnmXVBrx3te32s';
 
-// ============================================================
-// GOOGLE DRIVE STORAGE (โฟลเดอร์สำหรับเก็บไฟล์ JSON และ CSV)
-// ============================================================
-const DRIVE_FOLDER_ID = '1aaTx4HMzpEkOLIpEhu22uljG3qaU4AtX';
-
-function corsJson(data) {
-  return ContentService
-    .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-// ============================================================
-// doGet - ดึงข้อมูลไฟล์ผ่าน HTTP GET
-// ============================================================
-function doGet(e) {
-  if (e && e.parameter && e.parameter.action) {
-    const action = e.parameter.action;
-    if (action === 'getFileList')   return corsJson(driveGetFileList());
-    if (action === 'getLatestData') return corsJson(driveGetLatestData());
-    if (action === 'getFileData')   return corsJson(driveGetFileData(e.parameter.filename));
-    if (action === 'getDashboardData') return corsJson(getDashboardData(e.parameter.colIndex || null));
-    return corsJson({ success: false, error: 'Unknown action: ' + action });
-  }
+function doGet() {
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('SOC Investigation & Skip Process Dashboard')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-// ============================================================
-// doPost - บันทึกข้อมูล Dashboard ลง Google Drive
-// ============================================================
-function doPost(e) {
-  try {
-    const payload = JSON.parse(e.postData.contents);
-    if (payload.action === 'saveFile') {
-      return corsJson(driveSaveFile(payload.filename, payload.data));
-    }
-    return corsJson({ success: false, error: 'Unknown action' });
-  } catch (err) {
-    return corsJson({ success: false, error: err.toString() });
-  }
-}
-
-// ============================================================
-// DRIVE FUNCTIONS
-// ============================================================
-
-function driveSaveFile(filename, data) {
-  try {
-    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-    const safeBase = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const jsonFilename = 'socn_' + safeBase + '.json';
-
-    _deleteFileIfExists(folder, jsonFilename);
-
-    const toSave = Object.assign({}, data);
-    delete toSave.rawRows;
-    folder.createFile(jsonFilename, JSON.stringify(toSave), MimeType.PLAIN_TEXT);
-
-    _deleteFileIfExists(folder, 'socn_latest.json');
-    const latestData = Object.assign({}, toSave, {
-      _sourceFile: filename,
-      _savedAt: new Date().toISOString()
-    });
-    folder.createFile('socn_latest.json', JSON.stringify(latestData), MimeType.PLAIN_TEXT);
-
-    _updateFileIndex(folder, jsonFilename);
-
-    return { success: true, savedAs: jsonFilename, folderId: DRIVE_FOLDER_ID };
-  } catch (err) {
-    return { success: false, error: err.toString() };
-  }
-}
-
-function driveGetFileList() {
-  try {
-    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-    const indexFiles = folder.getFilesByName('socn_file_index.json');
-    if (indexFiles.hasNext()) {
-      return { success: true, files: JSON.parse(indexFiles.next().getBlob().getDataAsString()) };
-    }
-    return { success: true, files: [] };
-  } catch (err) {
-    return { success: false, error: err.toString() };
-  }
-}
-
-function driveGetLatestData() {
-  try {
-    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-    const files = folder.getFilesByName('socn_latest.json');
-    if (files.hasNext()) {
-      return { success: true, data: JSON.parse(files.next().getBlob().getDataAsString()) };
-    }
-    return { success: false, error: 'ยังไม่มีข้อมูลไฟล์ที่อัปโหลด' };
-  } catch (err) {
-    return { success: false, error: err.toString() };
-  }
-}
-
-function driveGetFileData(filename) {
-  try {
-    if (!filename) return { success: false, error: 'ระบุชื่อไฟล์ไม่ถูกต้อง' };
-    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-    const files = folder.getFilesByName(filename);
-    if (files.hasNext()) {
-      return { success: true, data: JSON.parse(files.next().getBlob().getDataAsString()) };
-    }
-    return { success: false, error: 'ไม่พบไฟล์: ' + filename };
-  } catch (err) {
-    return { success: false, error: err.toString() };
-  }
-}
-
-function _deleteFileIfExists(folder, filename) {
-  const files = folder.getFilesByName(filename);
-  while (files.hasNext()) files.next().setTrashed(true);
-}
-
-function _updateFileIndex(folder, newFilename) {
-  try {
-    let index = [];
-    const indexFiles = folder.getFilesByName('socn_file_index.json');
-    if (indexFiles.hasNext()) {
-      const f = indexFiles.next();
-      try { index = JSON.parse(f.getBlob().getDataAsString()); } catch(e) {}
-      f.setTrashed(true);
-    }
-    index = index.filter(f => f !== newFilename);
-    index.unshift(newFilename);
-    if (index.length > 20) index = index.slice(0, 20);
-    folder.createFile('socn_file_index.json', JSON.stringify(index), MimeType.PLAIN_TEXT);
-  } catch(e) { Logger.log('_updateFileIndex error: ' + e); }
-}
-
-// ============================================================
-// DASHBOARD DATA FUNCTIONS (???? - ??????????)
-// ============================================================
-
 function getDashboardData(selectedDateColIndex) {
   try {
+    // 1. Roster Sheet
     let staffByZone = {};
     try {
       const rosterSs = SpreadsheetApp.openById(ROSTER_SPREADSHEET_ID);
       const rosterSheet = rosterSs.getSheetByName('FTE /Aug') || rosterSs.getSheets()[0];
       const rosterLastRow = rosterSheet.getLastRow();
+      
       if (rosterLastRow >= 4) {
         const rosterValues = rosterSheet.getRange(4, 6, rosterLastRow - 3, 3).getValues();
         for (let i = 0; i < rosterValues.length; i++) {
-          let name = rosterValues[i][0];
-          let zone = rosterValues[i][2];
+          let name = rosterValues[i][0]; 
+          let zone = rosterValues[i][2]; 
           if (name && zone) {
             zone = String(zone).trim().toUpperCase();
             if (!staffByZone[zone]) staffByZone[zone] = [];
@@ -160,82 +29,154 @@ function getDashboardData(selectedDateColIndex) {
           }
         }
       }
-    } catch (e) { Logger.log("Roster read error: " + e); }
+    } catch (e) {
+      Logger.log("Roster read error: " + e.toString());
+    }
 
-    let skipCases = [], skipCountByZone = {}, totalSkipCases = 0, machineCount = 0, systemCount = 0;
+    // 2. Raw Data Sheet
+    let skipCases = [];
+    let skipCountByZone = {};
+    let totalSkipCases = 0;
+    let machineCount = 0;
+    let systemCount = 0;
+
     try {
       const rawSs = SpreadsheetApp.openById(RAW_DATA_SPREADSHEET_ID);
       const rawSheet = rawSs.getSheetByName('Raw') || rawSs.getSheets()[0];
+      
+      // หาบรรทัดสุดท้ายที่มีข้อมูลจริงใน Column A
       const colAValues = rawSheet.getRange("A:A").getValues();
       let actualLastRow = 0;
       for (let i = colAValues.length - 1; i >= 0; i--) {
-        if (colAValues[i][0] !== "" && colAValues[i][0] !== null) { actualLastRow = i + 1; break; }
+        if (colAValues[i][0] !== "" && colAValues[i][0] !== null && colAValues[i][0] !== undefined) {
+          actualLastRow = i + 1;
+          break;
+        }
       }
+
       const rawLastCol = rawSheet.getLastColumn();
+
       if (actualLastRow >= 2) {
         const headers = rawSheet.getRange(1, 1, 1, rawLastCol).getValues()[0].map(h => h ? String(h).trim().toLowerCase() : '');
+        
         const shipmentIdx = headers.indexOf('shipment_id');
-        const reasonIdx   = headers.indexOf('soc_outbound_late_type_2nd_cutoff');
-        const hubIdx      = headers.indexOf('dest_station_name');
-        const rawValues   = rawSheet.getRange(2, 1, actualLastRow - 1, rawLastCol).getValues();
+        const reasonIdx = headers.indexOf('soc_outbound_late_type_2nd_cutoff');
+        const hubIdx = headers.indexOf('dest_station_name');
+
+        const rawValues = rawSheet.getRange(2, 1, actualLastRow - 1, rawLastCol).getValues();
+
         for (let i = 0; i < rawValues.length; i++) {
           let row = rawValues[i];
+          
           let shipmentId = (shipmentIdx !== -1 && row[shipmentIdx]) ? String(row[shipmentIdx]).trim() : String(row[0] || '-').trim();
-          let rawReason  = reasonIdx !== -1 ? String(row[reasonIdx] || '').trim().toLowerCase() : String(row[8] || row[18] || '').trim().toLowerCase();
+          
+          let rawReason = '';
+          if (reasonIdx !== -1 && row[reasonIdx] !== null && row[reasonIdx] !== undefined) {
+            rawReason = String(row[reasonIdx]).trim().toLowerCase();
+          } else {
+            rawReason = String(row[8] || row[18] || '').trim().toLowerCase();
+          }
+
           if (rawReason === 'undefined') rawReason = '';
+
           let hubName = (hubIdx !== -1 && row[hubIdx]) ? String(row[hubIdx]).trim() : String(row[9] || '-').trim();
+          if (hubName === 'undefined') hubName = '-';
+
           let zone = String(row[19] || row[9] || 'N/A').trim().toUpperCase();
           if (zone === 'UNDEFINED' || !zone) zone = 'N/A';
+
           if (rawReason.indexOf('skip') !== -1) {
             totalSkipCases++;
-            if (rawReason.indexOf('machine') !== -1) machineCount++;
-            else if (rawReason.indexOf('system') !== -1) systemCount++;
-            skipCases.push({ rowNo: i+2, shipmentId: shipmentId||'-', reason: rawReason||'skip_outbound', zone, hub: hubName });
-            if (zone) skipCountByZone[zone] = (skipCountByZone[zone] || 0) + 1;
+
+            if (rawReason.indexOf('machine') !== -1) {
+              machineCount++;
+            } else if (rawReason.indexOf('system') !== -1) {
+              systemCount++;
+            }
+
+            skipCases.push({
+              rowNo: i + 2,
+              shipmentId: shipmentId || '-',
+              reason: rawReason || 'skip_outbound',
+              zone: zone,
+              hub: hubName
+            });
+            
+            if (zone) {
+              skipCountByZone[zone] = (skipCountByZone[zone] || 0) + 1;
+            }
           }
         }
       }
-    } catch (e) { Logger.log("Raw data read error: " + e); }
+    } catch (e) {
+      Logger.log("Raw data read error: " + e.toString());
+    }
 
-    let availableDates = [], socActual = 0, targetCol = -1;
+    // 3. Volume Tracker Sheet
+    let availableDates = [];
+    let socActual = 0;
+    let targetCol = -1;
+
     try {
       const volSs = SpreadsheetApp.openById(VOLUME_SPREADSHEET_ID);
       const volSheet = volSs.getSheetByName('SOC') || volSs.getSheets()[0];
       const volLastCol = volSheet.getLastColumn();
-      if (volLastCol >= 16) {
-        const row1 = volSheet.getRange(1, 1, 1, volLastCol).getDisplayValues()[0];
-        const row10 = volSheet.getRange(10, 1, 1, volLastCol).getValues()[0];
-        for (let c = 15; c < row1.length; c++) {
-          let dateStr = String(row1[c]).trim();
-          if (dateStr !== "" && !dateStr.startsWith('#')) availableDates.push({ colIndex: c, dateText: dateStr });
+
+      if (volLastCol >= 16) { 
+        const row1DisplayValues = volSheet.getRange(1, 1, 1, volLastCol).getDisplayValues()[0];
+        const row10Values = volSheet.getRange(10, 1, 1, volLastCol).getValues()[0];
+
+        for (let c = 15; c < row1DisplayValues.length; c++) {
+          let dateStr = String(row1DisplayValues[c]).trim();
+          if (dateStr !== "" && !dateStr.startsWith('#')) {
+            availableDates.push({ colIndex: c, dateText: dateStr });
+          }
         }
+
         targetCol = (selectedDateColIndex !== undefined && selectedDateColIndex !== null && selectedDateColIndex !== "")
-          ? Number(selectedDateColIndex)
+          ? Number(selectedDateColIndex) 
           : (availableDates.length > 0 ? availableDates[0].colIndex : -1);
-        if (targetCol >= 0 && row10[targetCol] !== undefined) {
-          let val = Number(row10[targetCol]);
+
+        if (targetCol >= 0 && row10Values[targetCol] !== undefined) {
+          let val = Number(row10Values[targetCol]);
           if (!isNaN(val)) socActual = val;
         }
       }
-    } catch (e) { Logger.log("Volume read error: " + e); }
+    } catch (e) {
+      Logger.log("Volume read error: " + e.toString());
+    }
+
+    let skipPercentage = socActual > 0 ? ((totalSkipCases / socActual) * 100).toFixed(2) : "0.00";
 
     return {
-      staffByZone, skipCases, skipCountByZone,
-      totalSkipCases, machineCount, systemCount,
-      socActual, skipPercentage: socActual > 0 ? ((totalSkipCases / socActual) * 100).toFixed(2) : "0.00",
-      availableDates, selectedColIndex: targetCol
+      staffByZone: staffByZone,
+      skipCases: skipCases,
+      skipCountByZone: skipCountByZone,
+      totalSkipCases: totalSkipCases,
+      machineCount: machineCount,
+      systemCount: systemCount,
+      socActual: socActual,
+      skipPercentage: skipPercentage,
+      availableDates: availableDates,
+      selectedColIndex: targetCol
     };
+
   } catch (err) {
     return { error: err.toString() };
   }
 }
 
+// Clear ข้อมูลเก่าแบบถอนรากถอนโคน
 function clearRawDataSheet() {
   try {
     const rawSs = SpreadsheetApp.openById(RAW_DATA_SPREADSHEET_ID);
     const rawSheet = rawSs.getSheetByName('Raw') || rawSs.getSheets()[0];
+    
     const maxRows = rawSheet.getMaxRows();
-    if (maxRows >= 2) rawSheet.getRange(2, 1, maxRows - 1, 15).clearContent();
+    if (maxRows >= 2) {
+      rawSheet.getRange(2, 1, maxRows - 1, 15).clearContent();
+    }
+    
     SpreadsheetApp.flush();
     return { success: true };
   } catch (err) {
@@ -243,21 +184,92 @@ function clearRawDataSheet() {
   }
 }
 
+// ทยอยบันทึกต่อท้ายโดยเช็คบรรทัดที่มีข้อมูลจริงเท่านั้น
 function appendCsvChunkToRawSheet(chunkData) {
   try {
-    if (!chunkData || chunkData.length === 0) return { success: true, count: 0 };
+    if (!chunkData || chunkData.length === 0) {
+      return { success: true, count: 0 };
+    }
+
     const rawSs = SpreadsheetApp.openById(RAW_DATA_SPREADSHEET_ID);
     const rawSheet = rawSs.getSheetByName('Raw') || rawSs.getSheets()[0];
+
     const colAValues = rawSheet.getRange("A:A").getValues();
     let actualLastRow = 0;
     for (let i = colAValues.length - 1; i >= 0; i--) {
-      if (colAValues[i][0] !== "" && colAValues[i][0] !== null) { actualLastRow = i + 1; break; }
+      if (colAValues[i][0] !== "" && colAValues[i][0] !== null && colAValues[i][0] !== undefined) {
+        actualLastRow = i + 1;
+        break;
+      }
     }
+
     const targetStartRow = Math.max(actualLastRow + 1, 2);
-    rawSheet.getRange(targetStartRow, 1, chunkData.length, chunkData[0].length).setValues(chunkData);
+
+    const numRows = chunkData.length;
+    const numCols = chunkData[0].length;
+
+    rawSheet.getRange(targetStartRow, 1, numRows, numCols).setValues(chunkData);
+
     SpreadsheetApp.flush();
-    return { success: true, count: chunkData.length };
+    return { success: true, count: numRows };
+
   } catch (err) {
     return { success: false, error: err.toString() };
   }
+}
+
+// Volume History Shared Server Storage (PropertiesService)
+function getVolumeHistoryServer() {
+  const props = PropertiesService.getScriptProperties();
+  const raw = props.getProperty('VOLUME_DATA');
+  if (raw) {
+    try {
+      const res = JSON.parse(raw);
+      if (res && res.history && res.history.length > 0) return res;
+    } catch(e) {}
+  }
+  const defaultData = {
+    history: [
+      { date: "2026-09-01", actual: 1814121 },
+      { date: "2026-08-30", actual: 980457 }
+    ],
+    active: { date: "2026-08-30", actual: 980457 }
+  };
+  props.setProperty('VOLUME_DATA', JSON.stringify(defaultData));
+  return defaultData;
+}
+
+function saveVolumeEntryServer(dateStr, actual, setActive) {
+  const data = getVolumeHistoryServer();
+  let history = data.history || [];
+  const existingIdx = history.findIndex(h => h.date === dateStr);
+  const entry = { date: dateStr, actual: parseInt(actual, 10) };
+  if (existingIdx >= 0) history[existingIdx] = entry;
+  else history.unshift(entry);
+  history.sort((a, b) => b.date.localeCompare(a.date));
+  data.history = history;
+  if (setActive || !data.active) data.active = entry;
+  PropertiesService.getScriptProperties().setProperty('VOLUME_DATA', JSON.stringify(data));
+  return data;
+}
+
+function deleteVolumeEntryServer(dateStr) {
+  const data = getVolumeHistoryServer();
+  data.history = (data.history || []).filter(h => h.date !== dateStr);
+  if (data.active && data.active.date === dateStr) {
+    data.active = null;
+  }
+  PropertiesService.getScriptProperties().setProperty('VOLUME_DATA', JSON.stringify(data));
+  return data;
+}
+
+function setActiveVolumeServer(dateStr, actual) {
+  const data = getVolumeHistoryServer();
+  if (!dateStr || !actual) {
+    data.active = null;
+  } else {
+    data.active = { date: dateStr, actual: parseInt(actual, 10) };
+  }
+  PropertiesService.getScriptProperties().setProperty('VOLUME_DATA', JSON.stringify(data));
+  return data;
 }

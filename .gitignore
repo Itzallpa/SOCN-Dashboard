@@ -1,6 +1,8 @@
-# Git Ignore
+uploads/
 *.csv
+*.xlsx
 __pycache__/
 *.pyc
-scratch/
-uploads/*.csv
+.env
+.idea/
+.vscode/

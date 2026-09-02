@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Sign-In Gate - SOC Operations Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #f8fafc;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-card {
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 44px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    }
+    .brand-logo {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      margin: 0 auto 20px auto;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+    }
+    .btn-google {
+      background: #ffffff;
+      color: #1e293b;
+      font-weight: 700;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    .btn-google:hover {
+      background: #f8fafc;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+    .preset-chip {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .preset-chip:hover {
+      background: rgba(37, 99, 235, 0.3);
+      color: #ffffff;
+      border-color: #3b82f6;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-card text-center">
+    <div class="brand-logo">📦</div>
+    <h3 class="fw-bold mb-1" style="background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+      SOC Operations Portal
+    </h3>
+    <p class="text-secondary small mb-4">ระบบเข้าสู่ระบบเพื่อยืนยันตัวตนก่อนเข้าใช้งาน Control Center Hub</p>
+
+    <div class="mb-4">
+      <button class="btn-google shadow-sm mb-3" onclick="triggerGoogleSignIn()">
+        <img src="https://cdn-icons-png.flaticon.com/512/300/300221.png" width="22" height="22">
+        <span>Sign in with Google / Gmail</span>
+      </button>
+
+      <div class="text-muted small text-uppercase fw-bold mb-3" style="font-size:0.75rem; letter-spacing:1px;">หรือระบุ Gmail ของคุณ</div>
+
+      <div class="mb-3 text-start">
+        <label class="form-label text-slate-300 small fw-bold mb-1">📧 Gmail Address</label>
+        <input type="email" class="form-control form-control-lg bg-dark text-white border-secondary" id="loginEmail" placeholder="your_email@gmail.com" value="operator.socn@gmail.com">
+      </div>
+
+      <div class="mb-4 text-start">
+        <label class="form-label text-slate-300 small fw-bold mb-1">👤 Display Name (ชื่อแสดงผล)</label>
+        <input type="text" class="form-control form-control-lg bg-dark text-white border-secondary" id="loginName" placeholder="เช่น Somchai Prasert" value="Operator SOCN">
+      </div>
+
+      <button class="btn btn-primary btn-lg w-100 fw-bold py-3" style="border-radius:12px; background:linear-gradient(90deg, #2563eb, #7c3aed); border:none;" onclick="handleManualGmailLogin()">
+        <i class="fa-solid fa-right-to-bracket me-2"></i> ยืนยันเข้าสู่ระบบ (Enter Portal)
+      </button>
+    </div>
+
+    <div class="mb-4">
+      <div class="text-secondary small mb-2" style="font-size:0.78rem;">⚡ ตัวเลือกทางลัดสำหรับการทดสอบ (Quick Accounts):</div>
+      <div class="d-flex gap-2 justify-content-center flex-wrap">
+        <span class="preset-chip" onclick="quickLogin('admin.socn@gmail.com', 'Admin SOCN')">🔑 admin.socn@gmail.com</span>
+        <span class="preset-chip" onclick="quickLogin('operator.spx@gmail.com', 'Operator SPX')">📦 operator.spx@gmail.com</span>
+      </div>
+    </div>
+
+    <div class="pt-3 border-top border-secondary border-opacity-25 text-muted small" style="font-size:0.75rem;">
+      <i class="fa-solid fa-lock text-warning me-1"></i> ทุกการกระทำและเวลาเข้าใช้งานจะถูกบันทึกลงในระบบ <b>Audit Trail</b> หลังบ้านโดยอัตโนมัติ
+    </div>
+  </div>
+
+  <script>
+    function handleManualGmailLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const name = document.getElementById('loginName').value.trim();
+
+      if (!email || !email.includes('@')) {
+        alert('กรุณากรอก Gmail ให้ถูกต้อง');
+        return;
+      }
+
+      fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          window.location.href = 'index.html';
+        } else {
+          alert('เกิดข้อผิดพลาดในการเข้าสู่ระบบ: ' + data.error);
+        }
+      })
+      .catch(err => {
+        alert('ไม่สามารถเชื่อมต่อระบบได้: ' + err.message);
+      });
+    }
+
+    function quickLogin(email, name) {
+      document.getElementById('loginEmail').value = email;
+      document.getElementById('loginName').value = name;
+      handleManualGmailLogin();
+    }
+
+    function triggerGoogleSignIn() {
+      handleManualGmailLogin();
+    }
+  </script>
+</body>
+</html>
