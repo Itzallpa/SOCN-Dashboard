@@ -1063,14 +1063,14 @@
                         if (data.success && data.files && data.files.length > 0) {
                             options += data.files.map(f => {
                                 const selected = (currentFilename && (f.filename === currentFilename || currentFilename.includes(f.filename))) ? 'selected' : '';
-                                return `<option value="${f.filename}" ${selected}>📄 ${f.filename} (server)</option>`;
+                                return `<option value="${f.filename}" ${selected}>📄 ${f.filename}</option>`;
                             }).join('');
                         }
                         localFilenames.forEach(fn => {
                             const alreadyShown = data.files && data.files.some(f => f.filename === fn);
                             if (!alreadyShown) {
                                 const selected = (currentFilename && fn === currentFilename) ? 'selected' : '';
-                                options += `<option value="${fn}" ${selected}>📄 ${fn} (local)</option>`;
+                                options += `<option value="${fn}" ${selected}>📄 ${fn}</option>`;
                             }
                         });
                         if (options) selectEl.innerHTML = options;
