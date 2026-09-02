@@ -999,77 +999,6 @@
     <!-- JavaScript Data Binding & Upload Logic -->
     <script>
 
-        // ============================================================
-        // ⚙️ CONFIG: วาง Apps Script URL ที่นี่หลัง Deploy แล้ว
-        // ตัวอย่าง: 'https://script.google.com/macros/s/xxxxxxxx/exec'
-        // ============================================================
-        const APPS_SCRIPT_URL = 'https://script.google.com/a/macros/spxexpress.com/s/AKfycbzwvFrgkC3JPM2DKqWE1bo1nC5w9QD-r2k50h91fOC0DkN1sknGjZ_DFBI7WsBcOVIV/exec';
-
-        // ============================================================
-        // GOOGLE DRIVE STORAGE API
-        // ============================================================
-
-        async function driveRequest(params) {
-            if (!APPS_SCRIPT_URL) return { success: false, error: 'ยังไม่ได้ตั้งค่า APPS_SCRIPT_URL' };
-            try {
-                const url = APPS_SCRIPT_URL + '?' + new URLSearchParams(params).toString();
-                const res = await fetch(url, { redirect: 'follow' });
-                const text = await res.text();
-                if (text.trim().startsWith('<')) {
-                    return { success: false, error: 'ติดสิทธิ์ Google Login — กรุณาตั้งค่า Web App ใน Apps Script ให้เป็น "Anyone"' };
-                }
-                return JSON.parse(text);
-            } catch(e) {
-                return { success: false, error: e.message };
-            }
-        }
-
-        async function drivePost(body) {
-            if (!APPS_SCRIPT_URL) return { success: false, error: 'ยังไม่ได้ตั้งค่า APPS_SCRIPT_URL' };
-            try {
-                const res = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    redirect: 'follow',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(body)
-                });
-                const text = await res.text();
-                if (text.trim().startsWith('<')) {
-                    return { success: false, error: 'ติดสิทธิ์ Google Login — กรุณาตั้งค่า Web App ใน Apps Script ให้เป็น "Anyone"' };
-                }
-                return JSON.parse(text);
-            } catch(e) {
-                return { success: false, error: e.message };
-            }
-        }
-
-        // บันทึกข้อมูลไฟล์ไปยัง Google Drive
-        async function saveFileToDrive(filename, data) {
-            const result = await drivePost({ action: 'saveFile', filename, data });
-            if (result.success) {
-                console.log('✅ Saved to Drive:', filename);
-            } else {
-                console.warn('⚠️ Drive save failed:', result.error);
-            }
-            return result;
-        }
-
-        // โหลดรายชื่อไฟล์จาก Google Drive
-        async function driveLoadFileList() {
-            return await driveRequest({ action: 'getFileList' });
-        }
-
-        // โหลดข้อมูลล่าสุดจาก Google Drive
-        async function driveLoadLatestData() {
-            return await driveRequest({ action: 'getLatestData' });
-        }
-
-        // โหลดข้อมูลไฟล์ที่ระบุจาก Google Drive
-        async function driveLoadFileData(filename) {
-            return await driveRequest({ action: 'getFileData', filename });
-        }
-
         // --- FILE SWITCHER & MANAGEMENT SYSTEM ---
         let clientFileCache = {};
 
@@ -1088,7 +1017,6 @@
         } catch(e) {}
 
         function saveFileToStorage(filename, dataObj) {
-            // 1. บันทึกลง localStorage เป็น fallback เสมอ
             try {
                 const toSave = Object.assign({}, dataObj);
                 delete toSave.rawRows;
@@ -1105,15 +1033,6 @@
                 localStorage.setItem('socn_last_file', filename);
             } catch(e) {
                 console.warn('localStorage save failed:', e);
-            }
-
-            // 2. บันทึกลง Google Drive (ถ้าตั้งค่า APPS_SCRIPT_URL ไว้แล้ว)
-            if (APPS_SCRIPT_URL) {
-                saveFileToDrive(filename, dataObj)
-                    .then(r => {
-                        if (r.success) showStatus(`✅ บันทึกลง Google Drive แล้ว: "${filename}" 🌐`, 'success');
-                        else console.warn('Drive save error:', r.error);
-                    });
             }
         }
 
@@ -1136,23 +1055,6 @@
 
             const localFilenames = Object.keys(clientFileCache);
 
-            // 1. Google Drive Mode
-            if (typeof APPS_SCRIPT_URL !== 'undefined' && APPS_SCRIPT_URL) {
-                driveLoadFileList().then(res => {
-                    if (res && res.success && res.files && res.files.length > 0) {
-                        let options = res.files.map(f => {
-                            const selected = (currentFilename && f.includes(currentFilename)) ? 'selected' : '';
-                            return `<option value="${f}" ${selected}>☁️ ${f} (Drive)</option>`;
-                        }).join('');
-                        selectEl.innerHTML = options;
-                    } else if (localFilenames.length > 0) {
-                        selectEl.innerHTML = localFilenames.map(fn => `<option value="${fn}">📄 ${fn}</option>`).join('');
-                    }
-                }).catch(() => {});
-                return;
-            }
-
-            // 2. Flask Server Mode
             if (window.location.protocol.startsWith('http')) {
                 fetch('/api/list-files')
                     .then(res => res.json())
@@ -1182,7 +1084,6 @@
                         }
                     });
             } else {
-                // Static hosting / localStorage
                 if (localFilenames.length > 0) {
                     selectEl.innerHTML = localFilenames.map(fn => {
                         const selected = (currentFilename && fn === currentFilename) ? 'selected' : '';
@@ -1197,21 +1098,6 @@
         function switchActiveFile(filename) {
             if (!filename) return;
 
-            // 1. Google Drive Mode
-            if (typeof APPS_SCRIPT_URL !== 'undefined' && APPS_SCRIPT_URL) {
-                showStatus(`☁️ กำลังดึงไฟล์จาก Google Drive: "${filename}"...`, 'loading');
-                driveLoadFileData(filename).then(res => {
-                    if (res && res.success && res.data) {
-                        updateDashboard(res.data);
-                        showStatus(`✅ สลับไปใช้ไฟล์: "${filename}" จาก Drive`, 'success');
-                    } else {
-                        showStatus(`❌ ไม่สามารถโหลดไฟล์จาก Drive: ${res ? res.error : 'Network error'}`, 'error');
-                    }
-                });
-                return;
-            }
-
-            // 2. Flask Server Mode
             if (window.location.protocol.startsWith('http')) {
                 showStatus(`Loading file: "${filename}"...`, 'loading');
                 fetch(`/api/load-file?filename=${encodeURIComponent(filename)}`)
@@ -1962,28 +1848,13 @@
         }
 
         // Initialize with default dataset
-        window.addEventListener('DOMContentLoaded', async () => {
+        window.addEventListener('DOMContentLoaded', () => {
             // Step 1: Load default data as baseline
             if (typeof INITIAL_DATA !== 'undefined') {
                 updateDashboard(INITIAL_DATA);
             }
 
-            // Step 2: Try to restore from Google Drive if APPS_SCRIPT_URL is configured
-            if (typeof APPS_SCRIPT_URL !== 'undefined' && APPS_SCRIPT_URL) {
-                showStatus('☁️ กำลังเชื่อมต่อ Google Drive...', 'loading');
-                const driveRes = await driveLoadLatestData();
-                if (driveRes && driveRes.success && driveRes.data) {
-                    updateDashboard(driveRes.data);
-                    showStatus(`☁️ โหลดข้อมูลล่าสุดจาก Google Drive: "${driveRes.data.filename || driveRes.data._sourceFile || 'ดึงเรียบร้อย'}"`, 'success');
-                    fetchFileList(driveRes.data.filename);
-                    return;
-                } else {
-                    const err = (driveRes && driveRes.error) ? driveRes.error : 'เชื่อมต่อไม่ได้';
-                    showStatus(`⚠️ Drive: ${err} — สลับใช้ข้อมูลในเครื่องแทน`, 'error');
-                }
-            }
-
-            // Step 3: Fallback to restore last uploaded file from localStorage (browser storage)
+            // Step 2: Restore last uploaded file from localStorage
             try {
                 const lastFile = localStorage.getItem('socn_last_file');
                 if (lastFile) {
@@ -1997,8 +1868,8 @@
                 }
             } catch(e) {}
 
-            // Step 4: If running on Flask server, also check for server-side data
-            if (window.location.protocol.startsWith('http') && !APPS_SCRIPT_URL) {
+            // Step 3: If running on Flask server, also check for server-side data
+            if (window.location.protocol.startsWith('http')) {
                 fetch('/api/current-data')
                     .then(res => res.json())
                     .then(data => {
