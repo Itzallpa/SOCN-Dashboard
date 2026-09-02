@@ -370,6 +370,33 @@ def get_current_data():
 
     return jsonify({"success": False, "message": "No CSV loaded yet"})
 
+import json
+
+VOLUME_FILE = os.path.join(BASE_DIR, "volume_history.json")
+
+@app.route("/api/get-volume", methods=["GET"])
+def get_volume():
+    if os.path.exists(VOLUME_FILE):
+        try:
+            with open(VOLUME_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return jsonify({"success": True, "history": data})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+    return jsonify({"success": True, "history": []})
+
+@app.route("/api/save-volume", methods=["POST"])
+def save_volume():
+    try:
+        req_data = request.get_json(force=True)
+        if isinstance(req_data, list):
+            with open(VOLUME_FILE, "w", encoding="utf-8") as f:
+                json.dump(req_data, f, ensure_ascii=False, indent=2)
+            return jsonify({"success": True})
+        return jsonify({"success": False, "error": "Invalid payload"}), 400
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 if __name__ == "__main__":
     print("=" * 60)
     print(" Server started at http://localhost:5000")

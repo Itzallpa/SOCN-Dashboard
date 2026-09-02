@@ -1533,8 +1533,37 @@
                 showStatus('Please select a valid .csv file', 'error');
                 return;
             }
-            showStatus(`กำลังประมวลผล "${file.name}"...`, 'loading');
-            parseCSVClientSide(file);
+
+            if (window.location.protocol.startsWith('http')) {
+                showStatus(`กำลังอัปโหลด "${file.name}" ไปยังเซิร์ฟเวอร์...`, 'loading');
+                const formData = new FormData();
+                formData.append('file', file);
+
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        clientFileCache[file.name] = data;
+                        saveFileToStorage(file.name, data);
+                        showStatus(`✅ อัปโหลด "${file.name}" สำเร็จ — บันทึกลงเซิร์ฟเวอร์เรียบร้อย 💾`, 'success');
+                        updateDashboard(data);
+                        fetchFileList(file.name);
+                        if (typeof processSkipData === 'function' && data.rawRows) {
+                            processSkipData(data.rawRows);
+                        }
+                    } else {
+                        parseCSVClientSide(file);
+                    }
+                })
+                .catch(() => {
+                    parseCSVClientSide(file);
+                });
+            } else {
+                parseCSVClientSide(file);
+            }
         }
 
         function showStatus(text, type) {
@@ -1868,7 +1897,7 @@
                 }
             } catch(e) {}
 
-            // Step 3: If running on Flask server, also check for server-side data
+            // Step 3: If running on Flask server, check for server-side data & volume history
             if (window.location.protocol.startsWith('http')) {
                 fetch('/api/current-data')
                     .then(res => res.json())
@@ -1879,6 +1908,18 @@
                             saveFileToStorage(data.filename, data);
                             showStatus(`✅ โหลดข้อมูลจาก Server: ${data.filename}`, 'success');
                             fetchFileList(data.filename);
+                        }
+                    })
+                    .catch(() => {});
+
+                fetch('/api/get-volume')
+                    .then(res => res.json())
+                    .then(res => {
+                        if (res.success && Array.isArray(res.history) && res.history.length > 0) {
+                            localStorage.setItem(VOLUME_KEY, JSON.stringify(res.history));
+                            if (typeof renderVolumeHistory === 'function') {
+                                renderVolumeHistory();
+                            }
                         }
                     })
                     .catch(() => {});
@@ -1905,6 +1946,13 @@
 
         function saveVolumeHistory(arr) {
             localStorage.setItem(VOLUME_KEY, JSON.stringify(arr));
+            if (window.location.protocol.startsWith('http')) {
+                fetch('/api/save-volume', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(arr)
+                }).catch(e => console.warn('Sync volume error:', e));
+            }
         }
 
         function saveVolumeEntry() {
