@@ -191,15 +191,16 @@ def upload_file():
         data["filename"] = file.filename
         data["savedPath"] = save_path
         data["success"] = True
-        # Include raw rows needed for Skip Process dashboard (minimal columns only)
+        # Include raw rows needed for Skip Process dashboard (all rows for accurate skip count)
         try:
             skip_df = pd.read_csv(save_path, low_memory=False,
                 usecols=lambda c: c in [
                     'shipment_id', 'soc_outbound_late_type_2nd_cutoff',
-                    'dest_station_name', 'recieve_team'
+                    'dest_station_name', 'obd_zone', 'zone', 'recieve_team'
                 ])
             data["rawRows"] = skip_df.fillna('').to_dict(orient='records')
-        except Exception:
+        except Exception as e:
+            print("Error reading skip rawRows:", e)
             data["rawRows"] = []
         return jsonify(data)
     except Exception as e:
@@ -261,7 +262,7 @@ def load_file():
             skip_df = pd.read_csv(target, low_memory=False,
                 usecols=lambda c: c in [
                     'shipment_id', 'soc_outbound_late_type_2nd_cutoff',
-                    'dest_station_name', 'recieve_team'
+                    'dest_station_name', 'obd_zone', 'zone', 'recieve_team'
                 ])
             data["rawRows"] = skip_df.fillna('').to_dict(orient='records')
         except Exception:
@@ -359,7 +360,7 @@ def get_current_data():
                     skip_df = pd.read_csv(target, low_memory=False,
                         usecols=lambda c: c in [
                             'shipment_id', 'soc_outbound_late_type_2nd_cutoff',
-                            'dest_station_name', 'recieve_team'
+                            'dest_station_name', 'obd_zone', 'zone', 'recieve_team'
                         ])
                     data["rawRows"] = skip_df.fillna('').to_dict(orient='records')
                 except Exception:
