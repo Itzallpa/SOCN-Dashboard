@@ -1647,38 +1647,8 @@
                 showStatus('Please select a valid .csv file', 'error');
                 return;
             }
-
-            if (window.location.protocol.startsWith('http')) {
-                showStatus(`กำลังอัปโหลด "${file.name}"...`, 'loading');
-                const formData = new FormData();
-                formData.append('file', file);
-
-                fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        // Save to localStorage for persistence
-                        clientFileCache[file.name] = data;
-                        saveFileToStorage(file.name, data);
-                        showStatus(`✅ อัปโหลด "${file.name}" สำเร็จ — บันทึกแล้ว 💾`, 'success');
-                        updateDashboard(data);
-                        fetchFileList(file.name);
-                        if (typeof processSkipData === 'function' && data.rawRows) {
-                            processSkipData(data.rawRows);
-                        }
-                    } else {
-                        parseCSVClientSide(file);
-                    }
-                })
-                .catch(() => {
-                    parseCSVClientSide(file);
-                });
-            } else {
-                parseCSVClientSide(file);
-            }
+            showStatus(`กำลังประมวลผล "${file.name}"...`, 'loading');
+            parseCSVClientSide(file);
         }
 
         function showStatus(text, type) {
