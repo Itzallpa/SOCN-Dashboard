@@ -209,9 +209,6 @@ def upload_file():
 @app.route("/api/list-files", methods=["GET"])
 def list_files():
     file_list = []
-    seen = set()
-
-    # Search in uploads folder first
     if os.path.exists(UPLOAD_FOLDER):
         for f in os.listdir(UPLOAD_FOLDER):
             if f.endswith(".csv"):
@@ -222,22 +219,10 @@ def list_files():
                     "mtime": os.path.getmtime(p),
                     "size": os.path.getsize(p)
                 })
-                seen.add(f)
-
-    # Search in root folder
-    for f in os.listdir(BASE_DIR):
-        if f.endswith(".csv") and f not in seen:
-            p = os.path.join(BASE_DIR, f)
-            file_list.append({
-                "filename": f,
-                "location": "root",
-                "mtime": os.path.getmtime(p),
-                "size": os.path.getsize(p)
-            })
-            seen.add(f)
 
     # Sort by modification time (newest first)
     file_list.sort(key=lambda x: x["mtime"], reverse=True)
+    return jsonify({"success": True, "files": file_list})
     return jsonify({"success": True, "files": file_list})
 
 @app.route("/api/load-file", methods=["GET"])
