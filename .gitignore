@@ -1,0 +1,6 @@
+# Git Ignore
+*.csv
+__pycache__/
+*.pyc
+scratch/
+uploads/*.csv
