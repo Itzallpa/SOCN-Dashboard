@@ -3,7 +3,7 @@ const RAW_DATA_SPREADSHEET_ID = '1a7KdFxp5vZrMhRIeBRg2dFC0pJBzZZtmSoTe_2FEgig';
 const VOLUME_SPREADSHEET_ID = '1Z5sAcsGSQBu1A_7crK51a1wnWvSO_NnmXVBrx3te32s';
 
 // ============================================================
-// GOOGLE DRIVE STORAGE
+// GOOGLE DRIVE STORAGE (โฟลเดอร์สำหรับเก็บไฟล์ JSON และ CSV)
 // ============================================================
 const DRIVE_FOLDER_ID = '1aaTx4HMzpEkOLIpEhu22uljG3qaU4AtX';
 
@@ -14,7 +14,7 @@ function corsJson(data) {
 }
 
 // ============================================================
-// doGet
+// doGet - ดึงข้อมูลไฟล์ผ่าน HTTP GET
 // ============================================================
 function doGet(e) {
   if (e && e.parameter && e.parameter.action) {
@@ -31,7 +31,7 @@ function doGet(e) {
 }
 
 // ============================================================
-// doPost - ???????????? Dashboard ???????????? Drive
+// doPost - บันทึกข้อมูล Dashboard ลง Google Drive
 // ============================================================
 function doPost(e) {
   try {
@@ -70,7 +70,7 @@ function driveSaveFile(filename, data) {
 
     _updateFileIndex(folder, jsonFilename);
 
-    return { success: true, savedAs: jsonFilename };
+    return { success: true, savedAs: jsonFilename, folderId: DRIVE_FOLDER_ID };
   } catch (err) {
     return { success: false, error: err.toString() };
   }
@@ -96,7 +96,7 @@ function driveGetLatestData() {
     if (files.hasNext()) {
       return { success: true, data: JSON.parse(files.next().getBlob().getDataAsString()) };
     }
-    return { success: false, error: '?????????????? ???????????? CSV ????????' };
+    return { success: false, error: 'ยังไม่มีข้อมูลไฟล์ที่อัปโหลด' };
   } catch (err) {
     return { success: false, error: err.toString() };
   }
@@ -104,13 +104,13 @@ function driveGetLatestData() {
 
 function driveGetFileData(filename) {
   try {
-    if (!filename) return { success: false, error: '??????????????????' };
+    if (!filename) return { success: false, error: 'ระบุชื่อไฟล์ไม่ถูกต้อง' };
     const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
     const files = folder.getFilesByName(filename);
     if (files.hasNext()) {
       return { success: true, data: JSON.parse(files.next().getBlob().getDataAsString()) };
     }
-    return { success: false, error: '?????????: ' + filename };
+    return { success: false, error: 'ไม่พบไฟล์: ' + filename };
   } catch (err) {
     return { success: false, error: err.toString() };
   }
