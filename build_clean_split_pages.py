@@ -1108,7 +1108,7 @@ skip_process_html = f"""<!DOCTYPE html>
     function onSkipDateChange(filename) {{
       if (!filename) return;
       showSkipStatus(`กำลังโหลดไฟล์: "${{filename}}"...`, 'loading');
-      safeFetchJson(`/api/load-file?filename=${{encodeURIComponent(filename)}}`)
+      safeFetchJson(`/api/load-skip?filename=${{encodeURIComponent(filename)}}`)
         .then(data => {{
           if (data.success) {{
             skipDataState = data;
@@ -1124,7 +1124,7 @@ skip_process_html = f"""<!DOCTYPE html>
 
     function loadDefaultSkipData() {{
       showSkipStatus('กำลังโหลดข้อมูล Skip Process...', 'loading');
-      safeFetchJson('/api/load-file?filename=SOC-BISOCinvestigateshipment_DownloadTable_30aug.csv')
+      safeFetchJson('/api/load-skip?filename=SOC-BISOCinvestigateshipment_DownloadTable_30aug.csv')
         .then(data => {{
           if (data.success) {{
             skipDataState = data;

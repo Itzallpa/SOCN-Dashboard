@@ -870,6 +870,80 @@ def load_file():
         return jsonify({"success": False, "error": f"ไม่สามารถประมวลผลไฟล์ได้: {str(e)}"}), 200
 
 
+@app.route("/api/load-skip", methods=["GET"])
+def load_skip_lightweight():
+    """Lightweight skip-only endpoint that skips heavy process_csv for speed."""
+    filename = request.args.get("filename", "").strip()
+    if not filename:
+        return jsonify({"success": False, "error": "No filename specified"}), 400
+
+    target = os.path.join(UPLOAD_FOLDER, filename)
+    if not os.path.exists(target):
+        target = os.path.join(BASE_DIR, filename)
+    if not os.path.exists(target):
+        return jsonify({"success": False, "error": f"File '{filename}' not found"}), 404
+
+    try:
+        full_df = pd.read_csv(target, low_memory=False)
+        total_rows = len(full_df)
+
+        target_cols = {
+            'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
+            'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
+            'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
+            'recieve_team': ['recieve_team', 'receive_team', 'obd_zone', 'zone']
+        }
+        renames = {}
+        used = set()
+        for col in full_df.columns:
+            c = str(col).strip().lower()
+            for key, cands in target_cols.items():
+                if c in cands and key not in used:
+                    renames[col] = key
+                    used.add(key)
+                    break
+
+        sub_df = full_df.rename(columns=renames)
+        sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
+        needed = ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name', 'recieve_team']
+        for n in needed:
+            if n not in sub_df.columns:
+                sub_df[n] = ''
+
+        reason_s = sub_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
+        mask = reason_s.str.contains('skip')
+        skip_df = sub_df[mask].copy()
+
+        machine_count = int(reason_s[mask].str.contains('machine').sum())
+        system_count = int(reason_s[mask].str.contains('system').sum())
+
+        zone_counts = {}
+        if 'recieve_team' in skip_df.columns:
+            for z in skip_df['recieve_team'].dropna():
+                zc = str(z).strip().upper()
+                if 'INTER' in zc: mz = 'INTERSOC'
+                elif 'RET' in zc: mz = 'RETURN'
+                elif 'A' in zc: mz = 'A'
+                elif 'B' in zc: mz = 'B'
+                elif 'C' in zc: mz = 'C'
+                else: mz = zc
+                zone_counts[mz] = zone_counts.get(mz, 0) + 1
+
+        return jsonify({
+            "success": True,
+            "filename": filename,
+            "totalRows": len(skip_df),
+            "machineCount": machine_count,
+            "systemCount": system_count,
+            "skipCountByZone": zone_counts,
+            "rawRows": skip_df[needed].head(2500).fillna('').to_dict(orient='records')
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 200
+
+
 @app.route("/api/raw-data", methods=["GET"])
 def get_raw_data():
     filename = request.args.get("filename", "").strip()
