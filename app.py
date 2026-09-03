@@ -290,6 +290,25 @@ def read_dataframe(filepath):
 def process_csv(filepath):
     df = read_dataframe(filepath)
     
+    # Fast check: If this CSV file does not contain Outbound Investigation columns
+    cols_clean = [str(c).strip().lower() for c in df.columns]
+    has_outbound_cols = any('outbound' in c or 'ontime' in c or 'cut_off' in c for c in cols_clean)
+    if not has_outbound_cols:
+        return {
+            "success": False,
+            "error": "ไฟล์นี้ไม่ใช่ไฟล์ Outbound Investigation (กรุณานำไฟล์นี้ไปเลือกเปิดในหน้า Skip Process Monitor แทนครับ)",
+            "filename": os.path.basename(filepath),
+            "totalLate": 0,
+            "destCount": 0,
+            "medianLate": 0,
+            "d2Count": 0,
+            "ranking": [],
+            "top10": [],
+            "lateTypeBreakdown": {},
+            "routeTypeBreakdown": {},
+            "outboundRawRows": []
+        }
+
     # Standardize Column Names (Trim spaces, lower-case, match mapping without duplicate collisions)
     col_map = {}
     target_used = set()
