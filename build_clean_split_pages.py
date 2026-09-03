@@ -888,7 +888,14 @@ investigation_html = f"""<!DOCTYPE html>
     function showOutboundStatus(msg, type) {{
       const el = document.getElementById('outboundUploadStatus');
       if (!el) return;
-      el.innerHTML = `<div class="alert alert-${{type === 'success' ? 'success' : (type === 'loading' ? 'info' : 'danger')}} py-2 px-3 small">${{msg}}</div>`;
+
+      const selectEl = document.getElementById('outboundFileSelect');
+      const selectedFile = selectEl ? selectEl.value : '';
+      const deleteBtnHtml = (type === 'error' && selectedFile) 
+        ? `<button class="btn btn-danger btn-sm ms-2 py-0 px-2 fw-bold" onclick="deleteSelectedOutboundFile()"><i class="fa-solid fa-trash me-1"></i> ลบไฟล์ "${{selectedFile}}" ออกจากระบบ</button>` 
+        : '';
+
+      el.innerHTML = `<div class="alert alert-${{type === 'success' ? 'success' : (type === 'loading' ? 'info' : 'danger')}} py-2 px-3 small d-flex align-items-center justify-content-between flex-wrap gap-2"><span>${{msg}}</span>${{deleteBtnHtml}}</div>`;
     }}
   </script>
 </body>
@@ -1497,7 +1504,14 @@ skip_process_html = f"""<!DOCTYPE html>
     function showSkipStatus(msg, type) {{
       const el = document.getElementById('skipUploadStatus');
       if (!el) return;
-      el.innerHTML = `<div class="alert alert-${{type === 'success' ? 'success' : (type === 'loading' ? 'info' : 'danger')}} py-2 px-3 small">${{msg}}</div>`;
+
+      const selectEl = document.getElementById('skipDateSelect');
+      const selectedFile = selectEl ? selectEl.value : '';
+      const deleteBtnHtml = (type === 'error' && selectedFile) 
+        ? `<button class="btn btn-danger btn-sm ms-2 py-0 px-2 fw-bold" onclick="deleteSelectedSkipFile()"><i class="fa-solid fa-trash me-1"></i> ลบไฟล์ "${{selectedFile}}" ออกจากระบบ</button>` 
+        : '';
+
+      el.innerHTML = `<div class="alert alert-${{type === 'success' ? 'success' : (type === 'loading' ? 'info' : 'danger')}} py-2 px-3 small d-flex align-items-center justify-content-between flex-wrap gap-2"><span>${{msg}}</span>${{deleteBtnHtml}}</div>`;
     }}
   </script>
 </body>
