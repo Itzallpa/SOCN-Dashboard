@@ -342,7 +342,7 @@ def process_csv(filepath):
             df[col] = (df[col].astype(str).str.strip().str.upper()
                        .map({"TRUE": True, "FALSE": False, "1": True, "0": False}))
 
-    # 2. Parse timestamps
+    # 2. Parse timestamps efficiently
     ts_cols = [
         "first_soc_outbound_timestamp",
         "soc_outbound_based_received_cut_off_timestamp",
@@ -352,7 +352,7 @@ def process_csv(filepath):
     ]
     for col in ts_cols:
         if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce")
+            df[col] = pd.to_datetime(df[col], format='mixed', errors="coerce")
 
     # 3. Filter late shipments safely
     has_out = df["first_soc_outbound_timestamp"].notna()
@@ -995,72 +995,6 @@ def load_file():
         data = process_csv(target)
         data["filename"] = filename
         data["success"] = True
-        
-        # Safely extract raw rows for Skip Process Monitor
-        try:
-            full_df = pd.read_csv(target, low_memory=False)
-            total_rows = len(full_df)
-            data["totalRows"] = total_rows
-            
-            target_cols = {
-                'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
-                'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
-                'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
-                'recieve_team': ['recieve_team', 'receive_team', 'obd_zone', 'zone']
-            }
-            renames = {}
-            target_used_raw = set()
-            for col in full_df.columns:
-                c_clean = str(col).strip().lower()
-                for key, candidates in target_cols.items():
-                    if c_clean in candidates and key not in target_used_raw:
-                        renames[col] = key
-                        target_used_raw.add(key)
-                        break
-            
-            sub_df = full_df.rename(columns=renames)
-            sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
-            needed = ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name', 'recieve_team']
-            for n in needed:
-                if n not in sub_df.columns:
-                    sub_df[n] = ''
-            
-            # Filter strictly for skip process cases (reason contains 'skip')
-            reason_series = sub_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
-            is_skip_mask = reason_series.str.contains('skip')
-            skip_df = sub_df[is_skip_mask].copy()
-
-            total_skip = len(skip_df)
-            machine_count = int(reason_series[is_skip_mask].str.contains('machine').sum())
-            system_count = int(reason_series[is_skip_mask].str.contains('system').sum())
-
-            skip_count_by_zone = {}
-            if 'recieve_team' in skip_df.columns:
-                for z_val in skip_df['recieve_team'].dropna():
-                    z_clean = str(z_val).strip().upper()
-                    if 'INTER' in z_clean or ('SOC' in z_clean and 'INTER' in z_clean):
-                        mz = 'INTERSOC'
-                    elif 'RET' in z_clean:
-                        mz = 'RETURN'
-                    elif 'A' in z_clean:
-                        mz = 'A'
-                    elif 'B' in z_clean:
-                        mz = 'B'
-                    elif 'C' in z_clean:
-                        mz = 'C'
-                    else:
-                        mz = z_clean
-                    skip_count_by_zone[mz] = skip_count_by_zone.get(mz, 0) + 1
-
-            data["totalRows"] = total_skip
-            data["machineCount"] = machine_count
-            data["systemCount"] = system_count
-            data["skipCountByZone"] = skip_count_by_zone
-            data["rawRows"] = skip_df[needed].head(2500).fillna('').to_dict(orient='records')
-        except Exception as ex:
-            print("Error processing skip rawRows in load_file:", ex)
-            data["rawRows"] = []
-            data["totalRows"] = 0
 
         FILE_PARSED_CACHE[cache_key] = data
         return jsonify(data)
