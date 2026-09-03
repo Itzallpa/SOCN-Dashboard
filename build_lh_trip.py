@@ -200,6 +200,19 @@ lh_trip_html = f"""<!DOCTYPE html>
     .cut-badge.cut3 {{ background: #e8eaf6; color: #3f51b5; }}
 
     .nav-toggle-btn {{ font-weight: 700; font-size: 0.85rem; border-radius: 8px; }}
+
+    /* Universal Responsive Mobile & Tablet Rules */
+    @media (max-width: 992px) {{
+      .kpi-value {{ font-size: 1.4rem !important; }}
+      .kpi-title {{ font-size: 0.72rem !important; }}
+      .chart-card {{ min-height: 250px !important; margin-bottom: 16px !important; }}
+      .container-fluid {{ padding-left: 10px !important; padding-right: 10px !important; }}
+    }}
+    @media (max-width: 576px) {{
+      .table-custom {{ font-size: 0.75rem !important; }}
+      .table-custom th, .table-custom td {{ padding: 6px 8px !important; }}
+      .btn {{ padding: 5px 10px !important; font-size: 0.8rem !important; }}
+    }}
   </style>
 </head>
 <body>
