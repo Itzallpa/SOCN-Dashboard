@@ -245,7 +245,11 @@
     function getUsersDb() {
       try {
         const db = localStorage.getItem('socn_user_db');
-        if (db) return JSON.parse(db);
+        if (db) {
+          const parsed = JSON.parse(db);
+          parsed.forEach((u, idx) => { if (!u.id) u.id = 'u_' + (idx + 1); });
+          return parsed;
+        }
       } catch (e) {}
       return [];
     }
@@ -281,14 +285,14 @@
         const isPending = u.status === 'pending_approval';
         const statusBadge = isPending ? 
           '<span class="badge bg-warning text-dark">⏳ รออนุมัติ (Pending)</span>' : 
-          `<span class="badge bg-success">✅ อนุมัติแล้ว (${u.role})</span>`;
+          `<span class="badge ${u.role === 'Admin' ? 'bg-danger' : 'bg-primary'}">✅ อนุมัติแล้ว (${u.role})</span>`;
 
-        const roleSelect = isPending ? `
-          <select id="tableRoleSelect_${u.id}" class="form-select form-select-sm d-inline-block w-auto py-0 px-2 fw-bold">
-            <option value="Ground">👤 Ground</option>
-            <option value="Admin">🛡️ Admin</option>
+        const roleSelect = `
+          <select id="tableRoleSelect_${u.id}" class="form-select form-select-sm d-inline-block w-auto py-1 px-2 fw-bold ${u.role === 'Admin' ? 'text-danger border-danger' : 'text-primary border-primary'}" onchange="changeUserRoleInDashboard('${u.id}', this.value)">
+            <option value="Ground" ${u.role === 'Ground' ? 'selected' : ''}>👤 Ground</option>
+            <option value="Admin" ${u.role === 'Admin' ? 'selected' : ''}>🛡️ Admin</option>
           </select>
-        ` : `<span class="fw-bold text-dark">${u.role}</span>`;
+        `;
 
         const actionBtns = isPending ? `
           <button class="btn btn-success btn-sm py-0 px-2 fw-bold" onclick="approveUserInDashboard('${u.id}')"><i class="fa-solid fa-check me-1"></i> อนุมัติ</button>
@@ -323,6 +327,30 @@
 
       saveUsersDb(db);
       alert(`✅ อนุมัติสมาชิก ${target.name} เป็นสิทธิ์ ${role} สำเร็จ!`);
+      renderUsersTable();
+    }
+
+    function changeUserRoleInDashboard(userId, newRole) {
+      const db = getUsersDb();
+      const target = db.find(u => u.id === userId);
+      if (!target) return;
+
+      const oldRole = target.role;
+      target.role = newRole;
+      saveUsersDb(db);
+
+      // If the modified user is currently logged in, sync their local session too
+      const currUser = window.AuthGuard ? window.AuthGuard.getUser() : null;
+      if (currUser && (currUser.email === target.email || currUser.name === target.name)) {
+        currUser.role = newRole;
+        if (window.AuthGuard) window.AuthGuard.saveUser(currUser);
+      }
+
+      if (window.AuthGuard && window.AuthGuard.logActivity) {
+        window.AuthGuard.logActivity('USER_ROLE_CHANGE', `เปลี่ยนสิทธิ์ผู้ใช้ ${target.name} (${target.email}) จาก ${oldRole} เป็น ${newRole}`);
+      }
+
+      alert(`✅ เปลี่ยนสิทธิ์ของ ${target.name} เป็น ${newRole} เรียบร้อยแล้ว!`);
       renderUsersTable();
     }
 
