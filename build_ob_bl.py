@@ -1,7 +1,7 @@
 import os
 import re
 
-print("Building dedicated ob_bl.html from ObBL.html.txt with SOC Blue Theme & Flexible Google Sync...")
+print("Building dedicated ob_bl.html from ObBL.html.txt with Intelligent Resilient Filter...")
 
 base_dir = r"c:\Users\spxth71637\Desktop\OB Dashboard"
 ob_bl_txt_path = os.path.join(base_dir, "OB Late", "ObBL.html.txt")
@@ -67,7 +67,7 @@ custom_header = """
         <select id="fileSelectDropdown" onchange="onFileDropdownChange(this.value)" style="padding:7px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:#1e293b; color:#ffffff; font-weight:700; font-size:13px; max-width:240px;">
           <option value="">-- เลือกไฟล์รายงาน OB BL --</option>
         </select>
-        <button id="deleteFileBtn" onclick="deleteSelectedObBlFile()" style="background:#dc2626; color:#fff; font-weight:700; border:none; padding:8px 12px; border-radius:8px; font-size:12px;"><i class="fa-solid fa-trash"></i> ลบไฟล์ที่เลือก</button>
+        <button id="deleteFileBtn" onclick="deleteSelectedObBlFile()" style="background:#dc2626; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px; font-size:12px;"><i class="fa-solid fa-trash"></i> ลบไฟล์ที่เลือก</button>
         <button onclick="document.getElementById('csvFileInput').click()" style="background:#2563eb; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i class="fa-solid fa-upload"></i> อัปโหลด CSV/Excel</button>
         <input type="file" id="csvFileInput" accept=".csv, .xlsx, .xls" style="display:none;" onchange="handleFileUpload(event)">
         <button id="refreshBtn" onclick="forceRefresh()" style="background:rgba(255,255,255,0.12); color:#ffffff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;">↻ Refresh</button>
@@ -121,6 +121,68 @@ source_content = re.sub(r'function buildColumnIndex\(rawHeaders\)\s*\{.*?return 
 source_content = source_content.replace(
     "if (missing.length > 0) {\n        onError({\n          message: 'ไม่พบคอลัมน์ที่ต้องใช้ในชีต OB BL แถว header: ' + missing.join(', ') +\n            '\\nHeader ที่อ่านได้: ' + rawHeaders.join(' | ')\n        });\n        return;\n      }",
     "// Resilient mode: proceed even if some optional columns are missing"
+)
+
+# Resilient Action Flag Normalizer & Resilient isOBBL
+resilient_is_obbl = """
+    function normalizeActionFlag(v) {
+      const raw = (v === null || v === undefined) ? '' : String(v).trim();
+      const key = raw.toLowerCase();
+      if (Object.prototype.hasOwnProperty.call(OB_ACTIONS_LOOKUP, key)) {
+        return OB_ACTIONS_LOOKUP[key];
+      }
+      if (key.includes('packed') && !key.includes('linehual') && !key.includes('linehaul')) {
+        return '_02_pending_packed';
+      }
+      if (key.includes('linehual') || key.includes('linehaul')) {
+        return '_03_pending_linehual_packed';
+      }
+      if (key.includes('rework') || key.includes('reworked')) {
+        return '_04_pending_reworked';
+      }
+      if (key.includes('02')) return '_02_pending_packed';
+      if (key.includes('03')) return '_03_pending_linehual_packed';
+      if (key.includes('04')) return '_04_pending_reworked';
+      return raw;
+    }
+
+    function isOBBL(rec) {
+      const af = normalizeActionFlag(rec.action_flag);
+      // If action_flag has a value, check match
+      if (af && OB_ACTIONS.indexOf(af) === -1) {
+        const afLower = af.toLowerCase();
+        const matchesOb = OB_ACTIONS.some(a => a.toLowerCase().includes(afLower) || afLower.includes(a.toLowerCase())) ||
+                          afLower.includes('packed') || afLower.includes('linehual') || afLower.includes('linehaul') || afLower.includes('rework') || afLower.includes('pending');
+        if (!matchesOb) return false;
+      }
+
+      // Check route_type (If empty, DO NOT REJECT!)
+      const rt = (rec.route_type === null || rec.route_type === undefined ? '' : String(rec.route_type)).trim().toUpperCase();
+      if (rt && rt !== 'FWD' && rt !== 'FORWARD' && rt !== 'MAIN') {
+        if (rt === 'RTS' || rt === 'RET' || rt === 'RETURN') return false;
+      }
+
+      // Check intentional_backlog_type (If empty, DO NOT REJECT!)
+      const ibt = (rec.intentional_backlog_type === null || rec.intentional_backlog_type === undefined ? '' : String(rec.intentional_backlog_type)).trim().toLowerCase();
+      if (ibt && ibt !== 'backlog' && ibt !== 'ob_bl' && ibt !== 'ob backlog') {
+        if (ibt.includes('normal') || ibt.includes('regular')) return false;
+      }
+
+      // Check day_in_soc (If empty, DO NOT REJECT!)
+      if (rec.day_in_soc !== undefined && rec.day_in_soc !== null && String(rec.day_in_soc).trim() !== '') {
+        const val = parseFloat(rec.day_in_soc);
+        if (!isNaN(val) && val > 1) return false;
+      }
+
+      return true;
+    }
+"""
+
+source_content = re.sub(
+    r'function normalizeActionFlag\(v\)\s*\{.*?function isOBBL\(rec\)\s*\{.*?return true;\s*\}',
+    resilient_is_obbl,
+    source_content,
+    flags=re.DOTALL
 )
 
 # Dual API & Google Sync System using SAME localStorage key as Skip Monitor
@@ -255,7 +317,6 @@ js_api_helpers = """
     }
 
     function openGoogleSheetModal() {
-      // Use SAME localStorage key 'socn_google_sheet_url' as Skip Monitor
       const savedUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || '';
       Swal.fire({
         title: '🔗 ดึงข้อมูลสดจาก Google Sheet / Apps Script',
@@ -438,4 +499,4 @@ output_file = os.path.join(base_dir, "ob_bl.html")
 with open(output_file, "w", encoding="utf-8") as f:
     f.write(source_content)
 
-print(f"Updated ob_bl.html with SOC Blue Theme & Flexible Google Sync successfully at {output_file}!")
+print(f"Updated ob_bl.html with Intelligent Resilient Filter successfully at {output_file}!")

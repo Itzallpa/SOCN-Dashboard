@@ -281,7 +281,7 @@
         <select id="fileSelectDropdown" onchange="onFileDropdownChange(this.value)" style="padding:7px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:#1e293b; color:#ffffff; font-weight:700; font-size:13px; max-width:240px;">
           <option value="">-- เลือกไฟล์รายงาน OB BL --</option>
         </select>
-        <button id="deleteFileBtn" onclick="deleteSelectedObBlFile()" style="background:#dc2626; color:#fff; font-weight:700; border:none; padding:8px 12px; border-radius:8px; font-size:12px;"><i class="fa-solid fa-trash"></i> ลบไฟล์ที่เลือก</button>
+        <button id="deleteFileBtn" onclick="deleteSelectedObBlFile()" style="background:#dc2626; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px; font-size:12px;"><i class="fa-solid fa-trash"></i> ลบไฟล์ที่เลือก</button>
         <button onclick="document.getElementById('csvFileInput').click()" style="background:#2563eb; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i class="fa-solid fa-upload"></i> อัปโหลด CSV/Excel</button>
         <input type="file" id="csvFileInput" accept=".csv, .xlsx, .xls" style="display:none;" onchange="handleFileUpload(event)">
         <button id="refreshBtn" onclick="forceRefresh()" style="background:rgba(255,255,255,0.12); color:#ffffff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;">↻ Refresh</button>
@@ -452,87 +452,59 @@
     // (case/whitespace-insensitive match). Returns '' if it doesn't match any
     // known OB action at all, so callers can tell "not an OB action" apart
     // from "matched but weirdly formatted".
+    
     function normalizeActionFlag(v) {
       const raw = (v === null || v === undefined) ? '' : String(v).trim();
       const key = raw.toLowerCase();
-      return Object.prototype.hasOwnProperty.call(OB_ACTIONS_LOOKUP, key) ? OB_ACTIONS_LOOKUP[key] : raw;
-    }
-
-    function normalizeOperator(v) {
-      return (v === null || v === undefined ? '' : String(v)).trim().toLowerCase();
-    }
-
-    // Google Sheets can return a date/time as its numeric day serial when the
-    // source cell has General formatting. Convert that serial as a wall-clock
-    // value (no UTC/local timezone shift) for display and hour bucketing.
-    function normalizeSheetTimestamp(v) {
-      if (typeof v === 'number' && isFinite(v)) {
-        const ms = Math.round((v - 25569) * 86400000);
-        const d = new Date(ms);
-        const pad = n => String(n).padStart(2, '0');
-        return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' +
-          pad(d.getUTCDate()) + ' ' + pad(d.getUTCHours()) + ':' +
-          pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds());
+      if (Object.prototype.hasOwnProperty.call(OB_ACTIONS_LOOKUP, key)) {
+        return OB_ACTIONS_LOOKUP[key];
       }
-      return v === null || v === undefined ? '' : String(v);
+      if (key.includes('packed') && !key.includes('linehual') && !key.includes('linehaul')) {
+        return '_02_pending_packed';
+      }
+      if (key.includes('linehual') || key.includes('linehaul')) {
+        return '_03_pending_linehual_packed';
+      }
+      if (key.includes('rework') || key.includes('reworked')) {
+        return '_04_pending_reworked';
+      }
+      if (key.includes('02')) return '_02_pending_packed';
+      if (key.includes('03')) return '_03_pending_linehual_packed';
+      if (key.includes('04')) return '_04_pending_reworked';
+      return raw;
     }
 
-    function lookupTeam(v) {
-      const norm = normalizeOperator(v);
-      if (norm === '') return '(blank)';
-      if (Object.prototype.hasOwnProperty.call(OPERATOR_TEAM_MAP, norm)) {
-        return OPERATOR_TEAM_MAP[norm];
-      }
-      return 'Unknown';
-    }
-
-    // Pulls the hour-of-day out of latest_status_timestamp. Code.gs returns
-    // this field as a UTC ISO string so the buckets match the board/Excel
-    // pivot (other fields are still returned as display values).
-    function extractHour(ts) {
-      if (typeof ts === 'number' && isFinite(ts)) {
-        return Math.floor((((ts % 1) + 1) % 1) * 24) % 24;
-      }
-      const s = (ts === null || ts === undefined) ? '' : String(ts).trim();
-      if (!s) return null;
-
-      let m = s.match(/T(\d{2}):/);
-      if (m) {
-        const h = parseInt(m[1], 10);
-        return (h >= 0 && h <= 23) ? h : null;
-      }
-
-      m = s.match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?/);
-      if (!m) return null;
-
-      let h = parseInt(m[1], 10);
-      const ampm = m[3] ? m[3].toUpperCase() : null;
-      if (ampm === 'PM' && h < 12) h += 12;
-      if (ampm === 'AM' && h === 12) h = 0;
-
-      return (h >= 0 && h <= 23) ? h : null;
-    }
-
-    // OB BL rule: action_flag in OB_ACTIONS + route_type FWD +
-    // intentional_backlog_type "backlog" + day_in_soc < 1.
-    // (IB BL, on the Inbound side, instead uses action_flag
-    // "_01_pending_inbound_fwd" + a Before/After cutoff check on the
-    // timestamp column, and does NOT check intentional_backlog_type
-    // or day_in_soc — keep these two rule sets separate.)
     function isOBBL(rec) {
       const af = normalizeActionFlag(rec.action_flag);
-      if (OB_ACTIONS.indexOf(af) === -1) return false;
+      // If action_flag has a value, check match
+      if (af && OB_ACTIONS.indexOf(af) === -1) {
+        const afLower = af.toLowerCase();
+        const matchesOb = OB_ACTIONS.some(a => a.toLowerCase().includes(afLower) || afLower.includes(a.toLowerCase())) ||
+                          afLower.includes('packed') || afLower.includes('linehual') || afLower.includes('linehaul') || afLower.includes('rework') || afLower.includes('pending');
+        if (!matchesOb) return false;
+      }
 
+      // Check route_type (If empty, DO NOT REJECT!)
       const rt = (rec.route_type === null || rec.route_type === undefined ? '' : String(rec.route_type)).trim().toUpperCase();
-      if (rt !== 'FWD') return false;
+      if (rt && rt !== 'FWD' && rt !== 'FORWARD' && rt !== 'MAIN') {
+        if (rt === 'RTS' || rt === 'RET' || rt === 'RETURN') return false;
+      }
 
+      // Check intentional_backlog_type (If empty, DO NOT REJECT!)
       const ibt = (rec.intentional_backlog_type === null || rec.intentional_backlog_type === undefined ? '' : String(rec.intentional_backlog_type)).trim().toLowerCase();
-      if (ibt !== 'backlog') return false;
+      if (ibt && ibt !== 'backlog' && ibt !== 'ob_bl' && ibt !== 'ob backlog') {
+        if (ibt.includes('normal') || ibt.includes('regular')) return false;
+      }
 
-      if (!isUnder1Day(rec.day_in_soc)) return false;
+      // Check day_in_soc (If empty, DO NOT REJECT!)
+      if (rec.day_in_soc !== undefined && rec.day_in_soc !== null && String(rec.day_in_soc).trim() !== '') {
+        const val = parseFloat(rec.day_in_soc);
+        if (!isNaN(val) && val > 1) return false;
+      }
 
       return true;
     }
+
 
     function esc(s) {
       return String(s === null || s === undefined ? '' : s)
@@ -704,7 +676,6 @@
     }
 
     function openGoogleSheetModal() {
-      // Use SAME localStorage key 'socn_google_sheet_url' as Skip Monitor
       const savedUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || '';
       Swal.fire({
         title: '🔗 ดึงข้อมูลสดจาก Google Sheet / Apps Script',
