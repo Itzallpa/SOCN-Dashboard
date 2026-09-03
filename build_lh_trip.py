@@ -168,6 +168,7 @@ lh_trip_html = f"""<!DOCTYPE html>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     body {{ background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding-bottom: 30px; }}
     .card-custom {{ background: #ffffff; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; padding: 18px; }}
@@ -938,7 +939,11 @@ lh_trip_html = f"""<!DOCTYPE html>
         link.download = 'LH_TRIP_DASHBOARD_EXCEL_WITH_CHARTS_TOP_50.xls';
         link.click();
       }} catch (err) {{
-        alert('เกิดข้อผิดพลาดในการส่งออก Excel: ' + err.message);
+        if (typeof Swal !== 'undefined') {{
+          Swal.fire({{ title: 'เกิดข้อผิดพลาดในการส่งออก Excel', text: err.message, icon: 'error', confirmButtonColor: '#dc2626', background: '#0d1b2a', color: '#fff' }});
+        }} else {{
+          alert('เกิดข้อผิดพลาดในการส่งออก Excel: ' + err.message);
+        }}
       }}
     }}
 

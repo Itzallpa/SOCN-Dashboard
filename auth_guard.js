@@ -182,6 +182,49 @@
     }
   }
 
+  // Inject SweetAlert2 CDN dynamically if not present
+  if (typeof Swal === 'undefined' && !document.getElementById('sweetalert2CDN')) {
+    const swalScript = document.createElement('script');
+    swalScript.id = 'sweetalert2CDN';
+    swalScript.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+    document.head.appendChild(swalScript);
+  }
+
+  function showSweetAlert(title, text, icon = 'info', confirmText = 'ตกลง', showCancel = false, cancelText = 'ยกเลิก', callback = null) {
+    const runSwal = () => {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          title: title,
+          html: text,
+          icon: icon,
+          showCancelButton: showCancel,
+          confirmButtonColor: icon === 'error' || icon === 'warning' ? '#dc2626' : (icon === 'success' ? '#10b981' : '#2563eb'),
+          cancelButtonColor: '#64748b',
+          confirmButtonText: confirmText,
+          cancelButtonText: cancelText,
+          background: '#0d1b2a',
+          color: '#ffffff',
+          customClass: { popup: 'rounded-4 shadow-lg border border-secondary' }
+        }).then((result) => {
+          if (callback) callback(result.isConfirmed);
+        });
+      } else {
+        if (showCancel) {
+          const ok = confirm(`${title}\n\n${text}`);
+          if (callback) callback(ok);
+        } else {
+          alert(`${title}\n\n${text}`);
+          if (callback) callback(true);
+        }
+      }
+    };
+    if (typeof Swal === 'undefined') {
+      setTimeout(runSwal, 300);
+    } else {
+      runSwal();
+    }
+  }
+
   function handleLoginSubmit(evt) {
     if (evt) evt.preventDefault();
 
@@ -203,7 +246,7 @@
           picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.name)}&background=0d1b2a&color=fff`
         });
       } else {
-        alert(`❌ ${data.error || 'ไม่สามารถเข้าสู่ระบบได้'}`);
+        showSweetAlert('เข้าสู่ระบบไม่สำเร็จ', data.error || 'ไม่สามารถเข้าสู่ระบบได้', 'error');
       }
     })
     .catch(() => {
@@ -213,11 +256,11 @@
         (u.name.toLowerCase() === userInput || u.email.toLowerCase() === userInput) && u.pass === passInput
       );
       if (!foundUser) {
-        alert('❌ ไม่พบบัญชีผู้ใช้ หรือ รหัสผ่านไม่ถูกต้อง');
+        showSweetAlert('เข้าสู่ระบบไม่สำเร็จ', 'ไม่พบบัญชีผู้ใช้ หรือ รหัสผ่านไม่ถูกต้อง', 'error');
         return;
       }
       if (foundUser.status === 'pending_approval') {
-        alert('⏳ บัญชีของคุณกำลังอยู่ระหว่างรอ Admin อนุมัติสิทธิ์ (Pending Approval)');
+        showSweetAlert('รอการอนุมัติสิทธิ์', 'บัญชีของคุณกำลังอยู่ระหว่างรอ Admin อนุมัติสิทธิ์ (Pending Approval)', 'warning');
         return;
       }
       finalizeLogin({
@@ -237,7 +280,7 @@
     const pass = (document.getElementById('signupPassField').value || '').trim();
 
     if (!name || !email || !pass) {
-      alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+      showSweetAlert('กรอกข้อมูลไม่ครบถ้วน', 'กรุณากรอกข้อมูลให้ครบถ้วนก่อนส่งคำขอลงทะเบียน', 'warning');
       return;
     }
 
@@ -250,18 +293,18 @@
     .then(data => {
       if (data.success) {
         if (data.users) saveUsersDatabase(data.users);
-        alert(`✅ ส่งคำขอลงทะเบียนสำเร็จ!\n\nคำขอของคุณถูกบันทึกปลอดภัยในเซิร์ฟเวอร์เรียบร้อยแล้ว กรุณาแจ้ง Admin เพื่อเลือกสิทธิ์และอนุมัติบัญชีของคุณก่อนเข้าใช้งานครับ`);
+        showSweetAlert('ส่งคำขอลงทะเบียนสำเร็จ!', 'คำขอของคุณถูกบันทึกปลอดภัยในเซิร์ฟเวอร์เรียบร้อยแล้ว<br><span style="color:#f59e0b; font-size:0.85rem; margin-top:6px; display:inline-block;">กรุณาแจ้ง Admin เพื่อเลือกสิทธิ์และอนุมัติบัญชีของคุณก่อนเข้าใช้งานครับ</span>', 'success');
         switchTab('login');
         renderProfileBadge();
       } else {
-        alert(`⚠️ ${data.error || 'เกิดข้อผิดพลาดในการลงทะเบียน'}`);
+        showSweetAlert('ลงทะเบียนไม่สำเร็จ', data.error || 'เกิดข้อผิดพลาดในการลงทะเบียน', 'error');
       }
     })
     .catch(() => {
       const db = getUsersDatabase();
       const existing = db.find(u => u.email.toLowerCase() === email || u.name.toLowerCase() === name.toLowerCase());
       if (existing) {
-        alert('⚠️ ชื่อผู้ใช้หรืออีเมลนี้ถูกลงทะเบียนไว้แล้ว');
+        showSweetAlert('พบข้อมูลซ้ำ', 'ชื่อผู้ใช้หรืออีเมลนี้ถูกลงทะเบียนไว้แล้วในระบบ', 'warning');
         switchTab('login');
         return;
       }
@@ -269,7 +312,7 @@
       const newUser = { id: 'u_' + Date.now(), name: name, email: email, pass: pass, role: 'Pending', status: 'pending_approval', createdAt: nowStr };
       db.push(newUser);
       saveUsersDatabase(db);
-      alert(`✅ ส่งคำขอลงทะเบียนสำเร็จ!`);
+      showSweetAlert('ส่งคำขอลงทะเบียนสำเร็จ!', 'คำขอของคุณถูกบันทึกเรียบร้อยแล้ว รอ Admin อนุมัติสิทธิ์', 'success');
       switchTab('login');
       renderProfileBadge();
     });
@@ -296,7 +339,7 @@
   function openAdminApprovalModal() {
     const user = getStoredUser();
     if (!user || user.role !== 'Admin') {
-      alert('⚠️ สงวนสิทธิ์สำหรับผู้ใช้งานระดับ Admin เท่านั้น');
+      showSweetAlert('🔒 สงวนสิทธิ์ Admin', 'สงวนสิทธิ์สำหรับผู้ใช้งานระดับ Admin เท่านั้น', 'warning');
       return;
     }
 
@@ -430,7 +473,7 @@
     target.role = chosenRole;
 
     saveUsersDatabase(db);
-    alert(`✅ อนุมัติสมาชิก ${target.name} เป็นสิทธิ์ ${chosenRole} สำเร็จ!`);
+    showSweetAlert('อนุมัติสมาชิกสำเร็จ!', `อนุมัติสมาชิก <b>"${target.name}"</b> เป็นสิทธิ์ <b>${chosenRole}</b> เรียบร้อยแล้ว`, 'success');
 
     renderAdminApprovalTable();
     renderProfileBadge();
@@ -441,12 +484,22 @@
     const targetIndex = db.findIndex(u => u.id === userId);
     if (targetIndex === -1) return;
 
-    if (confirm(`คุณต้องการลบคำขอ/สมาชิก ${db[targetIndex].name} ใช่หรือไม่?`)) {
-      db.splice(targetIndex, 1);
-      saveUsersDatabase(db);
-      renderAdminApprovalTable();
-      renderProfileBadge();
-    }
+    showSweetAlert(
+      '⚠️ ยืนยันการลบสมาชิก?',
+      `คุณต้องการลบคำขอ/สมาชิก <b>"${db[targetIndex].name}"</b> ออกจากระบบใช่หรือไม่?`,
+      'warning',
+      '<i class="fa-solid fa-trash me-1"></i> ใช่, ลบสมาชิก',
+      true,
+      'ยกเลิก',
+      function (confirmed) {
+        if (confirmed) {
+          db.splice(targetIndex, 1);
+          saveUsersDatabase(db);
+          renderAdminApprovalTable();
+          renderProfileBadge();
+        }
+      }
+    );
   }
 
   /* ─── Click Guard & Page Interaction Lock (Admin-Only Dashboard Access) ─── */
@@ -460,7 +513,7 @@
         showAuthModal('🔒 กรุณาล็อกอินเพื่อใช้งาน');
         return;
       } else if (user.role !== 'Admin') {
-        alert('⚠️ Access Denied: สงวนสิทธิ์เฉพาะผู้ใช้งานระดับ Admin เท่านั้นที่มีสิทธิ์เข้าสู่ Dashboard');
+        showSweetAlert('🔒 Access Denied', 'สงวนสิทธิ์เฉพาะผู้ใช้งานระดับ Admin เท่านั้นที่มีสิทธิ์เข้าสู่ Dashboard', 'warning');
         location.href = 'index.html';
         return;
       }
@@ -482,7 +535,7 @@
         } else if (u.role !== 'Admin') {
           e.preventDefault();
           e.stopPropagation();
-          alert('⚠️ Access Denied: บัญชีสิทธิ์ Ground ไม่ได้รับอนุญาตให้เข้าใช้งาน Dashboard (สงวนสิทธิ์เฉพาะ Admin เท่านั้น)');
+          showSweetAlert('🔒 Access Denied', 'บัญชีสิทธิ์ Ground ไม่ได้รับอนุญาตให้เข้าใช้งาน Dashboard (สงวนสิทธิ์เฉพาะ Admin เท่านั้น)', 'warning');
           return false;
         }
       }, true);
