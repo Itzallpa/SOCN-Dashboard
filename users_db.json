@@ -1,0 +1,29 @@
+[
+  {
+    "id": "u1",
+    "name": "Admin SOC",
+    "email": "admin@spxexpress.com",
+    "pass": "1234",
+    "role": "Admin",
+    "status": "approved",
+    "createdAt": "2026-09-03 00:00:00"
+  },
+  {
+    "id": "u2",
+    "name": "Ground Operator",
+    "email": "ground@spxexpress.com",
+    "pass": "1234",
+    "role": "Ground",
+    "status": "approved",
+    "createdAt": "2026-09-03 00:00:00"
+  },
+  {
+    "id": "u_1788441071676",
+    "name": "Natakorn Panmanee",
+    "email": "guy.panmanee@spxexpress.com",
+    "pass": "1234",
+    "role": "Admin",
+    "status": "approved",
+    "createdAt": "2026-09-03 20:11:11"
+  }
+]
