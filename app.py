@@ -771,6 +771,8 @@ def list_files():
     file_list.sort(key=lambda x: x["mtime"], reverse=True)
     return jsonify({"success": True, "files": file_list, "outbound_files": file_list, "skip_files": file_list})
 
+FILE_PARSED_CACHE = {}
+
 @app.route("/api/load-file", methods=["GET"])
 def load_file():
     filename = request.args.get("filename", "").strip()
@@ -785,6 +787,11 @@ def load_file():
         return jsonify({"success": False, "error": f"File '{filename}' not found"}), 404
 
     try:
+        mtime = os.path.getmtime(target)
+        cache_key = f"{target}_{mtime}"
+        if cache_key in FILE_PARSED_CACHE:
+            return jsonify(FILE_PARSED_CACHE[cache_key])
+
         data = process_csv(target)
         data["filename"] = filename
         data["success"] = True
@@ -849,12 +856,14 @@ def load_file():
             data["machineCount"] = machine_count
             data["systemCount"] = system_count
             data["skipCountByZone"] = skip_count_by_zone
-            data["rawRows"] = skip_df[needed].fillna('').to_dict(orient='records')
+            data["rawRows"] = skip_df[needed].head(2500).fillna('').to_dict(orient='records')
         except Exception as ex:
             print("Error processing skip rawRows in load_file:", ex)
             data["rawRows"] = []
             data["totalRows"] = 0
 
+        FILE_PARSED_CACHE[cache_key] = data
+        return jsonify(data)
     except Exception as e:
         import traceback
         traceback.print_exc()
