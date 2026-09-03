@@ -1442,8 +1442,9 @@ def cutoff_master_page():
     return send_from_directory(BASE_DIR, "cutoff_master.html")
 
 @app.route("/<path:filename>")
-def serve_html_files(filename):
-    if filename.endswith(".html") and os.path.exists(os.path.join(BASE_DIR, filename)):
+def serve_static_files(filename):
+    allowed_ext = (".html", ".js", ".css", ".png", ".jpg", ".ico", ".webp", ".svg")
+    if any(filename.endswith(ext) for ext in allowed_ext) and os.path.exists(os.path.join(BASE_DIR, filename)):
         return send_from_directory(BASE_DIR, filename)
     return jsonify({"success": False, "error": "File not found"}), 404
 
