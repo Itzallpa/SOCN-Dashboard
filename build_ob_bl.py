@@ -282,18 +282,83 @@ js_api_helpers = """
       });
     }
 
+    function convertToDirectCsvUrl(url) {
+      if (!url) return '';
+      let u = url.trim();
+      if (u.includes('/pubhtml')) {
+        return u.replace('/pubhtml', '/pub?output=csv');
+      }
+      if (u.includes('docs.google.com/spreadsheets') && !u.includes('output=csv') && !u.includes('gviz/tq')) {
+        const match = u.match(/\/d\/e\/([a-zA-Z0-9-_]+)/) || u.match(/\/d\/([a-zA-Z0-9-_]+)/);
+        if (match) {
+          return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv`;
+        }
+      }
+      return u;
+    }
+
     function syncGoogleSheetUrl(url) {
       localStorage.setItem('socn_google_sheet_url', url);
       localStorage.setItem('socn_google_sheet_obbl_url', url);
 
       Swal.fire({
         title: 'กำลังเชื่อมต่อและดึงข้อมูล...',
-        text: 'กรุณารอสักครู่ ระบบกำลังดึงข้อมูลสดจาก Google Sheet',
+        text: 'กรุณารอสักครู่ ระบบกำลังดึงข้อมูลผ่านสิทธิ์ Shopee Mobile ในเบราว์เซอร์',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
       });
 
-      // Use SAME endpoint /api/sync-google-sheet as Skip Monitor
+      const directCsvUrl = convertToDirectCsvUrl(url);
+
+      Papa.parse(directCsvUrl, {
+        download: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          if (results && results.data && results.data.length > 0) {
+            const rows = results.data;
+            const headers = rows[0];
+            const dataRows = rows.slice(1);
+
+            const firstCell = String(headers[0] || '');
+            if (firstCell.includes('<!DOCTYPE') || firstCell.includes('<html') || firstCell.includes('Sign in')) {
+              fallbackToServerSync(url);
+              return;
+            }
+
+            const dataObj = {
+              success: true,
+              headers: headers,
+              rows: dataRows,
+              generatedAt: new Date().toLocaleString()
+            };
+
+            Swal.fire({
+              icon: 'success',
+              title: 'ซิงค์ข้อมูลสำเร็จ!',
+              text: `ดึงข้อมูลสดผ่านสิทธิ์ Shopee Mobile สำเร็จทั้งหมด ${dataRows.length.toLocaleString()} แถว`,
+              timer: 2000,
+              showConfirmButton: false
+            });
+
+            onData(dataObj);
+            fetchFileList();
+
+            fetch('/api/sync-google-sheet', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: url })
+            }).catch(() => {});
+          } else {
+            fallbackToServerSync(url);
+          }
+        },
+        error: function() {
+          fallbackToServerSync(url);
+        }
+      });
+    }
+
+    function fallbackToServerSync(url) {
       fetch('/api/sync-google-sheet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -302,13 +367,7 @@ js_api_helpers = """
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          Swal.fire({
-            icon: 'success',
-            title: 'เชื่อมต่อข้อมูลสำเร็จ!',
-            text: `โหลดข้อมูลสดสำเร็จเรียบร้อย`,
-            timer: 2000,
-            showConfirmButton: false
-          });
+          Swal.fire({ icon: 'success', title: 'เชื่อมต่อข้อมูลสำเร็จ!', timer: 2000, showConfirmButton: false });
           fetchObBlData();
           fetchFileList();
         } else {
@@ -319,13 +378,7 @@ js_api_helpers = """
           });
         }
       })
-      .catch(err => {
-        Swal.fire({
-          icon: 'error',
-          title: 'เกิดข้อผิดพลาด',
-          text: err.message
-        });
-      });
+      .catch(err => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message }));
     }
 
     function fetchObBlData(filename, force) {

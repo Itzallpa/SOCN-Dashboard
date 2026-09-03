@@ -1570,6 +1570,15 @@ def sync_ob_bl():
     if not url:
         return jsonify({"success": False, "error": "กรุณาระบุ URL ของ Google Sheet หรือ Apps Script"}), 400
 
+    if "/pubhtml" in url:
+        url = url.replace("/pubhtml", "/pub?output=csv")
+    elif "docs.google.com/spreadsheets" in url and "gviz/tq" not in url and "export" not in url and "/pub" not in url:
+        import re
+        match = re.search(r'/d/e/([a-zA-Z0-9-_]+)', url) or re.search(r'/d/([a-zA-Z0-9-_]+)', url)
+        if match:
+            spreadsheet_id = match.group(1)
+            url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv"
+
     try:
         req = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=True)
         if req.status_code != 200:
