@@ -1,5 +1,5 @@
 /**
- * SOC Operations Control Center - Universal Inline Auth Guard & 1-Hour Idle Timeout System
+ * SOC Operations Control Center - Landing Page Free Access & Google Verify / Create Username System
  * Author: Antigravity AI
  */
 
@@ -38,64 +38,78 @@
   function checkAuthGuard() {
     const user = getStoredUser();
 
-    if (!user) {
-      // Show Inline Login Modal directly on page (No separate /login redirect required!)
-      showInlineLoginModal();
-    } else {
-      // Hide modal if open
-      const modalEl = document.getElementById('inlineAuthModalOverlay');
-      if (modalEl) modalEl.style.display = 'none';
-
-      // Role Guard for audit_logs.html (Admin only)
-      if (user.role !== 'Admin' && (window.location.pathname.endsWith('audit_logs.html') || window.location.pathname.endsWith('/audit-logs'))) {
-        alert("⚠️ Access Denied: Audit Logs are reserved for Admin users only.");
-        window.location.href = "index.html";
-        return;
-      }
+    // Landing page (index.html) is 100% free access without any blocking popups or redirects!
+    // Only Audit Logs page requires Admin role
+    if (user && user.role !== 'Admin' && (window.location.pathname.endsWith('audit_logs.html') || window.location.pathname.endsWith('/audit-logs'))) {
+      alert("⚠️ Access Denied: Audit Logs are reserved for Admin users only.");
+      window.location.href = "index.html";
+      return;
     }
   }
 
-  function showInlineLoginModal() {
-    let overlay = document.getElementById('inlineAuthModalOverlay');
+  function loadGoogleGISScript() {
+    if (document.getElementById('google-gis-sdk')) return;
+    const s = document.createElement('script');
+    s.id = 'google-gis-sdk';
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true;
+    s.defer = true;
+    document.head.appendChild(s);
+  }
+
+  function showGoogleVerifyModal() {
+    loadGoogleGISScript();
+
+    let overlay = document.getElementById('googleVerifyAuthModal');
     if (!overlay) {
       overlay = document.createElement('div');
-      overlay.id = 'inlineAuthModalOverlay';
-      overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(13,27,42,0.85); backdrop-filter:blur(6px); z-index:99999; display:flex; align-items:center; justify-content:center; padding:20px; font-family:"Segoe UI", sans-serif;';
+      overlay.id = 'googleVerifyAuthModal';
+      overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(13,27,42,0.85); backdrop-filter:blur(8px); z-index:99999; display:flex; align-items:center; justify-content:center; padding:20px; font-family:"Segoe UI", system-ui, sans-serif;';
       overlay.innerHTML = `
-        <div style="background:#ffffff; border-radius:18px; box-shadow:0 25px 50px rgba(0,0,0,0.5); width:100%; max-width:440px; overflow:hidden; animation:fadeIn 0.3s ease;">
-          <div style="background:#0d1b2a; color:#ffffff; padding:24px 24px; text-align:center;">
+        <div style="background:#ffffff; border-radius:20px; box-shadow:0 25px 60px rgba(0,0,0,0.5); width:100%; max-width:450px; overflow:hidden; animation:fadeIn 0.3s ease;">
+          <div style="background:#0d1b2a; color:#ffffff; padding:24px 24px; text-align:center; position:relative;">
+            <button onclick="document.getElementById('googleVerifyAuthModal').style.display='none'" style="position:absolute; top:16px; right:16px; background:transparent; border:none; color:#cbd5e1; font-size:1.2rem; cursor:pointer;">✕</button>
             <div style="font-size:2.4rem; margin-bottom:6px;">📦</div>
             <h4 style="font-weight:800; margin:0; font-size:1.3rem;">SOC Operations Control Center</h4>
-            <p style="font-size:0.8rem; color:#94a3b8; margin-top:4px; margin-bottom:0;">กรอกชื่อหรือบัญชี Google เพื่อเริ่มใช้งานแดชบอร์ด</p>
+            <p style="font-size:0.8rem; color:#94a3b8; margin-top:4px; margin-bottom:0;">ระบุชื่อผู้ใช้งาน & Google Verify</p>
           </div>
           <div style="padding:24px 24px;">
-            <form onsubmit="window.AuthGuard.submitInlineLogin(event)">
+            <form onsubmit="window.AuthGuard.submitGoogleVerifyForm(event)">
+
               <div style="margin-bottom:16px;">
-                <label style="font-size:0.8rem; font-weight:700; color:#475569; display:block; margin-bottom:6px;">1. ระบุชื่อผู้ใช้งาน (Enter Display Name / Username):</label>
-                <input type="text" id="inlineUsernameInput" placeholder="พิมพ์ชื่อผู้ใช้ เช่น Natakorn / SPX Operator" required style="width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.92rem; outline:none;" value="${getSuggestedName()}">
+                <label style="font-size:0.8rem; font-weight:700; color:#334155; display:block; margin-bottom:6px;">
+                  <i class="fa-solid fa-user-gear text-primary me-1"></i> 1. ตั้งชื่อผู้ใช้งาน (Create Username):
+                </label>
+                <input type="text" id="createUsernameInput" placeholder="พิมพ์ชื่อของคุณ เช่น Natakorn / Operator A" required style="width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:0.92rem; outline:none;" value="${getExistingName()}">
+              </div>
+
+              <div style="margin-bottom:16px;">
+                <label style="font-size:0.8rem; font-weight:700; color:#334155; display:block; margin-bottom:6px;">
+                  <i class="fa-solid fa-envelope text-danger me-1"></i> 2. อีเมล Google / Gmail:
+                </label>
+                <input type="email" id="googleEmailInput" placeholder="your.name@spxexpress.com หรือ gmail.com" required style="width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:0.92rem; outline:none;" value="${getExistingEmail()}">
               </div>
 
               <div style="margin-bottom:20px;">
-                <label style="font-size:0.8rem; font-weight:700; color:#475569; display:block; margin-bottom:6px;">2. เลือกสิทธิ์การใช้งาน (Select Role):</label>
+                <label style="font-size:0.8rem; font-weight:700; color:#334155; display:block; margin-bottom:6px;">
+                  <i class="fa-solid fa-shield-halved text-warning me-1"></i> 3. เลือกสิทธิ์การใช้งาน (Role):
+                </label>
                 <div style="display:flex; gap:10px;">
-                  <label id="roleInlineGroundLbl" style="flex:1; border:2px solid #2563eb; background:#eff6ff; border-radius:10px; padding:10px; text-align:center; cursor:pointer; font-weight:700; font-size:0.85rem; color:#0f172a;">
-                    <input type="radio" name="inlineRoleRadio" value="Ground" checked onclick="window.AuthGuard.selectInlineRole('Ground')" style="display:none;">
+                  <label id="roleModalGroundBtn" style="flex:1; border:2px solid #2563eb; background:#eff6ff; border-radius:10px; padding:10px; text-align:center; cursor:pointer; font-weight:700; font-size:0.85rem; color:#0f172a;">
+                    <input type="radio" name="modalRole" value="Ground" checked onclick="window.AuthGuard.selectModalRole('Ground')" style="display:none;">
                     👤 Ground (เจ้าหน้าที่)
                   </label>
-                  <label id="roleInlineAdminLbl" style="flex:1; border:2px solid #cbd5e1; background:#ffffff; border-radius:10px; padding:10px; text-align:center; cursor:pointer; font-weight:700; font-size:0.85rem; color:#0f172a;">
-                    <input type="radio" name="inlineRoleRadio" value="Admin" onclick="window.AuthGuard.selectInlineRole('Admin')" style="display:none;">
+                  <label id="roleModalAdminBtn" style="flex:1; border:2px solid #cbd5e1; background:#ffffff; border-radius:10px; padding:10px; text-align:center; cursor:pointer; font-weight:700; font-size:0.85rem; color:#0f172a;">
+                    <input type="radio" name="modalRole" value="Admin" onclick="window.AuthGuard.selectModalRole('Admin')" style="display:none;">
                     🛡️ Admin (ผู้ดูแลระบบ)
                   </label>
                 </div>
               </div>
 
-              <button type="submit" style="width:100%; background:#2563eb; color:#ffffff; border:none; padding:12px; border-radius:10px; font-weight:800; font-size:0.95rem; cursor:pointer; transition:all 0.2s;">
-                <i class="fa-solid fa-right-to-bracket me-2"></i> เข้าใช้งานแดชบอร์ด (Enter Portal)
+              <button type="submit" style="width:100%; background:#2563eb; color:#ffffff; border:none; padding:12px; border-radius:12px; font-weight:800; font-size:0.95rem; cursor:pointer; box-shadow:0 4px 12px rgba(37,99,235,0.3);">
+                <i class="fa-brands fa-google me-2"></i> ยืนยันบันทึกชื่อผู้ใช้งาน
               </button>
             </form>
-            <div style="font-size:0.75rem; color:#94a3b8; text-align:center; margin-top:16px;">
-              🔒 ปลอดภัยด้วย Google Verify & 1-Hour Idle Session Guard
-            </div>
           </div>
         </div>
       `;
@@ -105,49 +119,58 @@
     }
   }
 
-  function getSuggestedName() {
-    return 'SPX Operator';
+  function getExistingName() {
+    const u = getStoredUser();
+    return u ? u.name : 'SPX Operator';
   }
 
-  let currentInlineRole = 'Ground';
-  function selectInlineRole(role) {
-    currentInlineRole = role;
-    const groundLbl = document.getElementById('roleInlineGroundLbl');
-    const adminLbl = document.getElementById('roleInlineAdminLbl');
+  function getExistingEmail() {
+    const u = getStoredUser();
+    return u ? u.email : 'operator.socn@spxexpress.com';
+  }
+
+  let selectedRoleState = 'Ground';
+
+  function selectModalRole(role) {
+    selectedRoleState = role;
+    const gBtn = document.getElementById('roleModalGroundBtn');
+    const aBtn = document.getElementById('roleModalAdminBtn');
     if (role === 'Ground') {
-      if (groundLbl) { groundLbl.style.borderColor = '#2563eb'; groundLbl.style.background = '#eff6ff'; }
-      if (adminLbl) { adminLbl.style.borderColor = '#cbd5e1'; adminLbl.style.background = '#ffffff'; }
+      if (gBtn) { gBtn.style.borderColor = '#2563eb'; gBtn.style.background = '#eff6ff'; }
+      if (aBtn) { aBtn.style.borderColor = '#cbd5e1'; aBtn.style.background = '#ffffff'; }
     } else {
-      if (groundLbl) { groundLbl.style.borderColor = '#cbd5e1'; groundLbl.style.background = '#ffffff'; }
-      if (adminLbl) { adminLbl.style.borderColor = '#d0311d'; adminLbl.style.background = '#fef2f2'; }
+      if (gBtn) { gBtn.style.borderColor = '#cbd5e1'; gBtn.style.background = '#ffffff'; }
+      if (aBtn) { aBtn.style.borderColor = '#d0311d'; aBtn.style.background = '#fef2f2'; }
     }
   }
 
-  function submitInlineLogin(evt) {
+  function submitGoogleVerifyForm(evt) {
     if (evt) evt.preventDefault();
-    const nameInput = document.getElementById('inlineUsernameInput');
-    const username = nameInput ? nameInput.value.trim() : 'SPX Operator';
 
-    if (!username) return;
+    const usernameInput = document.getElementById('createUsernameInput');
+    const emailInput = document.getElementById('googleEmailInput');
 
-    const email = username.toLowerCase().replace(/\s+/g, '.') + '@spxexpress.com';
+    const username = usernameInput ? usernameInput.value.trim() : 'SPX Operator';
+    const email = emailInput ? emailInput.value.trim().toLowerCase() : 'operator.socn@spxexpress.com';
+
+    if (!username || !email) return;
+
     const userObj = {
       name: username,
       email: email,
-      role: currentInlineRole,
+      role: selectedRoleState,
       picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=0d1b2a&color=fff`
     };
 
     saveStoredUser(userObj, true);
 
-    // Call server to store session and activity log
     fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userObj)
     }).catch(() => {});
 
-    const overlay = document.getElementById('inlineAuthModalOverlay');
+    const overlay = document.getElementById('googleVerifyAuthModal');
     if (overlay) overlay.style.display = 'none';
 
     renderUserProfileBadge();
@@ -161,12 +184,10 @@
     if (idleTimer) clearTimeout(idleTimer);
     if (warningTimer) clearTimeout(warningTimer);
 
-    // Set 55-minute warning timer
     warningTimer = setTimeout(() => {
       showSessionWarningToast();
     }, IDLE_TIMEOUT_MS - WARNING_BEFORE_MS);
 
-    // Set 60-minute logout timer
     idleTimer = setTimeout(() => {
       performAutoLogout("ไม่มีการใช้งานเกิน 1 ชั่วโมง (Idle Timeout for 1 hour)");
     }, IDLE_TIMEOUT_MS);
@@ -199,12 +220,9 @@
     if (user) {
       logClientActivity('IDLE_AUTO_LOGOUT', `Automatic logout due to: ${reason}`);
     }
-
     clearStoredUser();
-
     fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
-
-    showInlineLoginModal();
+    renderUserProfileBadge();
   }
 
   function setupActivityListeners() {
@@ -241,8 +259,6 @@
 
   function renderUserProfileBadge() {
     const user = getStoredUser();
-    if (!user) return;
-
     const navContainers = document.querySelectorAll('.top-nav, nav');
     if (!navContainers.length) return;
 
@@ -252,7 +268,10 @@
         badgeEl = document.createElement('div');
         badgeEl.className = 'user-profile-badge';
         badgeEl.style.cssText = 'display:flex; align-items:center; gap:10px; font-size:0.85rem; margin-left:auto;';
+        nav.appendChild(badgeEl);
+      }
 
+      if (user) {
         const roleBadgeBg = user.role === 'Admin' ? '#d0311d' : '#2563eb';
         const auditLink = user.role === 'Admin' ? `<a href="audit_logs.html" style="color:#fde047; text-decoration:none; font-weight:700; background:rgba(253,224,71,0.15); padding:4px 10px; border-radius:6px; margin-right:4px;"><i class="fa-solid fa-shield-halved me-1"></i> Audit Logs</a>` : '';
 
@@ -263,10 +282,12 @@
             <span style="font-weight:700; color:#ffffff;">${escapeHtml(user.name)}</span>
             <span style="background:${roleBadgeBg}; color:#fff; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; text-transform:uppercase;">${user.role}</span>
           </div>
-          <button onclick="window.AuthGuard.openChangeNameModal()" style="background:rgba(255,255,255,0.15); color:#fff; border:none; padding:5px 12px; border-radius:6px; font-weight:700; font-size:0.8rem; cursor:pointer;" title="เปลี่ยนชื่อผู้ใช้"><i class="fa-solid fa-user-pen me-1"></i> เปลี่ยนชื่อ</button>
+          <button onclick="window.AuthGuard.openCreateUsernameModal()" style="background:rgba(255,255,255,0.15); color:#fff; border:none; padding:5px 12px; border-radius:6px; font-weight:700; font-size:0.8rem; cursor:pointer;" title="เปลี่ยนชื่อผู้ใช้"><i class="fa-solid fa-user-pen me-1"></i> เปลี่ยนชื่อ</button>
         `;
-
-        nav.appendChild(badgeEl);
+      } else {
+        badgeEl.innerHTML = `
+          <button onclick="window.AuthGuard.openCreateUsernameModal()" style="background:#2563eb; color:#fff; border:none; padding:6px 14px; border-radius:8px; font-weight:700; font-size:0.82rem; cursor:pointer;"><i class="fa-brands fa-google me-1"></i> 🔐 ระบุชื่อผู้ใช้งาน / Google Verify</button>
+        `;
       }
     });
   }
@@ -290,11 +311,11 @@
     logout: function () {
       performAutoLogout("ผู้ใช้งานกดสลับผู้ใช้");
     },
-    openChangeNameModal: function () {
-      showInlineLoginModal();
+    openCreateUsernameModal: function () {
+      showGoogleVerifyModal();
     },
-    selectInlineRole: selectInlineRole,
-    submitInlineLogin: submitInlineLogin,
+    selectModalRole: selectModalRole,
+    submitGoogleVerifyForm: submitGoogleVerifyForm,
     extendSession: function () {
       resetIdleTimer();
       const warningEl = document.getElementById('sessionWarningToast');
