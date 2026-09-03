@@ -1,5 +1,14 @@
 [
   {
+    "id": "e8b050dc",
+    "timestamp": "2026-09-03 20:13:20",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "127.0.0.1"
+  },
+  {
     "id": "dfdb3b39",
     "timestamp": "2026-09-03 20:11:15",
     "email": "admin@spxexpress.com",

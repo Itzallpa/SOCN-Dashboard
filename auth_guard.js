@@ -523,16 +523,16 @@
 
       if (user) {
         var roleBg = user.role === 'Admin' ? '#d0311d' : '#2563eb';
-        var audit = user.role === 'Admin' ? '<a href="audit_logs.html" style="color:#fde047;text-decoration:none;font-weight:700;background:rgba(253,224,71,.15);padding:4px 10px;border-radius:6px;"><i class="fa-solid fa-shield-halved me-1"></i> Audit Logs</a>' : '';
+        var adminPanelBtn = user.role === 'Admin' ? '<a href="admin.html" style="color:#ffffff;text-decoration:none;font-weight:700;background:#d0311d;padding:5px 12px;border-radius:8px;box-shadow:0 2px 8px rgba(208,49,29,0.4);font-size:0.82rem;"><i class="fa-solid fa-user-shield me-1"></i> 🛡️ Admin Dashboard</a>' : '';
         
         var pendingBadgeBtn = user.role === 'Admin' ? `
-          <button onclick="window.AuthGuard.openAdminApprovalModal()" style="background:#f59e0b; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-weight:700; font-size:0.8rem; cursor:pointer; position:relative;">
+          <button onclick="window.AuthGuard.openAdminApprovalModal()" style="background:#f59e0b; color:#fff; border:none; padding:5px 12px; border-radius:8px; font-weight:700; font-size:0.8rem; cursor:pointer; position:relative; box-shadow:0 2px 8px rgba(245,158,11,0.3);">
             <i class="fa-solid fa-user-clock me-1"></i> อนุมัติสมาชิก
             ${pendingCount > 0 ? `<span style="position:absolute; top:-6px; right:-6px; background:#dc2626; color:#fff; font-size:10px; font-weight:800; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; border:2px solid #fff;">${pendingCount}</span>` : ''}
           </button>
         ` : '';
 
-        badge.innerHTML = audit + pendingBadgeBtn +
+        badge.innerHTML = adminPanelBtn + pendingBadgeBtn +
           '<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.15);">' +
             '<img src="' + user.picture + '" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">' +
             '<span style="font-weight:700;color:#fff;">' + esc(user.name) + '</span>' +
