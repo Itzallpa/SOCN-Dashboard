@@ -1366,12 +1366,14 @@ def logout():
     session.clear()
     return redirect("/login.html")
 
+@app.route("/admin.html")
+@app.route("/admin")
 @app.route("/audit_logs.html")
 @app.route("/audit-logs")
 @app.route("/admin/logs")
-def admin_logs_page():
-    log_activity("VIEW_AUDIT_LOGS", "Accessed Admin Audit Logs Dashboard")
-    return send_from_directory(BASE_DIR, "audit_logs.html")
+def admin_page():
+    log_activity("VIEW_ADMIN_DASHBOARD", "Accessed Admin Control Panel & Audit Logs")
+    return send_from_directory(BASE_DIR, "admin.html")
 
 @app.route("/api/activity-logs", methods=["GET"])
 def get_activity_logs():

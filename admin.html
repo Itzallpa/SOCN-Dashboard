@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Control Panel & Audit Logs - SOC Operations Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding-bottom: 30px; }
+    .card-custom { background: #ffffff; border-radius: 14px; border: none; box-shadow: 0 4px 14px rgba(0,0,0,0.04); padding: 20px; margin-bottom: 20px; }
+    .stat-card { background: #ffffff; border-radius: 14px; border-left: 5px solid #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.04); padding: 18px 20px; }
+    .stat-blue { border-left-color: #2563eb; }
+    .stat-warning { border-left-color: #f59e0b; }
+    .stat-danger { border-left-color: #dc2626; }
+    .stat-success { border-left-color: #10b981; }
+    .stat-title { font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+    .stat-value { font-size: 1.85rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
+
+    .nav-tabs .nav-link { font-weight: 700; color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 12px 20px; }
+    .nav-tabs .nav-link.active { color: #2563eb; border-bottom-color: #2563eb; background: transparent; }
+
+    .table-custom { font-size: 0.88rem; }
+    .table-custom th { background-color: #0f172a; color: #ffffff; font-weight: 600; vertical-align: middle; }
+
+    .log-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .badge-login { background: #e3f8ea; color: #0f9d58; }
+    .badge-logout { background: #ffe7db; color: #d0311d; }
+    .badge-edit { background: #fdf3dc; color: #b7791f; }
+    .badge-export { background: #e8eaf6; color: #3f51b5; }
+    .badge-upload { background: #f3e8ff; color: #7c3aed; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <nav style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:1020;">
+    <a href="index.html" style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
+      <span style="font-size:1.4rem;">🛡️</span> SOC Operations Portal - Admin Control Panel
+    </a>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08);">🏠 Portal Hub</a>
+      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08);">🚚 LH Trip</a>
+      <a href="admin.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#d0311d;">🛡️ Admin Dashboard</a>
+    </div>
+  </nav>
+
+  <div class="container-fluid px-4 py-4" style="max-width: 1650px; margin: 0 auto;">
+
+    <!-- Banner Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded-3 shadow-sm border flex-wrap gap-2">
+      <div>
+        <h4 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-user-shield text-danger me-2"></i> Executive Admin Dashboard & Audit System</h4>
+        <p class="text-muted small mb-0">ศูนย์ควบคุมผู้ดูแลระบบ: อนุมัติสิทธิ์สมาชิก กำหนด Role (Ground/Admin) และตรวจสอบ Audit Logs ประวัติการเข้าใช้งานทั้งหมด</p>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm fw-bold" onclick="openAddUserModal()"><i class="fa-solid fa-user-plus me-1"></i> เพิ่มสมาชิกใหม่</button>
+        <button class="btn btn-success btn-sm fw-bold" onclick="exportAuditLogsCSV()"><i class="fa-solid fa-file-csv me-1"></i> 📥 Export Audit Logs CSV</button>
+        <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="refreshAdminData()"><i class="fa-solid fa-rotate me-1"></i> รีเฟรชข้อมูล</button>
+      </div>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="stat-card stat-blue">
+          <div class="stat-title"><i class="fa-solid fa-users text-primary me-1"></i> สมาชิกทั้งหมด (Total Users)</div>
+          <div class="stat-value" id="statTotalUsers">0</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card stat-warning">
+          <div class="stat-title"><i class="fa-solid fa-user-clock text-warning me-1"></i> รออนุมัติ (Pending Approvals)</div>
+          <div class="stat-value text-warning" id="statPendingApprovals">0</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card stat-danger">
+          <div class="stat-title"><i class="fa-solid fa-list-check text-danger me-1"></i> กิจกรรมในระบบ (Audit Logs)</div>
+          <div class="stat-value" id="statTotalAuditLogs">0</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card stat-success">
+          <div class="stat-title"><i class="fa-solid fa-shield-halved text-success me-1"></i> สถานะความปลอดภัย</div>
+          <div class="stat-value text-success fs-5">Active Protection</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Navigation Tabs -->
+    <ul class="nav nav-tabs mb-3" id="adminMainTabs" role="tablist">
+      <li class="nav-item">
+        <button class="nav-link active" id="tab-users-link" data-bs-toggle="tab" data-bs-target="#tab-users-pane"><i class="fa-solid fa-user-gear me-2"></i> 1. จัดการสมาชิก & อนุมัติสิทธิ์ (User Approvals)</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" id="tab-logs-link" data-bs-toggle="tab" data-bs-target="#tab-logs-pane"><i class="fa-solid fa-history me-2"></i> 2. ประวัติการใช้งาน & กิจกรรม (Audit Logs)</button>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="adminTabContent">
+
+      <!-- TAB 1: USER APPROVALS & MANAGEMENT -->
+      <div class="tab-pane fade show active" id="tab-users-pane">
+        <div class="card-custom">
+          <div class="row g-2 align-items-center mb-3">
+            <div class="col-md-5">
+              <input type="text" id="userSearchInput" class="form-control form-control-sm" placeholder="🔍 ค้นหาชื่อผู้ใช้ หรือ อีเมลสมาชิก..." onkeyup="renderUsersTable()">
+            </div>
+            <div class="col-md-4">
+              <select id="userStatusFilter" class="form-select form-select-sm" onchange="renderUsersTable()">
+                <option value="ALL">-- ทุกสถานะ (All Statuses) --</option>
+                <option value="pending_approval">⏳ รออนุมัติ (Pending Approval Only)</option>
+                <option value="approved">✅ อนุมัติแล้ว (Approved Only)</option>
+              </select>
+            </div>
+            <div class="col-md-3 text-end">
+              <span class="badge bg-dark fs-7" id="userCountBadge">Showing 0 users</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-sm table-hover table-bordered align-middle text-nowrap table-custom">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ชื่อผู้ใช้งาน (USERNAME)</th>
+                  <th>อีเมล (EMAIL)</th>
+                  <th>เวลาลงทะเบียน (DATE)</th>
+                  <th>สิทธิ์การใช้งาน (ROLE)</th>
+                  <th>สถานะ (STATUS)</th>
+                  <th style="width:180px;">จัดการ (ACTIONS)</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr><td colspan="7" class="text-center py-4 text-muted">กำลังดึงข้อมูลสมาชิก...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: AUDIT LOGS -->
+      <div class="tab-pane fade" id="tab-logs-pane">
+        <div class="card-custom">
+          <div class="row g-2 align-items-center mb-3">
+            <div class="col-md-5">
+              <input type="text" id="logSearchInput" class="form-control form-control-sm" placeholder="🔍 ค้นหาประวัติกิจกรรม, อีเมล, ชื่อ หรือรายละเอียด..." onkeyup="renderLogsTable()">
+            </div>
+            <div class="col-md-4">
+              <select id="logActionFilter" class="form-select form-select-sm" onchange="renderLogsTable()">
+                <option value="ALL">-- ทุกประเภทกิจกรรม (All Actions) --</option>
+                <option value="LOGIN">LOGIN (เข้าสู่ระบบ)</option>
+                <option value="LOGOUT">LOGOUT (ออกจากระบบ)</option>
+                <option value="VOLUME">VOLUME (บันทึกข้อมูลดิบ)</option>
+                <option value="UPLOAD">UPLOAD (อัปโหลดไฟล์)</option>
+                <option value="EXPORT">EXPORT (ส่งออกรายงาน)</option>
+              </select>
+            </div>
+            <div class="col-md-3 text-end">
+              <span class="badge bg-dark fs-7" id="logCountBadge">Showing 0 logs</span>
+            </div>
+          </div>
+
+          <div class="table-responsive" style="max-height: 650px; overflow-y: auto;">
+            <table class="table table-sm table-hover table-bordered align-middle text-nowrap table-custom">
+              <thead style="position: sticky; top: 0; z-index: 10;">
+                <tr>
+                  <th>LOG ID</th>
+                  <th>TIMESTAMP</th>
+                  <th>USER EMAIL</th>
+                  <th>USER NAME</th>
+                  <th>ROLE</th>
+                  <th>ACTION CATEGORY</th>
+                  <th>DETAILS & PAYLOAD</th>
+                  <th>IP ADDRESS</th>
+                </tr>
+              </thead>
+              <tbody id="logsTableBody">
+                <tr><td colspan="8" class="text-center py-4 text-muted">กำลังดึงข้อมูลประวัติการใช้งาน...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Modal for Adding New User Manually -->
+  <div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white py-2">
+          <h5 class="modal-title fs-6"><i class="fa-solid fa-user-plus me-1 text-primary"></i> เพิ่มสมาชิกใหม่เข้าระบบ (Admin Direct Add)</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form onsubmit="handleDirectAddUserSubmit(event)">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label fw-bold small">ชื่อผู้ใช้งาน (Username):</label>
+              <input type="text" id="addUserName" class="form-control form-control-sm" placeholder="เช่น Somchai / Operator B" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold small">อีเมล (Google / Gmail):</label>
+              <input type="email" id="addUserEmail" class="form-control form-control-sm" placeholder="somchai@spxexpress.com" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold small">กำหนดรหัสผ่าน (Password):</label>
+              <input type="password" id="addUserPass" class="form-control form-control-sm" placeholder="กำหนดรหัสผ่าน" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold small">มอบหมาย Role (สิทธิ์การใช้งาน):</label>
+              <select id="addUserRole" class="form-select form-select-sm">
+                <option value="Ground">👤 Ground (เจ้าหน้าที่ปฏิบัติการ)</option>
+                <option value="Admin">🛡️ Admin (ผู้ดูแลระบบ & Audit Logs)</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer py-2">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="submit" class="btn btn-primary btn-sm fw-bold">บันทึกเพิ่มสมาชิก</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="auth_guard.js"></script>
+  <script>
+    let allLogs = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      refreshAdminData();
+    });
+
+    function refreshAdminData() {
+      renderUsersTable();
+      fetchAuditLogs();
+    }
+
+    function getUsersDb() {
+      try {
+        const db = localStorage.getItem('socn_user_db');
+        if (db) return JSON.parse(db);
+      } catch (e) {}
+      return [];
+    }
+
+    function saveUsersDb(db) {
+      localStorage.setItem('socn_user_db', JSON.stringify(db));
+    }
+
+    function renderUsersTable() {
+      const db = getUsersDb();
+      const tbody = document.getElementById('usersTableBody');
+      const search = (document.getElementById('userSearchInput').value || '').toLowerCase().trim();
+      const statusFilter = document.getElementById('userStatusFilter').value;
+
+      const pendingCount = db.filter(u => u.status === 'pending_approval').length;
+      document.getElementById('statTotalUsers').innerText = db.length.toLocaleString();
+      document.getElementById('statPendingApprovals').innerText = pendingCount.toLocaleString();
+
+      const filtered = db.filter(u => {
+        const matchSearch = !search || u.name.toLowerCase().includes(search) || u.email.toLowerCase().includes(search);
+        const matchStatus = statusFilter === 'ALL' || u.status === statusFilter;
+        return matchSearch && matchStatus;
+      });
+
+      document.getElementById('userCountBadge').innerText = `Showing ${filtered.length} of ${db.length} users`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูลสมาชิกตรงตามเงื่อนไข</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(u => {
+        const isPending = u.status === 'pending_approval';
+        const statusBadge = isPending ? 
+          '<span class="badge bg-warning text-dark">⏳ รออนุมัติ (Pending)</span>' : 
+          `<span class="badge bg-success">✅ อนุมัติแล้ว (${u.role})</span>`;
+
+        const roleSelect = isPending ? `
+          <select id="tableRoleSelect_${u.id}" class="form-select form-select-sm d-inline-block w-auto py-0 px-2 fw-bold">
+            <option value="Ground">👤 Ground</option>
+            <option value="Admin">🛡️ Admin</option>
+          </select>
+        ` : `<span class="fw-bold text-dark">${u.role}</span>`;
+
+        const actionBtns = isPending ? `
+          <button class="btn btn-success btn-sm py-0 px-2 fw-bold" onclick="approveUserInDashboard('${u.id}')"><i class="fa-solid fa-check me-1"></i> อนุมัติ</button>
+          <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteUserInDashboard('${u.id}')"><i class="fa-solid fa-trash"></i></button>
+        ` : `
+          <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="deleteUserInDashboard('${u.id}')">ลบสมาชิก</button>
+        `;
+
+        return `
+        <tr class="${isPending ? 'table-warning' : ''}">
+          <td class="font-monospace small">${u.id}</td>
+          <td class="fw-bold text-dark">${escapeHtml(u.name)}</td>
+          <td>${escapeHtml(u.email)}</td>
+          <td class="small text-muted">${u.createdAt || '-'}</td>
+          <td>${roleSelect}</td>
+          <td>${statusBadge}</td>
+          <td>${actionBtns}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function approveUserInDashboard(userId) {
+      const db = getUsersDb();
+      const target = db.find(u => u.id === userId);
+      if (!target) return;
+
+      const sel = document.getElementById(`tableRoleSelect_${userId}`);
+      const role = sel ? sel.value : 'Ground';
+
+      target.status = 'approved';
+      target.role = role;
+
+      saveUsersDb(db);
+      alert(`✅ อนุมัติสมาชิก ${target.name} เป็นสิทธิ์ ${role} สำเร็จ!`);
+      renderUsersTable();
+    }
+
+    function deleteUserInDashboard(userId) {
+      const db = getUsersDb();
+      const idx = db.findIndex(u => u.id === userId);
+      if (idx === -1) return;
+
+      if (confirm(`คุณต้องการลบสมาชิก ${db[idx].name} ใช่หรือไม่?`)) {
+        db.splice(idx, 1);
+        saveUsersDb(db);
+        renderUsersTable();
+      }
+    }
+
+    function openAddUserModal() {
+      const m = new bootstrap.Modal(document.getElementById('addUserModal'));
+      m.show();
+    }
+
+    function handleDirectAddUserSubmit(evt) {
+      evt.preventDefault();
+      const name = document.getElementById('addUserName').value.trim();
+      const email = document.getElementById('addUserEmail').value.trim().toLowerCase();
+      const pass = document.getElementById('addUserPass').value.trim();
+      const role = document.getElementById('addUserRole').value;
+
+      const db = getUsersDb();
+      db.push({
+        id: 'u_' + Date.now(),
+        name, email, pass, role,
+        status: 'approved',
+        createdAt: new Date().toLocaleString('th-TH')
+      });
+
+      saveUsersDb(db);
+      alert(`✅ เพิ่มสมาชิก ${name} (${role}) สำเร็จ!`);
+      bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
+      renderUsersTable();
+    }
+
+    function fetchAuditLogs() {
+      fetch('/api/activity-logs')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && Array.isArray(data.logs)) {
+            allLogs = data.logs;
+            renderLogsTable();
+          }
+        })
+        .catch(err => {
+          allLogs = [];
+          renderLogsTable();
+        });
+    }
+
+    function renderLogsTable() {
+      const tbody = document.getElementById('logsTableBody');
+      const search = (document.getElementById('logSearchInput').value || '').toLowerCase().trim();
+      const action = document.getElementById('logActionFilter').value;
+
+      const filtered = allLogs.filter(l => {
+        const matchSearch = !search || (l.email || '').toLowerCase().includes(search) || (l.name || '').toLowerCase().includes(search) || (l.details || '').toLowerCase().includes(search);
+        const matchAction = action === 'ALL' || (l.action || '').toUpperCase().includes(action);
+        return matchSearch && matchAction;
+      });
+
+      document.getElementById('statTotalAuditLogs').innerText = allLogs.length.toLocaleString();
+      document.getElementById('logCountBadge').innerText = `Showing ${filtered.length} of ${allLogs.length} logs`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูล Audit Logs ตรงตามเงื่อนไข</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(l => {
+        const act = (l.action || 'ACTION').toUpperCase();
+        let badgeClass = 'badge-edit';
+        if (act.includes('LOGIN')) badgeClass = 'badge-login';
+        else if (act.includes('LOGOUT')) badgeClass = 'badge-logout';
+        else if (act.includes('EXPORT')) badgeClass = 'badge-export';
+        else if (act.includes('UPLOAD')) badgeClass = 'badge-upload';
+
+        const roleBg = (l.role || 'Ground') === 'Admin' ? 'bg-danger' : 'bg-primary';
+
+        return `
+        <tr>
+          <td class="fw-bold font-monospace small">${escapeHtml(l.id || 'N/A')}</td>
+          <td class="small">${escapeHtml(l.timestamp || '')}</td>
+          <td class="fw-bold text-dark">${escapeHtml(l.email || l.user_email || 'anonymous')}</td>
+          <td>${escapeHtml(l.name || l.user_name || 'User')}</td>
+          <td><span class="badge ${roleBg}">${escapeHtml(l.role || 'Ground')}</span></td>
+          <td><span class="log-badge ${badgeClass}">${escapeHtml(act)}</span></td>
+          <td class="text-wrap" style="max-width: 480px;">${escapeHtml(l.details || '')}</td>
+          <td class="small text-muted font-monospace">${escapeHtml(l.ip || '127.0.0.1')}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function exportAuditLogsCSV() {
+      if (!allLogs || allLogs.length === 0) return;
+      let csv = '\uFEFFLog_ID,Timestamp,User_Email,User_Name,Role,Action,Details,IP_Address\n';
+      allLogs.forEach(l => {
+        csv += `"${l.id || ''}","${l.timestamp || ''}","${l.email || l.user_email || ''}","${l.name || ''}","${l.role || 'Ground'}","${l.action || ''}","${(l.details || '').replace(/"/g, '""')}","${l.ip || '127.0.0.1'}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `SOCN_AUDIT_LOGS_${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
