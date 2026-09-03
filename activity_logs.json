@@ -1,5 +1,35 @@
 [
   {
+    "id": "91c96c28",
+    "timestamp": "2026-09-03 20:23:59",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "2cf564d5",
+    "timestamp": "2026-09-03 20:23:58",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "DATA_EXPORT",
+    "details": "📤 ดาวน์โหลด/ส่งออกข้อมูล: 📄 Export Summary CSV (Top 50) (0 รายการ) - ดาวน์โหลด/ส่งออกข้อมูลจากหน้า lh_trip.html",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "ea21f8e5",
+    "timestamp": "2026-09-03 20:23:37",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "127.0.0.1"
+  },
+  {
     "id": "8edffe21",
     "timestamp": "2026-09-03 20:19:28",
     "email": "guy.panmanee@spxexpress.com",

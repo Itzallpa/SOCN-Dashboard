@@ -265,6 +265,7 @@
     if (ov) ov.style.display = 'none';
 
     renderProfileBadge();
+    updateModuleButtonsUI();
     resetIdleTimer();
   }
 
@@ -425,18 +426,29 @@
     }
   }
 
-  /* ─── Click Guard & Page Interaction Lock ─── */
+  /* ─── Click Guard & Page Interaction Lock (Admin-Only Dashboard Access) ─── */
   function lockPageInteractions() {
     const user = getStoredUser();
-
-    // If on a module page directly and not logged in
     const isModulePage = location.pathname.includes('.html') && !location.pathname.includes('index.html');
-    if (!user && isModulePage) {
-      showAuthModal('🔒 กรุณาล็อกอินเพื่อใช้งาน');
+
+    // If visiting any module page directly
+    if (isModulePage) {
+      if (!user) {
+        showAuthModal('🔒 กรุณาล็อกอินเพื่อใช้งาน');
+        return;
+      } else if (user.role !== 'Admin') {
+        alert('⚠️ Access Denied: สงวนสิทธิ์เฉพาะผู้ใช้งานระดับ Admin เท่านั้นที่มีสิทธิ์เข้าสู่ Dashboard');
+        location.href = 'index.html';
+        return;
+      }
     }
 
-    // Attach click interceptor to interactive module cards and links if not logged in
-    document.querySelectorAll('.module-card, a.btn, button.btn-module').forEach(el => {
+    // Attach click interceptor to interactive module cards and enter buttons
+    document.querySelectorAll('.module-card, a.btn, button.btn-module, .btn-primary, .btn-danger, .btn-secondary, .btn-dark').forEach(el => {
+      // Exclude auth & admin modal triggers
+      if (el.getAttribute('onclick') && (el.getAttribute('onclick').includes('AuthGuard') || el.getAttribute('onclick').includes('showModal'))) return;
+      if (el.classList.contains('close-modal-btn')) return;
+
       el.addEventListener('click', function (e) {
         const u = getStoredUser();
         if (!u) {
@@ -444,8 +456,34 @@
           e.stopPropagation();
           showAuthModal('🔒 กรุณาเข้าสู่ระบบเพื่อใช้งานโมดูลนี้');
           return false;
+        } else if (u.role !== 'Admin') {
+          e.preventDefault();
+          e.stopPropagation();
+          alert('⚠️ Access Denied: บัญชีสิทธิ์ Ground ไม่ได้รับอนุญาตให้เข้าใช้งาน Dashboard (สงวนสิทธิ์เฉพาะ Admin เท่านั้น)');
+          return false;
         }
       }, true);
+    });
+
+    updateModuleButtonsUI();
+  }
+
+  function updateModuleButtonsUI() {
+    const u = getStoredUser();
+    const isAdmin = u && u.role === 'Admin';
+
+    document.querySelectorAll('.module-card').forEach(card => {
+      const btn = card.querySelector('a.btn, button.btn, .btn');
+      if (!btn) return;
+
+      if (!isAdmin) {
+        btn.style.opacity = '0.75';
+        if (!btn.dataset.origText) btn.dataset.origText = btn.innerHTML;
+        btn.innerHTML = `<i class="fa-solid fa-lock me-1"></i> 🔒 เฉพาะ Admin (Admin Only)`;
+      } else {
+        btn.style.opacity = '1';
+        if (btn.dataset.origText) btn.innerHTML = btn.dataset.origText;
+      }
     });
   }
 
