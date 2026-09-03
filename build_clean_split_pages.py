@@ -1072,9 +1072,26 @@ skip_process_html = f"""<!DOCTYPE html>
       try {{ localStorage.setItem(key, JSON.stringify(data)); }} catch (e) {{}}
     }}
 
+    function safeFetchJson(url, options) {{
+      return fetch(url, options).then(res => {{
+        if (!res.ok) {{
+          throw new Error(`เซิร์ฟเวอร์ตอบกลับ Error Status ${{res.status}}`);
+        }}
+        return res.text().then(text => {{
+          if (!text || !text.trim()) {{
+            throw new Error('ไม่พบข้อมูลจากเซิร์ฟเวอร์ (Empty response)');
+          }}
+          try {{
+            return JSON.parse(text);
+          }} catch (e) {{
+            throw new Error('โครงสร้างข้อมูลจากเซิร์ฟเวอร์ไม่ถูกต้อง');
+          }}
+        }});
+      }});
+    }}
+
     function fetchFileList() {{
-      fetch('/api/list-files')
-        .then(res => res.json())
+      safeFetchJson('/api/list-files')
         .then(data => {{
           const list = data.files || data.skip_files || [];
           if (data.success && list.length > 0) {{
@@ -1091,8 +1108,7 @@ skip_process_html = f"""<!DOCTYPE html>
     function onSkipDateChange(filename) {{
       if (!filename) return;
       showSkipStatus(`กำลังโหลดไฟล์: "${{filename}}"...`, 'loading');
-      fetch(`/api/load-file?filename=${{encodeURIComponent(filename)}}`)
-        .then(res => res.json())
+      safeFetchJson(`/api/load-file?filename=${{encodeURIComponent(filename)}}`)
         .then(data => {{
           if (data.success) {{
             skipDataState = data;
@@ -1108,8 +1124,7 @@ skip_process_html = f"""<!DOCTYPE html>
 
     function loadDefaultSkipData() {{
       showSkipStatus('กำลังโหลดข้อมูล Skip Process...', 'loading');
-      fetch('/api/load-file?filename=SOC-BISOCinvestigateshipment_DownloadTable_30aug.csv')
-        .then(res => res.json())
+      safeFetchJson('/api/load-file?filename=SOC-BISOCinvestigateshipment_DownloadTable_30aug.csv')
         .then(data => {{
           if (data.success) {{
             skipDataState = data;

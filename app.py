@@ -855,11 +855,10 @@ def load_file():
             data["rawRows"] = []
             data["totalRows"] = 0
 
-        return jsonify(data)
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": f"ไม่สามารถประมวลผลไฟล์ได้: {str(e)}"}), 200
 
 
 @app.route("/api/raw-data", methods=["GET"])
