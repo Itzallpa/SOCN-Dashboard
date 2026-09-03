@@ -472,6 +472,19 @@
     const u = getStoredUser();
     const isAdmin = u && u.role === 'Admin';
 
+    // Dynamic Admin Portal Card Visibility: Hide completely for Ground role users & guests
+    const adminCardCol = document.getElementById('adminPortalCardCol');
+    if (adminCardCol) {
+      adminCardCol.style.display = isAdmin ? 'block' : 'none';
+    }
+
+    // Dynamic Module Count Badge Update
+    document.querySelectorAll('.stat-number').forEach(el => {
+      if (el.innerText.includes('โมดูลหลัก')) {
+        el.innerText = isAdmin ? '5 โมดูลหลัก' : '4 โมดูลหลัก';
+      }
+    });
+
     document.querySelectorAll('.module-card').forEach(card => {
       const btn = card.querySelector('a.btn, button.btn, .btn');
       if (!btn) return;
