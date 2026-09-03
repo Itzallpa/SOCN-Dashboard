@@ -6,6 +6,7 @@
   <title>Admin Control Panel & Audit Logs - SOC Operations Portal</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding-bottom: 30px; }
     .card-custom { background: #ffffff; border-radius: 14px; border: none; box-shadow: 0 4px 14px rgba(0,0,0,0.04); padding: 20px; margin-bottom: 20px; }
@@ -460,29 +461,53 @@
       const target = db.find(u => u.id === userId);
       if (!target) return;
 
-      if (!confirm(`คุณต้องการลบสมาชิก ${target.name} ใช่หรือไม่?`)) return;
+      const runDeleteUser = () => {
+        fetch('/api/users/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: userId, email: target.email })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            cachedUsersList = data.users;
+            saveUsersDb(data.users);
+            showToastNotification('✅ ลบสมาชิกสำเร็จ', `ลบสมาชิก ${target.name} เรียบร้อยแล้ว`, 'success', 4000);
+            renderUsersTable();
+          }
+        })
+        .catch(() => {
+          const idx = db.findIndex(u => u.id === userId);
+          if (idx !== -1) {
+            db.splice(idx, 1);
+            saveUsersDb(db);
+            renderUsersTable();
+          }
+        });
+      };
 
-      fetch('/api/users/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: userId, email: target.email })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          cachedUsersList = data.users;
-          saveUsersDb(data.users);
-          renderUsersTable();
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          title: '⚠️ ลบสมาชิกรายนี้?',
+          html: `คุณต้องการลบสมาชิก <b>"${target.name}"</b> (${target.email}) ออกจากระบบใช่หรือไม่?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc2626',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: '<i class="fa-solid fa-trash me-1"></i> ใช่, ลบสมาชิก',
+          cancelButtonText: 'ยกเลิก',
+          background: '#0d1b2a',
+          color: '#ffffff'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            runDeleteUser();
+          }
+        });
+      } else {
+        if (confirm(`คุณต้องการลบสมาชิก ${target.name} ใช่หรือไม่?`)) {
+          runDeleteUser();
         }
-      })
-      .catch(() => {
-        const idx = db.findIndex(u => u.id === userId);
-        if (idx !== -1) {
-          db.splice(idx, 1);
-          saveUsersDb(db);
-          renderUsersTable();
-        }
-      });
+      }
     }
 
     function openAddUserModal() {

@@ -7,6 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding-bottom: 30px; }
     .card-custom { background: #ffffff; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; padding: 16px; }
@@ -300,31 +301,62 @@
       const selectEl = document.getElementById('skipDateSelect');
       const filename = selectEl ? selectEl.value : '';
       if (!filename) {
-        alert('กรุณาเลือกไฟล์ที่ต้องการลบในรายการก่อนครับ');
-        return;
-      }
-
-      if (!confirm(`⚠️ คุณต้องการลบไฟล์ "${filename}" ออกจากเซิร์ฟเวอร์ถาวรใช่หรือไม่?`)) {
-        return;
-      }
-
-      showSkipStatus(`กำลังลบไฟล์ "${filename}"...`, 'loading');
-      safeFetchJson('/api/delete-file', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: filename })
-      })
-      .then(data => {
-        if (data.success) {
-          showSkipStatus(`✅ ลบไฟล์ "${filename}" เรียบร้อยแล้ว`, 'success');
-          skipDataState = null;
-          safeSetLocalStorage('socn_skip_data', null);
-          fetchFileList();
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({ title: 'กรุณาเลือกไฟล์', text: 'กรุณาเลือกไฟล์ที่ต้องการลบในรายการก่อนครับ', icon: 'info', confirmButtonColor: '#2563eb', background: '#0d1b2a', color: '#fff' });
         } else {
-          showSkipStatus(`เกิดข้อผิดพลาด: ${data.error}`, 'error');
+          alert('กรุณาเลือกไฟล์ที่ต้องการลบในรายการก่อนครับ');
         }
-      })
-      .catch(err => showSkipStatus(`ไม่สามารถลบไฟล์ได้: ${err.message}`, 'error'));
+        return;
+      }
+
+      const runDelete = () => {
+        showSkipStatus(`กำลังลบไฟล์ "${filename}"...`, 'loading');
+        safeFetchJson('/api/delete-file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: filename })
+        })
+        .then(data => {
+          if (data.success) {
+            if (typeof Swal !== 'undefined') {
+              Swal.fire({ title: 'ลบไฟล์สำเร็จ!', text: `ลบไฟล์ "${filename}" ออกจากเซิร์ฟเวอร์เรียบร้อยแล้ว`, icon: 'success', confirmButtonColor: '#10b981', background: '#0d1b2a', color: '#fff' });
+            }
+            showSkipStatus(`✅ ลบไฟล์ "${filename}" เรียบร้อยแล้ว`, 'success');
+            skipDataState = null;
+            safeSetLocalStorage('socn_skip_data', null);
+            fetchFileList();
+          } else {
+            if (typeof Swal !== 'undefined') {
+              Swal.fire({ title: 'เกิดข้อผิดพลาด', text: data.error, icon: 'error', confirmButtonColor: '#dc2626', background: '#0d1b2a', color: '#fff' });
+            }
+            showSkipStatus(`เกิดข้อผิดพลาด: ${data.error}`, 'error');
+          }
+        })
+        .catch(err => showSkipStatus(`ไม่สามารถลบไฟล์ได้: ${err.message}`, 'error'));
+      };
+
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          title: '⚠️ ยืนยันการลบไฟล์ถาวร?',
+          html: `คุณต้องการลบไฟล์ <b>"${filename}"</b> ออกจากเซิร์ฟเวอร์ใช่หรือไม่?<br><span style="color:#ef4444; font-size:0.83rem; margin-top:6px; display:inline-block;">คำเตือน: ข้อมูลไฟล์นี้จะถูกลบออกจากดิสก์ทันทีและไม่สามารถกู้คืนได้</span>`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc2626',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: '<i class="fa-solid fa-trash me-1"></i> ใช่, ลบไฟล์ถาวร',
+          cancelButtonText: 'ยกเลิก',
+          background: '#0d1b2a',
+          color: '#ffffff'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            runDelete();
+          }
+        });
+      } else {
+        if (confirm(`⚠️ คุณต้องการลบไฟล์ "${filename}" ออกจากเซิร์ฟเวอร์ถาวรใช่หรือไม่?`)) {
+          runDelete();
+        }
+      }
     }
 
     function loadDefaultSkipData() {
