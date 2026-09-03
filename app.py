@@ -38,11 +38,13 @@ def save_activity_logs(logs):
     except Exception as e:
         print("Error saving activity logs:", e)
 
-def log_activity(action, details, user_email=None, user_name=None):
+def log_activity(action, details, user_email=None, user_name=None, user_role=None):
     if not user_email:
-        user_email = session.get("user_email", "admin@spx.co.th")
+        user_email = session.get("user_email", "guest")
     if not user_name:
-        user_name = session.get("user_name", "SOC Manager")
+        user_name = session.get("user_name", "Guest")
+    if not user_role:
+        user_role = session.get("user_role", "Ground")
     
     logs = load_activity_logs()
     entry = {
@@ -50,6 +52,7 @@ def log_activity(action, details, user_email=None, user_name=None):
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "email": user_email,
         "name": user_name,
+        "role": user_role,
         "action": action,
         "details": details,
         "ip": request.remote_addr or "127.0.0.1"
@@ -1410,7 +1413,8 @@ def log_client_activity():
     details = req.get("details", "User interacted with UI")
     user_email = req.get("user_email") or session.get("user_email")
     user_name = req.get("user_name") or session.get("user_name")
-    entry = log_activity(action, details, user_email=user_email, user_name=user_name)
+    user_role = req.get("user_role") or session.get("user_role", "Ground")
+    entry = log_activity(action, details, user_email=user_email, user_name=user_name, user_role=user_role)
     return jsonify({"success": True, "entry": entry})
 
 @app.route("/api/activity-logs/export", methods=["GET"])

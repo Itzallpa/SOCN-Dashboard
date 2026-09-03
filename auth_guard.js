@@ -502,8 +502,24 @@
     fetch('/api/log-client-activity', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: action, details: details, user_email: u ? u.email : 'guest', user_name: u ? u.name : 'Guest' })
+      body: JSON.stringify({
+        action: action,
+        details: details,
+        user_email: u ? u.email : 'guest',
+        user_name: u ? u.name : 'Guest',
+        user_role: u ? u.role : 'Ground'
+      })
     }).catch(function () {});
+  }
+
+  function logUpload(filename, rowCount, details) {
+    var u = getStoredUser();
+    logActivity('FILE_UPLOAD', `📥 อัปโหลดไฟล์: ${filename} (${rowCount || 0} รายการ) ${details ? '- ' + details : ''}`);
+  }
+
+  function logExport(exportName, rowCount, details) {
+    var u = getStoredUser();
+    logActivity('DATA_EXPORT', `📤 ดาวน์โหลด/ส่งออกข้อมูล: ${exportName} (${rowCount || 0} รายการ) ${details ? '- ' + details : ''}`);
   }
 
   /* ─── Profile Badge on Navbar ─── */
@@ -590,6 +606,8 @@
       var w = document.getElementById('socnIdleWarn');
       if (w) w.style.display = 'none';
     },
-    logActivity: logActivity
+    logActivity: logActivity,
+    logUpload: logUpload,
+    logExport: logExport
   };
 })();
