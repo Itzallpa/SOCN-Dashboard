@@ -699,6 +699,13 @@ def sync_google_sheet():
         elif req.status_code != 200:
             return jsonify({"success": False, "error": f"HTTP {req.status_code}: Unable to fetch Google Sheet data"}), 400
 
+        # Check if Google returned an HTML login redirect page instead of CSV/JSON
+        if req.content.strip().startswith(b"<!DOCTYPE html") or req.content.strip().startswith(b"<html") or b"Sign in - Google Accounts" in req.content:
+            return jsonify({
+                "success": False,
+                "error": "URL นี้จำเป็นต้องสิทธิ์เข้าถึง (@spxexpress.com Google Account Required) กรุณาเปลี่ยนสิทธิ์ Web App เป็น 'Anyone' หรือนำ Google Sheet CSV Link มาวางแทนครับ"
+            }), 200
+
         # Check if response is JSON (Google Apps Script Web App API response)
         try:
             json_res = req.json()
@@ -1564,9 +1571,16 @@ def sync_ob_bl():
         return jsonify({"success": False, "error": "กรุณาระบุ URL ของ Google Sheet หรือ Apps Script"}), 400
 
     try:
-        req = requests.get(url, timeout=30, allow_redirects=True)
+        req = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=True)
         if req.status_code != 200:
             return jsonify({"success": False, "error": f"ไม่สามารถเชื่อมต่อ URL ได้ (HTTP Status {req.status_code})"}), 200
+
+        # Check if Google returned an HTML login redirect page instead of CSV/JSON
+        if req.content.strip().startswith(b"<!DOCTYPE html") or req.content.strip().startswith(b"<html") or b"Sign in - Google Accounts" in req.content:
+            return jsonify({
+                "success": False,
+                "error": "URL นี้จำเป็นต้องมีสิทธิ์เข้าถึง (@spxexpress.com Google Account Required) กรุณาแชร์สิทธิ์ Web App เป็น 'Anyone' หรือนำ Google Sheet CSV Link มาวางแทนครับ"
+            }), 200
 
         try:
             json_resp = req.json()
