@@ -709,20 +709,10 @@ def sync_google_sheet():
         # Check if response is JSON (Google Apps Script Web App API response)
         try:
             json_res = req.json()
-            if isinstance(json_res, dict) and ("rows" in json_res or "data" in json_res):
-                rows = json_res.get("rows") or json_res.get("data")
-                if rows and isinstance(rows, list):
-                    df = pd.DataFrame(rows)
-                    if 'cells' in df.columns or any('trip' in str(c).lower() for c in df.columns):
-                        data = process_table_sheet(df)
-                    else:
-                        csv_filename = "LIVE_GOOGLE_SHEET_SYNC.csv"
-                        target_path = os.path.join(UPLOAD_FOLDER, csv_filename)
-                        df.to_csv(target_path, index=False)
-                        data = process_csv(target_path)
-                    data["filename"] = "Live Apps Script Sync"
-                    data["success"] = True
-                    return jsonify(data)
+            if isinstance(json_res, dict) and ("rows" in json_res or "data" in json_res or "headers" in json_res):
+                json_res["success"] = True
+                log_activity("SYNC_GOOGLE_SHEET", f"Successfully synced live Apps Script JSON from {url}")
+                return jsonify(json_res)
         except Exception:
             pass
 
