@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    :root {
+      --ink: #1a1d29;
+      --ink-soft: #8a6a5c;
+      --line: #f6ddd2;
+      --bg: #fff9f6;
+      --card: #ffffff;
+      --accent: #ee4d2d;
+      --accent2: #ff7a45;
+      --accent-soft: #fff1eb;
+      --green: #0f9d58;
+      --green-bg: #e3f8ea;
+      --red: #d0311d;
+      --red-bg: #fdece8;
+      --amber: #b7791f;
+      --amber-bg: #fdf3dc;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Segoe UI', Tahoma, 'Noto Sans Thai', 'Sarabun', Arial, sans-serif;
+      font-size: 14px;
+    }
+    .app {
+      min-height: 100vh;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: linear-gradient(120deg, var(--accent), var(--accent2));
+      border-radius: var(--radius);
+      padding: 16px 22px;
+      color: #fff;
+      box-shadow: 0 8px 20px -8px rgba(238,77,45,.35);
+    }
+    h1 { font-size: 21px; margin: 0 0 2px; font-weight: 800; }
+    .subtitle { color: rgba(255,255,255,.85); font-size: 12.5px; }
+    .nav {
+      display: flex;
+      gap: 6px;
+      background: rgba(255,255,255,.18);
+      border-radius: 10px;
+      padding: 4px;
+    }
+    .nav a {
+      color: rgba(255,255,255,.85);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 8px;
+    }
+    .nav a.active { background: #fff; color: var(--accent); }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: 0 1px 3px rgba(20,20,43,.06);
+    }
+
+    .dropzone {
+      border: 2px dashed var(--line);
+      border-radius: var(--radius);
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .dropzone:hover, .dropzone.drag-over {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .dropzone .icon { font-size: 34px; margin-bottom: 8px; }
+    .dropzone .hint { color: var(--ink-soft); font-size: 12.5px; margin-top: 4px; }
+    .dropzone input[type="file"] { display: none; }
+
+    .file-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+
+    .section-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      margin: 0 0 10px;
+      color: var(--ink);
+    }
+
+    .validation {
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+    .validation.ok { background: var(--green-bg); color: var(--green); }
+    .validation.warn { background: var(--amber-bg); color: var(--amber); }
+    .validation.error { background: var(--red-bg); color: var(--red); }
+
+    .options-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 14px;
+    }
+    .radio-group, .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+    }
+    .radio-group label, .checkbox-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+    table.preview {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+      font-size: 12px;
+    }
+    table.preview th, table.preview td {
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      white-space: nowrap;
+      text-align: left;
+    }
+    table.preview th { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+    .preview-scroll { overflow-x: auto; margin-top: 6px; }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+      border-radius: 10px;
+      border: none;
+      padding: 10px 20px;
+      font-weight: 700;
+    }
+    button.primary { background: var(--accent); color: #fff; }
+    button.primary:hover { background: #d94322; }
+    button.primary:disabled { background: #f0b7a6; cursor: not-allowed; }
+    button.secondary { background: var(--accent-soft); color: var(--accent); }
+
+    .stat-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+    .stat-pill {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+
+    .result-box {
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      font-weight: 700;
+      font-size: 14px;
+      display: none;
+    }
+    .result-box.ok { background: var(--green-bg); color: var(--green); }
+    .result-box.error { background: var(--red-bg); color: var(--red); }
+
+    .truck-loader { padding: 14px 0 4px; text-align: center; display: none; }
+    .truck-track { position: relative; width: 220px; height: 70px; margin: 0 auto 10px; }
+    .road-line {
+      position: absolute; left: 0; right: 0; bottom: 14px; height: 4px; border-radius: 2px;
+      background-image: repeating-linear-gradient(90deg, var(--accent) 0 16px, transparent 16px 30px);
+      animation: roadMove .55s linear infinite;
+    }
+    @keyframes roadMove { from { background-position: 0 0; } to { background-position: -46px 0; } }
+    .truck-svg {
+      position: absolute; bottom: 12px; left: 50%; width: 88px; height: 55px;
+      transform: translateX(-50%);
+      animation: truckBounce 1.3s ease-in-out infinite;
+    }
+    @keyframes truckBounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-3px); }
+    }
+    .truck-wheel { transform-box: fill-box; transform-origin: center; animation: wheelSpin .45s linear infinite; }
+    @keyframes wheelSpin { to { transform: rotate(360deg); } }
+    .truck-loader-text { font-weight: 700; color: var(--accent); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>LH Trip Upload</h1>
+        <div class="subtitle" id="subtitle">อัปโหลดไฟล์ raw trip CSV เข้า Google Sheet</div>
+      </div>
+      <div class="nav">
+        <a href="<?= baseUrl ?>?page=table">Table</a>
+        <a href="<?= baseUrl ?>?page=dashboard">Dashboard</a>
+        <a class="active" href="<?= baseUrl ?>?page=upload">Upload</a>
+        <a href="<?= baseUrl ?>?page=obbl">OB BL</a>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="section-title">1. เลือกไฟล์ CSV</div>
+      <div class="dropzone" id="dropzone">
+        <div class="icon">📄</div>
+        <div id="dropzoneLabel">ลากไฟล์ CSV มาวาง หรือคลิกเพื่อเลือกไฟล์</div>
+        <div class="hint">รองรับไฟล์ .csv เช่น lh_trip_cost_20260809.csv</div>
+        <input type="file" id="fileInput" accept=".csv">
+      </div>
+      <div id="fileChipWrap" style="margin-top:10px; display:none;">
+        <span class="file-chip" id="fileChip"></span>
+      </div>
+      <div id="validationBox"></div>
+    </div>
+
+    <div class="card" id="previewCard" style="display:none;">
+      <div class="section-title">2. ตรวจสอบข้อมูลก่อนอัปโหลด</div>
+      <div class="stat-row">
+        <div class="stat-pill" id="statRows">0 แถวในไฟล์</div>
+        <div class="stat-pill" id="statCols">0 คอลัมน์</div>
+        <div class="stat-pill" id="statExisting">มีอยู่แล้ว 0 แถวใน Sheet</div>
+      </div>
+      <div class="preview-scroll">
+        <table class="preview" id="previewTable"></table>
+      </div>
+
+      <div class="options-row">
+        <div class="radio-group">
+          <label><input type="radio" name="mode" value="append" checked> เพิ่มต่อท้าย (Append)</label>
+          <label><input type="radio" name="mode" value="replace"> แทนที่ข้อมูลเดิมทั้งหมด (Replace)</label>
+        </div>
+        <div class="checkbox-row" id="dedupeRow">
+          <label><input type="checkbox" id="skipDupes" checked> ข้ามแถวที่ซ้ำ (Trip Number + Station)</label>
+        </div>
+      </div>
+
+      <div style="margin-top:16px; display:flex; gap:10px; align-items:center;">
+        <button class="primary" id="uploadBtn">⬆ อัปโหลดเข้า Sheet</button>
+        <button class="secondary" id="clearBtn">ล้างไฟล์</button>
+      </div>
+
+      <div class="truck-loader" id="truckLoader">
+        <div class="truck-track">
+          <div class="road-line"></div>
+          <svg class="truck-svg" viewBox="0 0 96 60" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="16" width="50" height="26" rx="4" fill="#EE4D2D"/>
+            <path d="M52 22 L72 22 L84 34 L84 42 L52 42 Z" fill="#FF7A45"/>
+            <rect x="57" y="25" width="15" height="11" rx="2" fill="#FFE7DB"/>
+            <g class="truck-wheel" transform="translate(18,46)"><circle r="8" fill="#2b2b2b"/><circle r="3" fill="#e6e6e6"/></g>
+            <g class="truck-wheel" transform="translate(68,46)"><circle r="8" fill="#2b2b2b"/><circle r="3" fill="#e6e6e6"/></g>
+          </svg>
+        </div>
+        <div class="truck-loader-text">กำลังอัปโหลดข้อมูลเข้า Sheet…</div>
+      </div>
+
+      <div class="result-box" id="resultBox"></div>
+    </div>
+  </div>
+
+  <script>
+    let targetMeta = null;   // { headers, currentRowCount, sheetName }
+    let parsedHeaders = [];
+    let parsedRows = [];
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    function loadMeta() {
+      google.script.run
+        .withSuccessHandler(meta => {
+          targetMeta = meta;
+          document.getElementById('subtitle').textContent =
+            'ปลายทาง: ชีต "' + meta.sheetName + '" · มีข้อมูลอยู่แล้ว ' + meta.currentRowCount.toLocaleString() + ' แถว';
+        })
+        .withFailureHandler(err => {
+          document.getElementById('subtitle').textContent = 'โหลดข้อมูลปลายทางไม่สำเร็จ: ' + (err && err.message ? err.message : err);
+        })
+        .getRawDataMeta();
+    }
+
+    // ---- File selection ----------------------------------------------
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('drag-over');
+      if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', e => {
+      if (e.target.files.length) handleFile(e.target.files[0]);
+    });
+
+    function handleFile(file) {
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        showValidation('error', 'กรุณาเลือกไฟล์ .csv เท่านั้น');
+        return;
+      }
+      document.getElementById('fileChip').textContent = '📄 ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)';
+      document.getElementById('fileChipWrap').style.display = 'block';
+
+      Papa.parse(file, {
+        header: false,
+        skipEmptyLines: true,
+        complete: results => {
+          const data = results.data;
+          if (!data.length) {
+            showValidation('error', 'ไฟล์นี้ไม่มีข้อมูล');
+            return;
+          }
+          parsedHeaders = data[0];
+          parsedRows = data.slice(1);
+          onParsed();
+        },
+        error: err => showValidation('error', 'อ่านไฟล์ไม่สำเร็จ: ' + err.message)
+      });
+    }
+
+    function onParsed() {
+      validateHeaders();
+      renderPreview();
+      document.getElementById('previewCard').style.display = 'block';
+      document.getElementById('resultBox').style.display = 'none';
+    }
+
+    function validateHeaders() {
+      if (!targetMeta || !targetMeta.headers || !targetMeta.headers.length) {
+        showValidation('warn', 'ยังไม่ทราบโครงสร้างคอลัมน์ปลายทาง จะจับคู่คอลัมน์ตามชื่อหัวข้อตอนอัปโหลด');
+        return;
+      }
+      const targetSet = new Set(targetMeta.headers);
+      const matched = parsedHeaders.filter(h => targetSet.has(h));
+      const unmatched = parsedHeaders.filter(h => !targetSet.has(h));
+
+      if (matched.length === parsedHeaders.length) {
+        showValidation('ok', '✓ หัวข้อคอลัมน์ตรงกับ Sheet ปลายทางครบทุกคอลัมน์ (' + matched.length + ' คอลัมน์)');
+      } else if (matched.length > 0) {
+        showValidation('warn', '⚠ จับคู่ได้ ' + matched.length + '/' + parsedHeaders.length + ' คอลัมน์ — คอลัมน์ที่ไม่ตรง: ' + unmatched.join(', '));
+      } else {
+        showValidation('error', '✗ ไม่พบคอลัมน์ที่ตรงกับ Sheet ปลายทางเลย ตรวจสอบไฟล์อีกครั้ง');
+      }
+    }
+
+    function showValidation(level, text) {
+      const box = document.getElementById('validationBox');
+      box.innerHTML = '<div class="validation ' + level + '">' + escapeHtml(text) + '</div>';
+    }
+
+    function renderPreview() {
+      document.getElementById('statRows').textContent = parsedRows.length.toLocaleString() + ' แถวในไฟล์';
+      document.getElementById('statCols').textContent = parsedHeaders.length + ' คอลัมน์';
+      document.getElementById('statExisting').textContent =
+        'มีอยู่แล้ว ' + (targetMeta ? targetMeta.currentRowCount.toLocaleString() : '?') + ' แถวใน Sheet';
+
+      const previewRows = parsedRows.slice(0, 5);
+      let html = '<thead><tr>' + parsedHeaders.map(h => '<th>' + escapeHtml(h) + '</th>').join('') + '</tr></thead><tbody>';
+      previewRows.forEach(row => {
+        html += '<tr>' + row.map(c => '<td>' + escapeHtml(c) + '</td>').join('') + '</tr>';
+      });
+      html += '</tbody>';
+      document.getElementById('previewTable').innerHTML = html;
+    }
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      parsedHeaders = [];
+      parsedRows = [];
+      fileInput.value = '';
+      document.getElementById('fileChipWrap').style.display = 'none';
+      document.getElementById('previewCard').style.display = 'none';
+      document.getElementById('validationBox').innerHTML = '';
+    });
+
+    document.getElementById('uploadBtn').addEventListener('click', () => {
+      if (!parsedRows.length) return;
+
+      const mode = document.querySelector('input[name="mode"]:checked').value;
+      const skipDuplicates = mode === 'append' && document.getElementById('skipDupes').checked;
+
+      document.getElementById('uploadBtn').disabled = true;
+      document.getElementById('truckLoader').style.display = 'block';
+      document.getElementById('resultBox').style.display = 'none';
+
+      google.script.run
+        .withSuccessHandler(onUploadSuccess)
+        .withFailureHandler(onUploadError)
+        .uploadRawData({
+          headers: parsedHeaders,
+          rows: parsedRows,
+          mode: mode,
+          skipDuplicates: skipDuplicates
+        });
+    });
+
+    function onUploadSuccess(result) {
+      document.getElementById('truckLoader').style.display = 'none';
+      document.getElementById('uploadBtn').disabled = false;
+
+      const box = document.getElementById('resultBox');
+      box.className = 'result-box ok';
+      box.style.display = 'block';
+      box.textContent = '✓ อัปโหลดสำเร็จ: เขียน ' + result.written.toLocaleString() + ' แถว' +
+        (result.skipped ? ' (ข้าม ' + result.skipped.toLocaleString() + ' แถวซ้ำ)' : '') +
+        ' — ตอนนี้ Sheet มีทั้งหมด ' + result.totalAfter.toLocaleString() + ' แถว';
+
+      loadMeta();
+    }
+
+    function onUploadError(err) {
+      document.getElementById('truckLoader').style.display = 'none';
+      document.getElementById('uploadBtn').disabled = false;
+
+      const box = document.getElementById('resultBox');
+      box.className = 'result-box error';
+      box.style.display = 'block';
+      box.textContent = '✗ อัปโหลดไม่สำเร็จ: ' + (err && err.message ? err.message : err);
+    }
+
+    loadMeta();
+  </script>
+</body>
+</html>

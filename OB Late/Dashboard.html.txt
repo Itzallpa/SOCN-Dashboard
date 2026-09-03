@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <style>
+    :root {
+      --ink: #1a1d29;
+      --ink-soft: #8a6a5c;
+      --line: #f6ddd2;
+      --bg: #fff9f6;
+      --card: #ffffff;
+      --accent: #ee4d2d;
+      --accent2: #ff7a45;
+      --accent-soft: #fff1eb;
+      --green: #0f9d58;
+      --green-bg: #e3f8ea;
+      --red: #d0311d;
+      --red-bg: #fdece8;
+      --amber: #b7791f;
+      --amber-bg: #fdf3dc;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Segoe UI', Tahoma, 'Noto Sans Thai', 'Sarabun', Arial, sans-serif;
+      font-size: 14px;
+    }
+    .app {
+      min-height: 100vh;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: linear-gradient(120deg, var(--accent), var(--accent2));
+      border-radius: var(--radius);
+      padding: 16px 22px;
+      color: #fff;
+      box-shadow: 0 8px 20px -8px rgba(238,77,45,.35);
+    }
+    h1 { font-size: 21px; margin: 0 0 2px; font-weight: 800; }
+    .subtitle { color: rgba(255,255,255,.85); font-size: 12.5px; }
+    .nav {
+      display: flex;
+      gap: 6px;
+      background: rgba(255,255,255,.18);
+      border-radius: 10px;
+      padding: 4px;
+    }
+    .nav a {
+      color: rgba(255,255,255,.85);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 8px;
+    }
+    .nav a.active { background: #fff; color: var(--accent); }
+    button {
+      font: inherit;
+      cursor: pointer;
+      border-radius: 10px;
+      border: none;
+      padding: 9px 16px;
+      font-weight: 700;
+      background: #fff;
+      color: var(--accent);
+    }
+    button:hover { background: #f2f2ff; }
+
+    .error-box {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid #f3c9c6;
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      font-size: 13px;
+      display: none;
+    }
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .kpi-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: 0 1px 3px rgba(20,20,43,.06);
+    }
+    .kpi-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      margin-bottom: 6px;
+    }
+    .kpi-value { font-size: 28px; font-weight: 800; }
+    .kpi-value.green { color: var(--green); }
+    .kpi-value.red { color: var(--red); }
+    .kpi-value.accent { color: var(--accent); }
+    .kpi-sub { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+
+    .callout-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .callout-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 1px 3px rgba(20,20,43,.06);
+      border-left: 5px solid var(--amber);
+    }
+    .callout-card .icon {
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+    .callout-title { font-size: 12px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .3px; }
+    .callout-value { font-size: 19px; font-weight: 800; margin-top: 2px; }
+    .callout-detail { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      flex: 1;
+    }
+    .chart-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: 0 1px 3px rgba(20,20,43,.06);
+      display: flex;
+      flex-direction: column;
+      min-height: 320px;
+    }
+    .chart-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: var(--ink);
+    }
+    .chart-body {
+      flex: 1;
+      position: relative;
+    }
+    .state-msg {
+      padding: 30px 20px 10px;
+      text-align: center;
+      color: var(--ink-soft);
+    }
+    .truck-loader { padding: 6px 0 2px; }
+    .truck-track {
+      position: relative;
+      width: 240px;
+      height: 78px;
+      margin: 0 auto 12px;
+    }
+    .road-line {
+      position: absolute;
+      left: 0; right: 0; bottom: 16px;
+      height: 4px;
+      border-radius: 2px;
+      background-image: repeating-linear-gradient(90deg, var(--accent) 0 16px, transparent 16px 30px);
+      animation: roadMove .55s linear infinite;
+    }
+    @keyframes roadMove { from { background-position: 0 0; } to { background-position: -46px 0; } }
+    .truck-svg {
+      position: absolute;
+      bottom: 14px; left: 50%;
+      width: 96px; height: 60px;
+      transform: translateX(-50%);
+      animation: truckBounce 1.3s ease-in-out infinite;
+      filter: drop-shadow(0 4px 4px rgba(238,77,45,.25));
+    }
+    @keyframes truckBounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-3px); }
+    }
+    .truck-wheel { animation: wheelSpin .45s linear infinite; }
+    @keyframes wheelSpin { to { transform: rotate(360deg); } }
+    .truck-loader-text { font-weight: 700; color: var(--accent); font-size: 13.5px; }
+
+    @media (max-width: 1000px) {
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
+      .callout-row { grid-template-columns: 1fr; }
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+
+    .callout-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .cut-select {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--accent-soft);
+      color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* ---- Export button ---- */
+    .export-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(120deg, #1a1d29, #3a3f58);
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 14px -4px rgba(26,29,41,.55);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .export-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,.22) 35%, transparent 55%);
+      transform: translateX(-120%);
+      transition: transform .5s ease;
+    }
+    .export-btn:hover:not(:disabled)::after { transform: translateX(120%); }
+    .export-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px -6px rgba(26,29,41,.65);
+    }
+    .export-btn:disabled { opacity: .75; cursor: wait; }
+    .export-btn-icon { font-size: 14px; line-height: 1; }
+    .export-btn:hover:not(:disabled) .export-btn-icon { animation: bounceDown .55s ease infinite; }
+    @keyframes bounceDown {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(3px); }
+    }
+    .spinner {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- Toast ---- */
+    .export-toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      max-width: 360px;
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 14px 34px -10px rgba(20,20,43,.35);
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      border-left: 5px solid var(--green);
+      transform: translateY(24px);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform .25s ease, opacity .25s ease;
+      z-index: 999;
+    }
+    .export-toast.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
+    .export-toast.error { border-left-color: var(--red); }
+    .export-toast .toast-icon { font-size: 19px; flex-shrink: 0; }
+    .export-toast .toast-msg { font-size: 13px; font-weight: 600; }
+    .export-toast a { display: inline-block; margin-top: 4px; color: var(--accent); font-weight: 700; text-decoration: none; font-size: 13px; }
+    .export-toast a:hover { text-decoration: underline; }
+
+    /* ---- Raw-data modal ---- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(20,15,12,.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+      z-index: 1000;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal-box {
+      background: var(--card);
+      border-radius: var(--radius);
+      width: min(1100px, 100%);
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 60px -12px rgba(20,20,43,.4);
+      transform: scale(.96) translateY(8px);
+      transition: transform .18s ease;
+    }
+    .modal-overlay.open .modal-box { transform: scale(1) translateY(0); }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    .modal-title { font-size: 15px; font-weight: 800; }
+    .modal-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-export-btn {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid #b7ebd0;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background .15s ease;
+    }
+    .modal-export-btn:hover { background: #d3f3de; }
+    .modal-close {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 8px;
+      width: 30px; height: 30px;
+      padding: 0;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .modal-close:hover { background: var(--line); }
+    .modal-meta { padding: 0 20px; margin-top: 10px; font-size: 12.5px; color: var(--ink-soft); font-weight: 700; }
+    .modal-table-wrap {
+      flex: 1;
+      overflow: auto;
+      padding: 12px 20px 20px;
+    }
+    table.modal-table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    table.modal-table th {
+      position: sticky;
+      top: 0;
+      background: var(--accent-soft);
+      color: var(--accent);
+      text-align: left;
+      padding: 7px 10px;
+      font-weight: 800;
+      border-bottom: 2px solid var(--line);
+    }
+    table.modal-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+    table.modal-table tr:hover td { background: var(--accent-soft); }
+
+    /* ---- Top 20 Late Hubs Table & Badges ---- */
+    table.hub-table th, table.hub-table td {
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+    table.hub-table tbody tr:hover {
+      background-color: var(--bg);
+    }
+    .cut-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-right: 4px;
+    }
+    .cut-badge.cut0 { background-color: #ffe7db; color: #ee4d2d; }
+    .cut-badge.cut1 { background-color: #e3f8ea; color: #0f9d58; }
+    .cut-badge.cut2 { background-color: #fdf3dc; color: #b7791f; }
+    .cut-badge.cut3 { background-color: #e8eaf6; color: #3f51b5; }
+    .cut-badge.cut-unknown { background-color: #eeeeee; color: #666666; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>LH Trip Dashboard</h1>
+        <div class="subtitle" id="subtitle">Loading live data from the "Table" sheet…</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="nav">
+          <a href="<?= baseUrl ?>?page=table">Table</a>
+          <a class="active" href="<?= baseUrl ?>?page=dashboard">Dashboard</a>
+          <a href="<?= baseUrl ?>?page=upload">Upload</a>
+          <a href="<?= baseUrl ?>?page=obbl">OB BL</a>
+        </div>
+        <button id="refreshBtn">↻ Refresh</button>
+        <button id="exportBtn" class="export-btn">
+          <span class="export-btn-icon">⇩</span>
+          <span class="export-btn-label">Export to Sheet</span>
+        </button>
+        <button id="exportChartsBtn" class="export-btn">
+          <span class="export-btn-icon">📊</span>
+          <span class="export-btn-label">Export Charts → Sheet</span>
+        </button>
+      </div>
+    </header>
+
+    <div id="errorBox" class="error-box"></div>
+
+    <div id="stateMsg" class="state-msg">
+      <div class="truck-loader">
+        <div class="truck-track">
+          <div class="road-line"></div>
+          <svg class="truck-svg" viewBox="0 0 96 60" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="16" width="50" height="26" rx="4" fill="#EE4D2D"/>
+            <path d="M52 22 L72 22 L84 34 L84 42 L52 42 Z" fill="#FF7A45"/>
+            <rect x="57" y="25" width="15" height="11" rx="2" fill="#FFE7DB"/>
+            <g class="truck-wheel" style="transform-origin: 18px 46px;">
+              <circle cx="18" cy="46" r="8" fill="#2b2b2b"/>
+              <rect x="17" y="39.5" width="2" height="13" rx="1" fill="#8a8a8a"/>
+              <rect x="11.5" y="45" width="13" height="2" rx="1" fill="#8a8a8a"/>
+              <circle cx="18" cy="46" r="2.5" fill="#e6e6e6"/>
+            </g>
+            <g class="truck-wheel" style="transform-origin: 68px 46px;">
+              <circle cx="68" cy="46" r="8" fill="#2b2b2b"/>
+              <rect x="67" y="39.5" width="2" height="13" rx="1" fill="#8a8a8a"/>
+              <rect x="61.5" y="45" width="13" height="2" rx="1" fill="#8a8a8a"/>
+              <circle cx="68" cy="46" r="2.5" fill="#e6e6e6"/>
+            </g>
+          </svg>
+        </div>
+        <div class="truck-loader-text">Crunching the numbers…</div>
+      </div>
+    </div>
+
+    <div id="content" style="display:none;">
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Trips</div>
+          <div class="kpi-value accent" id="kpiTotal">–</div>
+          <div class="kpi-sub" id="kpiTotalSub"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">On Time</div>
+          <div class="kpi-value green" id="kpiOnTime">–</div>
+          <div class="kpi-sub" id="kpiOnTimeSub"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Late</div>
+          <div class="kpi-value red" id="kpiLate">–</div>
+          <div class="kpi-sub" id="kpiLateSub"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">On-Time Rate</div>
+          <div class="kpi-value accent" id="kpiRate">–</div>
+          <div class="kpi-sub">of trips with a status</div>
+        </div>
+      </div>
+
+      <div class="callout-row" style="margin-top:14px;">
+        <div class="callout-card">
+          <div class="icon">⏰</div>
+          <div>
+            <div class="callout-title">ช่วงเวลาที่สายมากที่สุด (Peak Late Hour)</div>
+            <div class="callout-value" id="peakHour">–</div>
+            <div class="callout-detail" id="peakHourSub"></div>
+          </div>
+        </div>
+        <div class="callout-card">
+          <div class="icon">✂️</div>
+          <div style="flex:1;">
+            <div class="callout-title-row">
+              <div class="callout-title">สถิติแยกตาม Cut (By Cut)</div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                <select id="intentSelect" class="cut-select">
+                  <option value="All">All Intentional</option>
+                  <option value="Intentional">Intentional</option>
+                  <option value="Non Intentional">Non Intentional</option>
+                </select>
+                <select id="regionSelect" class="cut-select"></select>
+                <select id="zoneSelect" class="cut-select"></select>
+                <select id="cutSelect" class="cut-select"></select>
+              </div>
+            </div>
+            <div class="callout-value" id="peakCut">–</div>
+            <div class="callout-detail" id="peakCutSub"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="charts-grid" style="margin-top:14px;">
+        <div class="chart-card">
+          <div class="chart-title">On Time vs Late (all trips)</div>
+          <div class="chart-body"><canvas id="pieStatus"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">รถแต่ละประเภท ที่สาย (Late trips by vehicle type)</div>
+          <div class="chart-body"><canvas id="pieVehicle"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">On Time Arrival vs LH Trip (RC / On time / OB Late / LH Late)</div>
+          <div class="chart-body"><canvas id="pieOnTime"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">On Time / Late แยกตาม Cut</div>
+          <div class="chart-body"><canvas id="barCut"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">จำนวนเที่ยวที่สาย แยกตามชั่วโมง (Late trips by hour of departure)</div>
+          <div class="chart-body"><canvas id="barHour"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Top 20 LH Late Hubs Table -->
+      <div class="chart-card" style="margin-top:14px; min-height:auto; width:100%;">
+        <div class="chart-title" style="display:flex; justify-content:space-between; align-items:center;">
+          <span>Hub ที่ LH Late สูงสุด 20 อันดับแรก (Top 20 LH Late Hubs)</span>
+          <span style="font-size:12px; font-weight:normal; color:var(--ink-soft);">เรียงตามจำนวนเที่ยว LH Late</span>
+        </div>
+        <div style="overflow-x:auto; margin-top:10px;">
+          <table class="hub-table" style="width:100%; border-collapse:collapse; text-align:left; font-size:13px;">
+            <thead>
+              <tr style="background-color:var(--accent-soft); border-bottom:2px solid var(--line);">
+                <th style="padding:10px; font-weight:700;">อันดับ (Rank)</th>
+                <th style="padding:10px; font-weight:700;">Hub (ปลายทาง)</th>
+                <th style="padding:10px; font-weight:700;">Zone</th>
+                <th style="padding:10px; font-weight:700; text-align:center;">จำนวนที่ LH Late (LH Late Count)</th>
+                <th style="padding:10px; font-weight:700; text-align:center;">อัตรา LH Late (LH Late Rate)</th>
+                <th style="padding:10px; font-weight:700;">จำนวนที่สาย แยกตาม Cut (Late by Cut)</th>
+              </tr>
+            </thead>
+            <tbody id="hubTableBodyLH">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Top 20 OB Late Hubs Table -->
+      <div class="chart-card" style="margin-top:14px; min-height:auto; width:100%;">
+        <div class="chart-title" style="display:flex; justify-content:space-between; align-items:center;">
+          <span>Hub ที่ OB Late สูงสุด 20 อันดับแรก (Top 20 OB Late Hubs)</span>
+          <span style="font-size:12px; font-weight:normal; color:var(--ink-soft);">เรียงตามจำนวนเที่ยว OB Late</span>
+        </div>
+        <div style="overflow-x:auto; margin-top:10px;">
+          <table class="hub-table" style="width:100%; border-collapse:collapse; text-align:left; font-size:13px;">
+            <thead>
+              <tr style="background-color:var(--accent-soft); border-bottom:2px solid var(--line);">
+                <th style="padding:10px; font-weight:700;">อันดับ (Rank)</th>
+                <th style="padding:10px; font-weight:700;">Hub (ปลายทาง)</th>
+                <th style="padding:10px; font-weight:700;">Zone</th>
+                <th style="padding:10px; font-weight:700; text-align:center;">จำนวนที่ OB Late (OB Late Count)</th>
+                <th style="padding:10px; font-weight:700; text-align:center;">อัตรา OB Late (OB Late Rate)</th>
+                <th style="padding:10px; font-weight:700;">จำนวนที่สาย แยกตาม Cut (Late by Cut)</th>
+              </tr>
+            </thead>
+            <tbody id="hubTableBodyOB">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="exportToast" class="export-toast"></div>
+
+  <div id="modalOverlay" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">Raw data</div>
+        <div class="modal-actions">
+          <button class="modal-export-btn" id="modalExportBtn">
+            <span>📥</span> Export CSV
+          </button>
+          <button class="modal-close" id="modalClose">✕</button>
+        </div>
+      </div>
+      <div class="modal-meta" id="modalMeta"></div>
+      <div class="modal-table-wrap">
+        <table class="modal-table" id="modalTable"></table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Column indices within the combined A:H + P:AB row (0-based)
+    const COL = {
+      NO: 0, TRIP_NO: 1, TRIP_CATEGORY: 2, VEHICLE_TYPE: 3, PLATE: 4,
+      DRIVER: 5, ORIGIN: 6, DEST: 7,
+      CUT0: 8, CUT1: 9, CUT2: 10, CUT3: 11, ACTUAL_DEP_CUT: 12,
+      DAY: 13, STATUS: 14, RMK: 15, NON_INTENTIONAL: 16, INTENTIONAL: 17,
+      REGION: 18, ZONE: 19, ROUTE: 20
+    };
+    const CUT_COLS = [
+      { idx: COL.CUT0, label: 'Cut 0' },
+      { idx: COL.CUT1, label: 'Cut 1' },
+      { idx: COL.CUT2, label: 'Cut 2' },
+      { idx: COL.CUT3, label: 'Cut 3' }
+    ];
+
+    const PALETTE = ['#ee4d2d', '#ff7a45', '#f5a623', '#c2661a', '#ffb199', '#e35d1a', '#d0311d', '#ffcaa8'];
+    const charts = {
+      pieStatus: null,
+      pieVehicle: null,
+      pieOnTime: null,
+      barCut: null,
+      barHour: null
+    };
+
+    let allRows = [];
+    let onTimeArrivalMap = {};
+    let activeRows = [];
+    let activeRegion = 'All Regions';
+    let activeZone = 'All Zones';
+    let activeCut = 'All Cuts';
+    let activeIntentType = 'All';
+
+    // Current open modal data
+    let currentModalSubset = [];
+    let currentModalTitle = '';
+
+    if (window.ChartDataLabels) {
+      Chart.register(ChartDataLabels);
+      Chart.defaults.set('plugins.datalabels', { display: false });
+    }
+
+    function escapeHtml(str) {
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Build the headers used for display/export, inserting a standalone
+    // "Late Cut" column right after "Status" instead of leaving that
+    // info folded into the Status column.
+    function getDisplayHeaders() {
+      const headers = (window.__dashboardHeaders || []).slice();
+      headers.splice(COL.STATUS + 1, 0, 'Late Cut');
+      return headers;
+    }
+
+    // Build a row's cells to match getDisplayHeaders(), inserting the
+    // computed "Late Cut" value (only populated for late trips).
+    function getDisplayCells(cells) {
+      const out = cells.slice();
+      const isLate = String(cells[COL.STATUS] || '').trim().toLowerCase() === 'late';
+      const lateCut = isLate ? (applicableCut(cells) || '') : '';
+      out.splice(COL.STATUS + 1, 0, lateCut);
+      return out;
+    }
+
+    // ---- Raw-data modal ----
+    function showRawDataModal(title, subsetRows) {
+      currentModalTitle = title;
+      currentModalSubset = subsetRows;
+
+      const headers = getDisplayHeaders();
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalMeta').textContent =
+        subsetRows.length.toLocaleString() + ' เที่ยว (raw data ที่ใช้คำนวณกราฟนี้)';
+
+      let html = '<thead><tr>' + headers.map(h => '<th>' + escapeHtml(h) + '</th>').join('') + '</tr></thead><tbody>';
+      subsetRows.forEach(r => {
+        html += '<tr>' + getDisplayCells(r.cells).map(c => '<td>' + escapeHtml(c) + '</td>').join('') + '</tr>';
+      });
+      html += '</tbody>';
+      document.getElementById('modalTable').innerHTML = html;
+      document.getElementById('modalOverlay').classList.add('open');
+    }
+
+    function closeRawDataModal() {
+      document.getElementById('modalOverlay').classList.remove('open');
+    }
+
+    // Export raw data subset in Modal to CSV
+    function exportModalToCSV() {
+      if (!currentModalSubset || !currentModalSubset.length) return;
+
+      const headers = getDisplayHeaders();
+      const rows = [headers, ...currentModalSubset.map(r => getDisplayCells(r.cells))];
+
+      const csvContent = '\uFEFF' + rows.map(e => e.map(val => {
+        const str = String(val == null ? '' : val).replace(/"/g, '""');
+        return `"${str}"`;
+      }).join(',')).join('\r\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const safeTitle = (currentModalTitle || 'raw_data').replace(/[^a-zA-Z0-9ก-๙_-]/g, '_');
+
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${safeTitle}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    document.getElementById('modalExportBtn').addEventListener('click', exportModalToCSV);
+    document.getElementById('modalClose').addEventListener('click', closeRawDataModal);
+    document.getElementById('modalOverlay').addEventListener('click', (e) => {
+      if (e.target.id === 'modalOverlay') closeRawDataModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeRawDataModal();
+    });
+
+    // ---- Export to Google Sheet ----
+    const exportBtn = document.getElementById('exportBtn');
+    const exportBtnDefaultHTML = exportBtn.innerHTML;
+
+    function setExportBtnLoading(isLoading) {
+      exportBtn.disabled = isLoading;
+      if (isLoading) {
+        exportBtn.innerHTML = '<span class="spinner"></span><span class="export-btn-label">กำลัง Export…</span>';
+      } else {
+        exportBtn.innerHTML = exportBtnDefaultHTML;
+      }
+    }
+
+    function showExportToast(success, message, url) {
+      const toast = document.getElementById('exportToast');
+      toast.className = 'export-toast show' + (success ? '' : ' error');
+      toast.innerHTML =
+        '<div class="toast-icon">' + (success ? '✅' : '⚠️') + '</div>' +
+        '<div><div class="toast-msg">' + escapeHtml(message) + '</div>' +
+        (url ? '<a href="' + url + '" target="_blank" rel="noopener">เปิด Google Sheet →</a>' : '') +
+        '</div>';
+      clearTimeout(showExportToast._t);
+      showExportToast._t = setTimeout(() => toast.classList.remove('show'), 9000);
+    }
+
+    exportBtn.addEventListener('click', () => {
+      setExportBtnLoading(true);
+      google.script.run
+        .withSuccessHandler((result) => {
+          setExportBtnLoading(false);
+          showExportToast(true, 'Export สำเร็จ — ' + result.rowCount.toLocaleString() + ' แถว', result.url);
+        })
+        .withFailureHandler((err) => {
+          setExportBtnLoading(false);
+          showExportToast(false, 'Export ไม่สำเร็จ: ' + (err && err.message ? err.message : err));
+        })
+        .exportTableToSheet();
+    });
+
+    // ---- Export Charts to Google Sheet (native, editable charts) ----
+    const exportChartsBtn = document.getElementById('exportChartsBtn');
+    const exportChartsBtnDefaultHTML = exportChartsBtn.innerHTML;
+
+    function setExportChartsBtnLoading(isLoading) {
+      exportChartsBtn.disabled = isLoading;
+      if (isLoading) {
+        exportChartsBtn.innerHTML = '<span class="spinner"></span><span class="export-btn-label">กำลังสร้างกราฟ…</span>';
+      } else {
+        exportChartsBtn.innerHTML = exportChartsBtnDefaultHTML;
+      }
+    }
+
+    exportChartsBtn.addEventListener('click', () => {
+      if (!window.chartExportData) return;
+
+      const defaultName = 'Dashboard Charts - ' + new Date().toLocaleDateString('th-TH');
+      const fileName = window.prompt('ตั้งชื่อไฟล์ Google Sheet ที่จะสร้าง:', defaultName);
+      if (fileName === null) return; // user cancelled
+      const finalName = fileName.trim() || defaultName;
+
+      setExportChartsBtnLoading(true);
+      google.script.run
+        .withSuccessHandler((result) => {
+          setExportChartsBtnLoading(false);
+          showExportToast(true, 'สร้าง "' + result.fileName + '" สำเร็จ — ' + result.chartCount + ' กราฟ', result.url);
+        })
+        .withFailureHandler((err) => {
+          setExportChartsBtnLoading(false);
+          showExportToast(false, 'Export กราฟไม่สำเร็จ: ' + (err && err.message ? err.message : err));
+        })
+        .exportChartsToSheet(window.chartExportData, finalName);
+    });
+
+    function load(forceRefresh) {
+      document.getElementById('stateMsg').style.display = 'block';
+      document.getElementById('content').style.display = 'none';
+      document.getElementById('errorBox').style.display = 'none';
+
+      const runner = google.script.run
+        .withSuccessHandler(onData)
+        .withFailureHandler(onError);
+
+      if (forceRefresh) {
+        runner.forceRefreshTableData();
+      } else {
+        runner.getTableData(false);
+      }
+    }
+
+    function loadOnTimeArrival(forceRefresh) {
+      const runner = google.script.run
+        .withSuccessHandler(onOnTimeArrivalData)
+        .withFailureHandler((err) => console.error('on time arrival load failed:', err));
+      if (forceRefresh) runner.forceRefreshOnTimeArrivalData();
+      else runner.getOnTimeArrivalData(false);
+    }
+
+    function onOnTimeArrivalData(data) {
+      onTimeArrivalMap = (data && data.map) || {};
+      if (allRows.length) updateActiveRows();
+    }
+
+    function getOnTimeArrivalCategory(row) {
+      const trip = (row.cells[COL.TRIP_NO] || '').trim();
+      if (!trip || !(trip in onTimeArrivalMap)) return null;
+      
+      const otaStatus = (onTimeArrivalMap[trip] || '').trim().toLowerCase();
+      const tableStatus = (row.cells[COL.STATUS] || '').trim().toLowerCase();
+      
+      const isOtaPending = otaStatus.indexOf('pending') !== -1;
+      const isOtaOnTime = otaStatus === 'on-time' || otaStatus === 'on time' || otaStatus.indexOf('on-time') !== -1 || otaStatus.indexOf('on time') !== -1;
+      const isOtaLate = otaStatus === 'late' || otaStatus.indexOf('late') !== -1;
+      
+      const isTableOnTime = tableStatus === 'on-time' || tableStatus === 'on time';
+      const isTableLate = tableStatus === 'late';
+      
+      if (isOtaPending) {
+        return 'RC';
+      }
+      if (isOtaOnTime && isTableOnTime) {
+        return 'On time';
+      }
+      if (isOtaLate && isTableLate) {
+        return 'LH Late';
+      }
+      if (isOtaOnTime && isTableLate) {
+        return 'OB Late';
+      }
+      return null;
+    }
+
+    function onError(err) {
+      document.getElementById('stateMsg').style.display = 'none';
+      const box = document.getElementById('errorBox');
+      box.style.display = 'block';
+      box.textContent = 'Could not load data: ' + (err && err.message ? err.message : err);
+    }
+
+    function applicableCut(cells) {
+      for (const c of CUT_COLS) {
+        const v = (cells[c.idx] || '').trim();
+        if (v && v !== '-') return c.label;
+      }
+      return null;
+    }
+
+    function hourOf(timeStr) {
+      if (!timeStr) return null;
+      const s = String(timeStr).trim();
+      const m = s.match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?/);
+      if (!m) return null;
+      let h = parseInt(m[1], 10);
+      const ampm = m[3] ? m[3].toUpperCase() : null;
+      if (ampm === 'PM' && h < 12) h += 12;
+      if (ampm === 'AM' && h === 12) h = 0;
+      if (isNaN(h) || h < 0 || h > 23) return null;
+      return h;
+    }
+
+    function destroyChart(name) {
+      if (charts[name]) {
+        charts[name].destroy();
+        charts[name] = null;
+      }
+    }
+
+    function filterRowsByCut(rows, cutName) {
+      if (!cutName || cutName === 'All Cuts') return rows.slice();
+      return rows.filter(r => applicableCut(r.cells) === cutName);
+    }
+
+    function uniqueRegions(rows) {
+      const seen = [];
+      rows.forEach(r => {
+        const region = (r.cells[COL.REGION] || '').trim();
+        if (region && seen.indexOf(region) === -1) {
+          seen.push(region);
+        }
+      });
+      return seen.sort();
+    }
+
+    function filterRowsByRegion(rows, regionName) {
+      if (!regionName || regionName === 'All Regions') return rows.slice();
+      return rows.filter(r => (r.cells[COL.REGION] || '').trim() === regionName);
+    }
+
+    function uniqueZones(rows) {
+      const seen = [];
+      rows.forEach(r => {
+        const zone = (r.cells[COL.ZONE] || '').trim();
+        if (zone && seen.indexOf(zone) === -1) {
+          seen.push(zone);
+        }
+      });
+      return seen.sort();
+    }
+
+    function filterRowsByZone(rows, zoneName) {
+      if (!zoneName || zoneName === 'All Zones') return rows.slice();
+      return rows.filter(r => (r.cells[COL.ZONE] || '').trim() === zoneName);
+    }
+
+    function getBaseFilteredRows() {
+      return allRows.filter(r => {
+        if (activeIntentType === 'Intentional') {
+          const val = (r.cells[COL.INTENTIONAL] || '').trim();
+          if (!val || val === '-') return false;
+        } else if (activeIntentType === 'Non Intentional') {
+          const val = (r.cells[COL.NON_INTENTIONAL] || '').trim();
+          if (!val || val === '-') return false;
+        }
+        return true;
+      });
+    }
+
+    function updateActiveRows() {
+      const baseRows = getBaseFilteredRows();
+      const regionFiltered = filterRowsByRegion(baseRows, activeRegion);
+      const zoneFiltered = filterRowsByZone(regionFiltered, activeZone);
+      activeRows = filterRowsByCut(zoneFiltered, activeCut);
+      renderDashboard(activeRows);
+    }
+
+    function setActiveZone(zoneName) {
+      activeZone = zoneName || 'All Zones';
+      const zoneSelect = document.getElementById('zoneSelect');
+      if (zoneSelect && zoneSelect.value !== activeZone) {
+        zoneSelect.value = activeZone;
+      }
+      updateActiveRows();
+    }
+
+    function setActiveCut(cutName) {
+      activeCut = cutName || 'All Cuts';
+      const cutSelect = document.getElementById('cutSelect');
+      if (cutSelect && cutSelect.value !== activeCut) {
+        cutSelect.value = activeCut;
+      }
+      updateActiveRows();
+    }
+
+    function setActiveRegion(regionName) {
+      activeRegion = regionName || 'All Regions';
+      const regionSelect = document.getElementById('regionSelect');
+      if (regionSelect && regionSelect.value !== activeRegion) {
+        regionSelect.value = activeRegion;
+      }
+      updateActiveRows();
+    }
+
+    function renderDashboard(rows) {
+      const onTimeRows = rows.filter(r => String(r.cells[COL.STATUS] || '').trim().toLowerCase() === 'on time');
+      const lateRows = rows.filter(r => String(r.cells[COL.STATUS] || '').trim().toLowerCase() === 'late');
+      const withStatus = onTimeRows.length + lateRows.length;
+      const rate = withStatus ? Math.round((onTimeRows.length / withStatus) * 1000) / 10 : 0;
+
+      document.getElementById('subtitle').textContent =
+        rows.length + ' trips · updated ' + new Date(window.__dashboardGeneratedAt || Date.now()).toLocaleString() +
+        (activeIntentType === 'All' ? '' : ' · ' + activeIntentType) +
+        (activeRegion === 'All Regions' ? '' : ' · ' + activeRegion) +
+        (activeZone === 'All Zones' ? '' : ' · ' + activeZone) +
+        (activeCut === 'All Cuts' ? '' : ' · ' + activeCut);
+
+      document.getElementById('kpiTotal').textContent = rows.length.toLocaleString();
+      document.getElementById('kpiTotalSub').textContent = withStatus + ' with a known status';
+      document.getElementById('kpiOnTime').textContent = onTimeRows.length.toLocaleString();
+      document.getElementById('kpiOnTimeSub').textContent = withStatus ? Math.round((onTimeRows.length / withStatus) * 100) + '% of trips' : '';
+      document.getElementById('kpiLate').textContent = lateRows.length.toLocaleString();
+      document.getElementById('kpiLateSub').textContent = withStatus ? Math.round((lateRows.length / withStatus) * 100) + '% of trips' : '';
+      document.getElementById('kpiRate').textContent = rate + '%';
+
+      const hourCounts = {};
+      lateRows.forEach(r => {
+        const h = hourOf(r.cells[COL.ACTUAL_DEP_CUT]);
+        if (h === null) return;
+        hourCounts[h] = (hourCounts[h] || 0) + 1;
+      });
+      const hourEntries = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]);
+      if (hourEntries.length) {
+        const [peakH, peakCount] = hourEntries[0];
+        const hh = String(peakH).padStart(2, '0');
+        const hhNext = String((parseInt(peakH, 10) + 1) % 24).padStart(2, '0');
+        document.getElementById('peakHour').textContent = hh + ':00 – ' + hhNext + ':00';
+        document.getElementById('peakHourSub').textContent = peakCount + ' เที่ยวที่สายในช่วงนี้ (จาก ' + lateRows.length + ' เที่ยวที่สายทั้งหมด)';
+      } else {
+        document.getElementById('peakHour').textContent = 'ไม่มีข้อมูล';
+        document.getElementById('peakHourSub').textContent = '';
+      }
+
+      const baseRowsForCut = getBaseFilteredRows();
+      const cutLateCounts = {};
+      const cutTotalCounts = {};
+      baseRowsForCut.forEach(r => {
+        const cut = applicableCut(r.cells);
+        if (!cut) return;
+        cutTotalCounts[cut] = (cutTotalCounts[cut] || 0) + 1;
+        if (String(r.cells[COL.STATUS] || '').trim().toLowerCase() === 'late') {
+          cutLateCounts[cut] = (cutLateCounts[cut] || 0) + 1;
+        }
+      });
+
+      const cutSelect = document.getElementById('cutSelect');
+      const regionSelect = document.getElementById('regionSelect');
+      const zoneSelect = document.getElementById('zoneSelect');
+      const availableCuts = CUT_COLS.map(c => c.label).filter(l => cutTotalCounts[l]);
+      const availableRegions = uniqueRegions(baseRowsForCut);
+      const availableZones = uniqueZones(baseRowsForCut);
+
+      regionSelect.innerHTML = '<option value="All Regions">All Regions</option>' +
+        availableRegions.map(r => '<option value="' + escapeHtml(r) + '">' + escapeHtml(r) + '</option>').join('');
+      regionSelect.value = activeRegion;
+
+      zoneSelect.innerHTML = '<option value="All Zones">All Zones</option>' +
+        availableZones.map(z => '<option value="' + escapeHtml(z) + '">' + escapeHtml(z) + '</option>').join('');
+      zoneSelect.value = activeZone;
+
+      cutSelect.innerHTML = '<option value="All Cuts">All Cuts</option>' +
+        availableCuts.map(l => '<option value="' + l + '">' + l + '</option>').join('');
+      cutSelect.value = activeCut;
+
+      const cutName = activeCut === 'All Cuts' ? (Object.entries(cutLateCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'ไม่มีข้อมูล') : activeCut;
+      const total = cutTotalCounts[cutName] || 0;
+      const late = cutLateCounts[cutName] || 0;
+      const pct = total ? Math.round((late / total) * 100) : 0;
+      document.getElementById('peakCut').textContent = cutName;
+      document.getElementById('peakCutSub').textContent = total ? late + ' จาก ' + total + ' เที่ยว (' + pct + '% สาย)' : '';
+
+      destroyChart('pieStatus');
+      destroyChart('pieVehicle');
+      destroyChart('pieOnTime');
+      destroyChart('barCut');
+      destroyChart('barHour');
+
+      charts.pieStatus = new Chart(document.getElementById('pieStatus'), {
+        type: 'pie',
+        data: {
+          labels: ['On Time', 'Late'],
+          datasets: [{
+            data: [onTimeRows.length, lateRows.length],
+            backgroundColor: ['#0f9d58', '#e0293e'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          onClick: (evt, elements, chart) => {
+            if (!elements.length) return;
+            const label = chart.data.labels[elements[0].index];
+            if (label === 'On Time') showRawDataModal((activeCut === 'All Cuts' ? '' : activeCut + ' · ') + 'On Time — raw data', onTimeRows);
+            else if (label === 'Late') showRawDataModal((activeCut === 'All Cuts' ? '' : activeCut + ' · ') + 'Late — raw data', lateRows);
+          },
+          onHover: (evt, elements) => {
+            evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                generateLabels: (chart) => {
+                  const ds = chart.data.datasets[0];
+                  const total = ds.data.reduce((a, b) => a + b, 0);
+                  return chart.data.labels.map((label, i) => {
+                    const val = ds.data[i];
+                    const pct = total ? Math.round((val / total) * 1000) / 10 : 0;
+                    return {
+                      text: label + ' — ' + val.toLocaleString() + ' (' + pct + '%)',
+                      fillStyle: ds.backgroundColor[i],
+                      index: i
+                    };
+                  });
+                }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                  const pct = total ? Math.round((ctx.parsed / total) * 1000) / 10 : 0;
+                  return ctx.label + ': ' + ctx.parsed.toLocaleString() + ' (' + pct + '%)';
+                }
+              }
+            },
+            datalabels: {
+              display: true,
+              color: '#fff',
+              font: { weight: 800, size: 12 },
+              formatter: (value, ctx) => {
+                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                if (!total || !value) return '';
+                return Math.round((value / total) * 1000) / 10 + '%';
+              }
+            }
+          }
+        }
+      });
+
+      const vehLateCounts = {};
+      lateRows.forEach(r => {
+        const v = r.cells[COL.VEHICLE_TYPE] || 'Unknown';
+        vehLateCounts[v] = (vehLateCounts[v] || 0) + 1;
+      });
+      const vehEntries = Object.entries(vehLateCounts).sort((a, b) => b[1] - a[1]);
+      charts.pieVehicle = new Chart(document.getElementById('pieVehicle'), {
+        type: 'pie',
+        data: {
+          labels: vehEntries.map(e => e[0]),
+          datasets: [{
+            data: vehEntries.map(e => e[1]),
+            backgroundColor: vehEntries.map((_, i) => PALETTE[i % PALETTE.length]),
+            borderWidth: 0
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          onClick: (evt, elements, chart) => {
+            if (!elements.length) return;
+            const label = chart.data.labels[elements[0].index];
+            const subset = lateRows.filter(r => (r.cells[COL.VEHICLE_TYPE] || 'Unknown') === label);
+            showRawDataModal((activeCut === 'All Cuts' ? '' : activeCut + ' · ') + 'เที่ยวที่สาย — ' + label, subset);
+          },
+          onHover: (evt, elements) => {
+            evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                boxWidth: 12,
+                font: { size: 11 },
+                generateLabels: (chart) => {
+                  const ds = chart.data.datasets[0];
+                  const total = ds.data.reduce((a, b) => a + b, 0);
+                  return chart.data.labels.map((label, i) => {
+                    const val = ds.data[i];
+                    const pct = total ? Math.round((val / total) * 1000) / 10 : 0;
+                    return {
+                      text: label + ' — ' + val.toLocaleString() + ' (' + pct + '%)',
+                      fillStyle: ds.backgroundColor[i],
+                      index: i
+                    };
+                  });
+                }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                  const pct = total ? Math.round((ctx.parsed / total) * 1000) / 10 : 0;
+                  return ctx.label + ': ' + ctx.parsed.toLocaleString() + ' (' + pct + '%)';
+                }
+              }
+            },
+            datalabels: {
+              display: true,
+              color: '#fff',
+              font: { weight: 800, size: 10.5 },
+              formatter: (value, ctx) => {
+                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                if (!total || !value) return '';
+                const pct = Math.round((value / total) * 1000) / 10;
+                return pct >= 4 ? pct + '%' : '';
+              }
+            }
+          }
+        }
+      });
+
+      const OTA_CATS = ['On time', 'LH Late', 'OB Late', 'RC'];
+      const OTA_COLORS = { 'On time': '#0f9d58', 'LH Late': '#e0293e', 'OB Late': '#f5a623', 'RC': '#8a8f98' };
+      const otaRowsByCat = { 'On time': [], 'LH Late': [], 'OB Late': [], 'RC': [] };
+      rows.forEach(r => {
+        const cat = getOnTimeArrivalCategory(r);
+        if (cat && otaRowsByCat[cat]) otaRowsByCat[cat].push(r);
+      });
+      const otaLabels = OTA_CATS.filter(c => otaRowsByCat[c].length > 0);
+      charts.pieOnTime = new Chart(document.getElementById('pieOnTime'), {
+        type: 'pie',
+        data: {
+          labels: otaLabels,
+          datasets: [{
+            data: otaLabels.map(l => otaRowsByCat[l].length),
+            backgroundColor: otaLabels.map(l => OTA_COLORS[l]),
+            borderWidth: 0
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          onClick: (evt, elements, chart) => {
+            if (!elements.length) return;
+            const label = chart.data.labels[elements[0].index];
+            showRawDataModal((activeCut === 'All Cuts' ? '' : activeCut + ' · ') + label + ' — raw data', otaRowsByCat[label]);
+          },
+          onHover: (evt, elements) => {
+            evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                generateLabels: (chart) => {
+                  const ds = chart.data.datasets[0];
+                  const total = ds.data.reduce((a, b) => a + b, 0);
+                  return chart.data.labels.map((label, i) => {
+                    const val = ds.data[i];
+                    const pct = total ? Math.round((val / total) * 1000) / 10 : 0;
+                    return {
+                      text: label + ' — ' + val.toLocaleString() + ' (' + pct + '%)',
+                      fillStyle: ds.backgroundColor[i],
+                      index: i
+                    };
+                  });
+                }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                  const pct = total ? Math.round((ctx.parsed / total) * 1000) / 10 : 0;
+                  return ctx.label + ': ' + ctx.parsed.toLocaleString() + ' (' + pct + '%)';
+                }
+              }
+            },
+            datalabels: {
+              display: true,
+              color: '#fff',
+              font: { weight: 800, size: 12 },
+              formatter: (value, ctx) => {
+                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                if (!total || !value) return '';
+                return Math.round((value / total) * 1000) / 10 + '%';
+              }
+            }
+          }
+        }
+      });
+
+      const cutLabels = CUT_COLS.map(c => c.label).filter(l => cutTotalCounts[l]);
+      const cutOnTime = cutLabels.map(l => (cutTotalCounts[l] || 0) - (cutLateCounts[l] || 0));
+      const cutLate = cutLabels.map(l => cutLateCounts[l] || 0);
+      charts.barCut = new Chart(document.getElementById('barCut'), {
+        type: 'bar',
+        data: {
+          labels: cutLabels,
+          datasets: [
+            { label: 'On Time', data: cutOnTime, backgroundColor: '#0f9d58', borderRadius: 6 },
+            { label: 'Late', data: cutLate, backgroundColor: '#e0293e', borderRadius: 6 }
+          ]
+        },
+        options: {
+          maintainAspectRatio: false,
+          scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } },
+          onClick: (evt, elements) => {
+            if (!elements.length) return;
+            const el = elements[0];
+            const cutName = cutLabels[el.index];
+            const wantStatus = el.datasetIndex === 0 ? 'On Time' : 'Late';
+            const subset = rows.filter(r => applicableCut(r.cells) === cutName && r.cells[COL.STATUS] === wantStatus);
+            showRawDataModal((activeCut === 'All Cuts' ? '' : activeCut + ' · ') + cutName + ' — ' + wantStatus, subset);
+          },
+          onHover: (evt, elements) => {
+            evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+          },
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+
+      const allHours = Array.from({ length: 24 }, (_, i) => i);
+      const hourData = allHours.map(h => hourCounts[h] || 0);
+      charts.barHour = new Chart(document.getElementById('barHour'), {
+        type: 'bar',
+        data: {
+          labels: allHours.map(h => String(h).padStart(2, '0') + ':00'),
+          datasets: [{
+            label: 'Late trips',
+            data: hourData,
+            backgroundColor: allHours.map(h => (hourCounts[h] || 0) === Math.max(...hourData) && hourData[h] > 0 ? '#e0293e' : '#f6b8bf'),
+            borderRadius: 5
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+          onClick: (evt, elements) => {
+            if (!elements.length) return;
+            const hour = allHours[elements[0].index];
+            const subset = lateRows.filter(r => hourOf(r.cells[COL.ACTUAL_DEP_CUT]) === hour);
+            showRawDataModal((activeCut === 'All Cuts' ? '' : activeCut + ' · ') + 'เที่ยวที่สาย — ชั่วโมง ' + String(hour).padStart(2, '0') + ':00', subset);
+          },
+          onHover: (evt, elements) => {
+            evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+      // ---- Snapshot the aggregated data behind each chart so it can be
+      // exported as real (editable) native charts in Google Sheets ----
+      window.chartExportData = {
+        pieStatus: {
+          title: 'On Time vs Late (all trips)',
+          type: 'PIE',
+          labels: ['On Time', 'Late'],
+          series: { 'Trips': [onTimeRows.length, lateRows.length] }
+        },
+        pieVehicle: {
+          title: 'Late trips by vehicle type',
+          type: 'PIE',
+          labels: vehEntries.map(e => e[0]),
+          series: { 'Late trips': vehEntries.map(e => e[1]) }
+        },
+        pieOnTime: {
+          title: 'On Time Arrival vs LH Trip (RC / On time / OB Late / LH Late)',
+          type: 'PIE',
+          labels: otaLabels,
+          series: { 'Trips': otaLabels.map(l => otaRowsByCat[l].length) }
+        },
+        barCut: {
+          title: 'On Time / Late แยกตาม Cut',
+          type: 'COLUMN',
+          labels: cutLabels,
+          series: { 'On Time': cutOnTime, 'Late': cutLate }
+        },
+        barHour: {
+          title: 'Late trips by hour of departure',
+          type: 'COLUMN',
+          labels: allHours.map(h => String(h).padStart(2, '0') + ':00'),
+          series: { 'Late trips': hourData }
+        }
+      };
+      // Render Top 20 LH Late Hubs and Top 20 OB Late Hubs (separate tables)
+      renderHubTable('hubTableBodyLH', getTop20HubsByCategory(rows, 'LH Late'));
+      renderHubTable('hubTableBodyOB', getTop20HubsByCategory(rows, 'OB Late'));
+    }
+
+    function renderHubTable(tbodyId, top20Hubs) {
+      const hubTableBody = document.getElementById(tbodyId);
+      if (!hubTableBody) return;
+      if (top20Hubs.length === 0) {
+        hubTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--ink-soft);">ไม่มีข้อมูลการสาย (No late data)</td></tr>';
+        return;
+      }
+      hubTableBody.innerHTML = top20Hubs.map((h, idx) => {
+        const pct = h.totalCount ? ((h.lateCount / h.totalCount) * 100).toFixed(1) : '0.0';
+
+        const cutBadges = [];
+        if (h.cutLateCounts['Cut 0'] > 0) cutBadges.push(`<span class="cut-badge cut0">Cut 0: ${h.cutLateCounts['Cut 0']}</span>`);
+        if (h.cutLateCounts['Cut 1'] > 0) cutBadges.push(`<span class="cut-badge cut1">Cut 1: ${h.cutLateCounts['Cut 1']}</span>`);
+        if (h.cutLateCounts['Cut 2'] > 0) cutBadges.push(`<span class="cut-badge cut2">Cut 2: ${h.cutLateCounts['Cut 2']}</span>`);
+        if (h.cutLateCounts['Cut 3'] > 0) cutBadges.push(`<span class="cut-badge cut3">Cut 3: ${h.cutLateCounts['Cut 3']}</span>`);
+        if (h.cutLateCounts['Unknown'] > 0) cutBadges.push(`<span class="cut-badge cut-unknown">Unknown: ${h.cutLateCounts['Unknown']}</span>`);
+
+        return `
+          <tr>
+            <td style="padding:10px; font-weight:700;">${idx + 1}</td>
+            <td style="padding:10px; font-weight:700; color:var(--accent);">${escapeHtml(h.hub)}</td>
+            <td style="padding:10px;">${escapeHtml(h.zone)}</td>
+            <td style="padding:10px; text-align:center; font-weight:700; color:var(--red);">${h.lateCount} <span style="font-weight:normal; color:var(--ink-soft); font-size:11px;">/ ${h.totalCount}</span></td>
+            <td style="padding:10px; text-align:center; font-weight:700;">${pct}%</td>
+            <td style="padding:10px;">${cutBadges.join(' ')}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Builds the Top 20 hubs list for a given On Time Arrival category
+    // ('LH Late' or 'OB Late'), using getOnTimeArrivalCategory() so this
+    // splits cleanly instead of lumping both late types into one table.
+    function getTop20HubsByCategory(rows, category) {
+      const hubData = {};
+      rows.forEach(r => {
+        const hub = (r.cells[COL.DEST] || '').trim();
+        if (!hub || hub === '-') return;
+
+        const zone = (r.cells[COL.ZONE] || 'Unknown').trim();
+        const cat = getOnTimeArrivalCategory(r);
+        const cut = applicableCut(r.cells) || 'Unknown';
+
+        if (!hubData[hub]) {
+          hubData[hub] = {
+            hub: hub,
+            zone: zone,
+            totalCount: 0,
+            lateCount: 0,
+            cutLateCounts: { 'Cut 0': 0, 'Cut 1': 0, 'Cut 2': 0, 'Cut 3': 0, 'Unknown': 0 }
+          };
+        }
+
+        hubData[hub].totalCount++;
+        if (cat === category) {
+          hubData[hub].lateCount++;
+          if (hubData[hub].cutLateCounts[cut] !== undefined) {
+            hubData[hub].cutLateCounts[cut]++;
+          } else {
+            hubData[hub].cutLateCounts[cut] = 1;
+          }
+        }
+      });
+
+      const hubList = Object.values(hubData).filter(h => h.lateCount > 0);
+      hubList.sort((a, b) => {
+        if (b.lateCount !== a.lateCount) return b.lateCount - a.lateCount;
+        return b.totalCount - a.totalCount;
+      });
+
+      return hubList.slice(0, 20);
+    }
+
+    function onData(data) {
+      allRows = data.rows;
+      window.__dashboardGeneratedAt = data.generatedAt;
+      window.__dashboardHeaders = data.headers;
+
+      const intentSelect = document.getElementById('intentSelect');
+      const regionSelect = document.getElementById('regionSelect');
+      const zoneSelect = document.getElementById('zoneSelect');
+      const cutSelect = document.getElementById('cutSelect');
+
+      if (!intentSelect.dataset.bound) {
+        intentSelect.addEventListener('change', () => {
+          activeIntentType = intentSelect.value;
+          updateActiveRows();
+        });
+        intentSelect.dataset.bound = '1';
+      }
+      if (!regionSelect.dataset.bound) {
+        regionSelect.addEventListener('change', () => {
+          activeRegion = regionSelect.value || 'All Regions';
+          setActiveRegion(activeRegion);
+        });
+        regionSelect.dataset.bound = '1';
+      }
+      if (!zoneSelect.dataset.bound) {
+        zoneSelect.addEventListener('change', () => {
+          activeZone = zoneSelect.value || 'All Zones';
+          setActiveZone(activeZone);
+        });
+        zoneSelect.dataset.bound = '1';
+      }
+      if (!cutSelect.dataset.bound) {
+        cutSelect.addEventListener('change', () => setActiveCut(cutSelect.value));
+        cutSelect.dataset.bound = '1';
+      }
+
+      activeIntentType = 'All';
+      activeRegion = 'All Regions';
+      activeZone = 'All Zones';
+      activeCut = 'All Cuts';
+
+      intentSelect.value = 'All';
+      setActiveRegion('All Regions');
+      setActiveZone('All Zones');
+      document.getElementById('stateMsg').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', () => { load(true); loadOnTimeArrival(true); });
+    load(false);
+    loadOnTimeArrival(false);
+  </script>
+</body>
+</html>

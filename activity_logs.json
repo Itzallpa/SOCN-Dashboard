@@ -1,5 +1,41 @@
 [
   {
+    "id": "9ea0a6b3",
+    "timestamp": "2026-09-03 14:49:10",
+    "email": "admin@spx.co.th",
+    "name": "SOC Manager",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet data from https://script.google.com/a/macros/spxexpress.com/s/AKfycbxFOtGts0EfjNswnThfQhN57Q7zG5G6gPRGAG80lboIQfzhCh9W9t_d_uEP32Fi1Bc/exec",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "02e9ee89",
+    "timestamp": "2026-09-03 14:48:58",
+    "email": "admin@spx.co.th",
+    "name": "SOC Manager",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet data from https://script.google.com/a/macros/spxexpress.com/s/AKfycbxFOtGts0EfjNswnThfQhN57Q7zG5G6gPRGAG80lboIQfzhCh9W9t_d_uEP32Fi1Bc/exec",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "c5f334d2",
+    "timestamp": "2026-09-03 14:48:39",
+    "email": "admin@spx.co.th",
+    "name": "SOC Manager",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet data from https://script.google.com/a/macros/spxexpress.com/s/AKfycbxFOtGts0EfjNswnThfQhN57Q7zG5G6gPRGAG80lboIQfzhCh9W9t_d_uEP32Fi1Bc/exec",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "a70918eb",
+    "timestamp": "2026-09-03 14:46:54",
+    "email": "admin@spx.co.th",
+    "name": "SOC Manager",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet data from https://script.google.com/a/macros/spxexpress.com/s/AKfycbxFOtGts0EfjNswnThfQhN57Q7zG5G6gPRGAG80lboIQfzhCh9W9t_d_uEP32Fi1Bc/exec",
+    "ip": "127.0.0.1"
+  },
+  {
     "id": "2f92ba57",
     "timestamp": "2026-09-02 20:13:51",
     "email": "operator.socn@gmail.com",

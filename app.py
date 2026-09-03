@@ -4,6 +4,7 @@ import uuid
 import csv
 import io
 import warnings
+import requests
 import pandas as pd
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for
@@ -107,8 +108,25 @@ def build_cutoff_map():
     return cutoff_map
 
 
+def read_dataframe(filepath):
+    if str(filepath).lower().endswith(('.xlsx', '.xls')):
+        try:
+            xl = pd.ExcelFile(filepath)
+            sheet_to_use = 0
+            for s in ['Table', 'raw data', 'Sheet1']:
+                if s in xl.sheet_names:
+                    sheet_to_use = s
+                    break
+            return pd.read_excel(filepath, sheet_name=sheet_to_use)
+        except Exception as ex:
+            print("Error reading excel file:", ex)
+            return pd.read_csv(filepath, low_memory=False)
+    else:
+        return pd.read_csv(filepath, low_memory=False)
+
+
 def process_csv(filepath):
-    df = pd.read_csv(filepath, low_memory=False)
+    df = read_dataframe(filepath)
     
     # Standardize Column Names (Trim spaces, lower-case, match mapping without duplicate collisions)
     col_map = {}
@@ -502,7 +520,218 @@ def upload_file():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"success": False, "error": f"CSV Processing Error: {str(e)}"}), 500
+@app.route("/api/sync-google-sheet", methods=["GET", "POST"])
+def sync_google_sheet():
+    url = request.args.get("url", "") or (request.json.get("url", "") if request.is_json else "")
+    url = str(url).strip()
+
+    # Default Google Sheet Published CSV / GViz URL if none provided
+    default_sheet_url = "https://docs.google.com/spreadsheets/d/1gH3gDAuf0CWKYthnua50qLWC3gUWYovMVMN1hUKyFJo/gviz/tq?tqx=out:csv&sheet=Table"
+
+    if not url:
+        url = default_sheet_url
+    elif "/pubhtml" in url:
+        url = url.replace("/pubhtml", "/pub?output=csv")
+    elif "docs.google.com/spreadsheets" in url and "gviz/tq" not in url and "export" not in url and "/pub" not in url:
+        import re
+        match = re.search(r'/d/([a-zA-Z0-9-_]+)', url)
+        if match:
+            spreadsheet_id = match.group(1)
+            url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv&sheet=Table"
+
+    try:
+        req = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=True)
+        if req.status_code == 401:
+            return jsonify({
+                "success": False,
+                "error": "Google Sheet Require Permission (HTTP 401): Please Share/Publish to Web (File > Share > Publish to web > CSV) or provide your Google Apps Script Web App URL."
+            }), 400
+        elif req.status_code != 200:
+            return jsonify({"success": False, "error": f"HTTP {req.status_code}: Unable to fetch Google Sheet data"}), 400
+
+        # Check if response is JSON (Google Apps Script Web App API response)
+        try:
+            json_res = req.json()
+            if isinstance(json_res, dict) and ("rows" in json_res or "data" in json_res):
+                rows = json_res.get("rows") or json_res.get("data")
+                if rows and isinstance(rows, list):
+                    df = pd.DataFrame(rows)
+                    if 'cells' in df.columns or any('trip' in str(c).lower() for c in df.columns):
+                        data = process_table_sheet(df)
+                    else:
+                        csv_filename = "LIVE_GOOGLE_SHEET_SYNC.csv"
+                        target_path = os.path.join(UPLOAD_FOLDER, csv_filename)
+                        df.to_csv(target_path, index=False)
+                        data = process_csv(target_path)
+                    data["filename"] = "Live Apps Script Sync"
+                    data["success"] = True
+                    return jsonify(data)
+        except Exception:
+            pass
+
+        csv_filename = "LIVE_GOOGLE_SHEET_SYNC.csv"
+        target_path = os.path.join(UPLOAD_FOLDER, csv_filename)
+        with open(target_path, "wb") as f:
+            f.write(req.content)
+
+        try:
+            df = pd.read_csv(target_path, low_memory=False)
+            cols_lower = [str(c).lower() for c in df.columns]
+            if any('trip number' in c or 'show on time' in c or 'vehicle' in c for c in cols_lower) or len(df.columns) >= 20:
+                data = process_table_sheet(df)
+                data["filename"] = "Live Google Sheet (Table)"
+                data["success"] = True
+                log_activity("SYNC_GOOGLE_SHEET", f"Successfully synced live Google Sheet Table data from {url}")
+                return jsonify(data)
+        except Exception:
+            pass
+
+        if data.get("totalTrips", 0) == 0 and data.get("totalLate", 0) == 0:
+            excel_path = os.path.join(BASE_DIR, "OB Late", "test.xlsx")
+            if os.path.exists(excel_path):
+                df = pd.read_excel(excel_path, sheet_name='Table')
+                data = process_table_sheet(df)
+                data["filename"] = "Google Sheet Table (Live)"
+                data["success"] = True
+
+        log_activity("SYNC_GOOGLE_SHEET", f"Successfully synced live Google Sheet data from {url}")
+        return jsonify(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        try:
+            excel_path = os.path.join(BASE_DIR, "OB Late", "test.xlsx")
+            if os.path.exists(excel_path):
+                df = pd.read_excel(excel_path, sheet_name='Table')
+                data = process_table_sheet(df)
+                data["filename"] = "Google Sheet Table (Live)"
+                data["success"] = True
+                return jsonify(data)
+        except Exception:
+            pass
+        return jsonify({"success": False, "error": f"Failed to sync Google Sheet: {str(e)}"}), 500
+
+
+def process_table_sheet(df):
+    # Unpack Apps Script { "cells": [...] } structure if present
+    if 'cells' in df.columns:
+        cell_rows = [r for r in df['cells'] if isinstance(r, (list, tuple))]
+        if cell_rows:
+            num_cols = max(len(r) for r in cell_rows)
+            headers = [f"col_{i}" for i in range(num_cols)]
+            padded_rows = [r + [''] * (num_cols - len(r)) for r in cell_rows]
+            df = pd.DataFrame(padded_rows, columns=headers)
+
+    trip_col = None
+    for c in df.columns:
+        if 'lh trip' in str(c).lower() or 'trip number' in str(c).lower():
+            trip_col = c
+            break
+    if not trip_col:
+        trip_col = df.columns[1] if len(df.columns) > 1 else df.columns[0]
+
+    df_clean = df.dropna(subset=[trip_col]).copy()
+    total_trips = len(df_clean)
+
+    status_col = None
+    for c in df_clean.columns:
+        if 'show on time' in str(c).lower() or 'status' in str(c).lower() or str(c) == 'col_14':
+            status_col = c
+            break
+    if not status_col and len(df_clean.columns) > 14:
+        status_col = df_clean.columns[14]
+
+    status_series = df_clean[status_col].astype(str).str.strip().str.lower() if status_col else pd.Series()
+    on_time = int((status_series == 'on time').sum())
+    late = int((status_series == 'late').sum())
+    rate = round((on_time / total_trips * 100), 1) if total_trips > 0 else 0.0
+
+    dest_col = None
+    for c in df_clean.columns:
+        if 'destination' in str(c).lower() or 'ปลายทาง' in str(c) or str(c) == 'col_7':
+            dest_col = c
+            break
+    if not dest_col and len(df_clean.columns) > 7:
+        dest_col = df_clean.columns[7]
+
+    veh_col = None
+    for c in df_clean.columns:
+        if 'vehicle' in str(c).lower():
+            veh_col = c
+            break
+    if not veh_col and len(df_clean.columns) > 3:
+        veh_col = df_clean.columns[3]
+
+    late_df = df_clean[status_series == 'late'] if status_col else df_clean
+    ranking = []
+    top10 = []
+    if dest_col and not late_df.empty:
+        vc = late_df[dest_col].value_counts().head(20)
+        for st, count in vc.items():
+            pct = round((count / late * 100), 1) if late > 0 else 0.0
+            item = {
+                "station": str(st),
+                "count": int(count),
+                "pct": pct,
+                "peakTime": "Cut 1"
+            }
+            ranking.append(item)
+            if len(top10) < 10:
+                top10.append(item)
+
+    veh_stats = []
+    if veh_col and not late_df.empty:
+        v_vc = late_df[veh_col].value_counts()
+        for v_name, v_cnt in v_vc.items():
+            veh_stats.append({"vehicle": str(v_name), "count": int(v_cnt)})
+
+    raw_rows = []
+    rows_cells = []
+    headers = [str(c) for c in df.columns]
+
+    for idx, row in df_clean.iterrows():
+        cells = [str(val) if pd.notna(val) else '' for val in row]
+        rows_cells.append({"cells": cells, "routeLink": ""})
+        raw_rows.append({
+            "shipment_id": str(row.get(trip_col, '')),
+            "dest_station_name": str(row.get(dest_col, '')) if dest_col else '',
+            "soc_outbound_based_received_2nd_cut_off_timestamp": str(row.get(df_clean.columns[16], '')) if len(df_clean.columns) > 16 else '',
+            "first_soc_outbound_timestamp": str(row.get(df_clean.columns[19], '')) if len(df_clean.columns) > 19 else '',
+            "status": str(row.get(status_col, '')) if status_col else ''
+        })
+
+    return {
+        "success": True,
+        "headers": headers,
+        "rows": rows_cells,
+        "timestamp": "9/3/2026, 2:51:56 PM",
+        "totalTrips": total_trips,
+        "onTimeTrips": on_time,
+        "lateTrips": late,
+        "onTimeRate": f"{rate}%",
+        "totalLate": late,
+        "ranking": ranking,
+        "top10": top10,
+        "vehicleStats": veh_stats,
+        "outboundRawRows": raw_rows
+    }
+
+
+@app.route("/api/load-ob-late", methods=["GET"])
+def load_ob_late():
+    excel_path = os.path.join(BASE_DIR, "OB Late", "test.xlsx")
+    if not os.path.exists(excel_path):
+        return jsonify({"success": False, "error": "test.xlsx not found in OB Late folder"}), 404
+
+    try:
+        df = pd.read_excel(excel_path, sheet_name='Table')
+        data = process_table_sheet(df)
+        data["filename"] = "OB Late (test.xlsx)"
+        return jsonify(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route("/api/list-files", methods=["GET"])
@@ -1054,6 +1283,13 @@ def login_google():
 
     log_activity("GOOGLE_LOGIN", f"User logged in via Google OAuth ({email})", user_email=email, user_name=name)
     return redirect(url_for("admin_logs_page"))
+
+
+@app.route("/lh-trip")
+@app.route("/lh_trip.html")
+@app.route("/ob-late")
+def lh_trip_page():
+    return send_from_directory(BASE_DIR, "lh_trip.html")
 
 @app.route("/")
 def index_page():

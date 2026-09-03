@@ -9,19 +9,19 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <style>
-    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding-bottom: 50px; }
-    .card-custom { background: #ffffff; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 24px; padding: 20px; }
-    .kpi-card { border-radius: 12px; background: #ffffff; border-left: 5px solid #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.04); padding: 18px 20px; }
+    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding-bottom: 30px; }
+    .card-custom { background: #ffffff; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; padding: 16px; }
+    .kpi-card { border-radius: 12px; background: #ffffff; border-left: 5px solid #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.04); padding: 14px 16px; }
     .kpi-blue { border-left-color: #2563eb; }
     .kpi-danger { border-left-color: #dc2626; }
     .kpi-warning { border-left-color: #d97706; }
     .kpi-purple { border-left-color: #7c3aed; }
-    .kpi-title { font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
-    .kpi-value { font-size: 2.1rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
-    .kpi-subtext { font-size: 0.78rem; color: #64748b; margin-top: 6px; }
+    .kpi-title { font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+    .kpi-value { font-size: 1.85rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
+    .kpi-subtext { font-size: 0.76rem; color: #64748b; margin-top: 4px; }
     .table-custom { font-size: 0.88rem; }
     .table-custom th { background-color: #0f172a; color: #ffffff; font-weight: 600; vertical-align: middle; }
-    .rank-pill { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: #e2e8f0; color: #334155; font-weight: 700; font-size: 0.8rem; }
+    .rank-pill { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: #e2e8f0; color: #334155; font-weight: 700; font-size: 0.78rem; }
     .rank-1 { background: #fef08a; color: #854d0e; border: 1px solid #fde047; }
     .rank-2 { background: #e2e8f0; color: #475569; border: 1px solid #cbd5e1; }
     .rank-3 { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
@@ -42,26 +42,28 @@
       <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠 Portal Hub</a>
       <a href="investigation.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">🚀 Investigation</a>
       <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📦 Skip Monitor</a>
-      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff & TTB Master</a>
+      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff Master</a>
+      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
     </div>
   </nav>
 
 
-  <div class="container-fluid px-4 py-3">
+  <div class="container-fluid px-3 py-3" style="max-width: 1560px; margin: 0 auto;">
 
     <!-- Header Banner -->
-    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded-3 shadow-sm border flex-wrap gap-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-2 px-3 rounded-3 shadow-sm border flex-wrap gap-2">
       <div>
         <h4 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-rocket text-primary me-2"></i> Outbound 2nd Cutoff Investigation Dashboard</h4>
         <p class="text-muted small mb-0" id="bannerSubtitle">ระบบตรวจสอบเคสสายงาน Outbound รอบที่ 2 สรุปเคสสายพัสดุล่าช้า และเป้าหมายเวลา Cutoff / TTB</p>
       </div>
       <div class="d-flex align-items-center gap-2 flex-wrap">
-        <select class="form-select form-select-sm" id="outboundFileSelect" style="width: auto; max-width: 260px;" onchange="switchOutboundFile(this.value)">
+        <button class="btn btn-success btn-sm fw-bold" onclick="openGoogleSheetModal()"><i class="fa-solid fa-link me-1"></i> Sync Google Sheet</button>
+        <select class="form-select form-select-sm" id="outboundFileSelect" style="width: auto; max-width: 240px;" onchange="switchOutboundFile(this.value)">
           <option value="">-- เลือกไฟล์ Outbound --</option>
         </select>
         <label class="btn btn-primary btn-sm fw-bold mb-0">
-          <i class="fa-solid fa-upload me-1"></i> อัปโหลด CSV Outbound
-          <input type="file" id="outboundFileInput" accept=".csv" style="display: none;" onchange="handleOutboundFileUpload(this.files[0])">
+          <i class="fa-solid fa-upload me-1"></i> อัปโหลด CSV/Excel
+          <input type="file" id="outboundFileInput" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleOutboundFileUpload(this.files[0])">
         </label>
         <button class="btn btn-outline-danger btn-sm fw-bold" onclick="openRawDataModal('ALL')">
           <i class="fa-solid fa-table-list me-1"></i> ดู Raw Data ล่าช้าทั้งหมด
@@ -266,6 +268,27 @@
     </div>
   </div>
 
+  <!-- Google Sheet Live Sync Modal -->
+  <div class="modal fade" id="googleSheetSyncModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius:14px; overflow:hidden;">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-link me-2"></i> Sync Raw Data from Live Google Sheet</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <label class="form-label fw-bold small text-muted">Google Sheet URL / Apps Script Web App URL</label>
+          <input type="text" id="googleSheetUrlInput" class="form-control mb-3" placeholder="https://docs.google.com/spreadsheets/d/1gH3gDAuf0CWKYthnua50qLWC3gUWYovMVMN1hUKyFJo/...">
+          <div class="d-flex gap-2">
+            <button class="btn btn-success w-100 fw-bold" onclick="triggerGoogleSheetSync()"><i class="fa-solid fa-rotate me-1"></i> Sync Live Data Now</button>
+            <button class="btn btn-outline-secondary w-50" onclick="syncDefaultGoogleSheet()"><i class="fa-solid fa-bolt me-1"></i> Sync Default</button>
+          </div>
+          <div id="syncStatusMsg" class="mt-3"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     let outboundDataState = null;
@@ -274,6 +297,43 @@
     let filteredRawRows = [];
     let currentRawPage = 1;
     const currentRawLimit = 50;
+
+    function openGoogleSheetModal() {
+      const modalEl = new bootstrap.Modal(document.getElementById('googleSheetSyncModal'));
+      modalEl.show();
+    }
+
+    function triggerGoogleSheetSync(urlVal = '') {
+      const url = urlVal || (document.getElementById('googleSheetUrlInput') ? document.getElementById('googleSheetUrlInput').value.trim() : '');
+      const statusEl = document.getElementById('syncStatusMsg');
+      if (statusEl) statusEl.innerHTML = '<div class="alert alert-info py-2 small"><i class="fa-solid fa-spinner fa-spin me-2"></i> กำลังเชื่อมต่อและดึงข้อมูลจาก Google Sheet...</div>';
+
+      fetch('/api/sync-google-sheet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          if (statusEl) statusEl.innerHTML = '<div class="alert alert-success py-2 small">✅ เชื่อมต่อและอัปเดตข้อมูลแดชบอร์ดจาก Google Sheet สำเร็จ!</div>';
+          updateDashboard(data);
+          setTimeout(() => {
+            const modalEl = bootstrap.Modal.getInstance(document.getElementById('googleSheetSyncModal'));
+            if (modalEl) modalEl.hide();
+          }, 1200);
+        } else {
+          if (statusEl) statusEl.innerHTML = `<div class="alert alert-danger py-2 small">เกิดข้อผิดพลาด: ${data.error}</div>`;
+        }
+      })
+      .catch(err => {
+        if (statusEl) statusEl.innerHTML = `<div class="alert alert-danger py-2 small">ล้มเหลว: ${err.message}</div>`;
+      });
+    }
+
+    function syncDefaultGoogleSheet() {
+      triggerGoogleSheetSync('default');
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
       fetchFileList();

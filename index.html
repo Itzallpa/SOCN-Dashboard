@@ -16,6 +16,7 @@
       --brand-blue: #2563eb;
       --brand-purple: #7c3aed;
       --brand-dark: #0f172a;
+      --brand-red: #ee4d2d;
     }
 
     body {
@@ -83,7 +84,7 @@
     .hero-subtitle {
       font-size: 0.98rem;
       color: var(--text-muted);
-      max-width: 720px;
+      max-width: 780px;
       margin-top: 8px;
     }
 
@@ -114,7 +115,7 @@
       background: #ffffff;
       border: 1px solid var(--border-color);
       border-radius: 16px;
-      padding: 32px;
+      padding: 28px;
       height: 100%;
       display: flex;
       flex-direction: column;
@@ -141,15 +142,16 @@
     .icon-blue { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
     .icon-purple { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
     .icon-dark { background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; }
+    .icon-red { background: #fff5f5; color: #ee4d2d; border: 1px solid #fecaca; }
 
     .card-heading {
-      font-size: 1.35rem;
+      font-size: 1.3rem;
       font-weight: 700;
       color: #0f172a;
       margin-bottom: 10px;
     }
     .card-desc {
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       color: #475569;
       line-height: 1.55;
       margin-bottom: 20px;
@@ -191,6 +193,9 @@
     .btn-dark { background: #0f172a; color: #ffffff; }
     .btn-dark:hover { background: #1e293b; color: #ffffff; }
 
+    .btn-red { background: #ee4d2d; color: #ffffff; }
+    .btn-red:hover { background: #d0311d; color: #ffffff; }
+
     /* Footer */
     .footer-bar {
       margin-top: auto;
@@ -208,9 +213,16 @@
     <a href="index.html" class="brand-title">
       <span style="font-size:1.4rem;">📦</span> SOC Operations Portal
     </a>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <a href="index.html" class="nav-btn active">🏠 Portal Hub</a>
+      <a href="investigation.html" class="nav-btn">🚀 Investigation</a>
+      <a href="skip_process.html" class="nav-btn">📦 Skip Monitor</a>
+      <a href="cutoff_master.html" class="nav-btn">⏰ Cutoff Master</a>
+      <a href="lh_trip.html" class="nav-btn">🚚 LH Trip & OB Late</a>
+    </div>
   </nav>
 
-  <div class="container-fluid px-4 max-w-7xl" style="max-width: 1400px;">
+  <div class="container-fluid px-4 max-w-7xl" style="max-width: 1440px;">
 
     <!-- Enterprise Hero Banner -->
     <div class="hero-banner">
@@ -222,7 +234,7 @@
           </div>
           <h1 class="hero-title">SOC Operations Control Center</h1>
           <p class="hero-subtitle">
-            ศูนย์รวมระบบปฏิบัติการคัดแยกพัสดุ ตรวจสอบเคสสายงาน Outbound รอบที่ 2 ติดตามเคสพัสดุข้ามขั้นตอน (Skip Process) และค้นหาข้อมูลรอบเวลา Cutoff / TTB ประจำสถานี
+            ศูนย์รวมระบบปฏิบัติการคัดแยกพัสดุ ตรวจสอบเคสสายงาน Outbound รอบที่ 2, ติดตามเคสพัสดุข้ามขั้นตอน (Skip Process), ค้นหาข้อมูลรอบเวลา Cutoff / TTB และวิเคราะห์ข้อมูลเที่ยวรถ LH Trip & OB Late
           </p>
         </div>
         <div class="col-lg-4">
@@ -230,14 +242,14 @@
             <div class="stat-pill">
               <i class="fa-solid fa-truck-fast text-primary fs-4"></i>
               <div>
-                <div class="stat-number">287 สถานี</div>
-                <div class="stat-label">Cutoff Schedule Master Database</div>
+                <div class="stat-number">1,305 เที่ยวรถ</div>
+                <div class="stat-label">LH Trip & Outbound Live Records</div>
               </div>
             </div>
             <div class="stat-pill">
-              <i class="fa-solid fa-cube text-purple fs-4"></i>
+              <i class="fa-solid fa-layer-group text-danger fs-4"></i>
               <div>
-                <div class="stat-number">3 โมดูลหลัก</div>
+                <div class="stat-number">4 โมดูลหลัก</div>
                 <div class="stat-label">Investigation & Monitoring Suites</div>
               </div>
             </div>
@@ -246,11 +258,34 @@
       </div>
     </div>
 
-    <!-- Main Operational Modules Grid -->
+    <!-- Main Operational Modules Grid (4 Cards) -->
     <div class="row g-4 mb-5">
 
-      <!-- Module 1: Investigation -->
-      <div class="col-lg-4 col-md-6">
+      <!-- Module 1: LH Trip & OB Late Portal (PRIMARY HIGH-PRIORITY MODULE) -->
+      <div class="col-lg-3 col-md-6">
+        <div class="module-card" style="border-top: 4px solid #ee4d2d;">
+          <div>
+            <div class="card-icon-box icon-red">
+              <i class="fa-solid fa-truck-ramp-box"></i>
+            </div>
+            <h3 class="card-heading">LH Trip & OB Late</h3>
+            <p class="card-desc">
+              ระบบวิเคราะห์ข้อมูล LH Trip 1,305 รายการ สรุป Pie Charts 5 แบบ, จัดอันดับ Top 20 Hubs สายสูงสุด และส่งออกไฟล์ Excel/CSV ครบถ้วน
+            </p>
+            <div class="mb-4">
+              <span class="tag-badge"><i class="fa-solid fa-check text-danger me-1"></i> 5 Pie & Bar Charts</span>
+              <span class="tag-badge"><i class="fa-solid fa-check text-danger me-1"></i> Top 20 Late Hubs</span>
+              <span class="tag-badge"><i class="fa-solid fa-check text-danger me-1"></i> Export Excel + Charts</span>
+            </div>
+          </div>
+          <a href="lh_trip.html" class="btn-launch btn-red">
+            เข้าใช้งาน LH Trip Portal <i class="fa-solid fa-arrow-right"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Module 2: Investigation -->
+      <div class="col-lg-3 col-md-6">
         <div class="module-card">
           <div>
             <div class="card-icon-box icon-blue">
@@ -258,22 +293,22 @@
             </div>
             <h3 class="card-heading">Outbound Investigation</h3>
             <p class="card-desc">
-              ระบบตรวจสอบเคสพัสดุขาออกล่าช้าประจำรอบ Cutoff ที่ 2 สรุปเคสสายพัสดุหลุดเป้าหมาย จัดอันดับสถานีปลายทางที่ได้รับผลกระทบ Workload พนักงาน และแมตช์เวลา Cutoff / TTB
+              ระบบตรวจสอบเคสพัสดุขาออกล่าช้าประจำรอบ Cutoff ที่ 2 สรุปเคสสายพัสดุหลุดเป้าหมาย จัดอันดับสถานีปลายทางที่ได้รับผลกระทบ
             </p>
             <div class="mb-4">
-              <span class="tag-badge"><i class="fa-solid fa-check text-primary me-1"></i> Late Shipments Analysis</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-primary me-1"></i> Target Cutoff Match</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-primary me-1"></i> FTE & Aug Workload</span>
+              <span class="tag-badge"><i class="fa-solid fa-check text-primary me-1"></i> Late Shipments</span>
+              <span class="tag-badge"><i class="fa-solid fa-check text-primary me-1"></i> Target Cutoff</span>
+              <span class="tag-badge"><i class="fa-solid fa-check text-primary me-1"></i> FTE Workload</span>
             </div>
           </div>
           <a href="investigation.html" class="btn-launch btn-blue">
-            เข้าใช้งานระบบ Investigation <i class="fa-solid fa-arrow-right"></i>
+            เข้าใช้งาน Investigation <i class="fa-solid fa-arrow-right"></i>
           </a>
         </div>
       </div>
 
-      <!-- Module 2: Skip Process Monitor -->
-      <div class="col-lg-4 col-md-6">
+      <!-- Module 3: Skip Process Monitor -->
+      <div class="col-lg-3 col-md-6">
         <div class="module-card">
           <div>
             <div class="card-icon-box icon-purple">
@@ -281,22 +316,22 @@
             </div>
             <h3 class="card-heading">Skip Process Monitor</h3>
             <p class="card-desc">
-              ระบบติดตามเคสพัสดุข้ามขั้นตอน (Skip Process Cases), บันทึกตัวเลข SOCN Actual Volume รายวันย้อนหลัง และคำนวณ % อัตราส่วน Skip เปรียบเทียบตามโซน A, B, C
+              ระบบติดตามเคสพัสดุข้ามขั้นตอน (Skip Process Cases), บันทึกตัวเลข SOCN Actual Volume รายวันย้อนหลัง และคำนวณ % อัตราส่วน Skip
             </p>
             <div class="mb-4">
-              <span class="tag-badge"><i class="fa-solid fa-check text-purple me-1"></i> % Skip vs Actual Vol</span>
+              <span class="tag-badge"><i class="fa-solid fa-check text-purple me-1"></i> % Skip vs Vol</span>
               <span class="tag-badge"><i class="fa-solid fa-check text-purple me-1"></i> Staff Zone Roster</span>
               <span class="tag-badge"><i class="fa-solid fa-check text-purple me-1"></i> Manual Volume Entry</span>
             </div>
           </div>
           <a href="skip_process.html" class="btn-launch btn-purple">
-            เข้าใช้งานระบบ Skip Monitor <i class="fa-solid fa-arrow-right"></i>
+            เข้าใช้งาน Skip Monitor <i class="fa-solid fa-arrow-right"></i>
           </a>
         </div>
       </div>
 
-      <!-- Module 3: Cutoff & TTB Master -->
-      <div class="col-lg-4 col-md-6">
+      <!-- Module 4: Cutoff & TTB Master -->
+      <div class="col-lg-3 col-md-6">
         <div class="module-card">
           <div>
             <div class="card-icon-box icon-dark">
@@ -304,16 +339,16 @@
             </div>
             <h3 class="card-heading">Cutoff & TTB Master</h3>
             <p class="card-desc">
-              ระบบค้นหาข้อมูลรอบเวลา Cutoff มาตรฐานของสถานีปลายทาง 287 สถานี พร้อมตารางเวลารถวิ่ง TTB รายวัน ตรวจจับวันในสัปดาห์ให้อัตโนมัติ (Mon - Sun)
+              ระบบค้นหาข้อมูลรอบเวลา Cutoff มาตรฐานของสถานีปลายทาง 287 สถานี พร้อมตารางเวลารถวิ่ง TTB รายวัน ตรวจจับวันในสัปดาห์ให้อัตโนมัติ
             </p>
             <div class="mb-4">
-              <span class="tag-badge"><i class="fa-solid fa-check text-dark me-1"></i> 287 Station Cutoff Schedule</span>
+              <span class="tag-badge"><i class="fa-solid fa-check text-dark me-1"></i> 287 Station Schedule</span>
               <span class="tag-badge"><i class="fa-solid fa-check text-dark me-1"></i> Daily TTB Timetable</span>
               <span class="tag-badge"><i class="fa-solid fa-check text-dark me-1"></i> Auto Day Detection</span>
             </div>
           </div>
           <a href="cutoff_master.html" class="btn-launch btn-dark">
-            ค้นหาข้อมูล Cutoff & TTB <i class="fa-solid fa-arrow-right"></i>
+            ค้นหา Cutoff & TTB <i class="fa-solid fa-arrow-right"></i>
           </a>
         </div>
       </div>
@@ -324,10 +359,10 @@
 
   <!-- Footer -->
   <footer class="footer-bar">
-    <div class="container-fluid px-4 text-center" style="max-width: 1400px;">
+    <div class="container-fluid px-4 text-center" style="max-width: 1440px;">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
-          <b>SOC Operations Portal</b> • Internal Enterprise Management System v2.4
+          <b>SOC Operations Portal</b> • Internal Enterprise Management System v2.5
         </div>
         <div>
           <span class="me-3"><i class="fa-solid fa-shield-halved me-1 text-success"></i> Data Protection Active</span>

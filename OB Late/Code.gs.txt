@@ -1,0 +1,544 @@
+/**
+ * LH Trip Table — Apps Script Web App backend
+ *
+ * Reads columns A:H and P:AB live from the "Table" sheet and serves them
+ * to the web page as JSON. All calculated columns (Cut times, on-time/late,
+ * etc.) are read as already-computed DISPLAY VALUES straight from the
+ * sheet, so any formula logic you have there is automatically respected —
+ * nothing is recalculated or guessed in this script.
+ */
+
+// ---- CONFIG -----------------------------------------------------------
+const SPREADSHEET_ID = '1gH3gDAuf0CWKYthnua50qLWC3gUWYovMVMN1hUKyFJo';
+const SHEET_NAME = 'Table';
+
+// Separate spreadsheet that the raw trip CSV gets uploaded into.
+const RAWDATA_SPREADSHEET_ID = '1b23i0TPw1NHQAoj-D3YeDe4khnXFn_d0MmxfFniuq-k';
+const RAWDATA_SHEET_NAME = 'raw data';
+
+// Separate spreadsheet that the Outbound Backlog (OB BL) source data lives
+// in — "02030405 all day" (column width is auto-detected).
+const OBBL_SPREADSHEET_ID = '1XHfU83vjja5wINCC0AeNsTJTAlRCp9WdnQa0Rf9VR1U';
+const OBBL_SHEET_NAME = 'OB BL';
+const OBBL_START_COL = 1;   // A
+const OBBL_KEY_FIELD = 'shipment_id'; // header name used to find the last real row
+
+// Column A:H is 8 columns starting at column 1.
+const AH_START_COL = 1;
+const AH_NUM_COLS = 8;
+
+// Column P:AB is 13 columns starting at column 16 (P).
+const PAB_START_COL = 16;
+const PAB_NUM_COLS = 13; // P,Q,R,S,T,U,V,W,X,Y,Z,AA,AB
+
+// Column used to detect where the real data ends (LH Trip Number, col B).
+const KEY_COL = 2;
+
+// ---- CACHE CONFIG -------------------------------------------------------
+// ** อัปเดต Cache Key เป็น v2 เพื่อล้างแคชเดิมที่คอลัมน์เยื้อง **
+const CACHE_KEY = 'table_data_v2';
+const CACHE_TTL_SECONDS = 1500; // 25 minutes
+const CACHE_CHUNK_SIZE = 90000;
+
+const OBBL_CACHE_KEY = 'obbl_data_v6';
+const OBBL_CACHE_TTL_SECONDS = 1500;
+// -------------------------------------------------------------------------
+
+/**
+ * Serves the web page. Add ?page=dashboard to the URL to get the
+ * summary dashboard instead of the raw table.
+ */
+function doGet(e) {
+  const page = (e && e.parameter && e.parameter.page) || 'table';
+  const templateFile =
+    page === 'dashboard' ? 'Dashboard' :
+    page === 'upload' ? 'Upload' :
+    page === 'obbl' ? 'ObBL' :
+    'Index';
+  const title =
+    page === 'dashboard' ? 'LH Trip Dashboard' :
+    page === 'upload' ? 'LH Trip Upload' :
+    page === 'obbl' ? 'OB BL Dashboard' :
+    'LH Trip Table';
+
+  const template = HtmlService.createTemplateFromFile(templateFile);
+  template.baseUrl = ScriptApp.getService().getUrl();
+  template.activePage = page;
+
+  return template
+    .evaluate()
+    .setTitle(title)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/**
+ * Lets index.html pull in other files.
+ */
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+/**
+ * Finds the last sheet row that actually has data.
+ */
+function findLastDataRow_(sheet) {
+  const lastPossibleRow = sheet.getLastRow();
+  if (lastPossibleRow < 2) return 1;
+
+  const range = sheet.getRange(2, KEY_COL, lastPossibleRow - 1, 1);
+  const finder = range
+    .createTextFinder('.+')
+    .useRegularExpression(true)
+    .matchEntireCell(false);
+  const matches = finder.findAll();
+
+  if (matches.length === 0) return 1;
+  return matches[matches.length - 1].getRow();
+}
+
+/**
+ * Pulls the actual, fully-resolved URL out of a cell.
+ */
+function extractLink_(formula, richTextValue) {
+  if (richTextValue) {
+    const wholeUrl = richTextValue.getLinkUrl();
+    if (wholeUrl) return wholeUrl;
+
+    const runs = richTextValue.getRuns();
+    for (let i = 0; i < runs.length; i++) {
+      const url = runs[i].getLinkUrl();
+      if (url) return url;
+    }
+  }
+
+  if (formula) {
+    const match = formula.match(/HYPERLINK\(\s*"([^"]+)"/i);
+    if (match) return match[1];
+  }
+
+  return null;
+}
+
+/**
+ * Main data endpoint called from the page.
+ */
+function getTableData(forceRefresh) {
+  const cache = CacheService.getScriptCache();
+
+  if (!forceRefresh) {
+    const cached = readCache_(cache, CACHE_KEY);
+    if (cached) return cached;
+  }
+
+  const fresh = computeTableData_();
+  if (isCacheable_(fresh)) {
+    writeCache_(cache, CACHE_KEY, CACHE_TTL_SECONDS, fresh);
+  }
+  return fresh;
+}
+
+function forceRefreshTableData() {
+  return getTableData(true);
+}
+
+function refreshCache() {
+  const cache = CacheService.getScriptCache();
+  const fresh = computeTableData_();
+  if (isCacheable_(fresh)) {
+    writeCache_(cache, CACHE_KEY, CACHE_TTL_SECONDS, fresh);
+  }
+}
+
+function isCacheable_(data) {
+  return !!(data && data.rows && data.rows.length > 0);
+}
+
+function readCache_(cache, key) {
+  const meta = cache.get(key + '_meta');
+  if (!meta) return null;
+
+  const count = parseInt(meta, 10);
+  const keys = [];
+  for (let i = 0; i < count; i++) keys.push(key + '_' + i);
+
+  const chunks = cache.getAll(keys);
+  let json = '';
+  for (let i = 0; i < count; i++) {
+    const part = chunks[key + '_' + i];
+    if (!part) return null;
+    json += part;
+  }
+
+  try {
+    const parsed = JSON.parse(json);
+    parsed.fromCache = true;
+    return parsed;
+  } catch (err) {
+    return null;
+  }
+}
+
+function writeCache_(cache, key, ttlSeconds, data) {
+  const json = JSON.stringify(data);
+  const chunkMap = {};
+  let count = 0;
+
+  for (let i = 0; i < json.length; i += CACHE_CHUNK_SIZE) {
+    chunkMap[key + '_' + count] = json.substring(i, i + CACHE_CHUNK_SIZE);
+    count++;
+  }
+  chunkMap[key + '_meta'] = String(count);
+
+  cache.putAll(chunkMap, ttlSeconds);
+}
+
+function computeTableData_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    throw new Error('Sheet named "' + SHEET_NAME + '" was not found.');
+  }
+
+  const lastRow = findLastDataRow_(sheet);
+  const numRows = lastRow - 1;
+
+  const headersAH = sheet
+    .getRange(1, AH_START_COL, 1, AH_NUM_COLS)
+    .getDisplayValues()[0];
+  const headersPAB = sheet
+    .getRange(1, PAB_START_COL, 1, PAB_NUM_COLS)
+    .getDisplayValues()[0];
+
+  if (!headersPAB[headersPAB.length - 1]) {
+    headersPAB[headersPAB.length - 1] = 'Route';
+  }
+
+  const headers = headersAH.concat(headersPAB);
+
+  if (numRows <= 0) {
+    return { headers: headers, rows: [], generatedAt: new Date().toISOString(), fromCache: false };
+  }
+
+  const dataAH = sheet
+    .getRange(2, AH_START_COL, numRows, AH_NUM_COLS)
+    .getDisplayValues();
+  const dataPAB = sheet
+    .getRange(2, PAB_START_COL, numRows, PAB_NUM_COLS)
+    .getDisplayValues();
+
+  const lastColIndex = PAB_START_COL + PAB_NUM_COLS - 1; // AB
+  const formulas = sheet
+    .getRange(2, lastColIndex, numRows, 1)
+    .getFormulas();
+  const richTexts = sheet
+    .getRange(2, lastColIndex, numRows, 1)
+    .getRichTextValues();
+
+  const rows = new Array(numRows);
+  for (let i = 0; i < numRows; i++) {
+    const cells = dataAH[i].concat(dataPAB[i]);
+    const link = extractLink_(formulas[i][0], richTexts[i][0]);
+    rows[i] = { cells: cells, routeLink: link };
+  }
+
+  return {
+    headers: headers,
+    rows: rows,
+    generatedAt: new Date().toISOString(),
+    fromCache: false
+  };
+}
+
+// ===========================================================================
+// OB BL Data & Handlers
+// ===========================================================================
+function getObBlData(forceRefresh) {
+  const cache = CacheService.getScriptCache();
+  if (!forceRefresh) {
+    const cached = readCache_(cache, OBBL_CACHE_KEY);
+    if (cached) return cached;
+  }
+  const fresh = computeObBlData_();
+  if (isCacheable_(fresh)) {
+    writeCache_(cache, OBBL_CACHE_KEY, OBBL_CACHE_TTL_SECONDS, fresh);
+  }
+  return fresh;
+}
+
+function forceRefreshObBlData() {
+  return getObBlData(true);
+}
+
+function refreshObBlCache() {
+  const cache = CacheService.getScriptCache();
+  const fresh = computeObBlData_();
+  if (isCacheable_(fresh)) {
+    writeCache_(cache, OBBL_CACHE_KEY, OBBL_CACHE_TTL_SECONDS, fresh);
+  }
+}
+
+function debugObBlSheetSize() {
+  const ss = SpreadsheetApp.openById(OBBL_SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(OBBL_SHEET_NAME);
+  if (!sheet) {
+    Logger.log('Sheet "' + OBBL_SHEET_NAME + '" not found.');
+    return;
+  }
+  Logger.log('getLastRow(): ' + sheet.getLastRow());
+  Logger.log('getLastColumn(): ' + sheet.getLastColumn());
+}
+
+function findLastDataRowForCol_(sheet, colAbsoluteIndex) {
+  const maxRows = sheet.getMaxRows();
+  if (maxRows < 2) return 1;
+
+  const values = sheet.getRange(2, colAbsoluteIndex, maxRows - 1, 1).getDisplayValues();
+  for (let i = values.length - 1; i >= 0; i--) {
+    if ((values[i][0] || '').toString().trim() !== '') return i + 2;
+  }
+  return 1;
+}
+
+function computeObBlData_() {
+  const ss = SpreadsheetApp.openById(OBBL_SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(OBBL_SHEET_NAME);
+  if (!sheet) {
+    throw new Error('Sheet named "' + OBBL_SHEET_NAME + '" was not found.');
+  }
+
+  const MAX_SCAN_COLS = 60;
+  const scanCols = Math.min(sheet.getLastColumn(), MAX_SCAN_COLS);
+  if (scanCols <= 0) {
+    throw new Error('Sheet "' + OBBL_SHEET_NAME + '" appears to have no columns.');
+  }
+
+  const headerScan = sheet
+    .getRange(1, OBBL_START_COL, 1, scanCols)
+    .getDisplayValues()[0];
+
+  let numCols = 0;
+  for (let i = headerScan.length - 1; i >= 0; i--) {
+    if ((headerScan[i] || '').toString().trim() !== '') { numCols = i + 1; break; }
+  }
+  if (numCols <= 0) {
+    throw new Error('Sheet "' + OBBL_SHEET_NAME + '" appears to have no columns.');
+  }
+
+  const headers = headerScan.slice(0, numCols);
+
+  const keyColRelative = headers.findIndex(
+    h => (h || '').toString().trim().toLowerCase() === OBBL_KEY_FIELD
+  );
+  if (keyColRelative === -1) {
+    throw new Error('Could not find a "' + OBBL_KEY_FIELD + '" header.');
+  }
+  const keyColAbsolute = OBBL_START_COL + keyColRelative;
+
+  const lastRow = findLastDataRowForCol_(sheet, keyColAbsolute);
+  const numRows = lastRow - 1;
+
+  if (numRows <= 0) {
+    return { headers: headers, rows: [], generatedAt: new Date().toISOString(), fromCache: false };
+  }
+
+  const CHUNK_ROWS = 20000;
+  const rows = [];
+  for (let readFrom = 2; readFrom <= lastRow; readFrom += CHUNK_ROWS) {
+    const rowsToRead = Math.min(CHUNK_ROWS, lastRow - readFrom + 1);
+    const chunk = sheet
+      .getRange(readFrom, OBBL_START_COL, rowsToRead, numCols)
+      .getDisplayValues();
+    for (let i = 0; i < chunk.length; i++) rows.push(chunk[i]);
+  }
+
+  return {
+    headers: headers,
+    rows: rows,
+    generatedAt: new Date().toISOString(),
+    fromCache: false
+  };
+}
+
+// ===========================================================================
+// ON TIME ARRIVAL
+// ===========================================================================
+const ONTIME_SHEET_NAME = 'on time arrival';
+const ONTIME_TRIP_COL = 1;   // A
+const ONTIME_STATUS_COL = 6; // F
+const ONTIME_CACHE_KEY = 'ontime_arrival_v1';
+const ONTIME_CACHE_TTL_SECONDS = 1500;
+
+function getOnTimeArrivalData(forceRefresh) {
+  const cache = CacheService.getScriptCache();
+  if (!forceRefresh) {
+    const cached = readCache_(cache, ONTIME_CACHE_KEY);
+    if (cached) return cached;
+  }
+  const fresh = computeOnTimeArrivalData_();
+  if (fresh && fresh.map && Object.keys(fresh.map).length > 0) {
+    writeCache_(cache, ONTIME_CACHE_KEY, ONTIME_CACHE_TTL_SECONDS, fresh);
+  }
+  return fresh;
+}
+
+function forceRefreshOnTimeArrivalData() {
+  return getOnTimeArrivalData(true);
+}
+
+function computeOnTimeArrivalData_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(ONTIME_SHEET_NAME);
+  if (!sheet) {
+    throw new Error('ไม่พบชีตชื่อ "' + ONTIME_SHEET_NAME + '"');
+  }
+  const lastRow = findLastDataRowForCol_(sheet, ONTIME_TRIP_COL);
+  const numRows = lastRow - 1;
+  const map = {};
+  if (numRows > 0) {
+    const trips = sheet.getRange(2, ONTIME_TRIP_COL, numRows, 1).getDisplayValues();
+    const statuses = sheet.getRange(2, ONTIME_STATUS_COL, numRows, 1).getDisplayValues();
+    for (let i = 0; i < numRows; i++) {
+      const trip = (trips[i][0] || '').toString().trim();
+      if (!trip) continue;
+      map[trip] = (statuses[i][0] || '').toString().trim();
+    }
+  }
+  return { map: map, generatedAt: new Date().toISOString(), fromCache: false };
+}
+
+// ===========================================================================
+// UPLOAD RAW DATA
+// ===========================================================================
+function getRawDataMeta() {
+  const sheet = openRawDataSheet_();
+  const lastCol = sheet.getLastColumn();
+  const lastRow = sheet.getLastRow();
+  const headers = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0] : [];
+
+  return {
+    headers: headers,
+    currentRowCount: Math.max(0, lastRow - 1),
+    sheetName: RAWDATA_SHEET_NAME
+  };
+}
+
+function uploadRawData(payload) {
+  const sheet = openRawDataSheet_();
+  const targetHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0];
+
+  const incomingHeaders = (payload && payload.headers) || [];
+  const incomingRows = (payload && payload.rows) || [];
+  const mode = payload && payload.mode === 'replace' ? 'replace' : 'append';
+  const skipDuplicates = !!(payload && payload.skipDuplicates);
+
+  if (incomingRows.length === 0) {
+    return { written: 0, skipped: 0, totalAfter: Math.max(0, sheet.getLastRow() - 1) };
+  }
+
+  const headerIndexMap = incomingHeaders.map(h => targetHeaders.indexOf(h));
+
+  function alignRow(row) {
+    const aligned = new Array(targetHeaders.length).fill('');
+    row.forEach((val, i) => {
+      const targetIdx = headerIndexMap[i];
+      if (targetIdx !== -1) aligned[targetIdx] = val;
+    });
+    return aligned;
+  }
+
+  let alignedRows = incomingRows.map(alignRow);
+  const originalCount = alignedRows.length;
+
+  if (mode === 'replace') {
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      sheet.getRange(2, 1, lastRow - 1, targetHeaders.length).clearContent();
+    }
+  } else if (skipDuplicates) {
+    alignedRows = filterOutDuplicates_(sheet, targetHeaders, alignedRows);
+  }
+
+  if (alignedRows.length > 0) {
+    const startRow = sheet.getLastRow() + 1;
+    sheet.getRange(startRow, 1, alignedRows.length, targetHeaders.length).setValues(alignedRows);
+  }
+
+  return {
+    written: alignedRows.length,
+    skipped: originalCount - alignedRows.length,
+    totalAfter: Math.max(0, sheet.getLastRow() - 1)
+  };
+}
+
+function filterOutDuplicates_(sheet, targetHeaders, alignedRows) {
+  const tripCol = targetHeaders.indexOf('LH Trip Number');
+  if (tripCol === -1) return alignedRows;
+
+  const stationCol = targetHeaders.indexOf('Station Number');
+  const lastRow = sheet.getLastRow();
+  const existingKeys = new Set();
+
+  if (lastRow > 1) {
+    const tripVals = sheet.getRange(2, tripCol + 1, lastRow - 1, 1).getDisplayValues();
+    const stationVals = stationCol !== -1
+      ? sheet.getRange(2, stationCol + 1, lastRow - 1, 1).getDisplayValues()
+      : null;
+    for (let i = 0; i < tripVals.length; i++) {
+      const key = tripVals[i][0] + '|' + (stationVals ? stationVals[i][0] : '');
+      existingKeys.add(key);
+    }
+  }
+
+  return alignedRows.filter(row => {
+    const key = row[tripCol] + '|' + (stationCol !== -1 ? row[stationCol] : '');
+    return !existingKeys.has(key);
+  });
+}
+
+function openRawDataSheet_() {
+  const ss = SpreadsheetApp.openById(RAWDATA_SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(RAWDATA_SHEET_NAME);
+  if (!sheet) {
+    throw new Error('ไม่พบชีตชื่อ "' + RAWDATA_SHEET_NAME + '" ในไฟล์ปลายทาง');
+  }
+  return sheet;
+}
+
+// ===========================================================================
+// EXPORT TO SHEET
+// ===========================================================================
+function exportTableToSheet() {
+  const data = getTableData(false);
+  const headers = data.headers || [];
+  const rows = data.rows || [];
+
+  const timeZone = Session.getScriptTimeZone();
+  const stamp = Utilities.formatDate(new Date(), timeZone, 'yyyy-MM-dd HH:mm:ss');
+  const ss = SpreadsheetApp.create('LH Trip Export - ' + stamp);
+  const sheet = ss.getSheets()[0];
+  sheet.setName('Export');
+
+  if (headers.length > 0) {
+    const headerRange = sheet.getRange(1, 1, 1, headers.length);
+    headerRange.setValues([headers]);
+    headerRange.setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  if (rows.length > 0 && headers.length > 0) {
+    const values = rows.map(r => {
+      const cells = r.cells || [];
+      const row = new Array(headers.length).fill('');
+      for (let i = 0; i < headers.length && i < cells.length; i++) row[i] = cells[i];
+      return row;
+    });
+    sheet.getRange(2, 1, values.length, headers.length).setValues(values);
+    sheet.autoResizeColumns(1, headers.length);
+  }
+
+  return {
+    rowCount: rows.length,
+    url: ss.getUrl()
+  };
+}

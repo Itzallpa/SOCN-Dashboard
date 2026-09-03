@@ -8,16 +8,16 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <style>
-    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding-bottom: 50px; }
-    .card-custom { background: #ffffff; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 24px; padding: 20px; }
-    .metric-card { border-radius: 12px; background: #ffffff; border-left: 5px solid #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.04); padding: 18px 20px; }
+    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding-bottom: 30px; }
+    .card-custom { background: #ffffff; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; padding: 16px; }
+    .metric-card { border-radius: 12px; background: #ffffff; border-left: 5px solid #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.04); padding: 14px 16px; }
     .metric-danger { border-left-color: #dc2626; }
     .metric-primary { border-left-color: #2563eb; }
     .metric-warning { border-left-color: #d97706; }
-    .metric-title { font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
-    .metric-value { font-size: 2.1rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
-    .metric-subtext { font-size: 0.78rem; color: #64748b; margin-top: 6px; }
-    .target-banner { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: #ffffff; border-radius: 12px; padding: 18px 24px; box-shadow: 0 4px 12px rgba(30, 60, 114, 0.25); margin-bottom: 24px; }
+    .metric-title { font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+    .metric-value { font-size: 1.85rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
+    .metric-subtext { font-size: 0.76rem; color: #64748b; margin-top: 4px; }
+    .target-banner { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: #ffffff; border-radius: 12px; padding: 14px 20px; box-shadow: 0 4px 12px rgba(30, 60, 114, 0.25); margin-bottom: 16px; }
     .table-custom { font-size: 0.88rem; }
     .table-custom th { background-color: #0f172a; color: #ffffff; font-weight: 600; vertical-align: middle; }
   </style>
@@ -34,14 +34,15 @@
       <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠 Portal Hub</a>
       <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚀 Investigation</a>
       <a href="skip_process.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">📦 Skip Monitor</a>
-      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff & TTB Master</a>
+      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff Master</a>
+      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
     </div>
   </nav>
 
 
-  <div class="container-fluid px-4 py-3">
+  <div class="container-fluid px-3 py-3" style="max-width: 1560px; margin: 0 auto;">
 
-    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded-3 shadow-sm border flex-wrap gap-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-2 px-3 rounded-3 shadow-sm border flex-wrap gap-2">
       <div>
         <h4 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-box-open text-purple me-2"></i> SOC Skip Process & Zone Assignment Monitor</h4>
         <p class="text-muted small mb-0">ระบบติดตามเคสพัสดุข้ามขั้นตอน (Skip Process), ตารางบันทึกตัวเลข SOCN Actual รายวัน และการคำนวณ % Skip ตามโซน</p>

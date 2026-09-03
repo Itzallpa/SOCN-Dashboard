@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <style>
+    :root {
+      --ink: #1a1d29;
+      --ink-soft: #8a6a5c;
+      --line: #f6ddd2;
+      --bg: #fff9f6;
+      --card: #ffffff;
+      --accent: #ee4d2d;
+      --accent2: #ff7a45;
+      --accent-soft: #fff1eb;
+      --green: #0f9d58;
+      --green-bg: #e3f8ea;
+      --red: #d0311d;
+      --red-bg: #fdece8;
+      --amber: #b7791f;
+      --amber-bg: #fdf3dc;
+      --purple: #d0311d;
+      --purple-bg: #fdece8;
+      --pink: #ff7a45;
+      --pink-bg: #fff1eb;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background: var(--bg); color: var(--ink);
+      font-family: 'Segoe UI', Tahoma, 'Noto Sans Thai', 'Sarabun', Arial, sans-serif;
+      font-size: 14px;
+    }
+    .app { height: 100vh; display: flex; flex-direction: column; padding: 16px; gap: 12px; }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+      background: linear-gradient(120deg, var(--accent), var(--accent2));
+      border-radius: var(--radius); padding: 16px 22px; color: #fff;
+      box-shadow: 0 8px 20px -8px rgba(238,77,45,.35); flex-shrink: 0;
+    }
+    h1 { font-size: 21px; margin: 0 0 2px; font-weight: 800; letter-spacing: .2px; }
+    .subtitle { color: rgba(255,255,255,.85); font-size: 12.5px; }
+    .nav { display: flex; gap: 6px; background: rgba(255,255,255,.18); border-radius: 10px; padding: 4px; }
+    .nav a { color: rgba(255,255,255,.85); text-decoration: none; font-size: 13px; font-weight: 700; padding: 7px 14px; border-radius: 8px; }
+    .nav a.active { background: #fff; color: var(--accent); }
+    button { font: inherit; cursor: pointer; border-radius: 10px; border: none; padding: 9px 16px; transition: transform .1s, background .15s; font-weight: 600; }
+    button:active { transform: scale(.97); }
+    button.primary { background: #ffffff; color: var(--accent); }
+    button.primary:hover { background: #f2f2ff; }
+    .controls {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      background: var(--card); border-radius: var(--radius); padding: 12px 14px;
+      flex-shrink: 0; box-shadow: 0 1px 2px rgba(20,20,43,.04);
+    }
+    .controls input[type="text"], .controls select {
+      font: inherit; padding: 9px 12px; border-radius: 10px;
+      border: 1.5px solid var(--line); background: #fafbff; color: var(--ink);
+    }
+    .controls input[type="text"]:focus, .controls select:focus {
+      outline: none; border-color: var(--accent); background: #fff;
+    }
+    .controls input[type="text"] { flex: 1; min-width: 220px; }
+    .stat-pills { display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+    .pill { border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 700; color: #fff; }
+    .pill.total { background: var(--accent); }
+    .pill.ontime { background: var(--green); }
+    .pill.late { background: var(--red); }
+    .pill.rc { background: #7c83a0; }
+    .pill.oblate { background: var(--amber); }
+    .pill b { font-weight: 800; }
+    .table-card {
+      background: var(--card); border-radius: var(--radius); overflow: hidden;
+      flex: 1; min-height: 0; display: flex; flex-direction: column;
+      box-shadow: 0 1px 3px rgba(20,20,43,.06);
+    }
+    .table-scroll { overflow: auto; flex: 1; min-height: 0; }
+    table { border-collapse: collapse; width: 100%; min-width: 1900px; }
+    thead th {
+      position: sticky; top: 0;
+      background: linear-gradient(180deg, #f3f4fb, #eceef8);
+      border-bottom: 2px solid var(--line);
+      text-align: left; padding: 11px 13px; font-weight: 700; font-size: 12px;
+      color: #3f3f56; white-space: nowrap; cursor: pointer; user-select: none;
+      z-index: 2; text-transform: uppercase; letter-spacing: .3px;
+    }
+    thead th:hover { color: var(--accent); }
+    thead th .arrow { font-size: 10px; margin-left: 4px; opacity: .6; color: var(--accent); }
+    tbody td { padding: 9px 13px; border-bottom: 1px solid var(--line); white-space: nowrap; color: var(--ink); }
+    tbody tr:nth-child(odd) { background: #fbfbff; }
+    tbody tr:nth-child(even) { background: #ffffff; }
+    tbody tr:hover { background: var(--accent-soft); }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .badge.on-time { background: var(--green-bg); color: var(--green); }
+    .badge.late { background: var(--red-bg); color: var(--red); }
+    .badge.late-cut { background: var(--amber-bg); color: var(--amber); }
+    .badge.ota-ontime { background: var(--green-bg); color: var(--green); }
+    .badge.ota-lhlate { background: var(--red-bg); color: var(--red); }
+    .badge.ota-oblate { background: var(--amber-bg); color: var(--amber); }
+    .badge.ota-rc { background: #e8eaf6; color: #3f51b5; }
+    .badge.ota-none { background: #f0f0f0; color: #888; }
+    .chip { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .chip.c0 { background: var(--purple-bg); color: var(--purple); }
+    .chip.c1 { background: var(--accent-soft); color: var(--accent); }
+    .chip.c2 { background: var(--pink-bg); color: var(--pink); }
+    .chip.c3 { background: var(--amber-bg); color: var(--amber); }
+    .chip.c4 { background: #fdf0e6; color: #c2661a; }
+    .chip.c5 { background: #fff4ec; color: #e35d1a; }
+    .region-tag { font-weight: 700; color: var(--accent2); }
+    .route-link {
+      color: #fff; background: var(--accent); text-decoration: none;
+      font-weight: 700; font-size: 11.5px; padding: 4px 10px;
+      border-radius: 999px; white-space: nowrap;
+    }
+    .route-link:hover { background: #d0311d; }
+    .empty-cell { color: #c7cbd3; }
+    .state-msg { padding: 30px 20px 10px; text-align: center; color: var(--ink-soft); }
+    .truck-loader { padding: 6px 0 2px; }
+    .truck-track { position: relative; width: 240px; height: 78px; margin: 0 auto 12px; }
+    .road-line {
+      position: absolute; left: 0; right: 0; bottom: 16px; height: 4px; border-radius: 2px;
+      background-image: repeating-linear-gradient(90deg, var(--accent) 0 16px, transparent 16px 30px);
+      animation: roadMove .55s linear infinite;
+    }
+    @keyframes roadMove { from { background-position: 0 0; } to { background-position: -46px 0; } }
+    .truck-svg {
+      position: absolute; bottom: 14px; left: 50%; width: 96px; height: 60px;
+      transform: translateX(-50%); animation: truckBounce 1.3s ease-in-out infinite;
+      filter: drop-shadow(0 4px 4px rgba(238,77,45,.25));
+    }
+    @keyframes truckBounce { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-3px); } }
+    .truck-wheel { transform-origin: center; animation: wheelSpin .45s linear infinite; }
+    @keyframes wheelSpin { to { transform: rotate(360deg); } }
+    .truck-loader-text { font-weight: 700; color: var(--accent); font-size: 13.5px; }
+    .error-box { background: var(--red-bg); color: var(--red); border: 1px solid #f3c9c6; border-radius: var(--radius); padding: 14px 16px; font-size: 13px; flex-shrink: 0; }
+    @media (max-width: 640px) { h1 { font-size: 17px; } .app { padding: 10px; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>LH Trip Table</h1>
+        <div class="subtitle" id="subtitle">Loading live data from the "Table" sheet…</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="nav">
+          <a class="active" href="<?= baseUrl ?>?page=table">Table</a>
+          <a href="<?= baseUrl ?>?page=dashboard">Dashboard</a>
+          <a href="<?= baseUrl ?>?page=upload">Upload</a>
+          <a href="<?= baseUrl ?>?page=obbl">OB BL</a>
+        </div>
+        <button id="refreshBtn" class="primary">↻ Refresh</button>
+      </div>
+    </header>
+
+    <div id="errorBox" class="error-box" style="display:none;"></div>
+
+    <div class="controls" id="controls" style="display:none;">
+      <input type="text" id="searchInput" placeholder="Search trip number, driver, plate, origin, destination…">
+      <select id="filterCategory"><option value="">All categories</option></select>
+      <select id="filterRegion"><option value="">All regions</option></select>
+      <select id="filterStatus"><option value="">All on-time status</option></select>
+      <select id="filterOTA">
+        <option value="">All OTA Status</option>
+        <option value="RC">RC (Pending)</option>
+        <option value="On time">On time</option>
+        <option value="LH Late">LH Late</option>
+        <option value="OB Late">OB Late</option>
+      </select>
+    </div>
+
+    <div class="stat-pills" id="statPills" style="display:none;"></div>
+
+    <div class="table-card">
+      <div class="table-scroll">
+        <table id="dataTable" style="display:none;">
+          <thead><tr id="headerRow"></tr></thead>
+          <tbody id="bodyRows"></tbody>
+        </table>
+        <div id="stateMsg" class="state-msg">
+          <div class="truck-loader">
+            <div class="truck-track">
+              <div class="road-line"></div>
+              <svg class="truck-svg" viewBox="0 0 96 60" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="16" width="50" height="26" rx="4" fill="#EE4D2D"/>
+                <path d="M52 22 L72 22 L84 34 L84 42 L52 42 Z" fill="#FF7A45"/>
+                <rect x="57" y="25" width="15" height="11" rx="2" fill="#FFE7DB"/>
+                <circle class="truck-wheel" cx="18" cy="46" r="8" fill="#2b2b2b"/>
+                <circle class="truck-wheel" cx="68" cy="46" r="8" fill="#2b2b2b"/>
+                <circle cx="18" cy="46" r="3" fill="#e6e6e6"/>
+                <circle cx="68" cy="46" r="3" fill="#e6e6e6"/>
+              </svg>
+            </div>
+            <div class="truck-loader-text">Fetching rows from Google Sheets…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---- State --------------------------------------------------------
+    let HEADERS = [];
+    let ROWS = [];
+    let FILTERED = [];
+    let sortCol = null;
+    let sortDir = 1;
+    let onTimeArrivalMap = {};
+
+    const COL = {
+      NO: 0, TRIP_NO: 1, TRIP_CATEGORY: 2, VEHICLE_TYPE: 3, PLATE: 4,
+      DRIVER: 5, ORIGIN: 6, DEST: 7,
+      CUT0: 8, CUT1: 9, CUT2: 10, CUT3: 11, ACTUAL_DEP_CUT: 12,
+      DAY: 13, STATUS: 14, RMK: 15, NON_INTENTIONAL: 16, INTENTIONAL: 17,
+      REGION: 18, ZONE: 19, ROUTE: 20
+    };
+
+    const searchable = [COL.TRIP_NO, COL.DRIVER, COL.PLATE, COL.ORIGIN, COL.DEST, COL.VEHICLE_TYPE];
+    const chipColClasses = ['c0','c1','c2','c3','c4','c5'];
+    const categoryColorMap = {};
+
+    function colorForCategory(val) {
+      if (!(val in categoryColorMap)) {
+        const idx = Object.keys(categoryColorMap).length % chipColClasses.length;
+        categoryColorMap[val] = chipColClasses[idx];
+      }
+      return categoryColorMap[val];
+    }
+
+    // ---- Late Cut Logic -----------------------------------------------
+    function getLateCutDetail(row) {
+      const status = (row.cells[COL.STATUS] || '').trim().toLowerCase();
+      if (status !== 'late') return null;
+
+      const actualDep = (row.cells[COL.ACTUAL_DEP_CUT] || '').trim();
+      const cuts = [
+        { name: 'Cut 0', val: (row.cells[COL.CUT0] || '').trim() },
+        { name: 'Cut 1', val: (row.cells[COL.CUT1] || '').trim() },
+        { name: 'Cut 2', val: (row.cells[COL.CUT2] || '').trim() },
+        { name: 'Cut 3', val: (row.cells[COL.CUT3] || '').trim() }
+      ];
+
+      if (actualDep) {
+        for (let i = cuts.length - 1; i >= 0; i--) {
+          if (cuts[i].val && actualDep > cuts[i].val) {
+            return cuts[i].name;
+          }
+        }
+      }
+
+      for (let i = cuts.length - 1; i >= 0; i--) {
+        if (cuts[i].val) return cuts[i].name;
+      }
+
+      return null;
+    }
+
+    // ---- OTA Matching -------------------------------------------------
+    function getOTACategory(row) {
+      const trip = (row.cells[COL.TRIP_NO] || '').trim();
+      if (!trip || !(trip in onTimeArrivalMap)) return null;
+      const ota = (onTimeArrivalMap[trip] || '').trim().toLowerCase();
+      const tbl = (row.cells[COL.STATUS] || '').trim().toLowerCase();
+      const otaOnTime = ota === 'on-time' || ota === 'on time';
+      const otaLate = ota === 'late';
+      const otaPending = ota === 'pending';
+      const tblOnTime = tbl === 'on-time' || tbl === 'on time';
+      const tblLate = tbl === 'late';
+      if (otaPending) return 'RC';
+      if (otaOnTime && tblOnTime) return 'On time';
+      if (otaLate && tblLate) return 'LH Late';
+      if (otaOnTime && tblLate) return 'OB Late';
+      return null;
+    }
+
+    function otaBadgeHtml(cat) {
+      if (!cat) return '<span class="badge ota-none">—</span>';
+      const cls = cat === 'RC' ? 'ota-rc' : cat === 'On time' ? 'ota-ontime' : cat === 'LH Late' ? 'ota-lhlate' : 'ota-oblate';
+      return '<span class="badge ' + cls + '">' + escapeHtml(cat) + '</span>';
+    }
+
+    // ---- Boot ---------------------------------------------------------
+    function load(forceRefresh) {
+      document.getElementById('stateMsg').style.display = 'block';
+      document.getElementById('stateMsg').innerHTML = truckLoaderHtml(
+        forceRefresh ? 'Force-refreshing live from Google Sheets…' : 'Fetching rows from Google Sheets…'
+      );
+      document.getElementById('dataTable').style.display = 'none';
+      document.getElementById('errorBox').style.display = 'none';
+      const runner = google.script.run.withSuccessHandler(onData).withFailureHandler(onError);
+      if (forceRefresh) runner.forceRefreshTableData(); else runner.getTableData(false);
+    }
+
+    function loadOnTimeArrival(forceRefresh) {
+      const runner = google.script.run
+        .withSuccessHandler(d => { onTimeArrivalMap = (d && d.map) || {}; if (ROWS.length) applyFilters(); })
+        .withFailureHandler(e => console.warn('OTA load failed:', e));
+      if (forceRefresh) runner.forceRefreshOnTimeArrivalData(); else runner.getOnTimeArrivalData(false);
+    }
+
+    function onError(err) {
+      document.getElementById('stateMsg').style.display = 'none';
+      const box = document.getElementById('errorBox');
+      box.style.display = 'block';
+      box.textContent = 'Could not load data: ' + (err && err.message ? err.message : err);
+    }
+
+    function onData(data) {
+      HEADERS = data.headers;
+      ROWS = data.rows;
+      document.getElementById('subtitle').textContent =
+        ROWS.length + ' trips · updated ' + new Date(data.generatedAt).toLocaleString();
+      buildHeader();
+      populateFilterOptions();
+      applyFilters();
+      document.getElementById('controls').style.display = 'flex';
+      document.getElementById('statPills').style.display = 'flex';
+    }
+
+    // ---- Header / sorting --------------------------------------------
+    function buildHeader() {
+      const tr = document.getElementById('headerRow');
+      tr.innerHTML = '';
+      
+      HEADERS.forEach((h, i) => {
+        const th = document.createElement('th');
+        th.innerHTML = escapeHtml(h || '(unnamed)') + '<span class="arrow" data-idx="' + i + '"></span>';
+        th.addEventListener('click', () => toggleSort(i));
+        tr.appendChild(th);
+
+        // แทรกคอลัมน์ Late Cut ถัดจาก Status (COL.STATUS = 14)
+        if (i === COL.STATUS) {
+          const thLateCut = document.createElement('th');
+          thLateCut.innerHTML = 'Late Cut<span class="arrow" data-idx="lateCut"></span>';
+          thLateCut.addEventListener('click', () => toggleSort('lateCut'));
+          tr.appendChild(thLateCut);
+        }
+      });
+
+      // Extra OTA column
+      const thOta = document.createElement('th');
+      thOta.innerHTML = 'OTA Status<span class="arrow" data-idx="ota"></span>';
+      thOta.addEventListener('click', () => toggleSort('ota'));
+      tr.appendChild(thOta);
+    }
+
+    function toggleSort(idx) {
+      if (sortCol === idx) { sortDir = -sortDir; } else { sortCol = idx; sortDir = 1; }
+      document.querySelectorAll('.arrow').forEach(a => a.textContent = '');
+      const arrow = document.querySelector('.arrow[data-idx="' + idx + '"]');
+      if (arrow) arrow.textContent = sortDir === 1 ? '▲' : '▼';
+      renderRows();
+    }
+
+    // ---- Filters -----------------------------------------------------
+    function populateFilterOptions() {
+      fillSelect('filterCategory', uniqueValues(COL.TRIP_CATEGORY));
+      fillSelect('filterRegion', uniqueValues(COL.REGION));
+      fillSelect('filterStatus', uniqueValues(COL.STATUS));
+    }
+
+    function uniqueValues(colIdx) {
+      const set = new Set();
+      ROWS.forEach(r => { const v = r.cells[colIdx]; if (v) set.add(v); });
+      return Array.from(set).sort();
+    }
+
+    function fillSelect(id, values) {
+      const sel = document.getElementById(id);
+      const current = sel.value;
+      sel.innerHTML = sel.options[0].outerHTML;
+      values.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v; opt.textContent = v;
+        sel.appendChild(opt);
+      });
+      sel.value = current;
+    }
+
+    function applyFilters() {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      const category = document.getElementById('filterCategory').value;
+      const region = document.getElementById('filterRegion').value;
+      const status = document.getElementById('filterStatus').value;
+      const ota = document.getElementById('filterOTA').value;
+
+      FILTERED = ROWS.filter(r => {
+        if (category && r.cells[COL.TRIP_CATEGORY] !== category) return false;
+        if (region && r.cells[COL.REGION] !== region) return false;
+        if (status && r.cells[COL.STATUS] !== status) return false;
+        if (ota) { if (getOTACategory(r) !== ota) return false; }
+        if (q) {
+          const hay = searchable.map(i => (r.cells[i] || '')).join(' ').toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      renderStats();
+      renderRows();
+    }
+
+    function renderStats() {
+      const onTime = FILTERED.filter(r => (r.cells[COL.STATUS] || '').trim().toLowerCase() === 'on time' || (r.cells[COL.STATUS] || '').trim().toLowerCase() === 'on-time').length;
+      const late = FILTERED.filter(r => (r.cells[COL.STATUS] || '').trim().toLowerCase() === 'late').length;
+      const rc = FILTERED.filter(r => getOTACategory(r) === 'RC').length;
+      const otaOnTime = FILTERED.filter(r => getOTACategory(r) === 'On time').length;
+      const lhLate = FILTERED.filter(r => getOTACategory(r) === 'LH Late').length;
+      const obLate = FILTERED.filter(r => getOTACategory(r) === 'OB Late').length;
+      const pills = document.getElementById('statPills');
+      pills.innerHTML =
+        '<div class="pill total">Showing <b>' + FILTERED.length + '</b> of ' + ROWS.length + '</div>' +
+        '<div class="pill ontime">On time <b>' + onTime + '</b></div>' +
+        '<div class="pill late">Late <b>' + late + '</b></div>' +
+        (rc ? '<div class="pill rc">RC <b>' + rc + '</b></div>' : '') +
+        (otaOnTime ? '<div class="pill ontime">OTA On time <b>' + otaOnTime + '</b></div>' : '') +
+        (lhLate ? '<div class="pill late">LH Late <b>' + lhLate + '</b></div>' : '') +
+        (obLate ? '<div class="pill oblate">OB Late <b>' + obLate + '</b></div>' : '');
+    }
+
+    // ---- Rendering ---------------------------------------------------
+    function renderRows() {
+      let rows = FILTERED.slice();
+
+      if (sortCol !== null) {
+        rows.sort((a, b) => {
+          let av, bv;
+          if (sortCol === 'ota') {
+            av = getOTACategory(a) || '';
+            bv = getOTACategory(b) || '';
+          } else if (sortCol === 'lateCut') {
+            av = getLateCutDetail(a) || '';
+            bv = getLateCutDetail(b) || '';
+          } else {
+            av = a.cells[sortCol] || '';
+            bv = b.cells[sortCol] || '';
+          }
+          const an = parseFloat(av), bn = parseFloat(bv);
+          let cmp;
+          if (!isNaN(an) && !isNaN(bn) && av !== '' && bv !== '') {
+            cmp = an - bn;
+          } else {
+            cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' });
+          }
+          return cmp * sortDir;
+        });
+      }
+
+      const tbody = document.getElementById('bodyRows');
+      const frag = document.createDocumentFragment();
+
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        r.cells.forEach((val, i) => {
+          const td = document.createElement('td');
+          if (i === COL.STATUS && val) {
+            const s = (val || '').trim().toLowerCase();
+            td.innerHTML = '<span class="badge ' + (s === 'on time' || s === 'on-time' ? 'on-time' : 'late') + '">' + escapeHtml(val) + '</span>';
+          } else if (i === COL.TRIP_CATEGORY && val) {
+            td.innerHTML = '<span class="chip ' + colorForCategory(val) + '">' + escapeHtml(val) + '</span>';
+          } else if (i === COL.REGION && val) {
+            td.innerHTML = '<span class="region-tag">' + escapeHtml(val) + '</span>';
+          } else if (i === COL.ROUTE) {
+            if (r.routeLink) {
+              const a = document.createElement('a');
+              a.href = r.routeLink; a.target = '_blank'; a.rel = 'noopener';
+              a.className = 'route-link'; a.textContent = val || 'View route ↗';
+              td.appendChild(a);
+            } else if (val) {
+              td.textContent = val;
+            } else {
+              td.innerHTML = '<span class="empty-cell">—</span>';
+            }
+          } else if (val === '' || val == null) {
+            td.innerHTML = '<span class="empty-cell">—</span>';
+          } else {
+            td.textContent = val;
+          }
+          tr.appendChild(td);
+
+          // แทรกคอลัมน์ Late Cut ในฝั่งข้อมูล
+          if (i === COL.STATUS) {
+            const tdLateCut = document.createElement('td');
+            const lc = getLateCutDetail(r);
+            if (lc) {
+              tdLateCut.innerHTML = '<span class="badge late-cut">' + escapeHtml(lc) + '</span>';
+            } else {
+              tdLateCut.innerHTML = '<span class="empty-cell">—</span>';
+            }
+            tr.appendChild(tdLateCut);
+          }
+        });
+
+        // OTA column
+        const tdOta = document.createElement('td');
+        tdOta.innerHTML = otaBadgeHtml(getOTACategory(r));
+        tr.appendChild(tdOta);
+        frag.appendChild(tr);
+      });
+
+      tbody.innerHTML = '';
+      tbody.appendChild(frag);
+      document.getElementById('stateMsg').style.display = 'none';
+      document.getElementById('dataTable').style.display = rows.length ? 'table' : 'none';
+      if (!rows.length) {
+        document.getElementById('stateMsg').style.display = 'block';
+        document.getElementById('stateMsg').innerHTML = '<div>No trips match your filters.</div>';
+      }
+    }
+
+    function truckLoaderHtml(text) {
+      return '<div class="truck-loader"><div class="truck-track"><div class="road-line"></div>' +
+        '<svg class="truck-svg" viewBox="0 0 96 60" xmlns="http://www.w3.org/2000/svg">' +
+        '<rect x="2" y="16" width="50" height="26" rx="4" fill="#EE4D2D"/>' +
+        '<path d="M52 22 L72 22 L84 34 L84 42 L52 42 Z" fill="#FF7A45"/>' +
+        '<rect x="57" y="25" width="15" height="11" rx="2" fill="#FFE7DB"/>' +
+        '<circle class="truck-wheel" cx="18" cy="46" r="8" fill="#2b2b2b"/>' +
+        '<circle class="truck-wheel" cx="68" cy="46" r="8" fill="#2b2b2b"/>' +
+        '<circle cx="18" cy="46" r="3" fill="#e6e6e6"/><circle cx="68" cy="46" r="3" fill="#e6e6e6"/>' +
+        '</svg></div><div class="truck-loader-text">' + text + '</div></div>';
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // ---- Wire up controls --------------------------------------------
+    document.getElementById('refreshBtn').addEventListener('click', () => { load(true); loadOnTimeArrival(true); });
+    document.getElementById('searchInput').addEventListener('input', debounce(applyFilters, 200));
+    document.getElementById('filterCategory').addEventListener('change', applyFilters);
+    document.getElementById('filterRegion').addEventListener('change', applyFilters);
+    document.getElementById('filterStatus').addEventListener('change', applyFilters);
+    document.getElementById('filterOTA').addEventListener('change', applyFilters);
+
+    function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+
+    load(false);
+    loadOnTimeArrival(false);
+  </script>
+</body>
+</html>
