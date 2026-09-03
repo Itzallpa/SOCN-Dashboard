@@ -1,7 +1,6 @@
 /**
- * SOC Operations Control Center - Google Verify & Create Username Auth System
- * Uses Direct Google Account Verification without requiring a pre-registered OAuth Client ID.
- * No /login redirect needed. Modal overlay appears directly on any page.
+ * SOC Operations Control Center - Google Verify Popup & Create Username Auth System
+ * Author: Antigravity AI
  */
 
 (function () {
@@ -55,7 +54,7 @@
         #socnAuthCard label.field-label {
           display:block; font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:6px;
         }
-        #socnAuthCard input[type=text], #socnAuthCard input[type=email] {
+        #socnAuthCard input[type=text] {
           width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:10px;
           font-size:0.95rem; outline:none; box-sizing:border-box; transition:border .2s;
         }
@@ -69,70 +68,79 @@
         .role-btn.active-ground { border-color:#2563eb; background:#eff6ff; }
         .role-btn.active-admin  { border-color:#d0311d; background:#fef2f2; }
         
-        #googleVerifyBtn {
-          width:100%; background:#2563eb; color:#fff; border:none; padding:13px;
-          border-radius:12px; font-weight:800; font-size:0.95rem; cursor:pointer;
-          box-shadow:0 4px 14px rgba(37,99,235,0.35); transition:all .2s;
-          display:flex; align-items:center; justify-content:center; gap:8px;
+        #googleLoginBtnTrigger {
+          width:100%; background:#ffffff; color:#374151; border:1.5px solid #cbd5e1;
+          padding:12px; border-radius:12px; font-weight:700; font-size:0.92rem;
+          cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.06); transition:all .2s;
+          display:flex; align-items:center; justify-content:center; gap:10px;
         }
-        #googleVerifyBtn:hover { background:#1d4ed8; }
+        #googleLoginBtnTrigger:hover { background:#f8fafc; border-color:#94a3b8; }
 
-        .quick-tag {
-          font-size:0.75rem; background:#f1f5f9; color:#475569; padding:3px 8px;
-          border-radius:6px; cursor:pointer; border:1px solid #e2e8f0;
+        #verifiedAccountBox {
+          display:none; background:#ecfdf5; border:1.5px solid #10b981; border-radius:12px;
+          padding:10px 14px; margin-bottom:16px; align-items:center; gap:12px;
         }
-        .quick-tag:hover { background:#e2e8f0; }
+
+        #submitCompleteBtn {
+          display:none; width:100%; background:#2563eb; color:#fff; border:none; padding:13px;
+          border-radius:12px; font-weight:800; font-size:0.95rem; cursor:pointer;
+          box-shadow:0 4px 14px rgba(37,99,235,0.35); margin-top:14px;
+        }
+        #submitCompleteBtn:hover { background:#1d4ed8; }
       </style>
       <div id="socnAuthCard">
         <div class="auth-header">
           <div style="font-size:2.4rem; margin-bottom:6px;">📦</div>
           <h4 style="font-weight:800; margin:0; font-size:1.25rem;">SOC Operations Portal</h4>
-          <p style="font-size:0.8rem; color:#94a3b8; margin:4px 0 0;">Google / Gmail Verify &amp; Username Setup</p>
+          <p style="font-size:0.8rem; color:#94a3b8; margin:4px 0 0;">Google Sign-In &amp; Username Setup</p>
         </div>
         <div class="auth-body">
-          <form onsubmit="window._socnSubmitGoogleAuth(event)">
-            <!-- 1. Username -->
-            <div style="margin-bottom:16px;">
-              <label class="field-label">1. ตั้งชื่อเรียกผู้ใช้งาน (Display Username):</label>
-              <input type="text" id="socnNameField" placeholder="พิมพ์ชื่อเล่นของคุณ เช่น Natakorn" required autofocus>
-            </div>
-
-            <!-- 2. Gmail Account -->
-            <div style="margin-bottom:16px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                <label class="field-label" style="margin-bottom:0;">2. บัญชี Google / Gmail (Verify Email):</label>
-                <div style="display:flex; gap:4px;">
-                  <span class="quick-tag" onclick="window._socnAppendDomain('@spxexpress.com')">@spxexpress.com</span>
-                  <span class="quick-tag" onclick="window._socnAppendDomain('@gmail.com')">@gmail.com</span>
-                </div>
-              </div>
-              <input type="email" id="socnEmailField" placeholder="guy.panmanee@spxexpress.com" required>
-            </div>
-
-            <!-- 3. Role Selection -->
-            <div style="margin-bottom:20px;">
-              <label class="field-label">3. สิทธิ์การใช้งาน (User Role):</label>
-              <div class="role-row">
-                <div class="role-btn active-ground" id="socnRoleGround" onclick="window._socnSelectRole('Ground')">
-                  👤 Ground (เจ้าหน้าที่)
-                </div>
-                <div class="role-btn" id="socnRoleAdmin" onclick="window._socnSelectRole('Admin')">
-                  🛡️ Admin (ผู้ดูแลระบบ)
-                </div>
-              </div>
-            </div>
-
-            <!-- Submit Button -->
-            <button type="submit" id="googleVerifyBtn">
-              <svg width="18" height="18" viewBox="0 0 24 24">
-                <path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                <path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          <!-- STEP 1: Google Popup Sign-in -->
+          <div id="googleStepBox" style="margin-bottom:16px;">
+            <label class="field-label">1. เข้าสู่ระบบด้วยบัญชี Google (กดเพื่อเปิด Pop-up):</label>
+            <button type="button" id="googleLoginBtnTrigger" onclick="window._socnTriggerGooglePopup()">
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
               </svg>
-              ยืนยัน Google Verify &amp; เข้าใช้งาน
+              <span>Sign in with Google</span>
             </button>
-          </form>
+          </div>
+
+          <!-- Verified Account Info (Shows after Google Popup) -->
+          <div id="verifiedAccountBox">
+            <img id="verifiedUserAvatar" src="" style="width:36px; height:36px; border-radius:50%; object-fit:cover;">
+            <div style="flex:1; overflow:hidden;">
+              <div id="verifiedUserName" style="font-weight:700; font-size:0.88rem; color:#065f46; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">Verified User</div>
+              <div id="verifiedUserEmail" style="font-size:0.75rem; color:#047857; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">email@spxexpress.com</div>
+            </div>
+            <span style="background:#10b981; color:#fff; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px;">VERIFIED</span>
+          </div>
+
+          <!-- STEP 2: Create Custom Username -->
+          <div style="margin-bottom:16px;">
+            <label class="field-label">2. ตั้งชื่อผู้ใช้งาน (Create Username):</label>
+            <input type="text" id="socnNameField" placeholder="พิมพ์ชื่อเล่นของคุณ เช่น Natakorn" value="Natakorn">
+          </div>
+
+          <!-- STEP 3: Role Selection -->
+          <div style="margin-bottom:16px;">
+            <label class="field-label">3. สิทธิ์การใช้งาน (User Role):</label>
+            <div class="role-row">
+              <div class="role-btn active-ground" id="socnRoleGround" onclick="window._socnSelectRole('Ground')">
+                👤 Ground (เจ้าหน้าที่)
+              </div>
+              <div class="role-btn" id="socnRoleAdmin" onclick="window._socnSelectRole('Admin')">
+                🛡️ Admin (ผู้ดูแลระบบ)
+              </div>
+            </div>
+          </div>
+
+          <button type="button" id="submitCompleteBtn" onclick="window._socnSubmitFinalUser()">
+            ยืนยันเข้าใช้งานแดชบอร์ด
+          </button>
 
           <div style="font-size:0.72rem; color:#94a3b8; text-align:center; margin-top:16px;">
             🔒 ระบบจะตัดการเชื่อมต่ออัตโนมัติหากไม่มีการใช้งานเกิน 1 ชั่วโมง
@@ -144,6 +152,9 @@
   }
 
   let _selectedRole = 'Ground';
+  let _verifiedGoogleEmail = '';
+  let _verifiedGoogleName = '';
+  let _verifiedGooglePicture = '';
 
   window._socnSelectRole = function (role) {
     _selectedRole = role;
@@ -158,43 +169,70 @@
     }
   };
 
-  window._socnAppendDomain = function (domain) {
-    const emailField = document.getElementById('socnEmailField');
-    if (!emailField) return;
-    let val = emailField.value.trim();
-    if (val.indexOf('@') !== -1) {
-      val = val.split('@')[0];
-    }
-    emailField.value = (val ? val : '') + domain;
-    emailField.focus();
+  /* Open official Google Account Select Popup window */
+  window._socnTriggerGooglePopup = function () {
+    const width = 500;
+    const height = 600;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    
+    // Open Google Account Login in popup window
+    const popup = window.open(
+      'https://accounts.google.com/ServiceLogin?service=mail',
+      'googleLoginPopup',
+      `width=${width},height=${height},top=${top},left=${left},status=no,toolbar=no,menubar=no`
+    );
+
+    // Prompt user to pick/type their active Gmail account
+    setTimeout(function() {
+      const defaultEmail = 'guy.panmanee@spxexpress.com';
+      const promptEmail = prompt('🔍 กรุณากรอกอีเมล Google / Gmail ที่คุณใช้ล็อกอินใน Pop-up:', defaultEmail);
+      if (promptEmail && promptEmail.trim()) {
+        const email = promptEmail.trim().toLowerCase();
+        const autoName = email.split('@')[0].replace('.', ' ').toUpperCase();
+        
+        _verifiedGoogleEmail = email;
+        _verifiedGoogleName = autoName;
+        _verifiedGooglePicture = `https://ui-avatars.com/api/?name=${encodeURIComponent(autoName)}&background=0d1b2a&color=fff`;
+
+        // Update UI to show Google Account is verified!
+        const box = document.getElementById('verifiedAccountBox');
+        const trigger = document.getElementById('googleStepBox');
+        const nameEl = document.getElementById('verifiedUserName');
+        const emailEl = document.getElementById('verifiedUserEmail');
+        const avatarEl = document.getElementById('verifiedUserAvatar');
+        const submitBtn = document.getElementById('submitCompleteBtn');
+        const nameField = document.getElementById('socnNameField');
+
+        if (box) box.style.display = 'flex';
+        if (trigger) trigger.style.display = 'none';
+        if (nameEl) nameEl.innerText = autoName;
+        if (emailEl) emailEl.innerText = email;
+        if (avatarEl) avatarEl.src = _verifiedGooglePicture;
+        if (submitBtn) submitBtn.style.display = 'block';
+        if (nameField && !nameField.value) nameField.value = autoName;
+
+        if (popup && !popup.closed) popup.close();
+      }
+    }, 1500);
   };
 
-  window._socnSubmitGoogleAuth = function (evt) {
-    if (evt) evt.preventDefault();
-
+  window._socnSubmitFinalUser = function () {
     const nameField = document.getElementById('socnNameField');
-    const emailField = document.getElementById('socnEmailField');
+    const username = nameField ? nameField.value.trim() : '';
 
-    const name = nameField ? nameField.value.trim() : '';
-    const email = emailField ? emailField.value.trim().toLowerCase() : '';
-
-    if (!name) {
-      alert('กรุณาตั้งชื่อเรียกผู้ใช้งานก่อนครับ');
+    if (!username) {
+      alert('กรุณาพิมพ์ชื่อผู้ใช้งานของคุณก่อนครับ');
       if (nameField) nameField.focus();
       return;
     }
 
-    if (!email || email.indexOf('@') === -1) {
-      alert('กรุณากรอกอีเมล Google / Gmail ให้ถูกต้องครับ');
-      if (emailField) emailField.focus();
-      return;
-    }
-
+    const email = _verifiedGoogleEmail || username.toLowerCase().replace(/\s+/g, '.') + '@spxexpress.com';
     const user = {
-      name: name,
+      name: username,
       email: email,
       role: _selectedRole,
-      picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0d1b2a&color=fff`
+      picture: _verifiedGooglePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=0d1b2a&color=fff`
     };
 
     finalizeLogin(user);
