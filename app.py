@@ -930,6 +930,47 @@ def list_files():
     file_list.sort(key=lambda x: x["mtime"], reverse=True)
     return jsonify({"success": True, "files": file_list, "outbound_files": file_list, "skip_files": file_list})
 
+
+@app.route("/api/delete-file", methods=["POST"])
+def delete_file():
+    data = request.get_json() or {}
+    filename = (data.get("filename") or "").strip()
+    if not filename:
+        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์"}), 400
+
+    filename_clean = os.path.basename(filename)
+    target_upload = os.path.join(UPLOAD_FOLDER, filename_clean)
+    target_base = os.path.join(BASE_DIR, filename_clean)
+
+    deleted = False
+    deleted_path = ""
+
+    if os.path.exists(target_upload):
+        try:
+            os.remove(target_upload)
+            deleted = True
+            deleted_path = target_upload
+        except Exception as e:
+            return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ได้: {str(e)}"}), 500
+    elif os.path.exists(target_base):
+        try:
+            os.remove(target_base)
+            deleted = True
+            deleted_path = target_base
+        except Exception as e:
+            return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ได้: {str(e)}"}), 500
+
+    if not deleted:
+        return jsonify({"success": False, "error": f"ไม่พบไฟล์ '{filename_clean}' ในระบบ"}), 404
+
+    # Clear RAM cache
+    keys_to_delete = [k for k in FILE_PARSED_CACHE.keys() if deleted_path in k or filename_clean in k]
+    for k in keys_to_delete:
+        FILE_PARSED_CACHE.pop(k, None)
+
+    log_activity("FILE_DELETE", f"🗑️ ลบไฟล์ข้อมูล: {filename_clean}")
+    return jsonify({"success": True, "filename": filename_clean, "message": f"ลบไฟล์ {filename_clean} เรียบร้อยแล้ว"})
+
 FILE_PARSED_CACHE = {}
 
 @app.route("/api/load-file", methods=["GET"])

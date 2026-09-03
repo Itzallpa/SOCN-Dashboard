@@ -1,5 +1,15 @@
 [
   {
+    "id": "694d8081",
+    "timestamp": "2026-09-03 22:38:28",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "IDLE_AUTO_LOGOUT",
+    "details": "ไม่มีการใช้งานเกิน 1 ชั่วโมง (Idle Timeout)",
+    "ip": "127.0.0.1"
+  },
+  {
     "id": "8e2c4f48",
     "timestamp": "2026-09-03 21:24:48",
     "email": "guy.panmanee@spxexpress.com",

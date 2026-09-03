@@ -90,6 +90,9 @@ investigation_html = f"""<!DOCTYPE html>
         <select class="form-select form-select-sm" id="outboundFileSelect" style="width: auto; max-width: 240px;" onchange="switchOutboundFile(this.value)">
           <option value="">-- เลือกไฟล์ Outbound --</option>
         </select>
+        <button class="btn btn-outline-danger btn-sm fw-bold" onclick="deleteSelectedOutboundFile()" title="ลบไฟล์ที่เลือกออกจากระบบ">
+          <i class="fa-solid fa-trash me-1"></i> ลบไฟล์ที่เลือก
+        </button>
         <label class="btn btn-primary btn-sm fw-bold mb-0">
           <i class="fa-solid fa-upload me-1"></i> อัปโหลด CSV/Excel
           <input type="file" id="outboundFileInput" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleOutboundFileUpload(this.files[0])">
@@ -446,6 +449,37 @@ investigation_html = f"""<!DOCTYPE html>
           }}
         }})
         .catch(err => showOutboundStatus(`ไม่สามารถโหลดไฟล์ได้: ${{err.message}}`, 'error'));
+    }}
+
+    function deleteSelectedOutboundFile() {{
+      const selectEl = document.getElementById('outboundFileSelect');
+      const filename = selectEl ? selectEl.value : '';
+      if (!filename) {{
+        alert('กรุณาเลือกไฟล์ที่ต้องการลบในรายการก่อนครับ');
+        return;
+      }}
+
+      if (!confirm(`⚠️ คุณต้องการลบไฟล์ "${{filename}}" ออกจากเซิร์ฟเวอร์ถาวรใช่หรือไม่?`)) {{
+        return;
+      }}
+
+      showOutboundStatus(`กำลังลบไฟล์ "${{filename}}"...`, 'loading');
+      safeFetchJson('/api/delete-file', {{
+        method: 'POST',
+        headers: {{ 'Content-Type': 'application/json' }},
+        body: JSON.stringify({{ filename: filename }})
+      }})
+      .then(data => {{
+        if (data.success) {{
+          showOutboundStatus(`✅ ลบไฟล์ "${{filename}}" เรียบร้อยแล้ว`, 'success');
+          outboundDataState = null;
+          safeSetLocalStorage('socn_outbound_data', null);
+          fetchFileList();
+        }} else {{
+          showOutboundStatus(`เกิดข้อผิดพลาด: ${{data.error}}`, 'error');
+        }}
+      }})
+      .catch(err => showOutboundStatus(`ไม่สามารถลบไฟล์ได้: ${{err.message}}`, 'error'));
     }}
 
     function handleOutboundFileUpload(file) {{
@@ -908,6 +942,9 @@ skip_process_html = f"""<!DOCTYPE html>
         <select class="form-select form-select-sm" id="skipDateSelect" style="width: auto;" onchange="onSkipDateChange(this.value)">
           <option value="">-- เลือกวันที่รายงาน --</option>
         </select>
+        <button class="btn btn-outline-danger btn-sm fw-bold" onclick="deleteSelectedSkipFile()" title="ลบไฟล์ที่เลือกออกจากระบบ">
+          <i class="fa-solid fa-trash me-1"></i> ลบไฟล์ที่เลือก
+        </button>
         <label class="btn btn-purple btn-sm fw-bold text-white mb-0" style="background:#7c3aed;">
           <i class="fa-solid fa-upload me-1"></i> อัปโหลด CSV Skip Process
           <input type="file" id="skipFileInput" accept=".csv" style="display: none;" onchange="handleSkipFileUpload(this.files[0])">
@@ -1147,6 +1184,37 @@ skip_process_html = f"""<!DOCTYPE html>
           }}
         }})
         .catch(err => showSkipStatus(`ไม่สามารถโหลดไฟล์ได้: ${{err.message}}`, 'error'));
+    }}
+
+    function deleteSelectedSkipFile() {{
+      const selectEl = document.getElementById('skipDateSelect');
+      const filename = selectEl ? selectEl.value : '';
+      if (!filename) {{
+        alert('กรุณาเลือกไฟล์ที่ต้องการลบในรายการก่อนครับ');
+        return;
+      }}
+
+      if (!confirm(`⚠️ คุณต้องการลบไฟล์ "${{filename}}" ออกจากเซิร์ฟเวอร์ถาวรใช่หรือไม่?`)) {{
+        return;
+      }}
+
+      showSkipStatus(`กำลังลบไฟล์ "${{filename}}"...`, 'loading');
+      safeFetchJson('/api/delete-file', {{
+        method: 'POST',
+        headers: {{ 'Content-Type': 'application/json' }},
+        body: JSON.stringify({{ filename: filename }})
+      }})
+      .then(data => {{
+        if (data.success) {{
+          showSkipStatus(`✅ ลบไฟล์ "${{filename}}" เรียบร้อยแล้ว`, 'success');
+          skipDataState = null;
+          safeSetLocalStorage('socn_skip_data', null);
+          fetchFileList();
+        }} else {{
+          showSkipStatus(`เกิดข้อผิดพลาด: ${{data.error}}`, 'error');
+        }}
+      }})
+      .catch(err => showSkipStatus(`ไม่สามารถลบไฟล์ได้: ${{err.message}}`, 'error'));
     }}
 
     function loadDefaultSkipData() {{
