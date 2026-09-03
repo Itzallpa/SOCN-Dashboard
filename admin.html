@@ -243,12 +243,20 @@
     }
 
     let cachedUsersList = [];
+    let lastPendingCount = -1;
 
     function fetchUsersFromApi() {
       fetch('/api/users')
         .then(res => res.json())
         .then(data => {
           if (data.success && data.users) {
+            const newPendingCount = data.users.filter(u => u.status === 'pending_approval').length;
+            if (lastPendingCount !== -1 && newPendingCount > lastPendingCount) {
+              const latest = data.users[data.users.length - 1];
+              alert(`🔔 มีผู้ลงทะเบียนใหม่ส่งคำขอเข้ามา!\n\nชื่อผู้ใช้งาน: ${latest.name}\nอีเมล: ${latest.email}\n\nกรุณาเลือกสิทธิ์ (Role: Ground/Admin) และกดปุ่มอนุมัติสมาชิกได้เลยครับ`);
+            }
+            lastPendingCount = newPendingCount;
+
             cachedUsersList = data.users;
             localStorage.setItem('socn_user_db', JSON.stringify(data.users));
             renderUsersTable();
@@ -256,6 +264,10 @@
         })
         .catch(() => renderUsersTable());
     }
+
+    // Real-time auto polling every 5 seconds
+    setInterval(fetchUsersFromApi, 5000);
+    setInterval(fetchAuditLogs, 8000);
 
     function getUsersDb() {
       try {
