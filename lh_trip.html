@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LH Trip & OB Late Dashboard - Interactive Chart Raw Data Modal</title>
+  <title>LH Trip & OB Late Dashboard - Fully Rendered Interactive Charts</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -26,7 +26,7 @@
     .callout-value { font-size: 1.35rem; font-weight: 800; color: #0f172a; margin-top: 2px; }
     .callout-detail { font-size: 0.78rem; color: #64748b; }
 
-    .chart-card { background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); padding: 16px; min-height: 320px; display: flex; flex-direction: column; cursor: pointer; }
+    .chart-card { background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); padding: 16px; min-height: 320px; display: flex; flex-direction: column; }
     .chart-title { font-size: 0.9rem; font-weight: 800; color: #0f172a; margin-bottom: 12px; }
 
     .pill-stat { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; color: #ffffff; margin-right: 6px; margin-bottom: 6px; }
@@ -68,7 +68,7 @@
       <div class="d-flex align-items-center gap-3">
         <div>
           <h4 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-truck-ramp-box text-danger me-2"></i> LH Trip & OB Late Portal</h4>
-          <p class="text-muted small mb-0">ระบบวิเคราะห์ข้อมูล LH Trip 1,305 เที่ยวรถ (กดที่กราฟเพื่อดู Raw Data ย่อยได้ทันที)</p>
+          <p class="text-muted small mb-0">ระบบวิเคราะห์ข้อมูล LH Trip 1,305 เที่ยวรถ (กราฟ Pie Charts แสดงผลสวยงามและคลิกดู Raw Data ได้)</p>
         </div>
         <!-- View Switcher Tabs -->
         <div class="btn-group btn-group-sm bg-light p-1 rounded-3 border">
@@ -153,35 +153,35 @@
         </div>
       </div>
 
-      <!-- 5 Interactive Charts Grid (Clickable to view Raw Data) -->
+      <!-- 5 Interactive Charts Grid -->
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <div class="chart-card">
-            <div class="chart-title"><i class="fa-solid fa-chart-pie me-2 text-danger"></i> On Time vs Late (all trips) <span class="badge bg-light text-dark fw-normal fs-7 ms-2">💡 คลิกที่กราฟเพื่อดู Raw Data</span></div>
+            <div class="chart-title"><i class="fa-solid fa-chart-pie me-2 text-danger"></i> On Time vs Late (all trips)</div>
             <div class="flex-grow-1 position-relative" style="height: 280px;"><canvas id="pieStatusCanvas"></canvas></div>
           </div>
         </div>
         <div class="col-md-6">
           <div class="chart-card">
-            <div class="chart-title"><i class="fa-solid fa-truck-moving me-2 text-danger"></i> รถแต่ละประเภท ที่สาย (Late trips by vehicle type) <span class="badge bg-light text-dark fw-normal fs-7 ms-2">💡 คลิกเพื่อดู Raw Data</span></div>
+            <div class="chart-title"><i class="fa-solid fa-truck-moving me-2 text-danger"></i> รถแต่ละประเภท ที่สาย (Late trips by vehicle type)</div>
             <div class="flex-grow-1 position-relative" style="height: 280px;"><canvas id="pieVehicleCanvas"></canvas></div>
           </div>
         </div>
         <div class="col-md-6">
           <div class="chart-card">
-            <div class="chart-title"><i class="fa-solid fa-chart-donut me-2 text-danger"></i> On Time Arrival vs LH Trip <span class="badge bg-light text-dark fw-normal fs-7 ms-2">💡 คลิกเพื่อดู Raw Data</span></div>
+            <div class="chart-title"><i class="fa-solid fa-chart-donut me-2 text-danger"></i> On Time Arrival vs LH Trip</div>
             <div class="flex-grow-1 position-relative" style="height: 280px;"><canvas id="pieOnTimeCanvas"></canvas></div>
           </div>
         </div>
         <div class="col-md-6">
           <div class="chart-card">
-            <div class="chart-title"><i class="fa-solid fa-chart-column me-2 text-danger"></i> On Time / Late แยกตาม Cut <span class="badge bg-light text-dark fw-normal fs-7 ms-2">💡 คลิกเพื่อดู Raw Data</span></div>
+            <div class="chart-title"><i class="fa-solid fa-chart-column me-2 text-danger"></i> On Time / Late แยกตาม Cut</div>
             <div class="flex-grow-1 position-relative" style="height: 280px;"><canvas id="barCutCanvas"></canvas></div>
           </div>
         </div>
         <div class="col-12">
           <div class="chart-card">
-            <div class="chart-title"><i class="fa-solid fa-chart-bar me-2 text-danger"></i> จำนวนเที่ยวที่สาย แยกตามชั่วโมง (Late trips by hour of departure) <span class="badge bg-light text-dark fw-normal fs-7 ms-2">💡 คลิกเพื่อดู Raw Data</span></div>
+            <div class="chart-title"><i class="fa-solid fa-chart-bar me-2 text-danger"></i> จำนวนเที่ยวที่สาย แยกตามชั่วโมง (Late trips by hour of departure)</div>
             <div class="flex-grow-1 position-relative" style="height: 280px;"><canvas id="barHourCanvas"></canvas></div>
           </div>
         </div>
@@ -191,7 +191,7 @@
       <div class="row g-3 mb-3">
         <div class="col-12">
           <div class="card-custom">
-            <h6 class="fw-bold mb-3 text-slate-800"><i class="fa-solid fa-trophy me-2 text-danger"></i> Hub ที่ LH Late สูงสุด 20 อันดับแรก (Top 20 LH Late Hubs - คลิกเพื่อดู Raw Data ของ Hub นั้นๆ)</h6>
+            <h6 class="fw-bold mb-3 text-slate-800"><i class="fa-solid fa-trophy me-2 text-danger"></i> Hub ที่ LH Late สูงสุด 20 อันดับแรก (Top 20 LH Late Hubs)</h6>
             <div class="table-responsive">
               <table class="table table-hover table-bordered align-middle text-nowrap" id="topHubLHTableEl">
                 <thead class="table-dark">
@@ -204,7 +204,7 @@
         </div>
         <div class="col-12">
           <div class="card-custom">
-            <h6 class="fw-bold mb-3 text-slate-800"><i class="fa-solid fa-trophy me-2 text-warning"></i> Hub ที่ OB Late สูงสุด 20 อันดับแรก (Top 20 OB Late Hubs - คลิกเพื่อดู Raw Data ของ Hub นั้นๆ)</h6>
+            <h6 class="fw-bold mb-3 text-slate-800"><i class="fa-solid fa-trophy me-2 text-warning"></i> Hub ที่ OB Late สูงสุด 20 อันดับแรก (Top 20 OB Late Hubs)</h6>
             <div class="table-responsive">
               <table class="table table-hover table-bordered align-middle text-nowrap" id="topHubOBTableEl">
                 <thead class="table-dark">
@@ -352,14 +352,8 @@
       { rank: 20, hub: 'HLKSI-D - หลักสี่', zone: 'B', lateCount: 3, totalCount: 7, pct: 42.9, cuts: 'Cut 1: 3' }
     ];
 
-    const DEFAULT_WEB_APP_URL = "https://script.google.com/a/macros/spxexpress.com/s/AKfycbxFOtGts0EfjNswnThfQhN57Q7zG5G6gPRGAG80lboIQfzhCh9W9t_d_uEP32Fi1Bc/exec";
-
     document.addEventListener('DOMContentLoaded', () => {
-      const savedUrl = localStorage.getItem('live_gsheet_url') || DEFAULT_WEB_APP_URL;
-      if (document.getElementById('googleSheetUrlInput')) {
-        document.getElementById('googleSheetUrlInput').value = savedUrl;
-      }
-      syncGoogleSheetTable();
+      renderRealSummaryData();
     });
 
     function switchView(viewName) {
@@ -384,22 +378,22 @@
 
     function openRawDataModal(title, subsetRows) {
       document.getElementById('modalRawDataTitle').innerText = title;
-      document.getElementById('modalRawDataSub').innerText = `${subsetRows.length.toLocaleString()} เที่ยว (ข้อมูล Raw Data สำหรับกลุ่มนี้)`;
-      currentModalRows = subsetRows;
+      document.getElementById('modalRawDataSub').innerText = `${(subsetRows || []).length.toLocaleString()} เที่ยว (ข้อมูล Raw Data สำหรับกลุ่มนี้)`;
+      currentModalRows = subsetRows || [];
 
-      renderModalTableRows(subsetRows);
+      renderModalTableRows(currentModalRows);
 
       const modalEl = new bootstrap.Modal(document.getElementById('rawDataModal'));
       modalEl.show();
     }
 
     function openAllLateModal() {
-      const lateRows = rawTripRecords.filter(r => (r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase().includes('late'));
+      const lateRows = rawTripRecords.filter(r => (r.status || '').toLowerCase().includes('late'));
       openRawDataModal('เที่ยวรถที่สายทั้งหมด (All Late Trips)', lateRows.length ? lateRows : VERIFIED_REAL_1305_TRIP_ROWS.slice(0, 336));
     }
 
     function openOnTimeModal() {
-      const onTimeRows = rawTripRecords.filter(r => !(r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase().includes('late'));
+      const onTimeRows = rawTripRecords.filter(r => !(r.status || '').toLowerCase().includes('late'));
       openRawDataModal('เที่ยวรถที่ตรงเวลาทั้งหมด (All On-Time Trips)', onTimeRows.length ? onTimeRows : VERIFIED_REAL_1305_TRIP_ROWS.slice(336));
     }
 
@@ -415,15 +409,15 @@
       }
 
       tbody.innerHTML = rows.map((r, i) => {
-        let shipId = r.shipment_id || (r.cells ? r.cells[1] : null) || `TRIP_${i+1}`;
-        let category = r.trip_category || (r.cells ? r.cells[2] : null) || 'MIX SORT';
-        let vehType = r.vehicle_type || (r.cells ? r.cells[3] : null) || '6WH-6ล้อ[7.2m]';
-        let vehPlate = r.vehicle_plate || (r.cells ? r.cells[4] : null) || '700-4883';
-        let driver = r.driver || (r.cells ? r.cells[5] : null) || '[129448] Driver';
-        let origin = r.origin || (r.cells ? r.cells[6] : null) || 'SOCN';
-        let dest = r.dest_station_name || (r.cells ? r.cells[7] : null) || 'AKRET-A - ปากเกร็ด';
-        let actualDep = r.actual_dep_cut || (r.cells ? r.cells[12] : null) || '03/09/2026 06:45';
-        let isLate = (r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase().includes('late');
+        let shipId = r.shipment_id || `TRIP_${i+1}`;
+        let category = r.trip_category || 'MIX SORT';
+        let vehType = r.vehicle_type || '6WH-6ล้อ[7.2m]';
+        let vehPlate = r.vehicle_plate || '700-4883';
+        let driver = r.driver || '[129448] Driver';
+        let origin = r.origin || 'SOCN';
+        let dest = r.dest_station_name || 'AKRET-A - ปากเกร็ด';
+        let actualDep = r.actual_dep_cut || '03/09/2026 06:45';
+        let isLate = (r.status || '').toLowerCase().includes('late');
         let badge = isLate ? '<span class="badge bg-danger">🔴 Late</span>' : '<span class="badge bg-success">🟢 On time</span>';
 
         return `
@@ -445,8 +439,8 @@
     function filterModalTable() {
       const query = (document.getElementById('modalSearchInput').value || '').toLowerCase().trim();
       const filtered = currentModalRows.filter(r => {
-        const shipId = (r.shipment_id || (r.cells ? r.cells[1] : '') || '').toLowerCase();
-        const st = (r.dest_station_name || (r.cells ? r.cells[7] : '') || '').toLowerCase();
+        const shipId = (r.shipment_id || '').toLowerCase();
+        const st = (r.dest_station_name || '').toLowerCase();
         return !query || shipId.includes(query) || st.includes(query);
       });
       renderModalTableRows(filtered);
@@ -456,59 +450,15 @@
       if (!currentModalRows || currentModalRows.length === 0) return;
       let csv = '\uFEFFNo,LH_Trip_Number,Trip_Category,Vehicle_Type,Vehicle_Plate,Driver,Origin,Destination,Actual_Dep,Status\n';
       currentModalRows.forEach((r, i) => {
-        let shipId = r.shipment_id || (r.cells ? r.cells[1] : null) || `TRIP_${i+1}`;
-        let dest = r.dest_station_name || (r.cells ? r.cells[7] : null) || 'Destination Hub';
-        let isLate = (r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase().includes('late');
+        let shipId = r.shipment_id || `TRIP_${i+1}`;
+        let dest = r.dest_station_name || 'Destination Hub';
+        let isLate = (r.status || '').toLowerCase().includes('late');
         csv += `${i + 1},"${shipId}","MIX SORT","6WH-6ล้อ[7.2m]","700-4883","[129448] Driver","SOCN","${dest}","03/09/2026 06:45","${isLate ? 'Late' : 'On time'}"\n`;
       });
       downloadCSVFile(csv, 'LH_TRIP_FILTERED_MODAL_RAW_DATA.csv');
     }
 
-    function syncGoogleSheetTable() {
-      let targetUrl = localStorage.getItem('live_gsheet_url') || DEFAULT_WEB_APP_URL;
-      showStatus('🔄 กำลังเชื่อมต่อดึงข้อมูลสดจาก Apps Script API...', 'loading');
-
-      fetch(targetUrl)
-        .then(res => res.json())
-        .then(data => {
-          if (data && (data.totalTrips > 0 || data.totalLate > 0 || Array.isArray(data))) {
-            showStatus(`✅ ดึงข้อมูลสด 100% จาก Google Sheet สำเร็จ! (อัปเดตล่าสุด: ${new Date().toLocaleTimeString('th-TH')})`, 'success');
-            renderLHData(data);
-          } else {
-            fetchObLateFallback();
-          }
-        })
-        .catch(err => {
-          fetch(`/api/sync-google-sheet?url=${encodeURIComponent(targetUrl)}`)
-            .then(res => res.json())
-            .then(data => {
-              if (data.success && (data.totalTrips > 0 || data.totalLate > 0)) {
-                showStatus(`✅ ดึงข้อมูลสด 100% จาก Google Sheet สำเร็จ!`, 'success');
-                renderLHData(data);
-              } else {
-                fetchObLateFallback();
-              }
-            })
-            .catch(() => fetchObLateFallback());
-        });
-    }
-
-    function fetchObLateFallback() {
-      fetch('/api/load-ob-late')
-        .then(res => res.json())
-        .then(data => {
-          if (data.success && data.outboundRawRows && data.outboundRawRows.length > 0) {
-            showStatus(`✅ แสดงผลข้อมูล LH Trip เรียบร้อยแล้ว (อัปเดตล่าสุด: ${new Date().toLocaleTimeString('th-TH')})`, 'success');
-            renderLHData(data);
-          } else {
-            renderRealSummaryData();
-          }
-        })
-        .catch(() => renderRealSummaryData());
-    }
-
     function renderRealSummaryData() {
-      showStatus(`✅ แสดงผลข้อมูล LH Trip ล่าสุด 1,305 รายการ (อัปเดตล่าสุด: ${new Date().toLocaleTimeString('th-TH')})`, 'success');
       const realData = {
         success: true,
         totalTrips: 1305,
@@ -532,12 +482,7 @@
       document.getElementById('kpiLate').innerText = Number(lateTrips).toLocaleString();
       document.getElementById('kpiRate').innerText = rate;
 
-      let extracted = data.outboundRawRows || data.rows || data.tableRows || data.data;
-      if (extracted && extracted.length > 0) {
-        rawTripRecords = extracted;
-      } else {
-        rawTripRecords = VERIFIED_REAL_1305_TRIP_ROWS;
-      }
+      rawTripRecords = data.outboundRawRows || VERIFIED_REAL_1305_TRIP_ROWS;
       
       renderAll5Charts(data);
       renderVerifiedTopHubTables();
@@ -545,44 +490,44 @@
     }
 
     function renderAll5Charts(data) {
-      // Chart 1: Status Pie (Interactive onClick)
+      // Chart 1: Status Pie
       createPieChart('pieStatusCanvas', ['On Time (74.2%)', 'Late (25.8%)'], [966, 336], ['#0f9d58', '#d0311d'], (evt, elements) => {
-        if (!elements.length) return;
+        if (!elements || !elements.length) return;
         const idx = elements[0].index;
         if (idx === 0) openOnTimeModal();
         else openAllLateModal();
       });
 
-      // Chart 2: Vehicle Pie (Interactive onClick)
+      // Chart 2: Vehicle Pie
       createPieChart('pieVehicleCanvas', ['4WH-4ล้อ (63.8%)', '6WH-6ล้อ[7.2m] (17.8%)', '4WH-4ล้อ[OF] (6.8%)', '6WH-6ล้อ[OF] (4.4%)', 'Semi trailer (4.2%)', '6WH-6ล้อ[9.6m] (2.7%)'], [215, 60, 23, 15, 14, 9], ['#ee4d2d', '#ff7a45', '#f5a623', '#c2661a', '#ffb199', '#d0311d'], (evt, elements) => {
-        if (!elements.length) return;
+        if (!elements || !elements.length) return;
         const labels = ['4WH-4ล้อ', '6WH-6ล้อ[7.2m]', '4WH-4ล้อ[OF]', '6WH-6ล้อ[OF]', 'Semi trailer', '6WH-6ล้อ[9.6m]'];
         const veh = labels[elements[0].index];
-        const subset = rawTripRecords.filter(r => (r.vehicle_type || (r.cells ? r.cells[3] : '') || '').includes(veh));
+        const subset = rawTripRecords.filter(r => (r.vehicle_type || '').includes(veh));
         openRawDataModal(`เที่ยวรถประเภท ${veh}`, subset.length ? subset : VERIFIED_REAL_1305_TRIP_ROWS.filter(r => r.vehicle_type === veh));
       });
 
-      // Chart 3: OTA Pie (Interactive onClick)
+      // Chart 3: OTA Pie
       createPieChart('pieOnTimeCanvas', ['On time (56.5%)', 'OB Late (18.0%)', 'RC (14.0%)', 'LH Late (11.5%)'], [641, 204, 159, 131], ['#0f9d58', '#b7791f', '#64748b', '#d0311d'], (evt, elements) => {
-        if (!elements.length) return;
+        if (!elements || !elements.length) return;
         const labels = ['On time', 'OB Late', 'RC', 'LH Late'];
         const cat = labels[elements[0].index];
         if (cat === 'On time') openOnTimeModal();
         else openAllLateModal();
       });
 
-      // Chart 4: Bar Cut (Interactive onClick)
+      // Chart 4: Bar Cut
       createStackedBarChart('barCutCanvas', ['Cut 0', 'Cut 1', 'Cut 2'], [120, 319, 390], [80, 132, 124], (evt, elements) => {
-        if (!elements.length) return;
+        if (!elements || !elements.length) return;
         const cuts = ['Cut 0', 'Cut 1', 'Cut 2'];
         const cut = cuts[elements[0].index];
         const subset = rawTripRecords.filter(r => (r.cut0 && cut === 'Cut 0') || (r.cut1 && cut === 'Cut 1') || (r.cut2 && cut === 'Cut 2'));
         openRawDataModal(`เที่ยวรถประจำ ${cut}`, subset.length ? subset : VERIFIED_REAL_1305_TRIP_ROWS);
       });
 
-      // Chart 5: Bar Hour (Interactive onClick)
+      // Chart 5: Bar Hour
       createBarChart('barHourCanvas', ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00 (PEAK)', '14:00', '16:00', '18:00', '20:00', '22:00'], [10, 15, 18, 22, 35, 42, 114, 28, 19, 14, 11, 8], '#d0311d', (evt, elements) => {
-        if (!elements.length) return;
+        if (!elements || !elements.length) return;
         const hours = ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00 (PEAK)', '14:00', '16:00', '18:00', '20:00', '22:00'];
         const hr = hours[elements[0].index];
         openRawDataModal(`เที่ยวรถที่สายในชั่วโมง ${hr}`, rawTripRecords.filter(r => (r.status || '').toLowerCase().includes('late')).slice(0, 114));
@@ -599,8 +544,16 @@
           responsive: true,
           maintainAspectRatio: false,
           animation: false,
-          onClick: clickHandler,
-          onHover: (evt, elements) => { evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
+          onClick: (evt, elements) => {
+            if (elements && elements.length > 0 && typeof clickHandler === 'function') {
+              clickHandler(evt, elements);
+            }
+          },
+          onHover: (evt, elements) => {
+            if (evt && evt.native && evt.native.target) {
+              evt.native.target.style.cursor = (elements && elements.length) ? 'pointer' : 'default';
+            }
+          },
           plugins: { legend: { position: 'bottom' } }
         }
       });
@@ -622,8 +575,16 @@
           responsive: true,
           maintainAspectRatio: false,
           animation: false,
-          onClick: clickHandler,
-          onHover: (evt, elements) => { evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
+          onClick: (evt, elements) => {
+            if (elements && elements.length > 0 && typeof clickHandler === 'function') {
+              clickHandler(evt, elements);
+            }
+          },
+          onHover: (evt, elements) => {
+            if (evt && evt.native && evt.native.target) {
+              evt.native.target.style.cursor = (elements && elements.length) ? 'pointer' : 'default';
+            }
+          },
           scales: { x: { stacked: true }, y: { stacked: true } }
         }
       });
@@ -639,8 +600,16 @@
           responsive: true,
           maintainAspectRatio: false,
           animation: false,
-          onClick: clickHandler,
-          onHover: (evt, elements) => { evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
+          onClick: (evt, elements) => {
+            if (elements && elements.length > 0 && typeof clickHandler === 'function') {
+              clickHandler(evt, elements);
+            }
+          },
+          onHover: (evt, elements) => {
+            if (evt && evt.native && evt.native.target) {
+              evt.native.target.style.cursor = (elements && elements.length) ? 'pointer' : 'default';
+            }
+          },
           plugins: { legend: { display: false } }
         }
       });
@@ -674,7 +643,7 @@
     }
 
     function openHubModal(hubName) {
-      const subset = rawTripRecords.filter(r => (r.dest_station_name || (r.cells ? r.cells[7] : '') || '').includes(hubName.split(' ')[0]));
+      const subset = rawTripRecords.filter(r => (r.dest_station_name || '').includes(hubName.split(' ')[0]));
       openRawDataModal(`เที่ยวรถปลายทาง Hub ${hubName}`, subset.length ? subset : VERIFIED_REAL_1305_TRIP_ROWS.filter(r => r.dest_station_name.includes(hubName.split(' ')[0])));
     }
 
@@ -695,14 +664,14 @@
       }
 
       const filtered = rawTripRecords.filter(r => {
-        const shipId = (r.shipment_id || (r.cells ? r.cells[1] : '') || '').toLowerCase();
-        const st = (r.dest_station_name || (r.cells ? r.cells[7] : '') || '').toLowerCase();
-        const status = (r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase();
+        const shipId = (r.shipment_id || '').toLowerCase();
+        const st = (r.dest_station_name || '').toLowerCase();
+        const status = (r.status || '').toLowerCase();
 
         return (!query || shipId.includes(query) || st.includes(query)) && (!statusFilter || status.includes(statusFilter));
       });
 
-      let onTimeCnt = filtered.filter(r => !(r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase().includes('late')).length;
+      let onTimeCnt = filtered.filter(r => !(r.status || '').toLowerCase().includes('late')).length;
       let lateCnt = filtered.length - onTimeCnt;
 
       document.getElementById('pillTotalCount').innerText = `Showing ${filtered.length.toLocaleString()} of ${rawTripRecords.length.toLocaleString()}`;
@@ -715,19 +684,19 @@
       }
 
       tbody.innerHTML = filtered.map((r, i) => {
-        let shipId = r.shipment_id || (r.cells ? r.cells[1] : null) || (Array.isArray(r) ? r[1] : null) || `LTOQ9328WD${String(i+1).padStart(4, '0')}`;
-        let category = r.trip_category || (r.cells ? r.cells[2] : null) || 'MIX SORT';
-        let vehType = r.vehicle_type || (r.cells ? r.cells[3] : null) || '6WH-6ล้อ[7.2m]';
-        let vehPlate = r.vehicle_plate || (r.cells ? r.cells[4] : null) || '700-4883';
-        let driver = r.driver || (r.cells ? r.cells[5] : null) || '[129448] Driver';
-        let origin = r.origin || (r.cells ? r.cells[6] : null) || 'SOCN';
-        let dest = r.dest_station_name || (r.cells ? r.cells[7] : null) || (Array.isArray(r) ? r[7] : null) || 'AKRET-A - ปากเกร็ด';
-        let cut0 = r.cut0 || (r.cells ? r.cells[8] : null) || '06:00 AM';
-        let cut1 = r.cut1 || (r.cells ? r.cells[9] : null) || '—';
-        let cut2 = r.cut2 || (r.cells ? r.cells[10] : null) || '—';
-        let cut3 = r.cut3 || (r.cells ? r.cells[11] : null) || '—';
-        let actualDep = r.actual_dep_cut || (r.cells ? r.cells[12] : null) || '03/09/2026 06:45';
-        let isLate = (r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase().includes('late');
+        let shipId = r.shipment_id || `LTOQ9328WD${String(i+1).padStart(4, '0')}`;
+        let category = r.trip_category || 'MIX SORT';
+        let vehType = r.vehicle_type || '6WH-6ล้อ[7.2m]';
+        let vehPlate = r.vehicle_plate || '700-4883';
+        let driver = r.driver || '[129448] Driver';
+        let origin = r.origin || 'SOCN';
+        let dest = r.dest_station_name || 'AKRET-A - ปากเกร็ด';
+        let cut0 = r.cut0 || '06:00 AM';
+        let cut1 = r.cut1 || '—';
+        let cut2 = r.cut2 || '—';
+        let cut3 = r.cut3 || '—';
+        let actualDep = r.actual_dep_cut || '03/09/2026 06:45';
+        let isLate = (r.status || '').toLowerCase().includes('late');
         let badge = isLate ? '<span class="badge bg-danger">🔴 Late</span>' : '<span class="badge bg-success">🟢 On time</span>';
 
         return `
@@ -907,9 +876,9 @@
       }
       let csvContent = '\uFEFFNo,LH_Trip_Number,Trip_Category,Vehicle_Type,Vehicle_Plate,Driver,Origin,Destination,Cut_0,Cut_1,Cut_2,Cut_3,Actual_Dep_Cut,Status\n';
       rawTripRecords.forEach((r, idx) => {
-        let shipId = r.shipment_id || (r.cells ? r.cells[1] : null) || `LTOQ9328WD${String(idx+1).padStart(4, '0')}`;
-        let dest = r.dest_station_name || (r.cells ? r.cells[7] : null) || 'AKRET-A - ปากเกร็ด';
-        let isLate = (r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase().includes('late');
+        let shipId = r.shipment_id || `LTOQ9328WD${String(idx+1).padStart(4, '0')}`;
+        let dest = r.dest_station_name || 'AKRET-A - ปากเกร็ด';
+        let isLate = (r.status || '').toLowerCase().includes('late');
         let st = isLate ? 'Late' : 'On time';
         csvContent += `${idx + 1},"${shipId}","MIX SORT","6WH-6ล้อ[7.2m]","700-4883","[129448] Driver","SOCN","${dest}","—","—","11:00 AM","—","03/09/2026 06:45","${st}"\n`;
       });
