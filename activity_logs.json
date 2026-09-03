@@ -1,47 +1,17 @@
 [
   {
-    "id": "eebf82d7",
-    "timestamp": "2026-09-03 20:29:01",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Ground",
-    "action": "LOGIN",
-    "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Ground)",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "9f60c7d3",
-    "timestamp": "2026-09-03 20:28:50",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
-    "role": "Admin",
-    "action": "LOGOUT",
-    "details": "User logged out (admin@spxexpress.com)",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "fe2e3b96",
-    "timestamp": "2026-09-03 20:28:50",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
-    "role": "Admin",
-    "action": "IDLE_AUTO_LOGOUT",
-    "details": "ผู้ใช้งานกด Logout",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "42fbf116",
-    "timestamp": "2026-09-03 20:28:42",
+    "id": "6aed5a28",
+    "timestamp": "2026-09-03 21:12:39",
     "email": "admin@spxexpress.com",
     "name": "Admin SOC",
     "role": "Admin",
     "action": "USER_ROLE_CHANGE",
-    "details": "เปลี่ยนสิทธิ์ผู้ใช้ Natakorn Panmanee (guy.panmanee@spxexpress.com) จาก Admin เป็น Ground",
+    "details": "เปลี่ยนสิทธิ์ผู้ใช้ Natakorn Panmanee (guy.panmanee@spxexpress.com) จาก Ground เป็น Admin",
     "ip": "127.0.0.1"
   },
   {
-    "id": "76fd572b",
-    "timestamp": "2026-09-03 20:28:36",
+    "id": "5b69f985",
+    "timestamp": "2026-09-03 21:12:35",
     "email": "admin@spxexpress.com",
     "name": "Admin SOC",
     "role": "Admin",
@@ -50,179 +20,13 @@
     "ip": "127.0.0.1"
   },
   {
-    "id": "270a8549",
-    "timestamp": "2026-09-03 20:27:19",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
-    "role": "Admin",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "07fc76f0",
-    "timestamp": "2026-09-03 20:27:17",
+    "id": "678ffa0b",
+    "timestamp": "2026-09-03 21:12:31",
     "email": "admin@spxexpress.com",
     "name": "Admin SOC",
     "role": "Admin",
     "action": "LOGIN",
     "details": "Signed in via Google/Gmail as admin@spxexpress.com (Role: Admin)",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "d1083af8",
-    "timestamp": "2026-09-03 20:27:14",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
-    "role": "Admin",
-    "action": "LOGOUT",
-    "details": "User logged out (admin@spxexpress.com)",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "dc9616e5",
-    "timestamp": "2026-09-03 20:27:14",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
-    "role": "Admin",
-    "action": "IDLE_AUTO_LOGOUT",
-    "details": "ผู้ใช้งานกด Logout",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "ecbe9c8a",
-    "timestamp": "2026-09-03 20:27:03",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
-    "role": "Admin",
-    "action": "LOGIN",
-    "details": "Signed in via Google/Gmail as admin@spxexpress.com (Role: Admin)",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "1dc93c14",
-    "timestamp": "2026-09-03 20:26:47",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "LOGOUT",
-    "details": "User logged out (guy.panmanee@spxexpress.com)",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "0a8a11d3",
-    "timestamp": "2026-09-03 20:26:47",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "IDLE_AUTO_LOGOUT",
-    "details": "ผู้ใช้งานกด Logout",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "d1f17960",
-    "timestamp": "2026-09-03 20:26:03",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "91c96c28",
-    "timestamp": "2026-09-03 20:23:59",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "2cf564d5",
-    "timestamp": "2026-09-03 20:23:58",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "DATA_EXPORT",
-    "details": "📤 ดาวน์โหลด/ส่งออกข้อมูล: 📄 Export Summary CSV (Top 50) (0 รายการ) - ดาวน์โหลด/ส่งออกข้อมูลจากหน้า lh_trip.html",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "ea21f8e5",
-    "timestamp": "2026-09-03 20:23:37",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "8edffe21",
-    "timestamp": "2026-09-03 20:19:28",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "13a881fc",
-    "timestamp": "2026-09-03 20:19:17",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "f7edd36e",
-    "timestamp": "2026-09-03 20:19:00",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "90bdfc70",
-    "timestamp": "2026-09-03 20:16:10",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "5ab2b536",
-    "timestamp": "2026-09-03 20:15:30",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "8b80abec",
-    "timestamp": "2026-09-03 20:15:00",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "986ecd4c",
-    "timestamp": "2026-09-03 20:14:42",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "action": "LOGIN",
-    "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Admin)",
     "ip": "127.0.0.1"
   }
 ]
