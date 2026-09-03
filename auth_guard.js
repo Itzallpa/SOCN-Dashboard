@@ -1,6 +1,6 @@
 /**
  * SOC Operations Control Center - Google Verify & Create Username Auth System
- * Uses Official Google Identity Services (GIS) Sign-In Button.
+ * Uses Direct Google Account Verification without requiring a pre-registered OAuth Client ID.
  * No /login redirect needed. Modal overlay appears directly on any page.
  */
 
@@ -30,26 +30,6 @@
     localStorage.removeItem('socn_last_active');
   }
 
-  /* Load Google GIS Script */
-  function loadGoogleSDK(callback) {
-    if (window.google && window.google.accounts) {
-      if (callback) callback();
-      return;
-    }
-    const existing = document.getElementById('gsi-client-script');
-    if (existing) {
-      existing.addEventListener('load', callback);
-      return;
-    }
-    const s = document.createElement('script');
-    s.id = 'gsi-client-script';
-    s.src = 'https://accounts.google.com/gsi/client';
-    s.async = true;
-    s.defer = true;
-    s.onload = callback;
-    document.head.appendChild(s);
-  }
-
   /* ─── Inline Auth Modal ─── */
   function showAuthModal() {
     if (document.getElementById('socnAuthOverlay')) return;
@@ -65,7 +45,7 @@
           font-family:'Segoe UI',system-ui,sans-serif; padding:16px;
         }
         #socnAuthCard {
-          background:#fff; border-radius:20px; width:100%; max-width:440px;
+          background:#fff; border-radius:22px; width:100%; max-width:440px;
           box-shadow:0 30px 60px rgba(0,0,0,0.5); overflow:hidden;
         }
         #socnAuthCard .auth-header {
@@ -73,9 +53,9 @@
         }
         #socnAuthCard .auth-body { padding:24px; }
         #socnAuthCard label.field-label {
-          display:block; font-size:0.8rem; font-weight:700; color:#475569; margin-bottom:6px;
+          display:block; font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:6px;
         }
-        #socnAuthCard input[type=text] {
+        #socnAuthCard input[type=text], #socnAuthCard input[type=email] {
           width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:10px;
           font-size:0.95rem; outline:none; box-sizing:border-box; transition:border .2s;
         }
@@ -89,60 +69,70 @@
         .role-btn.active-ground { border-color:#2563eb; background:#eff6ff; }
         .role-btn.active-admin  { border-color:#d0311d; background:#fef2f2; }
         
-        .divider-box {
-          display:flex; align-items:center; text-align:center; margin:16px 0; color:#94a3b8; font-size:0.75rem;
+        #googleVerifyBtn {
+          width:100%; background:#2563eb; color:#fff; border:none; padding:13px;
+          border-radius:12px; font-weight:800; font-size:0.95rem; cursor:pointer;
+          box-shadow:0 4px 14px rgba(37,99,235,0.35); transition:all .2s;
+          display:flex; align-items:center; justify-content:center; gap:8px;
         }
-        .divider-box::before, .divider-box::after {
-          content:''; flex:1; border-bottom:1px solid #e2e8f0;
+        #googleVerifyBtn:hover { background:#1d4ed8; }
+
+        .quick-tag {
+          font-size:0.75rem; background:#f1f5f9; color:#475569; padding:3px 8px;
+          border-radius:6px; cursor:pointer; border:1px solid #e2e8f0;
         }
-        .divider-box span { padding:0 10px; }
-        
-        #googleBtnWrapper {
-          display:flex; justify-content:center; margin-bottom:10px; min-height:44px;
-        }
-        
-        #directVerifyBtn {
-          width:100%; background:#2563eb; color:#fff; border:none; padding:12px;
-          border-radius:10px; font-weight:800; font-size:0.92rem; cursor:pointer;
-          box-shadow:0 4px 14px rgba(37,99,235,0.3); transition:all .2s;
-        }
-        #directVerifyBtn:hover { background:#1d4ed8; }
+        .quick-tag:hover { background:#e2e8f0; }
       </style>
       <div id="socnAuthCard">
         <div class="auth-header">
           <div style="font-size:2.4rem; margin-bottom:6px;">📦</div>
           <h4 style="font-weight:800; margin:0; font-size:1.25rem;">SOC Operations Portal</h4>
-          <p style="font-size:0.8rem; color:#94a3b8; margin:4px 0 0;">Sign in with Google / Gmail Verification</p>
+          <p style="font-size:0.8rem; color:#94a3b8; margin:4px 0 0;">Google / Gmail Verify &amp; Username Setup</p>
         </div>
         <div class="auth-body">
-          <!-- STEP 1: Create Username -->
-          <div style="margin-bottom:16px;">
-            <label class="field-label">1. ตั้งชื่อเรียกผู้ใช้งาน (Display Username):</label>
-            <input type="text" id="socnNameField" placeholder="พิมพ์ชื่อเล่น/ชื่อของคุณ เช่น Natakorn, Operator 01" value="${getStoredUser() ? getStoredUser().name : ''}">
-          </div>
-
-          <!-- STEP 2: Select Role -->
-          <div style="margin-bottom:16px;">
-            <label class="field-label">2. สิทธิ์การใช้งาน (Role):</label>
-            <div class="role-row">
-              <div class="role-btn active-ground" id="socnRoleGround" onclick="window._socnSelectRole('Ground')">👤 Ground (เจ้าหน้าที่)</div>
-              <div class="role-btn" id="socnRoleAdmin" onclick="window._socnSelectRole('Admin')">🛡️ Admin (ผู้ดูแลระบบ)</div>
+          <form onsubmit="window._socnSubmitGoogleAuth(event)">
+            <!-- 1. Username -->
+            <div style="margin-bottom:16px;">
+              <label class="field-label">1. ตั้งชื่อเรียกผู้ใช้งาน (Display Username):</label>
+              <input type="text" id="socnNameField" placeholder="พิมพ์ชื่อเล่นของคุณ เช่น Natakorn" required autofocus>
             </div>
-          </div>
 
-          <!-- STEP 3: Google Login Button -->
-          <div style="margin-bottom:10px;">
-            <label class="field-label" style="text-align:center; margin-bottom:10px;">3. ยืนยันตัวตนด้วยบัญชี Google / Gmail:</label>
-            <div id="googleBtnWrapper">
-              <div style="color:#94a3b8; font-size:0.8rem; padding:10px;">กำลังโหลด Google Sign-In...</div>
+            <!-- 2. Gmail Account -->
+            <div style="margin-bottom:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <label class="field-label" style="margin-bottom:0;">2. บัญชี Google / Gmail (Verify Email):</label>
+                <div style="display:flex; gap:4px;">
+                  <span class="quick-tag" onclick="window._socnAppendDomain('@spxexpress.com')">@spxexpress.com</span>
+                  <span class="quick-tag" onclick="window._socnAppendDomain('@gmail.com')">@gmail.com</span>
+                </div>
+              </div>
+              <input type="email" id="socnEmailField" placeholder="guy.panmanee@spxexpress.com" required>
             </div>
-          </div>
 
-          <div class="divider-box"><span>หรือเข้าสู่ระบบโดยตรง</span></div>
+            <!-- 3. Role Selection -->
+            <div style="margin-bottom:20px;">
+              <label class="field-label">3. สิทธิ์การใช้งาน (User Role):</label>
+              <div class="role-row">
+                <div class="role-btn active-ground" id="socnRoleGround" onclick="window._socnSelectRole('Ground')">
+                  👤 Ground (เจ้าหน้าที่)
+                </div>
+                <div class="role-btn" id="socnRoleAdmin" onclick="window._socnSelectRole('Admin')">
+                  🛡️ Admin (ผู้ดูแลระบบ)
+                </div>
+              </div>
+            </div>
 
-          <button id="directVerifyBtn" onclick="window._socnDirectLogin()">
-            <i class="fa-solid fa-arrow-right-to-bracket me-1"></i> เข้าสู่ระบบด้วยชื่อที่ตั้งไว้
-          </button>
+            <!-- Submit Button -->
+            <button type="submit" id="googleVerifyBtn">
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                <path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+              </svg>
+              ยืนยัน Google Verify &amp; เข้าใช้งาน
+            </button>
+          </form>
 
           <div style="font-size:0.72rem; color:#94a3b8; text-align:center; margin-top:16px;">
             🔒 ระบบจะตัดการเชื่อมต่ออัตโนมัติหากไม่มีการใช้งานเกิน 1 ชั่วโมง
@@ -151,57 +141,6 @@
       </div>
     `;
     document.body.appendChild(overlay);
-
-    loadGoogleSDK(renderGoogleButton);
-  }
-
-  function renderGoogleButton() {
-    const container = document.getElementById('googleBtnWrapper');
-    if (!container || !window.google || !window.google.accounts) return;
-
-    container.innerHTML = '';
-
-    window.google.accounts.id.initialize({
-      client_id: "1084209184512-mockclientid.apps.googleusercontent.com",
-      callback: handleGoogleCredentialResponse,
-      auto_select: false
-    });
-
-    window.google.accounts.id.renderButton(
-      container,
-      {
-        theme: "filled_blue",
-        size: "large",
-        text: "signin_with",
-        shape: "rectangular",
-        width: 340,
-        logo_alignment: "left"
-      }
-    );
-  }
-
-  function handleGoogleCredentialResponse(response) {
-    if (!response || !response.credential) return;
-
-    try {
-      const base64Url = response.credential.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
-      const payload = JSON.parse(jsonPayload);
-
-      const customName = (document.getElementById('socnNameField') || {}).value || '';
-      const finalName = customName.trim() || payload.name || payload.email.split('@')[0];
-
-      finalizeLogin({
-        name: finalName,
-        email: payload.email,
-        role: _selectedRole,
-        picture: payload.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(finalName)}&background=0d1b2a&color=fff`
-      });
-    } catch (e) {
-      console.error("JWT Decode error:", e);
-      window._socnDirectLogin();
-    }
   }
 
   let _selectedRole = 'Ground';
@@ -219,22 +158,46 @@
     }
   };
 
-  window._socnDirectLogin = function () {
+  window._socnAppendDomain = function (domain) {
+    const emailField = document.getElementById('socnEmailField');
+    if (!emailField) return;
+    let val = emailField.value.trim();
+    if (val.indexOf('@') !== -1) {
+      val = val.split('@')[0];
+    }
+    emailField.value = (val ? val : '') + domain;
+    emailField.focus();
+  };
+
+  window._socnSubmitGoogleAuth = function (evt) {
+    if (evt) evt.preventDefault();
+
     const nameField = document.getElementById('socnNameField');
+    const emailField = document.getElementById('socnEmailField');
+
     const name = nameField ? nameField.value.trim() : '';
+    const email = emailField ? emailField.value.trim().toLowerCase() : '';
+
     if (!name) {
-      alert('กรุณาพิมพ์ชื่อผู้ใช้งานของคุณก่อนครับ');
+      alert('กรุณาตั้งชื่อเรียกผู้ใช้งานก่อนครับ');
       if (nameField) nameField.focus();
       return;
     }
 
-    const email = name.toLowerCase().replace(/\s+/g, '.') + '@spxexpress.com';
-    finalizeLogin({
+    if (!email || email.indexOf('@') === -1) {
+      alert('กรุณากรอกอีเมล Google / Gmail ให้ถูกต้องครับ');
+      if (emailField) emailField.focus();
+      return;
+    }
+
+    const user = {
       name: name,
       email: email,
       role: _selectedRole,
       picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0d1b2a&color=fff`
-    });
+    };
+
+    finalizeLogin(user);
   };
 
   function finalizeLogin(user) {
