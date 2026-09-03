@@ -1,5 +1,65 @@
 [
   {
+    "id": "5f295ba2",
+    "timestamp": "2026-09-03 23:07:59",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "FILE_DELETE",
+    "details": "🗑️ ลบไฟล์ข้อมูล: SOC-BISOCinvestigateshipment_DownloadTable_31 aug.csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "70d4f1cc",
+    "timestamp": "2026-09-03 23:07:46",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "71600f05",
+    "timestamp": "2026-09-03 23:07:39",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as admin@spxexpress.com (Role: Admin)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "3933b65b",
+    "timestamp": "2026-09-03 23:07:39",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "c14f171f",
+    "timestamp": "2026-09-03 23:07:38",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "LOGOUT",
+    "details": "User logged out (admin@spxexpress.com)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "356d0a80",
+    "timestamp": "2026-09-03 23:07:38",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "IDLE_AUTO_LOGOUT",
+    "details": "ผู้ใช้งานกด Logout",
+    "ip": "127.0.0.1"
+  },
+  {
     "id": "6615954c",
     "timestamp": "2026-09-03 23:05:31",
     "email": "admin@spxexpress.com",
