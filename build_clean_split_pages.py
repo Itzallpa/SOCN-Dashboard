@@ -22,7 +22,6 @@ def get_navbar(active_page):
       <a href="lh_trip.html" style="{active_style('lh_trip')}">🚚 LH Trip & OB Late</a>
     </div>
   </nav>
-  <script src="auth_guard.js"></script>
 """
 
 # ==========================================

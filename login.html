@@ -3,284 +3,162 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - SOC Operations Control Center</title>
+  <title>Google Sign-In Gate - SOC Operations Portal</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     body {
-      background: linear-gradient(135deg, #0d1b2a 0%, #1e293b 100%);
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #f8fafc;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0;
       padding: 20px;
     }
     .login-card {
-      background: #ffffff;
-      border-radius: 20px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 44px;
       width: 100%;
-      max-width: 460px;
-      overflow: hidden;
+      max-width: 480px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
     }
-    .login-header {
-      background: #0d1b2a;
-      color: #ffffff;
-      padding: 32px 28px;
-      text-align: center;
-    }
-    .login-header .brand-icon {
-      font-size: 2.8rem;
-      margin-bottom: 10px;
-    }
-    .login-header h4 {
-      font-weight: 800;
-      margin-bottom: 4px;
-    }
-    .login-header p {
-      font-size: 0.85rem;
-      color: #94a3b8;
-      margin: 0;
-    }
-    .login-body {
-      padding: 32px 28px;
-    }
-    .role-selector {
+    .brand-logo {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 20px;
       display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .role-option {
-      flex: 1;
-      border: 2px solid #cbd5e1;
-      border-radius: 12px;
-      padding: 12px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .role-option:hover {
-      border-color: #2563eb;
-      background: #f8fafc;
-    }
-    .role-option input[type="radio"] {
-      display: none;
-    }
-    .role-option.selected {
-      border-color: #2563eb;
-      background: #eff6ff;
-    }
-    .role-option.selected.admin-selected {
-      border-color: #d0311d;
-      background: #fef2f2;
-    }
-    .role-title {
-      font-weight: 700;
-      font-size: 0.9rem;
-      color: #0f172a;
-    }
-    .role-sub {
-      font-size: 0.75rem;
-      color: #64748b;
-      margin-top: 2px;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      margin: 0 auto 20px auto;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
     }
     .btn-google {
       background: #ffffff;
-      color: #334155;
-      border: 1px solid #cbd5e1;
-      border-radius: 10px;
+      color: #1e293b;
       font-weight: 700;
-      padding: 12px;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
       width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      gap: 12px;
+      font-size: 1rem;
       transition: all 0.2s;
     }
     .btn-google:hover {
       background: #f8fafc;
-      border-color: #94a3b8;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
     }
-    .divider-text {
-      display: flex;
-      align-items: center;
-      text-align: center;
-      color: #94a3b8;
-      font-size: 0.78rem;
-      margin: 20px 0;
+    .preset-chip {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .divider-text::before, .divider-text::after {
-      content: '';
-      flex: 1;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    .divider-text span {
-      padding: 0 10px;
-    }
-    .security-notice {
-      font-size: 0.76rem;
-      color: #64748b;
-      text-align: center;
-      margin-top: 24px;
+    .preset-chip:hover {
+      background: rgba(37, 99, 235, 0.3);
+      color: #ffffff;
+      border-color: #3b82f6;
     }
   </style>
 </head>
 <body>
 
-  <div class="login-card">
-    <div class="login-header">
-      <div class="brand-icon">📦</div>
-      <h4>SOC Operations Portal</h4>
-      <p>Control Center Authentication & Access Control</p>
+  <div class="login-card text-center">
+    <div class="brand-logo">📦</div>
+    <h3 class="fw-bold mb-1" style="background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+      SOC Operations Portal
+    </h3>
+    <p class="text-secondary small mb-4">ระบบเข้าสู่ระบบเพื่อยืนยันตัวตนก่อนเข้าใช้งาน Control Center Hub</p>
+
+    <div class="mb-4">
+      <button class="btn-google shadow-sm mb-3" onclick="triggerGoogleSignIn()">
+        <img src="https://cdn-icons-png.flaticon.com/512/300/300221.png" width="22" height="22">
+        <span>Sign in with Google / Gmail</span>
+      </button>
+
+      <div class="text-muted small text-uppercase fw-bold mb-3" style="font-size:0.75rem; letter-spacing:1px;">หรือระบุ Gmail ของคุณ</div>
+
+      <div class="mb-3 text-start">
+        <label class="form-label text-slate-300 small fw-bold mb-1">📧 Gmail Address</label>
+        <input type="email" class="form-control form-control-lg bg-dark text-white border-secondary" id="loginEmail" placeholder="your_email@gmail.com" value="operator.socn@gmail.com">
+      </div>
+
+      <div class="mb-4 text-start">
+        <label class="form-label text-slate-300 small fw-bold mb-1">👤 Display Name (ชื่อแสดงผล)</label>
+        <input type="text" class="form-control form-control-lg bg-dark text-white border-secondary" id="loginName" placeholder="เช่น Somchai Prasert" value="Operator SOCN">
+      </div>
+
+      <button class="btn btn-primary btn-lg w-100 fw-bold py-3" style="border-radius:12px; background:linear-gradient(90deg, #2563eb, #7c3aed); border:none;" onclick="handleManualGmailLogin()">
+        <i class="fa-solid fa-right-to-bracket me-2"></i> ยืนยันเข้าสู่ระบบ (Enter Portal)
+      </button>
     </div>
 
-    <div class="login-body">
-      <div id="loginAlert" class="mb-3" style="display:none;"></div>
-
-      <label class="form-label fw-bold small text-secondary mb-2">1. เลือกเลเวลสิทธิ์ผู้ใช้งาน (Select User Role):</label>
-      <div class="role-selector mb-3">
-        <div class="role-option selected" id="roleGroundOpt" onclick="selectRole('Ground')">
-          <input type="radio" name="userRole" value="Ground" checked>
-          <div class="role-title"><i class="fa-solid fa-user me-1 text-primary"></i> Ground</div>
-          <div class="role-sub">เจ้าหน้าที่ปฏิบัติการ</div>
-        </div>
-        <div class="role-option" id="roleAdminOpt" onclick="selectRole('Admin')">
-          <input type="radio" name="userRole" value="Admin">
-          <div class="role-title"><i class="fa-solid fa-shield-halved me-1 text-danger"></i> Admin</div>
-          <div class="role-sub">ผู้ดูแลระบบ & Audit Logs</div>
-        </div>
+    <div class="mb-4">
+      <div class="text-secondary small mb-2" style="font-size:0.78rem;">⚡ ตัวเลือกทางลัดสำหรับการทดสอบ (Quick Accounts):</div>
+      <div class="d-flex gap-2 justify-content-center flex-wrap">
+        <span class="preset-chip" onclick="quickLogin('admin.socn@gmail.com', 'Admin SOCN')">🔑 admin.socn@gmail.com</span>
+        <span class="preset-chip" onclick="quickLogin('operator.spx@gmail.com', 'Operator SPX')">📦 operator.spx@gmail.com</span>
       </div>
+    </div>
 
-      <label class="form-label fw-bold small text-secondary mb-2">2. เข้าสู่ระบบด้วย Google / Gmail (Sign in with Gmail):</label>
-
-      <!-- Google Sign-In Official GIS Button -->
-      <div id="g_id_onload"
-           data-client_id="1084209184512-mockclientid.apps.googleusercontent.com"
-           data-context="signin"
-           data-ux_mode="popup"
-           data-callback="handleGoogleSignInResponse"
-           data-auto_prompt="false">
-      </div>
-      
-      <form id="emailLoginForm" onsubmit="handleEmailLogin(event)">
-        <div class="mb-3">
-          <div class="input-group">
-            <span class="input-group-text bg-light"><i class="fa-solid fa-envelope text-secondary"></i></span>
-            <input type="email" id="gmailInput" class="form-control" placeholder="your.name@spxexpress.com หรือ gmail.com" required>
-          </div>
-        </div>
-        <div class="mb-3">
-          <div class="input-group">
-            <span class="input-group-text bg-light"><i class="fa-solid fa-user text-secondary"></i></span>
-            <input type="text" id="nameInput" class="form-control" placeholder="ชื่อ-นามสกุล (ผู้ใช้งาน)">
-          </div>
-        </div>
-        <button type="submit" class="btn btn-primary w-100 fw-bold py-2"><i class="fa-brands fa-google me-2"></i> เข้าสู่ระบบด้วย Google Account / Gmail</button>
-      </form>
-
-      <div class="security-notice">
-        <i class="fa-solid fa-lock me-1"></i> ระบบจะตัดการเชื่อมต่ออัตโนมัติหากไม่มีการใช้งานเกิน 1 ชั่วโมง (1-Hour Idle Timeout)
-      </div>
+    <div class="pt-3 border-top border-secondary border-opacity-25 text-muted small" style="font-size:0.75rem;">
+      <i class="fa-solid fa-lock text-warning me-1"></i> ทุกการกระทำและเวลาเข้าใช้งานจะถูกบันทึกลงในระบบ <b>Audit Trail</b> หลังบ้านโดยอัตโนมัติ
     </div>
   </div>
 
-  <script src="auth_guard.js"></script>
   <script>
-    let selectedRole = 'Ground';
+    function handleManualGmailLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const name = document.getElementById('loginName').value.trim();
 
-    function selectRole(role) {
-      selectedRole = role;
-      document.querySelectorAll('.role-option').forEach(el => el.classList.remove('selected', 'admin-selected'));
-      if (role === 'Ground') {
-        document.getElementById('roleGroundOpt').classList.add('selected');
-      } else {
-        document.getElementById('roleAdminOpt').classList.add('selected', 'admin-selected');
-      }
-    }
-
-    function showAlert(msg, type = 'danger') {
-      const el = document.getElementById('loginAlert');
-      el.className = `alert alert-${type} py-2 px-3 small`;
-      el.innerText = msg;
-      el.style.display = 'block';
-    }
-
-    function handleEmailLogin(evt) {
-      if (evt) evt.preventDefault();
-      const email = document.getElementById('gmailInput').value.trim();
-      const name = document.getElementById('nameInput').value.trim();
-
-      if (!email) {
-        showAlert('กรุณากรอกอีเมล Google / Gmail');
+      if (!email || !email.includes('@')) {
+        alert('กรุณากรอก Gmail ให้ถูกต้อง');
         return;
       }
 
-      submitLogin(email, name, selectedRole);
-    }
-
-    function handleGoogleSignInResponse(response) {
-      if (response && response.credential) {
-        // Decode JWT payload locally
-        try {
-          const base64Url = response.credential.split('.')[1];
-          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-          const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
-          const payload = JSON.parse(jsonPayload);
-
-          submitLogin(payload.email, payload.name, selectedRole, payload.picture);
-        } catch (e) {
-          showAlert('เกิดข้อผิดพลาดในการอ่านข้อมูล Google Account');
-        }
-      }
-    }
-
-    function submitLogin(email, name, role, picture) {
-      fetch('/api/auth/login', {
+      fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email,
-          name: name || email.split('@')[0].replace('.', ' ').toUpperCase(),
-          role: role,
-          picture: picture
-        })
+        body: JSON.stringify({ email, name })
       })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          window.AuthGuard.saveUser(data.user, true);
-          showAlert(`✅ เข้าสู่ระบบสำเร็จ! ยินดีต้อนรับ ${data.user.name} (Role: ${data.user.role})`, 'success');
-          setTimeout(() => {
-            window.location.href = "index.html";
-          }, 600);
+          window.location.href = 'index.html';
         } else {
-          showAlert(data.error || 'ไม่สามารถเข้าสู่ระบบได้');
+          alert('เกิดข้อผิดพลาดในการเข้าสู่ระบบ: ' + data.error);
         }
       })
       .catch(err => {
-        // Local fallback if server API is unavailable
-        const userObj = {
-          email: email,
-          name: name || email.split('@')[0].toUpperCase(),
-          role: role,
-          picture: picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || email)}&background=0d1b2a&color=fff`
-        };
-        window.AuthGuard.saveUser(userObj, true);
-        window.location.href = "index.html";
+        alert('ไม่สามารถเชื่อมต่อระบบได้: ' + err.message);
       });
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const existingUser = window.AuthGuard.getUser();
-      if (existingUser) {
-        window.location.href = "index.html";
-      }
-    });
+    function quickLogin(email, name) {
+      document.getElementById('loginEmail').value = email;
+      document.getElementById('loginName').value = name;
+      handleManualGmailLogin();
+    }
+
+    function triggerGoogleSignIn() {
+      handleManualGmailLogin();
+    }
   </script>
 </body>
 </html>
