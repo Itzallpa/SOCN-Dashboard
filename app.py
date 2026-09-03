@@ -960,11 +960,8 @@ def delete_file():
         except Exception as e:
             return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ได้: {str(e)}"}), 500
 
-    if not deleted:
-        return jsonify({"success": False, "error": f"ไม่พบไฟล์ '{filename_clean}' ในระบบ"}), 404
-
     # Clear RAM cache
-    keys_to_delete = [k for k in FILE_PARSED_CACHE.keys() if deleted_path in k or filename_clean in k]
+    keys_to_delete = [k for k in FILE_PARSED_CACHE.keys() if (deleted_path and deleted_path in k) or filename_clean in k]
     for k in keys_to_delete:
         FILE_PARSED_CACHE.pop(k, None)
 
@@ -977,14 +974,14 @@ FILE_PARSED_CACHE = {}
 def load_file():
     filename = request.args.get("filename", "").strip()
     if not filename:
-        return jsonify({"success": False, "error": "No filename specified"}), 400
+        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์"}), 400
 
     target = os.path.join(UPLOAD_FOLDER, filename)
     if not os.path.exists(target):
         target = os.path.join(BASE_DIR, filename)
 
     if not os.path.exists(target):
-        return jsonify({"success": False, "error": f"File '{filename}' not found"}), 404
+        return jsonify({"success": False, "error": f"ไม่พบไฟล์ '{filename}' บนเซิร์ฟเวอร์ (ไฟล์อาจถูกลบหรือไม่ได้อัปโหลด)"}), 200
 
     try:
         mtime = os.path.getmtime(target)
@@ -1009,13 +1006,13 @@ def load_skip_lightweight():
     """Lightweight skip-only endpoint that skips heavy process_csv for speed."""
     filename = request.args.get("filename", "").strip()
     if not filename:
-        return jsonify({"success": False, "error": "No filename specified"}), 400
+        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์"}), 400
 
     target = os.path.join(UPLOAD_FOLDER, filename)
     if not os.path.exists(target):
         target = os.path.join(BASE_DIR, filename)
     if not os.path.exists(target):
-        return jsonify({"success": False, "error": f"File '{filename}' not found"}), 404
+        return jsonify({"success": False, "error": f"ไม่พบไฟล์ '{filename}' บนเซิร์ฟเวอร์ (ไฟล์อาจถูกลบหรือไม่ได้อัปโหลด)"}), 200
 
     try:
         full_df = pd.read_csv(target, low_memory=False)

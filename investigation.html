@@ -374,18 +374,21 @@
 
     function safeFetchJson(url, options) {
       return fetch(url, options).then(res => {
-        if (!res.ok) {
-          throw new Error(`เซิร์ฟเวอร์ตอบกลับ Error Status ${res.status}`);
-        }
         return res.text().then(text => {
-          if (!text || !text.trim()) {
-            throw new Error('ไม่พบข้อมูลจากเซิร์ฟเวอร์ (Empty response)');
-          }
+          let json = null;
           try {
-            return JSON.parse(text);
-          } catch (e) {
-            throw new Error('โครงสร้างข้อมูลจากเซิร์ฟเวอร์ไม่ถูกต้อง');
+            if (text && text.trim()) json = JSON.parse(text);
+          } catch (e) {}
+
+          if (!res.ok) {
+            const errDetail = json && json.error ? json.error : `เซิร์ฟเวอร์ตอบกลับ Error Status ${res.status}`;
+            throw new Error(errDetail);
           }
+
+          if (!json) {
+            throw new Error('ไม่สามารถอ่านข้อมูลจากเซิร์ฟเวอร์ได้');
+          }
+          return json;
         });
       });
     }
