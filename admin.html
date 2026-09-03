@@ -237,6 +237,48 @@
       refreshAdminData();
     });
 
+    function showToastNotification(title, message, type = 'warning', duration = 8000) {
+      let container = document.getElementById('socnToastContainer');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'socnToastContainer';
+        container.style.cssText = 'position:fixed; top:24px; right:24px; z-index:99999999; display:flex; flex-direction:column; gap:10px; max-width:420px; width:calc(100vw - 48px); pointer-events:none;';
+        document.body.appendChild(container);
+      }
+
+      const toast = document.createElement('div');
+      const borderColor = type === 'success' ? '#10b981' : type === 'danger' ? '#ef4444' : type === 'info' ? '#3b82f6' : '#f59e0b';
+      toast.style.cssText = `
+        pointer-events:auto; background:#0d1b2a; color:#fff;
+        border-left:5px solid ${borderColor};
+        border-radius:14px; padding:14px 18px;
+        box-shadow:0 20px 40px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.1);
+        display:flex; align-items:flex-start; gap:12px;
+        transition:all 0.35s ease;
+      `;
+      
+      const icon = type === 'success' ? '✅' : type === 'danger' ? '❌' : type === 'info' ? 'ℹ️' : '🔔';
+
+      toast.innerHTML = `
+        <div style="font-size:1.3rem; line-height:1; flex-shrink:0;">${icon}</div>
+        <div style="flex:1;">
+          <div style="font-weight:800; font-size:0.92rem; color:#ffffff; margin-bottom:3px;">${title}</div>
+          <div style="font-size:0.82rem; color:#cbd5e1; line-height:1.4;">${message}</div>
+        </div>
+        <button style="background:transparent; border:none; color:#94a3b8; font-size:1.2rem; cursor:pointer; padding:0 0 0 8px; line-height:1;" onclick="this.parentElement.remove()">✕</button>
+      `;
+
+      container.appendChild(toast);
+
+      if (duration > 0) {
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateX(100%)';
+          setTimeout(() => toast.remove(), 350);
+        }, duration);
+      }
+    }
+
     function refreshAdminData() {
       fetchUsersFromApi();
       fetchAuditLogs();
@@ -253,7 +295,12 @@
             const newPendingCount = data.users.filter(u => u.status === 'pending_approval').length;
             if (lastPendingCount !== -1 && newPendingCount > lastPendingCount) {
               const latest = data.users[data.users.length - 1];
-              alert(`🔔 มีผู้ลงทะเบียนใหม่ส่งคำขอเข้ามา!\n\nชื่อผู้ใช้งาน: ${latest.name}\nอีเมล: ${latest.email}\n\nกรุณาเลือกสิทธิ์ (Role: Ground/Admin) และกดปุ่มอนุมัติสมาชิกได้เลยครับ`);
+              showToastNotification(
+                '🔔 มีผู้ลงทะเบียนใหม่ส่งคำขอเข้ามา!',
+                `<b>ชื่อผู้ใช้:</b> ${latest.name}<br><b>อีเมล:</b> ${latest.email}<br><span style="color:#f59e0b; margin-top:4px; display:inline-block;">กรุณาเลือกสิทธิ์ (Role) และกดปุ่มอนุมัติสมาชิก</span>`,
+                'warning',
+                10000
+              );
             }
             lastPendingCount = newPendingCount;
 
@@ -354,7 +401,7 @@
       .then(data => {
         if (data.success) {
           saveUsersDb(data.users);
-          alert(`✅ อนุมัติสมาชิกเรียบร้อยแล้ว (สิทธิ์: ${role})`);
+          showToastNotification('✅ อนุมัติสมาชิกสำเร็จ', `อนุมัติบัญชีเป็นสิทธิ์ <b>${role}</b> เรียบร้อยแล้ว`, 'success', 4000);
           renderUsersTable();
         }
       })
@@ -393,10 +440,10 @@
             if (window.AuthGuard) window.AuthGuard.saveUser(currUser);
           }
 
-          alert(`✅ เปลี่ยนสิทธิ์เป็น ${newRole} เรียบร้อยแล้ว!`);
+          showToastNotification('✅ เปลี่ยนสิทธิ์สำเร็จ', `อัปเดตสิทธิ์ผู้ใช้เป็น <b>${newRole}</b> เรียบร้อยแล้ว`, 'success', 4000);
           renderUsersTable();
         } else {
-          alert(`❌ ${data.error || 'เกิดข้อผิดพลาดในการเปลี่ยนสิทธิ์'}`);
+          showToastNotification('❌ เกิดข้อผิดพลาด', data.error || 'เกิดข้อผิดพลาดในการเปลี่ยนสิทธิ์', 'danger', 4000);
         }
       })
       .catch(() => {
