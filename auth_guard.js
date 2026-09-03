@@ -665,8 +665,61 @@
 
   function esc(s) { return s ? String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''; }
 
+  function injectResponsiveMobileStyles() {
+    if (document.getElementById('socnMobileResponsiveStyles')) return;
+    var style = document.createElement('style');
+    style.id = 'socnMobileResponsiveStyles';
+    style.innerHTML = `
+      html, body {
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      /* Mobile Navigation Bar Auto Wrapping & Overflow Fix */
+      @media (max-width: 992px) {
+        .top-nav, nav {
+          padding: 10px 14px !important;
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          gap: 8px !important;
+        }
+        .top-nav a.brand-title, nav a {
+          font-size: 0.92rem !important;
+          max-width: 100% !important;
+          word-break: break-word !important;
+        }
+        .user-profile-badge {
+          width: 100% !important;
+          margin-left: 0 !important;
+          justify-content: flex-start !important;
+          flex-wrap: wrap !important;
+          gap: 6px !important;
+          padding-top: 8px !important;
+          border-top: 1px solid rgba(255,255,255,0.12) !important;
+        }
+        .container-fluid {
+          padding-left: 12px !important;
+          padding-right: 12px !important;
+          max-width: 100% !important;
+        }
+      }
+
+      @media (max-width: 576px) {
+        .user-profile-badge button, .user-profile-badge a {
+          font-size: 0.75rem !important;
+          padding: 4px 8px !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   /* ─── Init ─── */
   function initAuthSystem() {
+    injectResponsiveMobileStyles();
     getUsersDatabase(); // Initialize local database
     var user = getStoredUser();
 
