@@ -7,12 +7,12 @@
     :root {
       --ink: #1a1d29;
       --ink-soft: #8a6a5c;
-      --line: #f6ddd2;
-      --bg: #fff9f6;
+      --line: #e2e8f0;
+      --bg: #f8fafc;
       --card: #ffffff;
-      --accent: #ee4d2d;
-      --accent2: #ff7a45;
-      --accent-soft: #fff1eb;
+      --accent: #2563eb;
+      --accent2: #3b82f6;
+      --accent-soft: #eff6ff;
       --green: #0f9d58;
       --green-bg: #e3f8ea;
       --red: #d0311d;
@@ -270,22 +270,22 @@
 
   <div class="app">
     
-    <!-- Header Banner & Controls -->
-    <header style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background:linear-gradient(120deg, #ee4d2d, #ff7a45); border-radius:14px; padding:16px 22px; color:#fff; box-shadow:0 8px 20px -8px rgba(238,77,45,.35); margin-bottom:14px;">
+    <!-- Header Banner & Controls (SOC Blue Theme) -->
+    <header style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background:linear-gradient(120deg, #0d1b2a, #1e293b); border-radius:14px; padding:16px 22px; color:#fff; box-shadow:0 8px 20px -8px rgba(13,27,42,.4); margin-bottom:14px;">
       <div>
         <h1 style="font-size:21px; margin:0 0 2px; font-weight:800; color:#fff;">📊 OB Backlog (OB BL) Dashboard</h1>
-        <div class="subtitle" id="subtitle">ระบบติดตามพัสดุค้าง OB Backlog และวิเคราะห์ตามทีม/ชั่วโมง</div>
+        <div class="subtitle" id="subtitle" style="color:#94a3b8;">ระบบติดตามพัสดุค้าง OB Backlog และวิเคราะห์ตามทีม/ชั่วโมง</div>
       </div>
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-        <button onclick="openGoogleSheetModal()" style="background:#059669; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i class="fa-solid fa-link"></i> Sync Google Sheet</button>
-        <select id="fileSelectDropdown" onchange="onFileDropdownChange(this.value)" style="padding:7px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.4); background:rgba(255,255,255,0.9); color:#1e293b; font-weight:700; font-size:13px; max-width:240px;">
+        <button onclick="openGoogleSheetModal()" style="background:#10b981; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i class="fa-solid fa-link"></i> Sync Google Sheet</button>
+        <select id="fileSelectDropdown" onchange="onFileDropdownChange(this.value)" style="padding:7px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:#1e293b; color:#ffffff; font-weight:700; font-size:13px; max-width:240px;">
           <option value="">-- เลือกไฟล์รายงาน OB BL --</option>
         </select>
         <button id="deleteFileBtn" onclick="deleteSelectedObBlFile()" style="background:#dc2626; color:#fff; font-weight:700; border:none; padding:8px 12px; border-radius:8px; font-size:12px;"><i class="fa-solid fa-trash"></i> ลบไฟล์ที่เลือก</button>
         <button onclick="document.getElementById('csvFileInput').click()" style="background:#2563eb; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i class="fa-solid fa-upload"></i> อัปโหลด CSV/Excel</button>
         <input type="file" id="csvFileInput" accept=".csv, .xlsx, .xls" style="display:none;" onchange="handleFileUpload(event)">
-        <button id="refreshBtn" onclick="forceRefresh()" style="background:#ffffff; color:#ee4d2d; font-weight:700; border:none; padding:8px 14px; border-radius:8px;">↻ Refresh</button>
-        <button id="exportBtn" class="export-btn" disabled style="background:linear-gradient(120deg, #1a1d29, #3a3f58); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;">⇩ Export Raw (CSV)</button>
+        <button id="refreshBtn" onclick="forceRefresh()" style="background:rgba(255,255,255,0.12); color:#ffffff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;">↻ Refresh</button>
+        <button id="exportBtn" class="export-btn" disabled style="background:#334155; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;">⇩ Export Raw (CSV)</button>
       </div>
     </header>
 
@@ -297,9 +297,9 @@
         <div class="truck-track">
           <div class="road-line"></div>
           <svg class="truck-svg" viewBox="0 0 96 60" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="16" width="50" height="26" rx="4" fill="#EE4D2D"/>
-            <path d="M52 22 L72 22 L84 34 L84 42 L52 42 Z" fill="#FF7A45"/>
-            <rect x="57" y="25" width="15" height="11" rx="2" fill="#FFE7DB"/>
+            <rect x="2" y="16" width="50" height="26" rx="4" fill="#2563eb"/>
+            <path d="M52 22 L72 22 L84 34 L84 42 L52 42 Z" fill="#3b82f6"/>
+            <rect x="57" y="25" width="15" height="11" rx="2" fill="#dbeafe"/>
             <g class="truck-wheel" style="transform-origin: 18px 46px;">
               <circle cx="18" cy="46" r="8" fill="#2b2b2b"/>
               <rect x="17" y="39.5" width="2" height="13" rx="1" fill="#8a8a8a"/>
@@ -704,7 +704,8 @@
     }
 
     function openGoogleSheetModal() {
-      const savedUrl = localStorage.getItem('socn_google_sheet_obbl_url') || localStorage.getItem('socn_google_sheet_url') || '';
+      // Use SAME localStorage key 'socn_google_sheet_url' as Skip Monitor
+      const savedUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || '';
       Swal.fire({
         title: '🔗 ดึงข้อมูลสดจาก Google Sheet / Apps Script',
         html: `
@@ -714,7 +715,7 @@
         showCancelButton: true,
         confirmButtonText: '⚡ ดึงข้อมูลทันที',
         cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#059669',
+        confirmButtonColor: '#10b981',
         preConfirm: () => {
           const url = document.getElementById('swal-gs-url').value.trim();
           if (!url) {
@@ -731,7 +732,9 @@
     }
 
     function syncGoogleSheetUrl(url) {
+      localStorage.setItem('socn_google_sheet_url', url);
       localStorage.setItem('socn_google_sheet_obbl_url', url);
+
       Swal.fire({
         title: 'กำลังเชื่อมต่อและดึงข้อมูล...',
         text: 'กรุณารอสักครู่ ระบบกำลังดึงข้อมูลสดจาก Google Sheet',
@@ -739,7 +742,8 @@
         didOpen: () => { Swal.showLoading(); }
       });
 
-      fetch('/api/sync-ob-bl', {
+      // Use SAME endpoint /api/sync-google-sheet as Skip Monitor
+      fetch('/api/sync-google-sheet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url })
@@ -750,11 +754,11 @@
           Swal.fire({
             icon: 'success',
             title: 'เชื่อมต่อข้อมูลสำเร็จ!',
-            text: `โหลดข้อมูลสำเร็จทั้งหมด ${(data.rows || []).length.toLocaleString()} แถว`,
+            text: `โหลดข้อมูลสดสำเร็จเรียบร้อย`,
             timer: 2000,
             showConfirmButton: false
           });
-          onData(data);
+          fetchObBlData();
           fetchFileList();
         } else {
           Swal.fire({
@@ -825,13 +829,7 @@
       colIndex = buildColumnIndex(rawHeaders);
 
       const missing = NEEDED_FIELDS.filter(f => colIndex[f] === -1);
-      if (missing.length > 0) {
-        onError({
-          message: 'ไม่พบคอลัมน์ที่ต้องใช้ในชีต OB BL แถว header: ' + missing.join(', ') +
-            '\nHeader ที่อ่านได้: ' + rawHeaders.join(' | ')
-        });
-        return;
-      }
+      // Resilient mode: proceed even if some optional columns are missing
 
       const dataRows = (data.rows || []).filter(r => r.some(c => (c || '').toString().trim() !== ''));
       allRecords = dataRows.map((r, rowIndex) => {

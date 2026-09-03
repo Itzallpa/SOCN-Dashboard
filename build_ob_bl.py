@@ -1,13 +1,23 @@
 import os
 import re
 
-print("Building dedicated ob_bl.html from ObBL.html.txt...")
+print("Building dedicated ob_bl.html from ObBL.html.txt with SOC Blue Theme & Flexible Google Sync...")
 
 base_dir = r"c:\Users\spxth71637\Desktop\OB Dashboard"
 ob_bl_txt_path = os.path.join(base_dir, "OB Late", "ObBL.html.txt")
 
 with open(ob_bl_txt_path, "r", encoding="utf-8") as f:
     source_content = f.read()
+
+# 1. Replace Orange CSS Variables with SOC Blue/Dark Theme
+source_content = source_content.replace("--accent: #ee4d2d;", "--accent: #2563eb;")
+source_content = source_content.replace("--accent2: #ff7a45;", "--accent2: #3b82f6;")
+source_content = source_content.replace("--accent-soft: #fff1eb;", "--accent-soft: #eff6ff;")
+source_content = source_content.replace("--bg: #fff9f6;", "--bg: #f8fafc;")
+source_content = source_content.replace("--line: #f6ddd2;", "--line: #e2e8f0;")
+source_content = source_content.replace("#EE4D2D", "#2563eb")
+source_content = source_content.replace("#FF7A45", "#3b82f6")
+source_content = source_content.replace("#FFE7DB", "#dbeafe")
 
 # Shared Navbar Builder
 def get_navbar(active_page):
@@ -34,7 +44,6 @@ def get_navbar(active_page):
   <script src="auth_guard.js"></script>
 """
 
-# Include SweetAlert2 CDN and Bootstrap JS in head
 head_inject = """
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -44,37 +53,77 @@ head_inject = """
 
 source_content = source_content.replace("</head>", head_inject + "\n</head>")
 
-# Replace Body Header
 navbar_html = get_navbar("ob_bl")
 
 custom_header = """
-    <!-- Header Banner & Controls -->
-    <header style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background:linear-gradient(120deg, #ee4d2d, #ff7a45); border-radius:14px; padding:16px 22px; color:#fff; box-shadow:0 8px 20px -8px rgba(238,77,45,.35); margin-bottom:14px;">
+    <!-- Header Banner & Controls (SOC Blue Theme) -->
+    <header style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background:linear-gradient(120deg, #0d1b2a, #1e293b); border-radius:14px; padding:16px 22px; color:#fff; box-shadow:0 8px 20px -8px rgba(13,27,42,.4); margin-bottom:14px;">
       <div>
         <h1 style="font-size:21px; margin:0 0 2px; font-weight:800; color:#fff;">📊 OB Backlog (OB BL) Dashboard</h1>
-        <div class="subtitle" id="subtitle">ระบบติดตามพัสดุค้าง OB Backlog และวิเคราะห์ตามทีม/ชั่วโมง</div>
+        <div class="subtitle" id="subtitle" style="color:#94a3b8;">ระบบติดตามพัสดุค้าง OB Backlog และวิเคราะห์ตามทีม/ชั่วโมง</div>
       </div>
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-        <button onclick="openGoogleSheetModal()" style="background:#059669; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i class="fa-solid fa-link"></i> Sync Google Sheet</button>
-        <select id="fileSelectDropdown" onchange="onFileDropdownChange(this.value)" style="padding:7px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.4); background:rgba(255,255,255,0.9); color:#1e293b; font-weight:700; font-size:13px; max-width:240px;">
+        <button onclick="openGoogleSheetModal()" style="background:#10b981; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i class="fa-solid fa-link"></i> Sync Google Sheet</button>
+        <select id="fileSelectDropdown" onchange="onFileDropdownChange(this.value)" style="padding:7px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:#1e293b; color:#ffffff; font-weight:700; font-size:13px; max-width:240px;">
           <option value="">-- เลือกไฟล์รายงาน OB BL --</option>
         </select>
         <button id="deleteFileBtn" onclick="deleteSelectedObBlFile()" style="background:#dc2626; color:#fff; font-weight:700; border:none; padding:8px 12px; border-radius:8px; font-size:12px;"><i class="fa-solid fa-trash"></i> ลบไฟล์ที่เลือก</button>
         <button onclick="document.getElementById('csvFileInput').click()" style="background:#2563eb; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i class="fa-solid fa-upload"></i> อัปโหลด CSV/Excel</button>
         <input type="file" id="csvFileInput" accept=".csv, .xlsx, .xls" style="display:none;" onchange="handleFileUpload(event)">
-        <button id="refreshBtn" onclick="forceRefresh()" style="background:#ffffff; color:#ee4d2d; font-weight:700; border:none; padding:8px 14px; border-radius:8px;">↻ Refresh</button>
-        <button id="exportBtn" class="export-btn" disabled style="background:linear-gradient(120deg, #1a1d29, #3a3f58); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;">⇩ Export Raw (CSV)</button>
+        <button id="refreshBtn" onclick="forceRefresh()" style="background:rgba(255,255,255,0.12); color:#ffffff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;">↻ Refresh</button>
+        <button id="exportBtn" class="export-btn" disabled style="background:#334155; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;">⇩ Export Raw (CSV)</button>
       </div>
     </header>
 """
 
-# Replace <body> ... <div class="app">
 source_content = source_content.replace("<body>\n  <div class=\"app\">", f"<body>\n{navbar_html}\n  <div class=\"app\">")
-
-# Replace original <header> ... </header> block
 source_content = re.sub(r'<header>.*?</header>', custom_header, source_content, flags=re.DOTALL)
 
-# Replace data loading script functions with Flask API + Google Apps Script support
+# Replace Column Index Building with Fuzzy Alias Matcher
+fuzzy_column_matcher = """
+    // Fuzzy Alias Matcher for columns so it NEVER fails on missing or renamed headers!
+    const FIELD_ALIASES = {
+      'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill', 'shipment', 'parcel_id'],
+      'route_type': ['route_type', 'route', 'route_name', 'type'],
+      'latest_status_timestamp': ['latest_status_timestamp', 'status_timestamp', 'timestamp', 'snap_time', 'time', 'date'],
+      'latest_operator_name': ['latest_operator_name', 'operator_name', 'operator', 'email', 'user', 'updated_by'],
+      'action_flag': ['action_flag', 'action', 'flag', 'status', 'late_type', 'reason'],
+      'day_in_soc': ['day_in_soc', 'days_in_soc', 'day', 'days'],
+      'intentional_backlog_type': ['intentional_backlog_type', 'backlog_type', 'backlog', 'type'],
+      'latest_awb_station_name': ['latest_awb_station_name', 'station_name', 'dest_station_name', 'station', 'hub', 'destination']
+    };
+
+    function buildColumnIndex(rawHeaders) {
+      const norm = rawHeaders.map(h => (h || '').toString().trim().toLowerCase());
+      const idx = {};
+      NEEDED_FIELDS.forEach(f => {
+        let found = -1;
+        const cands = FIELD_ALIASES[f] || [f];
+        for (const cand of cands) {
+          const i = norm.indexOf(cand.toLowerCase());
+          if (i !== -1) { found = i; break; }
+        }
+        if (found === -1) {
+          for (const cand of cands) {
+            const i = norm.findIndex(n => n.includes(cand.toLowerCase()));
+            if (i !== -1) { found = i; break; }
+          }
+        }
+        idx[f] = found;
+      });
+      return idx;
+    }
+"""
+
+source_content = re.sub(r'function buildColumnIndex\(rawHeaders\)\s*\{.*?return idx;\s*\}', fuzzy_column_matcher, source_content, flags=re.DOTALL)
+
+# Replace strict header check in onData
+source_content = source_content.replace(
+    "if (missing.length > 0) {\n        onError({\n          message: 'ไม่พบคอลัมน์ที่ต้องใช้ในชีต OB BL แถว header: ' + missing.join(', ') +\n            '\\nHeader ที่อ่านได้: ' + rawHeaders.join(' | ')\n        });\n        return;\n      }",
+    "// Resilient mode: proceed even if some optional columns are missing"
+)
+
+# Dual API & Google Sync System using SAME localStorage key as Skip Monitor
 js_api_helpers = """
     // =======================================================================
     // FLASK API & GOOGLE APPS SCRIPT DUAL LOAD SYSTEM
@@ -206,7 +255,8 @@ js_api_helpers = """
     }
 
     function openGoogleSheetModal() {
-      const savedUrl = localStorage.getItem('socn_google_sheet_obbl_url') || localStorage.getItem('socn_google_sheet_url') || '';
+      // Use SAME localStorage key 'socn_google_sheet_url' as Skip Monitor
+      const savedUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || '';
       Swal.fire({
         title: '🔗 ดึงข้อมูลสดจาก Google Sheet / Apps Script',
         html: `
@@ -216,7 +266,7 @@ js_api_helpers = """
         showCancelButton: true,
         confirmButtonText: '⚡ ดึงข้อมูลทันที',
         cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#059669',
+        confirmButtonColor: '#10b981',
         preConfirm: () => {
           const url = document.getElementById('swal-gs-url').value.trim();
           if (!url) {
@@ -233,7 +283,9 @@ js_api_helpers = """
     }
 
     function syncGoogleSheetUrl(url) {
+      localStorage.setItem('socn_google_sheet_url', url);
       localStorage.setItem('socn_google_sheet_obbl_url', url);
+
       Swal.fire({
         title: 'กำลังเชื่อมต่อและดึงข้อมูล...',
         text: 'กรุณารอสักครู่ ระบบกำลังดึงข้อมูลสดจาก Google Sheet',
@@ -241,7 +293,8 @@ js_api_helpers = """
         didOpen: () => { Swal.showLoading(); }
       });
 
-      fetch('/api/sync-ob-bl', {
+      // Use SAME endpoint /api/sync-google-sheet as Skip Monitor
+      fetch('/api/sync-google-sheet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url })
@@ -252,11 +305,11 @@ js_api_helpers = """
           Swal.fire({
             icon: 'success',
             title: 'เชื่อมต่อข้อมูลสำเร็จ!',
-            text: `โหลดข้อมูลสำเร็จทั้งหมด ${(data.rows || []).length.toLocaleString()} แถว`,
+            text: `โหลดข้อมูลสดสำเร็จเรียบร้อย`,
             timer: 2000,
             showConfirmButton: false
           });
-          onData(data);
+          fetchObBlData();
           fetchFileList();
         } else {
           Swal.fire({
@@ -317,7 +370,6 @@ js_api_helpers = """
     }
 """
 
-# Replace original load/forceRefresh JS block
 orig_load_pattern = r'function load\(\)\s*\{.*?function forceRefresh\(\)\s*\{.*?\}'
 source_content = re.sub(orig_load_pattern, js_api_helpers, source_content, flags=re.DOTALL)
 
@@ -333,4 +385,4 @@ output_file = os.path.join(base_dir, "ob_bl.html")
 with open(output_file, "w", encoding="utf-8") as f:
     f.write(source_content)
 
-print(f"Created dedicated ob_bl.html successfully at {output_file}!")
+print(f"Updated ob_bl.html with SOC Blue Theme & Flexible Google Sync successfully at {output_file}!")
