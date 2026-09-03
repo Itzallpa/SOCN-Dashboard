@@ -1,5 +1,5 @@
 /**
- * SOC Operations Control Center - One-Click Google Login & Create Username Auth System
+ * SOC Operations Control Center - Immediate Popup Auth System
  * Author: Antigravity AI
  */
 
@@ -29,7 +29,7 @@
     localStorage.removeItem('socn_last_active');
   }
 
-  /* ─── Inline Auth Modal ─── */
+  /* ─── Inline Auth Modal (Blocks Screen Immediately) ─── */
   function showAuthModal() {
     if (document.getElementById('socnAuthOverlay')) return;
 
@@ -38,8 +38,8 @@
     overlay.innerHTML = `
       <style>
         #socnAuthOverlay {
-          position:fixed; inset:0; z-index:999999;
-          background:rgba(13,27,42,0.92); backdrop-filter:blur(10px);
+          position:fixed; inset:0; z-index:99999999;
+          background:rgba(13,27,42,0.92); backdrop-filter:blur(8px);
           display:flex; align-items:center; justify-content:center;
           font-family:'Segoe UI',system-ui,sans-serif; padding:16px;
         }
@@ -265,8 +265,8 @@
 
   function esc(s) { return s ? String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''; }
 
-  /* ─── Init ─── */
-  document.addEventListener('DOMContentLoaded', function () {
+  /* ─── Init Execution (Executes immediately or upon DOM ready) ─── */
+  function initAuthSystem() {
     var user = getStoredUser();
 
     // Role guard: audit_logs.html is Admin-only
@@ -283,13 +283,20 @@
     }
 
     setupActivityListeners();
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAuthSystem);
+  } else {
+    initAuthSystem();
+  }
 
   /* ─── Public API ─── */
   window.AuthGuard = {
     getUser: getStoredUser,
     saveUser: saveStoredUser,
     logout: function () { doAutoLogout('ผู้ใช้งานกด Logout'); },
+    showModal: showAuthModal,
     extendSession: function () {
       resetIdleTimer();
       var w = document.getElementById('socnIdleWarn');
