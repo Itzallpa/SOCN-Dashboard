@@ -424,6 +424,9 @@
 
     function exportAuditLogsCSV() {
       if (!allLogs || allLogs.length === 0) return;
+      if (window.AuthGuard && window.AuthGuard.logExport) {
+        window.AuthGuard.logExport('SOCN_AUDIT_LOGS.csv', allLogs.length, 'ดาวน์โหลดรายงานประวัติ Audit Logs ทั้งหมด');
+      }
       let csv = '\uFEFFLog_ID,Timestamp,User_Email,User_Name,Role,Action,Details,IP_Address\n';
       allLogs.forEach(l => {
         csv += `"${l.id || ''}","${l.timestamp || ''}","${l.email || l.user_email || ''}","${l.name || ''}","${l.role || 'Ground'}","${l.action || ''}","${(l.details || '').replace(/"/g, '""')}","${l.ip || '127.0.0.1'}"\n`;
@@ -434,6 +437,8 @@
       link.href = url;
       link.download = `SOCN_AUDIT_LOGS_${new Date().toISOString().slice(0,10)}.csv`;
       link.click();
+
+      setTimeout(fetchAuditLogs, 800);
     }
 
     function escapeHtml(str) {

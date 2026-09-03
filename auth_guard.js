@@ -495,6 +495,32 @@
       }, { passive: true });
     });
     resetIdleTimer();
+    setupExportAndUploadTrackers();
+  }
+
+  function setupExportAndUploadTrackers() {
+    document.addEventListener('click', function (e) {
+      var target = e.target.closest('button, a');
+      if (!target) return;
+      
+      var text = (target.innerText || target.textContent || '').trim();
+      var onclickAttr = target.getAttribute('onclick') || '';
+      var hrefAttr = target.getAttribute('href') || '';
+
+      if (text.includes('Export') || text.includes('Download') || text.includes('ส่งออก') || text.includes('ดาวน์โหลด') || onclickAttr.toLowerCase().includes('export') || onclickAttr.toLowerCase().includes('download') || hrefAttr.includes('export') || hrefAttr.includes('download')) {
+        var pageName = location.pathname.split('/').pop() || 'index.html';
+        logExport(text || 'Data Export', null, `ดาวน์โหลด/ส่งออกข้อมูลจากหน้า ${pageName}`);
+      }
+    }, true);
+
+    document.addEventListener('change', function (e) {
+      var target = e.target;
+      if (target && target.type === 'file' && target.files && target.files.length > 0) {
+        var file = target.files[0];
+        var pageName = location.pathname.split('/').pop() || 'index.html';
+        logUpload(file.name, null, `อัปโหลดไฟล์ขนาด ${Math.round(file.size / 1024)} KB ในหน้า ${pageName}`);
+      }
+    }, true);
   }
 
   function logActivity(action, details) {

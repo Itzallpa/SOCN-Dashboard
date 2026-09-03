@@ -823,6 +823,9 @@ lh_trip_html = f"""<!DOCTYPE html>
 
     function exportExcelWithCharts() {{
       try {{
+        if (window.AuthGuard && window.AuthGuard.logExport) {{
+          window.AuthGuard.logExport('LH_Trip_Executive_Report.xls', 50, 'ส่งออกไฟล์ Excel รายงาน LH Trip & OB Late พร้อมกราฟ');
+        }}
         const c1Img = document.getElementById('pieStatusCanvas').toDataURL('image/png');
         const c2Img = document.getElementById('pieVehicleCanvas').toDataURL('image/png');
         const c3Img = document.getElementById('pieOnTimeCanvas').toDataURL('image/png');
@@ -927,6 +930,9 @@ lh_trip_html = f"""<!DOCTYPE html>
     }}
 
     function exportDashboardSummaryCSV() {{
+      if (window.AuthGuard && window.AuthGuard.logExport) {{
+        window.AuthGuard.logExport('LH_TRIP_DASHBOARD_SUMMARY_TOP_50.csv', 50, 'ดาวน์โหลดรายงานสรุป Top 50 LH Late & OB Late');
+      }}
       let csv = '\\uFEFF=== LH TRIP DASHBOARD EXECUTIVE SUMMARY REPORT (TOP 50) ===\\n\\n';
       csv += 'KPI SUMMARY\\n';
       csv += 'Total Trips,On Time,Late,On-Time Rate\\n';
@@ -954,6 +960,9 @@ lh_trip_html = f"""<!DOCTYPE html>
     function exportFullRawDataCSV() {{
       if (!rawTripRecords || rawTripRecords.length === 0) {{
         rawTripRecords = VERIFIED_REAL_1305_TRIP_ROWS;
+      }}
+      if (window.AuthGuard && window.AuthGuard.logExport) {{
+        window.AuthGuard.logExport('LH_Trip_Full_RawData.csv', rawTripRecords.length, 'ดาวน์โหลดข้อมูลดิบ LH Trip เที่ยวรถทั้งหมด');
       }}
       let csvContent = '\\uFEFFNo,LH_Trip_Number,Trip_Category,Vehicle_Type,Vehicle_Plate,Driver,Origin,Destination,Cut_0,Cut_1,Cut_2,Cut_3,Actual_Dep_Cut,Status\\n';
       rawTripRecords.forEach((r, idx) => {{
