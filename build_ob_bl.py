@@ -1,7 +1,7 @@
 import os
 import re
 
-print("Building dedicated ob_bl.html from ObBL.html.txt with Intelligent Resilient Filter...")
+print("Building dedicated ob_bl.html from ObBL.html.txt with Skip Monitor Logic & Restored lookupTeam...")
 
 base_dir = r"c:\Users\spxth71637\Desktop\OB Dashboard"
 ob_bl_txt_path = os.path.join(base_dir, "OB Late", "ObBL.html.txt")
@@ -86,11 +86,11 @@ fuzzy_column_matcher = """
       'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill', 'shipment', 'parcel_id'],
       'route_type': ['route_type', 'route', 'route_name', 'type'],
       'latest_status_timestamp': ['latest_status_timestamp', 'status_timestamp', 'timestamp', 'snap_time', 'time', 'date'],
-      'latest_operator_name': ['latest_operator_name', 'operator_name', 'operator', 'email', 'user', 'updated_by'],
-      'action_flag': ['action_flag', 'action', 'flag', 'status', 'late_type', 'reason'],
+      'latest_operator_name': ['latest_operator_name', 'operator_name', 'operator', 'email', 'user', 'updated_by', 'recieve_team', 'team'],
+      'action_flag': ['action_flag', 'action', 'flag', 'status', 'late_type', 'reason', 'soc_outbound_late_type_2nd_cutoff'],
       'day_in_soc': ['day_in_soc', 'days_in_soc', 'day', 'days'],
       'intentional_backlog_type': ['intentional_backlog_type', 'backlog_type', 'backlog', 'type'],
-      'latest_awb_station_name': ['latest_awb_station_name', 'station_name', 'dest_station_name', 'station', 'hub', 'destination']
+      'latest_awb_station_name': ['latest_awb_station_name', 'dest_station_name', 'dest_station', 'station_name', 'station', 'hub', 'destination']
     };
 
     function buildColumnIndex(rawHeaders) {
@@ -123,7 +123,7 @@ source_content = source_content.replace(
     "// Resilient mode: proceed even if some optional columns are missing"
 )
 
-# Resilient Action Flag Normalizer & Resilient isOBBL
+# Resilient Action Flag Normalizer, lookupTeam, and isOBBL (Skip Monitor Logic)
 resilient_is_obbl = """
     function normalizeActionFlag(v) {
       const raw = (v === null || v === undefined) ? '' : String(v).trim();
@@ -146,13 +146,33 @@ resilient_is_obbl = """
       return raw;
     }
 
+    function normalizeOperator(v) {
+      return (v === null || v === undefined ? '' : String(v)).trim().toLowerCase();
+    }
+
+    // Skip Monitor Team / Zone Matching Logic
+    function lookupTeam(v) {
+      if (!v) return '(blank)';
+      const norm = normalizeOperator(v);
+      if (typeof OPERATOR_TEAM_MAP !== 'undefined' && Object.prototype.hasOwnProperty.call(OPERATOR_TEAM_MAP, norm)) {
+        return OPERATOR_TEAM_MAP[norm];
+      }
+      const upper = String(v).trim().toUpperCase();
+      if (upper.includes('INTER')) return 'INTERSOC';
+      if (upper.includes('RET')) return 'RETURN';
+      if (upper.includes('A')) return 'Zone A';
+      if (upper.includes('B')) return 'Zone B';
+      if (upper.includes('C')) return 'Zone C';
+      return String(v).trim() || 'Unknown';
+    }
+
+    // Skip Monitor & OB BL Filter Logic
     function isOBBL(rec) {
       const af = normalizeActionFlag(rec.action_flag);
-      // If action_flag has a value, check match
       if (af && OB_ACTIONS.indexOf(af) === -1) {
         const afLower = af.toLowerCase();
         const matchesOb = OB_ACTIONS.some(a => a.toLowerCase().includes(afLower) || afLower.includes(a.toLowerCase())) ||
-                          afLower.includes('packed') || afLower.includes('linehual') || afLower.includes('linehaul') || afLower.includes('rework') || afLower.includes('pending');
+                          afLower.includes('packed') || afLower.includes('linehual') || afLower.includes('linehaul') || afLower.includes('rework') || afLower.includes('pending') || afLower.includes('skip');
         if (!matchesOb) return false;
       }
 
@@ -499,4 +519,4 @@ output_file = os.path.join(base_dir, "ob_bl.html")
 with open(output_file, "w", encoding="utf-8") as f:
     f.write(source_content)
 
-print(f"Updated ob_bl.html with Intelligent Resilient Filter successfully at {output_file}!")
+print(f"Updated ob_bl.html with restored lookupTeam and Skip Monitor logic successfully at {output_file}!")

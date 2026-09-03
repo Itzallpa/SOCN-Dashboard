@@ -474,13 +474,33 @@
       return raw;
     }
 
+    function normalizeOperator(v) {
+      return (v === null || v === undefined ? '' : String(v)).trim().toLowerCase();
+    }
+
+    // Skip Monitor Team / Zone Matching Logic
+    function lookupTeam(v) {
+      if (!v) return '(blank)';
+      const norm = normalizeOperator(v);
+      if (typeof OPERATOR_TEAM_MAP !== 'undefined' && Object.prototype.hasOwnProperty.call(OPERATOR_TEAM_MAP, norm)) {
+        return OPERATOR_TEAM_MAP[norm];
+      }
+      const upper = String(v).trim().toUpperCase();
+      if (upper.includes('INTER')) return 'INTERSOC';
+      if (upper.includes('RET')) return 'RETURN';
+      if (upper.includes('A')) return 'Zone A';
+      if (upper.includes('B')) return 'Zone B';
+      if (upper.includes('C')) return 'Zone C';
+      return String(v).trim() || 'Unknown';
+    }
+
+    // Skip Monitor & OB BL Filter Logic
     function isOBBL(rec) {
       const af = normalizeActionFlag(rec.action_flag);
-      // If action_flag has a value, check match
       if (af && OB_ACTIONS.indexOf(af) === -1) {
         const afLower = af.toLowerCase();
         const matchesOb = OB_ACTIONS.some(a => a.toLowerCase().includes(afLower) || afLower.includes(a.toLowerCase())) ||
-                          afLower.includes('packed') || afLower.includes('linehual') || afLower.includes('linehaul') || afLower.includes('rework') || afLower.includes('pending');
+                          afLower.includes('packed') || afLower.includes('linehual') || afLower.includes('linehaul') || afLower.includes('rework') || afLower.includes('pending') || afLower.includes('skip');
         if (!matchesOb) return false;
       }
 

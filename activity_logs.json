@@ -1,5 +1,25 @@
 [
   {
+    "id": "6dd41a59",
+    "timestamp": "2026-09-03 23:56:26",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as admin@spxexpress.com (Role: Admin)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "233e1348",
+    "timestamp": "2026-09-03 23:56:26",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "ip": "127.0.0.1"
+  },
+  {
     "id": "146f36c3",
     "timestamp": "2026-09-03 23:54:16",
     "email": "admin@spxexpress.com",
