@@ -1295,20 +1295,90 @@ def lh_trip_page():
 def index_page():
     return send_from_directory(BASE_DIR, "index.html")
 
+@app.route("/api/auth/login", methods=["POST"])
+def auth_login():
+    req = request.get_json(silent=True) or {}
+    email = (req.get("email") or "").strip().lower()
+    name = (req.get("name") or "").strip()
+    role = (req.get("role") or "").strip().title()
+
+    if not email:
+        return jsonify({"success": False, "error": "Google Email is required"}), 400
+
+    if role not in ["Ground", "Admin"]:
+        role = "Ground"
+
+    if not name:
+        name = email.split("@")[0].replace(".", " ").title()
+
+    session["user_email"] = email
+    session["user_name"] = name
+    session["user_role"] = role
+    session["user_picture"] = f"https://ui-avatars.com/api/?name={name.replace(' ', '+')}&background=0d1b2a&color=fff"
+
+    entry = log_activity("LOGIN", f"Signed in via Google/Gmail as {email} (Role: {role})", user_email=email, user_name=name)
+
+    return jsonify({
+        "success": True,
+        "message": f"Welcome {name}! Authenticated as {role}.",
+        "user": {
+            "email": email,
+            "name": name,
+            "role": role,
+            "picture": session["user_picture"]
+        }
+    })
+
+@app.route("/api/auth/logout", methods=["GET", "POST"])
+def auth_logout():
+    email = session.get("user_email", "guest")
+    name = session.get("user_name", "User")
+    if "user_email" in session:
+        log_activity("LOGOUT", f"User logged out ({email})", user_email=email, user_name=name)
+    session.clear()
+    return jsonify({"success": True, "message": "Successfully logged out"})
+
+@app.route("/api/auth/session", methods=["GET"])
+def auth_session():
+    if "user_email" in session:
+        return jsonify({
+            "authenticated": True,
+            "user": {
+                "email": session["user_email"],
+                "name": session.get("user_name", session["user_email"].split("@")[0].title()),
+                "role": session.get("user_role", "Ground"),
+                "picture": session.get("user_picture", "")
+            }
+        })
+    return jsonify({"authenticated": False, "user": None})
+
 @app.route("/login")
+@app.route("/login.html")
 def login_page():
     return send_from_directory(BASE_DIR, "login.html")
 
 @app.route("/logout", methods=["GET", "POST"])
 def logout():
+    email = session.get("user_email", "guest")
+    name = session.get("user_name", "User")
+    if "user_email" in session:
+        log_activity("LOGOUT", f"User logged out ({email})", user_email=email, user_name=name)
     session.clear()
-    return redirect("/")
+    return redirect("/login.html")
+
+@app.route("/audit_logs.html")
+@app.route("/audit-logs")
+@app.route("/admin/logs")
+def admin_logs_page():
+    log_activity("VIEW_AUDIT_LOGS", "Accessed Admin Audit Logs Dashboard")
+    return send_from_directory(BASE_DIR, "audit_logs.html")
 
 @app.route("/api/activity-logs", methods=["GET"])
 def get_activity_logs():
     logs = load_activity_logs()
     search = request.args.get("search", "").strip().lower()
     action = request.args.get("action", "").strip().upper()
+    role = request.args.get("role", "").strip().upper()
     
     if search:
         logs = [
@@ -1320,12 +1390,15 @@ def get_activity_logs():
         ]
     
     if action and action != "ALL":
-        logs = [l for l in logs if l.get("action", "").upper() == action]
+        logs = [l for l in logs if action.lower() in l.get("action", "").lower()]
+
+    if role and role != "ALL":
+        logs = [l for l in logs if l.get("role", "Ground").upper() == role]
 
     return jsonify({
         "success": True,
         "total": len(logs),
-        "logs": logs[:500] # Top 500 recent
+        "logs": logs[:500]
     })
 
 @app.route("/api/log-client-activity", methods=["POST"])
@@ -1333,7 +1406,9 @@ def log_client_activity():
     req = request.get_json(silent=True) or {}
     action = req.get("action", "CLIENT_ACTION").upper()
     details = req.get("details", "User interacted with UI")
-    entry = log_activity(action, details)
+    user_email = req.get("user_email") or session.get("user_email")
+    user_name = req.get("user_name") or session.get("user_name")
+    entry = log_activity(action, details, user_email=user_email, user_name=user_name)
     return jsonify({"success": True, "entry": entry})
 
 @app.route("/api/activity-logs/export", methods=["GET"])
@@ -1341,9 +1416,9 @@ def export_activity_logs():
     logs = load_activity_logs()
     si = io.StringIO()
     cw = csv.writer(si)
-    cw.writerow(["Log ID", "Timestamp", "User Email", "User Name", "Action", "Details", "IP Address"])
+    cw.writerow(["Log ID", "Timestamp", "User Email", "User Name", "Role", "Action", "Details", "IP Address"])
     for l in logs:
-        cw.writerow([l.get("id"), l.get("timestamp"), l.get("email"), l.get("name"), l.get("action"), l.get("details"), l.get("ip")])
+        cw.writerow([l.get("id"), l.get("timestamp"), l.get("email"), l.get("name"), l.get("role", "Ground"), l.get("action"), l.get("details"), l.get("ip")])
     
     output = io.BytesIO(si.getvalue().encode('utf-8-sig'))
     return send_from_directory(
@@ -1353,11 +1428,6 @@ def export_activity_logs():
         download_name=f"SOCN_Activity_Logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
         mimetype="text/csv"
     )
-
-@app.route("/admin/logs")
-def admin_logs_page():
-    log_activity("VIEW_ADMIN_LOGS", "Accessed Admin Activity Logs Dashboard")
-    return send_from_directory(BASE_DIR, "admin_logs.html")
 
 @app.route("/investigation")
 def investigation_page():

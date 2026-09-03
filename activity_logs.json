@@ -1,5 +1,68 @@
 [
   {
+    "id": "ac28d81e",
+    "timestamp": "2026-09-03 18:24:59",
+    "email": "admin.manager@spxexpress.com",
+    "name": "SOC Admin Manager",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as admin.manager@spxexpress.com (Role: Admin)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "d3e05e50",
+    "timestamp": "2026-09-03 18:24:31",
+    "email": "admin.manager@spxexpress.com",
+    "name": "SOC Admin Manager",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as admin.manager@spxexpress.com (Role: Admin)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "e2d5fa9f",
+    "timestamp": "2026-09-03 18:22:55",
+    "email": "admin.manager@spxexpress.com",
+    "name": "SOC Admin Manager",
+    "action": "LOGOUT",
+    "details": "User logged out (admin.manager@spxexpress.com)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "c2c5fd4a",
+    "timestamp": "2026-09-03 18:22:55",
+    "email": "admin.manager@spxexpress.com",
+    "name": "SOC Admin Manager",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as admin.manager@spxexpress.com (Role: Admin)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "cef660aa",
+    "timestamp": "2026-09-03 18:22:55",
+    "email": "operator.ground@spxexpress.com",
+    "name": "Ground Operator",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as operator.ground@spxexpress.com (Role: Ground)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "8ab65060",
+    "timestamp": "2026-09-03 18:22:47",
+    "email": "admin@spx.co.th",
+    "name": "SOC Manager",
+    "action": "VIEW_AUDIT_LOGS",
+    "details": "Accessed Admin Audit Logs Dashboard",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "6afea229",
+    "timestamp": "2026-09-03 18:22:25",
+    "email": "admin@spx.co.th",
+    "name": "SOC Manager",
+    "action": "VIEW_AUDIT_LOGS",
+    "details": "Accessed Admin Audit Logs Dashboard",
+    "ip": "127.0.0.1"
+  },
+  {
     "id": "9ea0a6b3",
     "timestamp": "2026-09-03 14:49:10",
     "email": "admin@spx.co.th",
