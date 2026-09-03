@@ -238,8 +238,23 @@
     });
 
     function refreshAdminData() {
-      renderUsersTable();
+      fetchUsersFromApi();
       fetchAuditLogs();
+    }
+
+    let cachedUsersList = [];
+
+    function fetchUsersFromApi() {
+      fetch('/api/users')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.users) {
+            cachedUsersList = data.users;
+            localStorage.setItem('socn_user_db', JSON.stringify(data.users));
+            renderUsersTable();
+          }
+        })
+        .catch(() => renderUsersTable());
     }
 
     function getUsersDb() {
@@ -251,7 +266,7 @@
           return parsed;
         }
       } catch (e) {}
-      return [];
+      return cachedUsersList;
     }
 
     function saveUsersDb(db) {
@@ -303,7 +318,7 @@
 
         return `
         <tr class="${isPending ? 'table-warning' : ''}">
-          <td class="font-monospace small">${u.id}</td>
+          <td class="font-monospace small text-muted">${u.id}</td>
           <td class="fw-bold text-dark">${escapeHtml(u.name)}</td>
           <td>${escapeHtml(u.email)}</td>
           <td class="small text-muted">${u.createdAt || '-'}</td>
@@ -315,19 +330,32 @@
     }
 
     function approveUserInDashboard(userId) {
-      const db = getUsersDb();
-      const target = db.find(u => u.id === userId);
-      if (!target) return;
-
       const sel = document.getElementById(`tableRoleSelect_${userId}`);
       const role = sel ? sel.value : 'Ground';
 
-      target.status = 'approved';
-      target.role = role;
-
-      saveUsersDb(db);
-      alert(`✅ อนุมัติสมาชิก ${target.name} เป็นสิทธิ์ ${role} สำเร็จ!`);
-      renderUsersTable();
+      fetch('/api/users/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: userId, role: role })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          saveUsersDb(data.users);
+          alert(`✅ อนุมัติสมาชิกเรียบร้อยแล้ว (สิทธิ์: ${role})`);
+          renderUsersTable();
+        }
+      })
+      .catch(() => {
+        const db = getUsersDb();
+        const target = db.find(u => u.id === userId);
+        if (target) {
+          target.status = 'approved';
+          target.role = role;
+          saveUsersDb(db);
+          renderUsersTable();
+        }
+      });
     }
 
     function changeUserRoleInDashboard(userId, newRole) {

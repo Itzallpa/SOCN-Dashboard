@@ -188,26 +188,44 @@
     const userInput = (document.getElementById('loginUserField').value || '').trim().toLowerCase();
     const passInput = (document.getElementById('loginPassField').value || '').trim();
 
-    const db = getUsersDatabase();
-    const foundUser = db.find(u => 
-      (u.name.toLowerCase() === userInput || u.email.toLowerCase() === userInput) && u.pass === passInput
-    );
-
-    if (!foundUser) {
-      alert('❌ ไม่พบบัญชีผู้ใช้ หรือ รหัสผ่านไม่ถูกต้อง\nกรุณาลงทะเบียนใหม่ที่แท็บ "ลงทะเบียนใหม่"');
-      return;
-    }
-
-    if (foundUser.status === 'pending_approval') {
-      alert(`⏳ บัญชีของคุณกำลังอยู่ระหว่างรอ Admin อนุมัติสิทธิ์ (Pending Approval)\n\nกรุณาติดต่อ Admin เพื่อตรวจสอบ เลือก Role (Ground/Admin) และกดอนุมัติให้บัญชีของคุณก่อนครับ`);
-      return;
-    }
-
-    finalizeLogin({
-      name: foundUser.name,
-      email: foundUser.email,
-      role: foundUser.role,
-      picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(foundUser.name)}&background=0d1b2a&color=fff`
+    fetch('/api/users/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: userInput, pass: passInput })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success && data.user) {
+        finalizeLogin({
+          name: data.user.name,
+          email: data.user.email,
+          role: data.user.role,
+          picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.name)}&background=0d1b2a&color=fff`
+        });
+      } else {
+        alert(`❌ ${data.error || 'ไม่สามารถเข้าสู่ระบบได้'}`);
+      }
+    })
+    .catch(() => {
+      // Fallback to local DB if backend offline
+      const db = getUsersDatabase();
+      const foundUser = db.find(u => 
+        (u.name.toLowerCase() === userInput || u.email.toLowerCase() === userInput) && u.pass === passInput
+      );
+      if (!foundUser) {
+        alert('❌ ไม่พบบัญชีผู้ใช้ หรือ รหัสผ่านไม่ถูกต้อง');
+        return;
+      }
+      if (foundUser.status === 'pending_approval') {
+        alert('⏳ บัญชีของคุณกำลังอยู่ระหว่างรอ Admin อนุมัติสิทธิ์ (Pending Approval)');
+        return;
+      }
+      finalizeLogin({
+        name: foundUser.name,
+        email: foundUser.email,
+        role: foundUser.role,
+        picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(foundUser.name)}&background=0d1b2a&color=fff`
+      });
     });
   }
 
@@ -223,33 +241,38 @@
       return;
     }
 
-    const db = getUsersDatabase();
-    const existing = db.find(u => u.email.toLowerCase() === email || u.name.toLowerCase() === name.toLowerCase());
-
-    if (existing) {
-      alert('⚠️ ชื่อผู้ใช้หรืออีเมลนี้ถูกลงทะเบียนไว้แล้ว กรุณาใช้แท็บ "เข้าสู่ระบบ"');
+    fetch('/api/users/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, email: email, pass: pass })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        if (data.users) saveUsersDatabase(data.users);
+        alert(`✅ ส่งคำขอลงทะเบียนสำเร็จ!\n\nคำขอของคุณถูกบันทึกปลอดภัยในเซิร์ฟเวอร์เรียบร้อยแล้ว กรุณาแจ้ง Admin เพื่อเลือกสิทธิ์และอนุมัติบัญชีของคุณก่อนเข้าใช้งานครับ`);
+        switchTab('login');
+        renderProfileBadge();
+      } else {
+        alert(`⚠️ ${data.error || 'เกิดข้อผิดพลาดในการลงทะเบียน'}`);
+      }
+    })
+    .catch(() => {
+      const db = getUsersDatabase();
+      const existing = db.find(u => u.email.toLowerCase() === email || u.name.toLowerCase() === name.toLowerCase());
+      if (existing) {
+        alert('⚠️ ชื่อผู้ใช้หรืออีเมลนี้ถูกลงทะเบียนไว้แล้ว');
+        switchTab('login');
+        return;
+      }
+      const nowStr = new Date().toLocaleString('th-TH');
+      const newUser = { id: 'u_' + Date.now(), name: name, email: email, pass: pass, role: 'Pending', status: 'pending_approval', createdAt: nowStr };
+      db.push(newUser);
+      saveUsersDatabase(db);
+      alert(`✅ ส่งคำขอลงทะเบียนสำเร็จ!`);
       switchTab('login');
-      return;
-    }
-
-    const nowStr = new Date().toLocaleString('th-TH');
-    const newUser = { 
-      id: 'u_' + Date.now(),
-      name: name, 
-      email: email, 
-      pass: pass, 
-      role: 'Pending', 
-      status: 'pending_approval',
-      createdAt: nowStr 
-    };
-
-    db.push(newUser);
-    saveUsersDatabase(db);
-
-    alert(`✅ ส่งคำขอลงทะเบียนสำเร็จ!\n\nคำขอของคุณถูกบันทึกแล้ว กรุณาแจ้ง Admin เพื่อให้กดเลือกสิทธิ์ (Role: Ground/Admin) และอนุมัติบัญชีของคุณก่อนเริ่มเข้าใช้งานครับ`);
-
-    switchTab('login');
-    renderProfileBadge();
+      renderProfileBadge();
+    });
   }
 
   function finalizeLogin(user) {

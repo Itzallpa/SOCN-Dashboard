@@ -31,6 +31,45 @@ def load_activity_logs():
             pass
     return []
 
+USERS_FILE = os.path.join(BASE_DIR, "users_db.json")
+
+def load_users_db():
+    if os.path.exists(USERS_FILE):
+        try:
+            with open(USERS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    default_users = [
+        {
+            "id": "u1",
+            "name": "Admin SOC",
+            "email": "admin@spxexpress.com",
+            "pass": "1234",
+            "role": "Admin",
+            "status": "approved",
+            "createdAt": "2026-09-03 00:00:00"
+        },
+        {
+            "id": "u2",
+            "name": "Ground Operator",
+            "email": "ground@spxexpress.com",
+            "pass": "1234",
+            "role": "Ground",
+            "status": "approved",
+            "createdAt": "2026-09-03 00:00:00"
+        }
+    ]
+    save_users_db(default_users)
+    return default_users
+
+def save_users_db(users):
+    try:
+        with open(USERS_FILE, "w", encoding="utf-8") as f:
+            json.dump(users, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("Error saving users db:", e)
+
 def save_activity_logs(logs):
     try:
         with open(LOGS_FILE, "w", encoding="utf-8") as f:
@@ -109,6 +148,114 @@ def build_cutoff_map():
         except Exception:
             pass
     return cutoff_map
+
+
+@app.route("/api/users", methods=["GET"])
+def get_users_api():
+    return jsonify({"success": True, "users": load_users_db()})
+
+@app.route("/api/users/signup", methods=["POST"])
+def signup_user_api():
+    data = request.get_json() or {}
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    password = (data.get("pass") or "").strip()
+
+    if not name or not email or not password:
+        return jsonify({"success": False, "error": "กรุณากรอกข้อมูลให้ครบถ้วน"}), 400
+
+    users = load_users_db()
+    for u in users:
+        if u.get("email", "").lower() == email:
+            return jsonify({"success": False, "error": "อีเมลนี้ถูกลงทะเบียนไว้แล้ว"}), 400
+
+    new_user = {
+        "id": "u_" + str(int(datetime.now().timestamp() * 1000)),
+        "name": name,
+        "email": email,
+        "pass": password,
+        "role": "Ground",
+        "status": "pending_approval",
+        "createdAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    users.append(new_user)
+    save_users_db(users)
+
+    log_activity("USER_SIGNUP", f"ลงทะเบียนผู้ใช้งานใหม่: {name} ({email}) - รอ Admin อนุมัติ", user_email=email, user_name=name, user_role="Ground")
+    return jsonify({"success": True, "user": new_user, "users": users})
+
+@app.route("/api/users/approve", methods=["POST"])
+def approve_user_api():
+    data = request.get_json() or {}
+    user_id = data.get("id")
+    role = data.get("role", "Ground")
+
+    users = load_users_db()
+    target = next((u for u in users if u.get("id") == user_id), None)
+    if not target:
+        return jsonify({"success": False, "error": "ไม่พบสมาชิก"}), 404
+
+    target["status"] = "approved"
+    target["role"] = role
+    save_users_db(users)
+
+    log_activity("USER_APPROVAL", f"อนุมัติบัญชี {target.get('name')} ({target.get('email')}) เป็นสิทธิ์ {role}")
+    return jsonify({"success": True, "user": target, "users": users})
+
+@app.route("/api/users/role", methods=["POST"])
+def change_role_user_api():
+    data = request.get_json() or {}
+    user_id = data.get("id")
+    role = data.get("role")
+
+    users = load_users_db()
+    target = next((u for u in users if u.get("id") == user_id), None)
+    if not target:
+        return jsonify({"success": False, "error": "ไม่พบสมาชิก"}), 404
+
+    old_role = target.get("role")
+    target["role"] = role
+    save_users_db(users)
+
+    log_activity("USER_ROLE_CHANGE", f"เปลี่ยนสิทธิ์ {target.get('name')} จาก {old_role} เป็น {role}")
+    return jsonify({"success": True, "user": target, "users": users})
+
+@app.route("/api/users/delete", methods=["POST"])
+def delete_user_api():
+    data = request.get_json() or {}
+    user_id = data.get("id")
+
+    users = load_users_db()
+    users = [u for u in users if u.get("id") != user_id]
+    save_users_db(users)
+
+    log_activity("USER_DELETE", f"ลบผู้ใช้งาน ID: {user_id}")
+    return jsonify({"success": True, "users": users})
+
+@app.route("/api/users/login", methods=["POST"])
+def login_user_api():
+    data = request.get_json() or {}
+    email = (data.get("email") or "").strip().lower()
+    password = (data.get("pass") or "").strip()
+
+    users = load_users_db()
+    matched = next((u for u in users if u.get("email", "").lower() == email or u.get("name", "").lower() == email.lower()), None)
+
+    if not matched:
+        return jsonify({"success": False, "error": "ไม่พบชื่อผู้ใช้งานหรืออีเมลนี้ในระบบ"}), 400
+
+    if matched.get("pass") != password:
+        return jsonify({"success": False, "error": "รหัสผ่านไม่ถูกต้อง"}), 400
+
+    if matched.get("status") == "pending_approval":
+        return jsonify({"success": False, "error": "บัญชีของคุณอยู่ระหว่างรออนุมัติสิทธิ์จาก Admin"}), 403
+
+    session["user_email"] = matched.get("email")
+    session["user_name"] = matched.get("name")
+    session["user_role"] = matched.get("role")
+
+    log_activity("USER_LOGIN", f"เข้าสู่ระบบสำเร็จในฐานะ {matched.get('role')}", user_email=matched.get("email"), user_name=matched.get("name"), user_role=matched.get("role"))
+    return jsonify({"success": True, "user": matched})
 
 
 def read_dataframe(filepath):
