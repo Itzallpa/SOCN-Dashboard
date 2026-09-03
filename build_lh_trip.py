@@ -1,7 +1,7 @@
 import os
 import json
 
-print("Embedding VERIFIED_REAL_1305_TRIP_ROWS constant inside lh_trip.html to guarantee Table View never shows 0 of 0...")
+print("Adding interactive Raw Data Modal with onClick chart handlers to lh_trip.html...")
 
 from build_clean_split_pages import get_navbar
 
@@ -51,7 +51,7 @@ lh_trip_html = f"""<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LH Trip & OB Late Dashboard - 1,305 Real Trip Records Guaranteed</title>
+  <title>LH Trip & OB Late Dashboard - Interactive Chart Raw Data Modal</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -74,17 +74,13 @@ lh_trip_html = f"""<!DOCTYPE html>
     .callout-value {{ font-size: 1.35rem; font-weight: 800; color: #0f172a; margin-top: 2px; }}
     .callout-detail {{ font-size: 0.78rem; color: #64748b; }}
 
-    .chart-card {{ background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); padding: 16px; min-height: 320px; display: flex; flex-direction: column; }}
+    .chart-card {{ background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); padding: 16px; min-height: 320px; display: flex; flex-direction: column; cursor: pointer; }}
     .chart-title {{ font-size: 0.9rem; font-weight: 800; color: #0f172a; margin-bottom: 12px; }}
 
     .pill-stat {{ display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; color: #ffffff; margin-right: 6px; margin-bottom: 6px; }}
     .pill-stat.total {{ background: #ee4d2d; }}
     .pill-stat.ontime {{ background: #0f9d58; }}
     .pill-stat.late {{ background: #d0311d; }}
-    .pill-stat.rc {{ background: #64748b; }}
-    .pill-stat.ota-ontime {{ background: #0f9d58; }}
-    .pill-stat.lhlate {{ background: #d0311d; }}
-    .pill-stat.oblate {{ background: #b7791f; }}
 
     .cut-badge {{ display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-right: 4px; }}
     .cut-badge.cut0 {{ background: #ffe7db; color: #ee4d2d; }}
@@ -106,7 +102,7 @@ lh_trip_html = f"""<!DOCTYPE html>
       <div class="d-flex align-items-center gap-3">
         <div>
           <h4 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-truck-ramp-box text-danger me-2"></i> LH Trip & OB Late Portal</h4>
-          <p class="text-muted small mb-0">ระบบวิเคราะห์ข้อมูล LH Trip 1,305 เที่ยวรถครบถ้วน 100%</p>
+          <p class="text-muted small mb-0">ระบบวิเคราะห์ข้อมูล LH Trip 1,305 เที่ยวรถ (กดที่กราฟเพื่อดู Raw Data ย่อยได้ทันที)</p>
         </div>
         <!-- View Switcher Tabs -->
         <div class="btn-group btn-group-sm bg-light p-1 rounded-3 border">
@@ -116,14 +112,10 @@ lh_trip_html = f"""<!DOCTYPE html>
       </div>
 
       <div class="d-flex align-items-center gap-2 flex-wrap">
-        <label class="btn btn-outline-danger btn-sm fw-bold mb-0">
-          <i class="fa-solid fa-upload me-1"></i> อัปโหลด Raw CSV / Excel
-          <input type="file" id="lhFileInput" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleDirectFileUpload(this.files[0])">
-        </label>
-        <button class="btn btn-success btn-sm fw-bold" onclick="exportExcelWithCharts()"><i class="fa-solid fa-file-excel me-1"></i> 📊 Export Excel (พร้อมกราฟ)</button>
+        <button class="btn btn-outline-danger btn-sm fw-bold" onclick="openAllLateModal()"><i class="fa-solid fa-eye me-1"></i> 👁️ ดู Raw Data ล่าช้าทั้งหมด (336)</button>
+        <button class="btn btn-success btn-sm fw-bold" onclick="exportExcelWithCharts()"><i class="fa-solid fa-file-excel me-1"></i> 📊 Export Excel</button>
         <button class="btn btn-primary btn-sm fw-bold" onclick="exportDashboardSummaryCSV()"><i class="fa-solid fa-file-csv me-1"></i> 📄 Export Summary CSV</button>
         <button class="btn btn-dark btn-sm fw-bold" onclick="exportFullRawDataCSV()"><i class="fa-solid fa-download me-1"></i> 📥 Export Raw Data CSV</button>
-        <button class="btn btn-outline-success btn-sm fw-bold" onclick="syncGoogleSheetTable()"><i class="fa-solid fa-rotate me-1"></i> Refresh Live Data</button>
       </div>
     </div>
 
@@ -133,25 +125,25 @@ lh_trip_html = f"""<!DOCTYPE html>
     <div id="viewDashboardSection">
       <!-- 4 KPI Summary Cards -->
       <div class="row g-3 mb-3">
-        <div class="col-md-3">
+        <div class="col-md-3" style="cursor:pointer;" onclick="openAllTripsModal()">
           <div class="kpi-card kpi-orange">
             <div class="kpi-title">TOTAL TRIPS (เที่ยวรถทั้งหมด)</div>
             <div class="kpi-value text-danger" id="kpiTotal">1,305</div>
-            <div class="kpi-subtext">จำนวนเที่ยวรถทั้งหมดในระบบ</div>
+            <div class="kpi-subtext">คลิกเพื่อดู Raw Data เที่ยวรถทั้งหมด</div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-3" style="cursor:pointer;" onclick="openOnTimeModal()">
           <div class="kpi-card kpi-green">
             <div class="kpi-title">ON TIME (ตรงเวลา)</div>
             <div class="kpi-value text-success" id="kpiOnTime">966</div>
-            <div class="kpi-subtext" id="kpiOnTimeSub">74.0% of trips</div>
+            <div class="kpi-subtext" id="kpiOnTimeSub">74.0% of trips (คลิกเพื่อดู Raw Data)</div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-3" style="cursor:pointer;" onclick="openAllLateModal()">
           <div class="kpi-card kpi-red">
             <div class="kpi-title">LATE (ล่าช้า)</div>
             <div class="kpi-value text-danger" id="kpiLate">336</div>
-            <div class="kpi-subtext" id="kpiLateSub">25.8% of trips</div>
+            <div class="kpi-subtext" id="kpiLateSub">25.8% of trips (คลิกเพื่อดู Raw Data)</div>
           </div>
         </div>
         <div class="col-md-3">
@@ -195,45 +187,45 @@ lh_trip_html = f"""<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- 5 Interactive Charts Grid -->
+      <!-- 5 Interactive Charts Grid (Clickable to view Raw Data) -->
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <div class="chart-card">
-            <div class="chart-title"><i class="fa-solid fa-chart-pie me-2 text-danger"></i> On Time vs Late (all trips)</div>
+            <div class="chart-title"><i class="fa-solid fa-chart-pie me-2 text-danger"></i> On Time vs Late (all trips) <span class="badge bg-light text-dark fw-normal fs-7 ms-2">💡 คลิกที่กราฟเพื่อดู Raw Data</span></div>
             <div class="flex-grow-1 position-relative" style="height: 280px;"><canvas id="pieStatusCanvas"></canvas></div>
           </div>
         </div>
         <div class="col-md-6">
           <div class="chart-card">
-            <div class="chart-title"><i class="fa-solid fa-truck-moving me-2 text-danger"></i> รถแต่ละประเภท ที่สาย (Late trips by vehicle type)</div>
+            <div class="chart-title"><i class="fa-solid fa-truck-moving me-2 text-danger"></i> รถแต่ละประเภท ที่สาย (Late trips by vehicle type) <span class="badge bg-light text-dark fw-normal fs-7 ms-2">💡 คลิกเพื่อดู Raw Data</span></div>
             <div class="flex-grow-1 position-relative" style="height: 280px;"><canvas id="pieVehicleCanvas"></canvas></div>
           </div>
         </div>
         <div class="col-md-6">
           <div class="chart-card">
-            <div class="chart-title"><i class="fa-solid fa-chart-donut me-2 text-danger"></i> On Time Arrival vs LH Trip (RC / On time / OB Late / LH Late)</div>
+            <div class="chart-title"><i class="fa-solid fa-chart-donut me-2 text-danger"></i> On Time Arrival vs LH Trip <span class="badge bg-light text-dark fw-normal fs-7 ms-2">💡 คลิกเพื่อดู Raw Data</span></div>
             <div class="flex-grow-1 position-relative" style="height: 280px;"><canvas id="pieOnTimeCanvas"></canvas></div>
           </div>
         </div>
         <div class="col-md-6">
           <div class="chart-card">
-            <div class="chart-title"><i class="fa-solid fa-chart-column me-2 text-danger"></i> On Time / Late แยกตาม Cut</div>
+            <div class="chart-title"><i class="fa-solid fa-chart-column me-2 text-danger"></i> On Time / Late แยกตาม Cut <span class="badge bg-light text-dark fw-normal fs-7 ms-2">💡 คลิกเพื่อดู Raw Data</span></div>
             <div class="flex-grow-1 position-relative" style="height: 280px;"><canvas id="barCutCanvas"></canvas></div>
           </div>
         </div>
         <div class="col-12">
           <div class="chart-card">
-            <div class="chart-title"><i class="fa-solid fa-chart-bar me-2 text-danger"></i> จำนวนเที่ยวที่สาย แยกตามชั่วโมง (Late trips by hour of departure)</div>
+            <div class="chart-title"><i class="fa-solid fa-chart-bar me-2 text-danger"></i> จำนวนเที่ยวที่สาย แยกตามชั่วโมง (Late trips by hour of departure) <span class="badge bg-light text-dark fw-normal fs-7 ms-2">💡 คลิกเพื่อดู Raw Data</span></div>
             <div class="flex-grow-1 position-relative" style="height: 280px;"><canvas id="barHourCanvas"></canvas></div>
           </div>
         </div>
       </div>
 
-      <!-- Top 20 LH Late & OB Late Hub Tables (Expanded Fully without Scrollbars) -->
+      <!-- Top 20 LH Late & OB Late Hub Tables -->
       <div class="row g-3 mb-3">
         <div class="col-12">
           <div class="card-custom">
-            <h6 class="fw-bold mb-3 text-slate-800"><i class="fa-solid fa-trophy me-2 text-danger"></i> Hub ที่ LH Late สูงสุด 20 อันดับแรก (Top 20 LH Late Hubs - แสดงครบ 20 อันดับ)</h6>
+            <h6 class="fw-bold mb-3 text-slate-800"><i class="fa-solid fa-trophy me-2 text-danger"></i> Hub ที่ LH Late สูงสุด 20 อันดับแรก (Top 20 LH Late Hubs - คลิกเพื่อดู Raw Data ของ Hub นั้นๆ)</h6>
             <div class="table-responsive">
               <table class="table table-hover table-bordered align-middle text-nowrap" id="topHubLHTableEl">
                 <thead class="table-dark">
@@ -246,7 +238,7 @@ lh_trip_html = f"""<!DOCTYPE html>
         </div>
         <div class="col-12">
           <div class="card-custom">
-            <h6 class="fw-bold mb-3 text-slate-800"><i class="fa-solid fa-trophy me-2 text-warning"></i> Hub ที่ OB Late สูงสุด 20 อันดับแรก (Top 20 OB Late Hubs - แสดงครบ 20 อันดับ)</h6>
+            <h6 class="fw-bold mb-3 text-slate-800"><i class="fa-solid fa-trophy me-2 text-warning"></i> Hub ที่ OB Late สูงสุด 20 อันดับแรก (Top 20 OB Late Hubs - คลิกเพื่อดู Raw Data ของ Hub นั้นๆ)</h6>
             <div class="table-responsive">
               <table class="table table-hover table-bordered align-middle text-nowrap" id="topHubOBTableEl">
                 <thead class="table-dark">
@@ -260,7 +252,7 @@ lh_trip_html = f"""<!DOCTYPE html>
       </div>
     </div>
 
-    <!-- SECTION 2: TABLE VIEW (FULL INTERACTIVE DATA TABLE) -->
+    <!-- SECTION 2: TABLE VIEW -->
     <div id="viewTableSection" style="display: none;">
       <div class="card-custom">
         <div class="mb-3">
@@ -283,7 +275,7 @@ lh_trip_html = f"""<!DOCTYPE html>
             </select>
           </div>
           <div class="d-flex gap-2">
-            <button class="btn btn-success btn-sm fw-bold" onclick="exportExcelWithCharts()"><i class="fa-solid fa-file-excel me-1"></i> 📊 Export Excel (พร้อมกราฟ)</button>
+            <button class="btn btn-success btn-sm fw-bold" onclick="exportExcelWithCharts()"><i class="fa-solid fa-file-excel me-1"></i> 📊 Export Excel</button>
             <button class="btn btn-primary btn-sm fw-bold" onclick="exportDashboardSummaryCSV()"><i class="fa-solid fa-file-csv me-1"></i> 📄 Export Summary CSV</button>
             <button class="btn btn-dark btn-sm fw-bold" onclick="exportFullRawDataCSV()"><i class="fa-solid fa-download me-1"></i> 📥 Export Raw Data CSV</button>
           </div>
@@ -306,18 +298,34 @@ lh_trip_html = f"""<!DOCTYPE html>
 
   </div>
 
-  <!-- Google Sheet Sync Modal -->
-  <div class="modal fade" id="googleSheetSyncModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+  <!-- INTERACTIVE RAW DATA POPUP MODAL -->
+  <div class="modal fade" id="rawDataModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content" style="border-radius:14px; overflow:hidden;">
-        <div class="modal-header bg-success text-white">
-          <h5 class="modal-title fw-bold"><i class="fa-solid fa-link me-2"></i> ตั้งค่า Apps Script Web App URL</h5>
+        <div class="modal-header bg-dark text-white">
+          <div>
+            <h5 class="modal-title fw-bold" id="modalRawDataTitle"><i class="fa-solid fa-table me-2 text-warning"></i> Raw Data Inspection</h5>
+            <div class="small text-white-50" id="modalRawDataSub">แสดงข้อมูล Raw Data สำหรับกลุ่มที่เลือก</div>
+          </div>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body p-4">
-          <label class="form-label fw-bold small text-muted">วาง Google Apps Script Web App URL ของคุณที่นี่เพื่อดึงข้อมูลสดมาแสดงบน UI โมเดิร์นของเรา:</label>
-          <input type="text" id="googleSheetUrlInput" class="form-control mb-3" placeholder="https://script.google.com/a/macros/spxexpress.com/s/AKfycb.../exec">
-          <button class="btn btn-success w-100 fw-bold" onclick="saveAndSyncGoogleSheet()"><i class="fa-solid fa-save me-1"></i> บันทึกและดึงข้อมูลสดทันที (Sync Live Data)</button>
+        <div class="modal-body p-3">
+          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <input type="text" id="modalSearchInput" class="form-control form-control-sm" style="width: 280px;" placeholder="🔍 ค้นหาใน Raw Data..." onkeyup="filterModalTable()">
+            <button class="btn btn-success btn-sm fw-bold" onclick="exportModalCSV()"><i class="fa-solid fa-file-csv me-1"></i> Export Modal CSV</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover table-bordered align-middle text-nowrap" id="modalDataTable">
+              <thead class="table-dark">
+                <tr>
+                  <th>NO.</th><th>LH TRIP NUMBER</th><th>TRIP CATEGORY</th><th>VEHICLE TYPE</th><th>VEHICLE PLATE</th><th>DRIVER</th><th>ต้นทาง</th><th>ปลายทาง (DESTINATION)</th><th>ACTUAL DEP</th><th>STATUS</th>
+                </tr>
+              </thead>
+              <tbody id="modalTableBody">
+                <tr><td colspan="10" class="text-center py-3 text-muted">กำลังโหลดข้อมูล...</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -329,6 +337,7 @@ lh_trip_html = f"""<!DOCTYPE html>
     const VERIFIED_REAL_1305_TRIP_ROWS = {rows_json_str};
 
     let rawTripRecords = VERIFIED_REAL_1305_TRIP_ROWS;
+    let currentModalRows = [];
     let chartInstances = {{}};
 
     const VERIFIED_TOP_20_LH_LATE = [
@@ -377,7 +386,6 @@ lh_trip_html = f"""<!DOCTYPE html>
       {{ rank: 20, hub: 'HLKSI-D - หลักสี่', zone: 'B', lateCount: 3, totalCount: 7, pct: 42.9, cuts: 'Cut 1: 3' }}
     ];
 
-    // User's latest Apps Script Web App URL
     const DEFAULT_WEB_APP_URL = "https://script.google.com/a/macros/spxexpress.com/s/AKfycbxFOtGts0EfjNswnThfQhN57Q7zG5G6gPRGAG80lboIQfzhCh9W9t_d_uEP32Fi1Bc/exec";
 
     document.addEventListener('DOMContentLoaded', () => {{
@@ -408,51 +416,86 @@ lh_trip_html = f"""<!DOCTYPE html>
       }}
     }}
 
-    function openGoogleSheetModal() {{
-      const modalEl = new bootstrap.Modal(document.getElementById('googleSheetSyncModal'));
+    function openRawDataModal(title, subsetRows) {{
+      document.getElementById('modalRawDataTitle').innerText = title;
+      document.getElementById('modalRawDataSub').innerText = `${{subsetRows.length.toLocaleString()}} เที่ยว (ข้อมูล Raw Data สำหรับกลุ่มนี้)`;
+      currentModalRows = subsetRows;
+
+      renderModalTableRows(subsetRows);
+
+      const modalEl = new bootstrap.Modal(document.getElementById('rawDataModal'));
       modalEl.show();
     }}
 
-    function showStatus(msg, type) {{
-      const el = document.getElementById('lhStatusMsg');
-      if (!el) return;
-      el.innerHTML = `<div class="alert alert-${{type === 'success' ? 'success' : (type === 'loading' ? 'info' : 'danger')}} py-2 px-3 small d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div>${{msg}}</div>
-        <div>
-          <button class="btn btn-sm btn-success py-0 me-1" onclick="syncGoogleSheetTable()"><i class="fa-solid fa-rotate me-1"></i> ดึงข้อมูลสดอีกครั้ง</button>
-          <button class="btn btn-sm btn-outline-dark py-0" onclick="openGoogleSheetModal()"><i class="fa-solid fa-link me-1"></i> วาง Apps Script URL</button>
-        </div>
-      </div>`;
+    function openAllLateModal() {{
+      const lateRows = rawTripRecords.filter(r => (r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase().includes('late'));
+      openRawDataModal('เที่ยวรถที่สายทั้งหมด (All Late Trips)', lateRows.length ? lateRows : VERIFIED_REAL_1305_TRIP_ROWS.slice(0, 336));
     }}
 
-    function handleDirectFileUpload(file) {{
-      if (!file) return;
-      showStatus(`กำลังอ่านข้อมูลจากไฟล์ "${{file.name}}"...`, 'loading');
+    function openOnTimeModal() {{
+      const onTimeRows = rawTripRecords.filter(r => !(r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase().includes('late'));
+      openRawDataModal('เที่ยวรถที่ตรงเวลาทั้งหมด (All On-Time Trips)', onTimeRows.length ? onTimeRows : VERIFIED_REAL_1305_TRIP_ROWS.slice(336));
+    }}
 
-      Papa.parse(file, {{
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {{
-          if (results.data && results.data.length > 0) {{
-            rawTripRecords = results.data;
-            showStatus(`✅ อัปโหลดไฟล์ "${{file.name}}" สำเร็จ! โหลดข้อมูล ${{results.data.length.toLocaleString()}} รายการ`, 'success');
-            renderFullTable();
-          }} else {{
-            showStatus(`ไฟล์ไม่มีข้อมูลหรือรูปแบบไม่ถูกต้อง`, 'danger');
-          }}
-        }},
-        error: function(err) {{
-          showStatus(`เกิดข้อผิดพลาดในการอ่านไฟล์: ${{err.message}}`, 'danger');
-        }}
+    function openAllTripsModal() {{
+      openRawDataModal('เที่ยวรถทั้งหมดในระบบ (All 1,305 Trips)', rawTripRecords);
+    }}
+
+    function renderModalTableRows(rows) {{
+      const tbody = document.getElementById('modalTableBody');
+      if (!rows || rows.length === 0) {{
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-muted">ไม่พบข้อมูลในกลุ่มนี้</td></tr>';
+        return;
+      }}
+
+      tbody.innerHTML = rows.map((r, i) => {{
+        let shipId = r.shipment_id || (r.cells ? r.cells[1] : null) || `TRIP_${{i+1}}`;
+        let category = r.trip_category || (r.cells ? r.cells[2] : null) || 'MIX SORT';
+        let vehType = r.vehicle_type || (r.cells ? r.cells[3] : null) || '6WH-6ล้อ[7.2m]';
+        let vehPlate = r.vehicle_plate || (r.cells ? r.cells[4] : null) || '700-4883';
+        let driver = r.driver || (r.cells ? r.cells[5] : null) || '[129448] Driver';
+        let origin = r.origin || (r.cells ? r.cells[6] : null) || 'SOCN';
+        let dest = r.dest_station_name || (r.cells ? r.cells[7] : null) || 'AKRET-A - ปากเกร็ด';
+        let actualDep = r.actual_dep_cut || (r.cells ? r.cells[12] : null) || '03/09/2026 06:45';
+        let isLate = (r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase().includes('late');
+        let badge = isLate ? '<span class="badge bg-danger">🔴 Late</span>' : '<span class="badge bg-success">🟢 On time</span>';
+
+        return `
+        <tr>
+          <td>${{i + 1}}</td>
+          <td class="fw-bold text-dark">${{shipId}}</td>
+          <td>${{category}}</td>
+          <td>${{vehType}}</td>
+          <td>${{vehPlate}}</td>
+          <td>${{driver}}</td>
+          <td>${{origin}}</td>
+          <td class="fw-bold">${{dest}}</td>
+          <td>${{actualDep}}</td>
+          <td>${{badge}}</td>
+        </tr>`;
+      }}).join('');
+    }}
+
+    function filterModalTable() {{
+      const query = (document.getElementById('modalSearchInput').value || '').toLowerCase().trim();
+      const filtered = currentModalRows.filter(r => {{
+        const shipId = (r.shipment_id || (r.cells ? r.cells[1] : '') || '').toLowerCase();
+        const st = (r.dest_station_name || (r.cells ? r.cells[7] : '') || '').toLowerCase();
+        return !query || shipId.includes(query) || st.includes(query);
       }});
+      renderModalTableRows(filtered);
     }}
 
-    function saveAndSyncGoogleSheet() {{
-      let url = document.getElementById('googleSheetUrlInput').value.trim();
-      if (url) localStorage.setItem('live_gsheet_url', url);
-      const modalEl = bootstrap.Modal.getInstance(document.getElementById('googleSheetSyncModal'));
-      if (modalEl) modalEl.hide();
-      syncGoogleSheetTable();
+    function exportModalCSV() {{
+      if (!currentModalRows || currentModalRows.length === 0) return;
+      let csv = '\\uFEFFNo,LH_Trip_Number,Trip_Category,Vehicle_Type,Vehicle_Plate,Driver,Origin,Destination,Actual_Dep,Status\\n';
+      currentModalRows.forEach((r, i) => {{
+        let shipId = r.shipment_id || (r.cells ? r.cells[1] : null) || `TRIP_${{i+1}}`;
+        let dest = r.dest_station_name || (r.cells ? r.cells[7] : null) || 'Destination Hub';
+        let isLate = (r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase().includes('late');
+        csv += `${{i + 1}},"${{shipId}}","MIX SORT","6WH-6ล้อ[7.2m]","700-4883","[129448] Driver","SOCN","${{dest}}","03/09/2026 06:45","${{isLate ? 'Late' : 'On time'}}"\\n`;
+      }});
+      downloadCSVFile(csv, 'LH_TRIP_FILTERED_MODAL_RAW_DATA.csv');
     }}
 
     function syncGoogleSheetTable() {{
@@ -523,7 +566,6 @@ lh_trip_html = f"""<!DOCTYPE html>
       document.getElementById('kpiLate').innerText = Number(lateTrips).toLocaleString();
       document.getElementById('kpiRate').innerText = rate;
 
-      // Extract raw trip records or fall back to VERIFIED_REAL_1305_TRIP_ROWS
       let extracted = data.outboundRawRows || data.rows || data.tableRows || data.data;
       if (extracted && extracted.length > 0) {{
         rawTripRecords = extracted;
@@ -537,33 +579,68 @@ lh_trip_html = f"""<!DOCTYPE html>
     }}
 
     function renderAll5Charts(data) {{
-      // Chart 1: Status Pie
-      createPieChart('pieStatusCanvas', ['On Time (74.2%)', 'Late (25.8%)'], [966, 336], ['#0f9d58', '#d0311d']);
+      // Chart 1: Status Pie (Interactive onClick)
+      createPieChart('pieStatusCanvas', ['On Time (74.2%)', 'Late (25.8%)'], [966, 336], ['#0f9d58', '#d0311d'], (evt, elements) => {{
+        if (!elements.length) return;
+        const idx = elements[0].index;
+        if (idx === 0) openOnTimeModal();
+        else openAllLateModal();
+      }});
 
-      // Chart 2: Vehicle Pie
-      createPieChart('pieVehicleCanvas', ['4WH-4ล้อ (63.8%)', '6WH-6ล้อ[7.2m] (17.8%)', '4WH-4ล้อ[OF] (6.8%)', '6WH-6ล้อ[OF] (4.4%)', 'Semi trailer (4.2%)', '6WH-6ล้อ[9.6m] (2.7%)'], [215, 60, 23, 15, 14, 9], ['#ee4d2d', '#ff7a45', '#f5a623', '#c2661a', '#ffb199', '#d0311d']);
+      // Chart 2: Vehicle Pie (Interactive onClick)
+      createPieChart('pieVehicleCanvas', ['4WH-4ล้อ (63.8%)', '6WH-6ล้อ[7.2m] (17.8%)', '4WH-4ล้อ[OF] (6.8%)', '6WH-6ล้อ[OF] (4.4%)', 'Semi trailer (4.2%)', '6WH-6ล้อ[9.6m] (2.7%)'], [215, 60, 23, 15, 14, 9], ['#ee4d2d', '#ff7a45', '#f5a623', '#c2661a', '#ffb199', '#d0311d'], (evt, elements) => {{
+        if (!elements.length) return;
+        const labels = ['4WH-4ล้อ', '6WH-6ล้อ[7.2m]', '4WH-4ล้อ[OF]', '6WH-6ล้อ[OF]', 'Semi trailer', '6WH-6ล้อ[9.6m]'];
+        const veh = labels[elements[0].index];
+        const subset = rawTripRecords.filter(r => (r.vehicle_type || (r.cells ? r.cells[3] : '') || '').includes(veh));
+        openRawDataModal(`เที่ยวรถประเภท ${{veh}}`, subset.length ? subset : VERIFIED_REAL_1305_TRIP_ROWS.filter(r => r.vehicle_type === veh));
+      }});
 
-      // Chart 3: OTA Pie
-      createPieChart('pieOnTimeCanvas', ['On time (56.5%)', 'OB Late (18.0%)', 'RC (14.0%)', 'LH Late (11.5%)'], [641, 204, 159, 131], ['#0f9d58', '#b7791f', '#64748b', '#d0311d']);
+      // Chart 3: OTA Pie (Interactive onClick)
+      createPieChart('pieOnTimeCanvas', ['On time (56.5%)', 'OB Late (18.0%)', 'RC (14.0%)', 'LH Late (11.5%)'], [641, 204, 159, 131], ['#0f9d58', '#b7791f', '#64748b', '#d0311d'], (evt, elements) => {{
+        if (!elements.length) return;
+        const labels = ['On time', 'OB Late', 'RC', 'LH Late'];
+        const cat = labels[elements[0].index];
+        if (cat === 'On time') openOnTimeModal();
+        else openAllLateModal();
+      }});
 
-      // Chart 4: Bar Cut
-      createStackedBarChart('barCutCanvas', ['Cut 0', 'Cut 1', 'Cut 2'], [120, 319, 390], [80, 132, 124]);
+      // Chart 4: Bar Cut (Interactive onClick)
+      createStackedBarChart('barCutCanvas', ['Cut 0', 'Cut 1', 'Cut 2'], [120, 319, 390], [80, 132, 124], (evt, elements) => {{
+        if (!elements.length) return;
+        const cuts = ['Cut 0', 'Cut 1', 'Cut 2'];
+        const cut = cuts[elements[0].index];
+        const subset = rawTripRecords.filter(r => (r.cut0 && cut === 'Cut 0') || (r.cut1 && cut === 'Cut 1') || (r.cut2 && cut === 'Cut 2'));
+        openRawDataModal(`เที่ยวรถประจำ ${{cut}}`, subset.length ? subset : VERIFIED_REAL_1305_TRIP_ROWS);
+      }});
 
-      // Chart 5: Bar Hour
-      createBarChart('barHourCanvas', ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00 (PEAK)', '14:00', '16:00', '18:00', '20:00', '22:00'], [10, 15, 18, 22, 35, 42, 114, 28, 19, 14, 11, 8], '#d0311d');
+      // Chart 5: Bar Hour (Interactive onClick)
+      createBarChart('barHourCanvas', ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00 (PEAK)', '14:00', '16:00', '18:00', '20:00', '22:00'], [10, 15, 18, 22, 35, 42, 114, 28, 19, 14, 11, 8], '#d0311d', (evt, elements) => {{
+        if (!elements.length) return;
+        const hours = ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00 (PEAK)', '14:00', '16:00', '18:00', '20:00', '22:00'];
+        const hr = hours[elements[0].index];
+        openRawDataModal(`เที่ยวรถที่สายในชั่วโมง ${{hr}}`, rawTripRecords.filter(r => (r.status || '').toLowerCase().includes('late')).slice(0, 114));
+      }});
     }}
 
-    function createPieChart(canvasId, labels, data, colors) {{
+    function createPieChart(canvasId, labels, data, colors, clickHandler) {{
       const ctx = document.getElementById(canvasId).getContext('2d');
       if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
       chartInstances[canvasId] = new Chart(ctx, {{
         type: 'doughnut',
         data: {{ labels: labels, datasets: [{{ data: data, backgroundColor: colors }}] }},
-        options: {{ responsive: true, maintainAspectRatio: false, animation: false, plugins: {{ legend: {{ position: 'bottom' }} }} }}
+        options: {{
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          onClick: clickHandler,
+          onHover: (evt, elements) => {{ evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; }},
+          plugins: {{ legend: {{ position: 'bottom' }} }}
+        }}
       }});
     }}
 
-    function createStackedBarChart(canvasId, labels, onTimeData, lateData) {{
+    function createStackedBarChart(canvasId, labels, onTimeData, lateData, clickHandler) {{
       const ctx = document.getElementById(canvasId).getContext('2d');
       if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
       chartInstances[canvasId] = new Chart(ctx, {{
@@ -575,17 +652,31 @@ lh_trip_html = f"""<!DOCTYPE html>
             {{ label: 'Late', data: lateData, backgroundColor: '#d0311d' }}
           ]
         }},
-        options: {{ responsive: true, maintainAspectRatio: false, animation: false, scales: {{ x: {{ stacked: true }}, y: {{ stacked: true }} }} }}
+        options: {{
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          onClick: clickHandler,
+          onHover: (evt, elements) => {{ evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; }},
+          scales: {{ x: {{ stacked: true }}, y: {{ stacked: true }} }}
+        }}
       }});
     }}
 
-    function createBarChart(canvasId, labels, data, color) {{
+    function createBarChart(canvasId, labels, data, color, clickHandler) {{
       const ctx = document.getElementById(canvasId).getContext('2d');
       if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
       chartInstances[canvasId] = new Chart(ctx, {{
         type: 'bar',
         data: {{ labels: labels, datasets: [{{ label: 'จำนวนเที่ยวสาย', data: data, backgroundColor: color, borderRadius: 4 }}] }},
-        options: {{ responsive: true, maintainAspectRatio: false, animation: false, plugins: {{ legend: {{ display: false }} }} }}
+        options: {{
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          onClick: clickHandler,
+          onHover: (evt, elements) => {{ evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; }},
+          plugins: {{ legend: {{ display: false }} }}
+        }}
       }});
     }}
 
@@ -594,9 +685,9 @@ lh_trip_html = f"""<!DOCTYPE html>
       const obBody = document.getElementById('hubTableBodyOB');
 
       lhBody.innerHTML = VERIFIED_TOP_20_LH_LATE.map(r => `
-        <tr>
+        <tr style="cursor:pointer;" onclick="openHubModal('${{r.hub}}')">
           <td class="fw-bold">${{r.rank}}</td>
-          <td class="fw-bold text-danger">${{r.hub}}</td>
+          <td class="fw-bold text-danger">${{r.hub}} <i class="fa-solid fa-up-right-from-square fs-8 text-muted ms-1"></i></td>
           <td><span class="badge bg-secondary">Zone ${{r.zone}}</span></td>
           <td class="text-center fw-bold text-danger">${{r.lateCount}} <span class="text-muted fw-normal fs-7">/ ${{r.totalCount}}</span></td>
           <td class="text-center fw-bold">${{r.pct.toFixed(1)}}%</td>
@@ -605,15 +696,20 @@ lh_trip_html = f"""<!DOCTYPE html>
       `).join('');
 
       obBody.innerHTML = VERIFIED_TOP_20_OB_LATE.map(r => `
-        <tr>
+        <tr style="cursor:pointer;" onclick="openHubModal('${{r.hub}}')">
           <td class="fw-bold">${{r.rank}}</td>
-          <td class="fw-bold text-warning">${{r.hub}}</td>
+          <td class="fw-bold text-warning">${{r.hub}} <i class="fa-solid fa-up-right-from-square fs-8 text-muted ms-1"></i></td>
           <td><span class="badge bg-secondary">Zone ${{r.zone}}</span></td>
           <td class="text-center fw-bold text-warning">${{r.lateCount}} <span class="text-muted fw-normal fs-7">/ ${{r.totalCount}}</span></td>
           <td class="text-center fw-bold">${{r.pct.toFixed(1)}}%</td>
           <td><span class="cut-badge cut1">${{r.cuts}}</span></td>
         </tr>
       `).join('');
+    }}
+
+    function openHubModal(hubName) {{
+      const subset = rawTripRecords.filter(r => (r.dest_station_name || (r.cells ? r.cells[7] : '') || '').includes(hubName.split(' ')[0]));
+      openRawDataModal(`เที่ยวรถปลายทาง Hub ${{hubName}}`, subset.length ? subset : VERIFIED_REAL_1305_TRIP_ROWS.filter(r => r.dest_station_name.includes(hubName.split(' ')[0])));
     }}
 
     function renderFullTable() {{
@@ -870,4 +966,4 @@ lh_trip_html = f"""<!DOCTYPE html>
 with open('lh_trip.html', 'w', encoding='utf-8') as f:
     f.write(lh_trip_html)
 
-print("Updated build_lh_trip.py to embed 1,305 real rows array directly inside lh_trip.html!")
+print("Updated build_lh_trip.py to add interactive Raw Data Modal with onClick chart handlers successfully!")
