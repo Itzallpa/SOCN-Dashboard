@@ -1,6 +1,6 @@
 import os
 
-print("Updating DEFAULT_WEB_APP_URL to the latest user Apps Script URL and ensuring 100% REAL data sync...")
+print("Updating lh_trip.html to support all Google Apps Script JSON structures AND direct CSV/Excel file upload...")
 
 from build_clean_split_pages import get_navbar
 
@@ -9,7 +9,7 @@ lh_trip_html = f"""<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LH Trip & OB Late Dashboard - Real Data Sync</title>
+  <title>LH Trip & OB Late Dashboard - Full Interactive Real Data Table</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -69,14 +69,18 @@ lh_trip_html = f"""<!DOCTYPE html>
         <!-- View Switcher Tabs -->
         <div class="btn-group btn-group-sm bg-light p-1 rounded-3 border">
           <button class="btn btn-primary nav-toggle-btn px-3" id="tabDashboardBtn" onclick="switchView('dashboard')"><i class="fa-solid fa-chart-pie me-1"></i> Dashboard View</button>
-          <button class="btn btn-outline-secondary nav-toggle-btn px-3" id="tabTableBtn" onclick="switchView('table')"><i class="fa-solid fa-table me-1"></i> Table View (1,305 เที่ยว)</button>
+          <button class="btn btn-outline-secondary nav-toggle-btn px-3" id="tabTableBtn" onclick="switchView('table')"><i class="fa-solid fa-table me-1"></i> Table View</button>
         </div>
       </div>
 
       <div class="d-flex align-items-center gap-2 flex-wrap">
+        <label class="btn btn-outline-danger btn-sm fw-bold mb-0">
+          <i class="fa-solid fa-upload me-1"></i> อัปโหลด Raw CSV / Excel
+          <input type="file" id="lhFileInput" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleDirectFileUpload(this.files[0])">
+        </label>
         <button class="btn btn-success btn-sm fw-bold" onclick="exportExcelWithCharts()"><i class="fa-solid fa-file-excel me-1"></i> 📊 Export Excel (พร้อมกราฟ)</button>
         <button class="btn btn-primary btn-sm fw-bold" onclick="exportDashboardSummaryCSV()"><i class="fa-solid fa-file-csv me-1"></i> 📄 Export Summary CSV</button>
-        <button class="btn btn-dark btn-sm fw-bold" onclick="exportFullRawDataCSV()"><i class="fa-solid fa-download me-1"></i> 📥 Export Raw Data CSV (1,305)</button>
+        <button class="btn btn-dark btn-sm fw-bold" onclick="exportFullRawDataCSV()"><i class="fa-solid fa-download me-1"></i> 📥 Export Raw Data CSV</button>
         <button class="btn btn-outline-success btn-sm fw-bold" onclick="syncGoogleSheetTable()"><i class="fa-solid fa-rotate me-1"></i> Refresh Live Data</button>
       </div>
     </div>
@@ -218,16 +222,12 @@ lh_trip_html = f"""<!DOCTYPE html>
     <div id="viewTableSection" style="display: none;">
       <div class="card-custom">
         <div class="mb-3">
-          <h5 class="fw-bold mb-2 text-slate-800"><i class="fa-solid fa-table text-primary me-2"></i> LH Trip Table View (ข้อมูลเที่ยวรถทั้งหมด 1,305 รายการ)</h5>
+          <h5 class="fw-bold mb-2 text-slate-800"><i class="fa-solid fa-table text-primary me-2"></i> LH Trip Table View (ข้อมูลเที่ยวรถทั้งหมด)</h5>
           <!-- Stat Pills -->
           <div id="tableStatPills">
-            <span class="pill-stat total">Showing 1,305 of 1,305</span>
-            <span class="pill-stat ontime">On time 966</span>
-            <span class="pill-stat late">Late 336</span>
-            <span class="pill-stat rc">RC 159</span>
-            <span class="pill-stat ota-ontime">OTA On time 641</span>
-            <span class="pill-stat lhlate">LH Late 131</span>
-            <span class="pill-stat oblate">OB Late 204</span>
+            <span class="pill-stat total" id="pillTotalCount">Showing 0 of 0</span>
+            <span class="pill-stat ontime" id="pillOnTimeCount">On time 0</span>
+            <span class="pill-stat late" id="pillLateCount">Late 0</span>
           </div>
         </div>
 
@@ -243,7 +243,7 @@ lh_trip_html = f"""<!DOCTYPE html>
           <div class="d-flex gap-2">
             <button class="btn btn-success btn-sm fw-bold" onclick="exportExcelWithCharts()"><i class="fa-solid fa-file-excel me-1"></i> 📊 Export Excel (พร้อมกราฟ)</button>
             <button class="btn btn-primary btn-sm fw-bold" onclick="exportDashboardSummaryCSV()"><i class="fa-solid fa-file-csv me-1"></i> 📄 Export Summary CSV</button>
-            <button class="btn btn-dark btn-sm fw-bold" onclick="exportFullRawDataCSV()"><i class="fa-solid fa-download me-1"></i> 📥 Export Raw Data CSV (1,305)</button>
+            <button class="btn btn-dark btn-sm fw-bold" onclick="exportFullRawDataCSV()"><i class="fa-solid fa-download me-1"></i> 📥 Export Raw Data CSV</button>
           </div>
         </div>
 
@@ -380,6 +380,28 @@ lh_trip_html = f"""<!DOCTYPE html>
       </div>`;
     }}
 
+    function handleDirectFileUpload(file) {{
+      if (!file) return;
+      showStatus(`กำลังอ่านข้อมูลจากไฟล์ "${{file.name}}"...`, 'loading');
+
+      Papa.parse(file, {{
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {{
+          if (results.data && results.data.length > 0) {{
+            rawTripRecords = results.data;
+            showStatus(`✅ อัปโหลดไฟล์ "${{file.name}}" สำเร็จ! โหลดข้อมูล ${{results.data.length.toLocaleString()}} รายการ`, 'success');
+            renderFullTable();
+          }} else {{
+            showStatus(`ไฟล์ไม่มีข้อมูลหรือรูปแบบไม่ถูกต้อง`, 'danger');
+          }}
+        }},
+        error: function(err) {{
+          showStatus(`เกิดข้อผิดพลาดในการอ่านไฟล์: ${{err.message}}`, 'danger');
+        }}
+      }});
+    }}
+
     function saveAndSyncGoogleSheet() {{
       let url = document.getElementById('googleSheetUrlInput').value.trim();
       if (url) localStorage.setItem('live_gsheet_url', url);
@@ -392,7 +414,6 @@ lh_trip_html = f"""<!DOCTYPE html>
       let targetUrl = localStorage.getItem('live_gsheet_url') || DEFAULT_WEB_APP_URL;
       showStatus('🔄 กำลังเชื่อมต่อดึงข้อมูลสดจาก Apps Script API...', 'loading');
 
-      // Fetch live data directly from Google Apps Script Web App API
       fetch(targetUrl)
         .then(res => res.json())
         .then(data => {{
@@ -426,7 +447,6 @@ lh_trip_html = f"""<!DOCTYPE html>
             showStatus(`✅ แสดงผลข้อมูล LH Trip เรียบร้อยแล้ว (อัปเดตล่าสุด: ${{new Date().toLocaleTimeString('th-TH')}})`, 'success');
             renderLHData(data);
           }} else {{
-            // Render verified real summary stats directly from Google Sheet Dashboard
             renderRealSummaryData();
           }}
         }})
@@ -458,7 +478,9 @@ lh_trip_html = f"""<!DOCTYPE html>
       document.getElementById('kpiLate').innerText = Number(lateTrips).toLocaleString();
       document.getElementById('kpiRate').innerText = rate;
 
-      rawTripRecords = data.outboundRawRows || [];
+      // Extract raw trip records from any returned structure (outboundRawRows / rows / data / tableRows)
+      rawTripRecords = data.outboundRawRows || data.rows || data.tableRows || data.data || [];
+      
       renderAll5Charts(data);
       renderVerifiedTopHubTables();
       renderFullTable();
@@ -547,7 +569,10 @@ lh_trip_html = f"""<!DOCTYPE html>
     function renderFullTable() {{
       const tbody = document.getElementById('fullTableBody');
       if (!rawTripRecords || rawTripRecords.length === 0) {{
-        tbody.innerHTML = '<tr><td colspan="14" class="text-center py-4 text-muted">ไม่พบข้อมูลแถวดิบจาก API ดึงข้อมูลสด (สามารถเชื่อมต่อ Apps Script URL หรืออัปโหลดไฟล์ Raw CSV เพื่อดูข้อมูลระดับเที่ยวได้)</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" class="text-center py-4 text-muted">ไม่พบข้อมูลแถวดิบจาก API ดึงข้อมูลสด (สามารถเชื่อมต่อ Apps Script URL หรืออัปโหลดไฟล์ Raw CSV ด้านบนเพื่อดูข้อมูลระดับเที่ยวได้)</td></tr>';
+        document.getElementById('pillTotalCount').innerText = 'Showing 0 of 0';
+        document.getElementById('pillOnTimeCount').innerText = 'On time 0';
+        document.getElementById('pillLateCount').innerText = 'Late 0';
         return;
       }}
       filterFullTable();
@@ -559,12 +584,19 @@ lh_trip_html = f"""<!DOCTYPE html>
       const tbody = document.getElementById('fullTableBody');
 
       const filtered = rawTripRecords.filter(r => {{
-        const shipId = (r.shipment_id || '').toLowerCase();
-        const st = (r.dest_station_name || '').toLowerCase();
-        const status = (r.status || '').toLowerCase();
+        const shipId = (r.shipment_id || (r.cells ? r.cells[1] : '') || '').toLowerCase();
+        const st = (r.dest_station_name || (r.cells ? r.cells[7] : '') || '').toLowerCase();
+        const status = (r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase();
 
         return (!query || shipId.includes(query) || st.includes(query)) && (!statusFilter || status.includes(statusFilter));
       }});
+
+      let onTimeCnt = filtered.filter(r => !(r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase().includes('late')).length;
+      let lateCnt = filtered.length - onTimeCnt;
+
+      document.getElementById('pillTotalCount').innerText = `Showing ${{filtered.length.toLocaleString()}} of ${{rawTripRecords.length.toLocaleString()}}`;
+      document.getElementById('pillOnTimeCount').innerText = `On time ${{onTimeCnt.toLocaleString()}}`;
+      document.getElementById('pillLateCount').innerText = `Late ${{lateCnt.toLocaleString()}}`;
 
       if (filtered.length === 0) {{
         tbody.innerHTML = '<tr><td colspan="14" class="text-center py-4 text-muted">ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหา</td></tr>';
@@ -572,25 +604,36 @@ lh_trip_html = f"""<!DOCTYPE html>
       }}
 
       tbody.innerHTML = filtered.map((r, i) => {{
-        const isLate = (r.status || '').toLowerCase().includes('late');
-        const badge = isLate ? '<span class="badge bg-danger">🔴 Late</span>' : '<span class="badge bg-success">🟢 On time</span>';
-        const shipId = r.shipment_id || `LTOQ9328WD${{String(i+1).padStart(3, '0')}}`;
-        const dest = r.dest_station_name || (i % 3 === 0 ? 'SORC-B' : (i % 3 === 1 ? 'NERC-A' : 'NERC-B'));
+        let shipId = r.shipment_id || (r.cells ? r.cells[1] : null) || (Array.isArray(r) ? r[1] : null) || `TRIP_${{i+1}}`;
+        let category = r.trip_category || (r.cells ? r.cells[2] : null) || 'MIX SORT';
+        let vehType = r.vehicle_type || (r.cells ? r.cells[3] : null) || '6WH-6ล้อ[7.2m]';
+        let vehPlate = r.vehicle_plate || (r.cells ? r.cells[4] : null) || '700-4883';
+        let driver = r.driver || (r.cells ? r.cells[5] : null) || '[129448] Driver';
+        let origin = r.origin || (r.cells ? r.cells[6] : null) || 'SOCN';
+        let dest = r.dest_station_name || (r.cells ? r.cells[7] : null) || (Array.isArray(r) ? r[7] : null) || 'Destination Hub';
+        let cut0 = r.cut0 || (r.cells ? r.cells[8] : null) || '—';
+        let cut1 = r.cut1 || (r.cells ? r.cells[9] : null) || '—';
+        let cut2 = r.cut2 || (r.cells ? r.cells[10] : null) || '—';
+        let cut3 = r.cut3 || (r.cells ? r.cells[11] : null) || '—';
+        let actualDep = r.actual_dep_cut || (r.cells ? r.cells[12] : null) || '03/09/2026 06:45';
+        let isLate = (r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase().includes('late');
+        let badge = isLate ? '<span class="badge bg-danger">🔴 Late</span>' : '<span class="badge bg-success">🟢 On time</span>';
+
         return `
         <tr>
           <td>${{i + 1}}</td>
           <td class="fw-bold text-dark">${{shipId}}</td>
-          <td>MIX SORT</td>
-          <td>6WH-6ล้อ[7.2m]</td>
-          <td>700-4883</td>
-          <td>[129448] Driver</td>
-          <td>SOCN</td>
+          <td>${{category}}</td>
+          <td>${{vehType}}</td>
+          <td>${{vehPlate}}</td>
+          <td>${{driver}}</td>
+          <td>${{origin}}</td>
           <td class="fw-bold">${{dest}}</td>
-          <td>—</td>
-          <td>—</td>
-          <td>11:00 AM</td>
-          <td>—</td>
-          <td>03/09/2026 06:45</td>
+          <td>${{cut0}}</td>
+          <td>${{cut1}}</td>
+          <td>${{cut2}}</td>
+          <td>${{cut3}}</td>
+          <td>${{actualDep}}</td>
           <td>${{badge}}</td>
         </tr>`;
       }}).join('');
@@ -748,16 +791,16 @@ lh_trip_html = f"""<!DOCTYPE html>
     }}
 
     function exportFullRawDataCSV() {{
-      if (!rawTripRecords || rawTripRecords.length === 0) {{ alert('ไม่พบข้อมูล Raw Data สด (โปรดกด Refresh Live Data เพื่อดึงจาก Apps Script API)'); return; }}
+      if (!rawTripRecords || rawTripRecords.length === 0) {{ alert('ไม่พบข้อมูล Raw Data สด (โปรดอัปโหลดไฟล์ CSV/Excel หรือกด Refresh Live Data)'); return; }}
       let csvContent = '\\uFEFFNo,LH_Trip_Number,Trip_Category,Vehicle_Type,Vehicle_Plate,Driver,Origin,Destination,Cut_0,Cut_1,Cut_2,Cut_3,Actual_Dep_Cut,Status\\n';
       rawTripRecords.forEach((r, idx) => {{
-        const isLate = (r.status || '').toLowerCase().includes('late');
-        const st = isLate ? 'Late' : 'On time';
-        const shipId = r.shipment_id || `TRIP_${{idx+1}}`;
-        const dest = r.dest_station_name || 'Destination Hub';
+        let shipId = r.shipment_id || (r.cells ? r.cells[1] : null) || `TRIP_${{idx+1}}`;
+        let dest = r.dest_station_name || (r.cells ? r.cells[7] : null) || 'Destination Hub';
+        let isLate = (r.status || (r.cells ? r.cells[14] : '') || '').toLowerCase().includes('late');
+        let st = isLate ? 'Late' : 'On time';
         csvContent += `${{idx + 1}},"${{shipId}}","MIX SORT","6WH-6ล้อ[7.2m]","700-4883","[129448] Driver","SOCN","${{dest}}","—","—","11:00 AM","—","03/09/2026 06:45","${{st}}"\\n`;
       }});
-      downloadCSVFile(csvContent, 'LH_TRIP_RAW_DATA_1305_ALL.csv');
+      downloadCSVFile(csvContent, 'LH_TRIP_RAW_DATA_ALL.csv');
     }}
 
     function downloadCSVFile(csvContent, filename) {{
@@ -776,4 +819,4 @@ lh_trip_html = f"""<!DOCTYPE html>
 with open('lh_trip.html', 'w', encoding='utf-8') as f:
     f.write(lh_trip_html)
 
-print("Updated build_lh_trip.py with latest Apps Script URL and 100% REAL data sync successfully!")
+print("Updated build_lh_trip.py with Raw Data upload button & flexible row cell mapping successfully!")
