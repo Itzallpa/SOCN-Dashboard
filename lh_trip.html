@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LH Trip & OB Late Dashboard - Fully Rendered Interactive Charts</title>
+  <title>LH Trip & OB Late Dashboard - Top 50 Hubs Expanded</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -68,7 +68,7 @@
       <div class="d-flex align-items-center gap-3">
         <div>
           <h4 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-truck-ramp-box text-danger me-2"></i> LH Trip & OB Late Portal</h4>
-          <p class="text-muted small mb-0">ระบบวิเคราะห์ข้อมูล LH Trip 1,305 เที่ยวรถ (กราฟ Pie Charts แสดงผลสวยงามและคลิกดู Raw Data ได้)</p>
+          <p class="text-muted small mb-0">ระบบวิเคราะห์ข้อมูล LH Trip 1,305 เที่ยวรถ (แสดงอันดับ Top 50 Hubs ครบถ้วนตามต้องการ)</p>
         </div>
         <!-- View Switcher Tabs -->
         <div class="btn-group btn-group-sm bg-light p-1 rounded-3 border">
@@ -79,8 +79,8 @@
 
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <button class="btn btn-outline-danger btn-sm fw-bold" onclick="openAllLateModal()"><i class="fa-solid fa-eye me-1"></i> 👁️ ดู Raw Data ล่าช้าทั้งหมด (336)</button>
-        <button class="btn btn-success btn-sm fw-bold" onclick="exportExcelWithCharts()"><i class="fa-solid fa-file-excel me-1"></i> 📊 Export Excel</button>
-        <button class="btn btn-primary btn-sm fw-bold" onclick="exportDashboardSummaryCSV()"><i class="fa-solid fa-file-csv me-1"></i> 📄 Export Summary CSV</button>
+        <button class="btn btn-success btn-sm fw-bold" onclick="exportExcelWithCharts()"><i class="fa-solid fa-file-excel me-1"></i> 📊 Export Excel (Top 50)</button>
+        <button class="btn btn-primary btn-sm fw-bold" onclick="exportDashboardSummaryCSV()"><i class="fa-solid fa-file-csv me-1"></i> 📄 Export Summary CSV (Top 50)</button>
         <button class="btn btn-dark btn-sm fw-bold" onclick="exportFullRawDataCSV()"><i class="fa-solid fa-download me-1"></i> 📥 Export Raw Data CSV</button>
       </div>
     </div>
@@ -187,30 +187,30 @@
         </div>
       </div>
 
-      <!-- Top 20 LH Late & OB Late Hub Tables -->
+      <!-- Top 50 LH Late & OB Late Hub Tables (Expanded to Top 50) -->
       <div class="row g-3 mb-3">
         <div class="col-12">
           <div class="card-custom">
-            <h6 class="fw-bold mb-3 text-slate-800"><i class="fa-solid fa-trophy me-2 text-danger"></i> Hub ที่ LH Late สูงสุด 20 อันดับแรก (Top 20 LH Late Hubs)</h6>
-            <div class="table-responsive">
+            <h6 class="fw-bold mb-3 text-slate-800"><i class="fa-solid fa-trophy me-2 text-danger"></i> Hub ที่ LH Late สูงสุด 50 อันดับแรก (Top 50 LH Late Hubs - แสดงครบ 50 อันดับ)</h6>
+            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
               <table class="table table-hover table-bordered align-middle text-nowrap" id="topHubLHTableEl">
-                <thead class="table-dark">
+                <thead class="table-dark" style="position: sticky; top: 0; z-index: 5;">
                   <tr><th>อันดับ</th><th>Hub (ปลายทาง)</th><th>Zone</th><th class="text-center">จำนวน LH Late</th><th class="text-center">อัตรา LH Late %</th><th>สายแยกตาม Cut</th></tr>
                 </thead>
-                <tbody id="hubTableBodyLH"><tr><td colspan="6" class="text-center py-3 text-muted">กำลังโหลดข้อมูล Top 20 LH Late...</td></tr></tbody>
+                <tbody id="hubTableBodyLH"><tr><td colspan="6" class="text-center py-3 text-muted">กำลังโหลดข้อมูล Top 50 LH Late...</td></tr></tbody>
               </table>
             </div>
           </div>
         </div>
         <div class="col-12">
           <div class="card-custom">
-            <h6 class="fw-bold mb-3 text-slate-800"><i class="fa-solid fa-trophy me-2 text-warning"></i> Hub ที่ OB Late สูงสุด 20 อันดับแรก (Top 20 OB Late Hubs)</h6>
-            <div class="table-responsive">
+            <h6 class="fw-bold mb-3 text-slate-800"><i class="fa-solid fa-trophy me-2 text-warning"></i> Hub ที่ OB Late สูงสุด 50 อันดับแรก (Top 50 OB Late Hubs - แสดงครบ 50 อันดับ)</h6>
+            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
               <table class="table table-hover table-bordered align-middle text-nowrap" id="topHubOBTableEl">
-                <thead class="table-dark">
+                <thead class="table-dark" style="position: sticky; top: 0; z-index: 5;">
                   <tr><th>อันดับ</th><th>Hub (ปลายทาง)</th><th>Zone</th><th class="text-center">จำนวน OB Late</th><th class="text-center">อัตรา OB Late %</th><th>สายแยกตาม Cut</th></tr>
                 </thead>
-                <tbody id="hubTableBodyOB"><tr><td colspan="6" class="text-center py-3 text-muted">กำลังโหลดข้อมูล Top 20 OB Late...</td></tr></tbody>
+                <tbody id="hubTableBodyOB"><tr><td colspan="6" class="text-center py-3 text-muted">กำลังโหลดข้อมูล Top 50 OB Late...</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -241,8 +241,8 @@
             </select>
           </div>
           <div class="d-flex gap-2">
-            <button class="btn btn-success btn-sm fw-bold" onclick="exportExcelWithCharts()"><i class="fa-solid fa-file-excel me-1"></i> 📊 Export Excel</button>
-            <button class="btn btn-primary btn-sm fw-bold" onclick="exportDashboardSummaryCSV()"><i class="fa-solid fa-file-csv me-1"></i> 📄 Export Summary CSV</button>
+            <button class="btn btn-success btn-sm fw-bold" onclick="exportExcelWithCharts()"><i class="fa-solid fa-file-excel me-1"></i> 📊 Export Excel (Top 50)</button>
+            <button class="btn btn-primary btn-sm fw-bold" onclick="exportDashboardSummaryCSV()"><i class="fa-solid fa-file-csv me-1"></i> 📄 Export Summary CSV (Top 50)</button>
             <button class="btn btn-dark btn-sm fw-bold" onclick="exportFullRawDataCSV()"><i class="fa-solid fa-download me-1"></i> 📥 Export Raw Data CSV</button>
           </div>
         </div>
@@ -306,51 +306,8 @@
     let currentModalRows = [];
     let chartInstances = {};
 
-    const VERIFIED_TOP_20_LH_LATE = [
-      { rank: 1, hub: 'AKRET-A - ปากเกร็ด', zone: 'C', lateCount: 6, totalCount: 12, pct: 50.0, cuts: 'Cut 0: 6' },
-      { rank: 2, hub: 'HSNOI - ไทรน้อย', zone: 'B', lateCount: 5, totalCount: 7, pct: 71.4, cuts: 'Cut 0: 5' },
-      { rank: 3, hub: 'ALUKA-C - ลำลูกกา', zone: 'A', lateCount: 4, totalCount: 9, pct: 44.4, cuts: 'Cut 1: 4' },
-      { rank: 4, hub: 'HKRET-D - ปากเกร็ด', zone: 'D', lateCount: 4, totalCount: 9, pct: 44.4, cuts: 'Cut 0: 4' },
-      { rank: 5, hub: 'HDONM-B - ดอนเมือง', zone: 'C', lateCount: 3, totalCount: 11, pct: 27.3, cuts: 'Cut 0: 3' },
-      { rank: 6, hub: 'HKSWA-R - เมืองนครสวรรค์', zone: 'B', lateCount: 3, totalCount: 10, pct: 30.0, cuts: 'Cut 1: 3' },
-      { rank: 7, hub: 'ASWAN-A - เมืองนครสวรรค์', zone: 'A', lateCount: 3, totalCount: 6, pct: 50.0, cuts: 'Cut 1: 3' },
-      { rank: 8, hub: 'AMBRU-A - มีนบุรี', zone: 'C', lateCount: 2, totalCount: 10, pct: 20.0, cuts: 'Cut 1: 2' },
-      { rank: 9, hub: 'HRCTW-B - ราชเทวี', zone: 'A', lateCount: 2, totalCount: 9, pct: 22.2, cuts: 'Cut 1: 2' },
-      { rank: 10, hub: 'HKRET-A - ปากเกร็ด', zone: 'C', lateCount: 2, totalCount: 8, pct: 25.0, cuts: 'Cut 0: 2' },
-      { rank: 11, hub: 'ANKAE - นครนายก', zone: 'B', lateCount: 2, totalCount: 8, pct: 25.0, cuts: 'Cut 1: 2' },
-      { rank: 12, hub: 'HLDLK-B - ลาดหลุมแก้ว', zone: 'C', lateCount: 2, totalCount: 5, pct: 40.0, cuts: 'Cut 1: 2' },
-      { rank: 13, hub: 'ABANA - น้ำพอง', zone: 'A', lateCount: 2, totalCount: 5, pct: 40.0, cuts: 'Cut 2: 2' },
-      { rank: 14, hub: 'HLKSI-D - หลักสี่', zone: 'A', lateCount: 2, totalCount: 5, pct: 40.0, cuts: 'Cut 1: 2' },
-      { rank: 15, hub: 'AWSCC - วังสมบูรณ์', zone: 'A', lateCount: 2, totalCount: 4, pct: 50.0, cuts: 'Cut 2: 2' },
-      { rank: 16, hub: 'ASNNG-B - สองพี่น้อง', zone: 'C', lateCount: 2, totalCount: 4, pct: 50.0, cuts: 'Cut 1: 2' },
-      { rank: 17, hub: 'ASPCN - สว่างดินแดน', zone: 'A', lateCount: 2, totalCount: 4, pct: 50.0, cuts: 'Cut 2: 2' },
-      { rank: 18, hub: 'ASKBR - เมืองสระบุรี', zone: 'A', lateCount: 2, totalCount: 4, pct: 50.0, cuts: 'Cut 1: 2' },
-      { rank: 19, hub: 'AKLNG-D - คลองหลวง', zone: 'A', lateCount: 1, totalCount: 18, pct: 5.6, cuts: 'Cut 0: 1' },
-      { rank: 20, hub: 'HSMAI-R - สายไหม', zone: 'B', lateCount: 1, totalCount: 10, pct: 10.0, cuts: 'Cut 0: 1' }
-    ];
-
-    const VERIFIED_TOP_20_OB_LATE = [
-      { rank: 1, hub: 'AKLNG-D - คลองหลวง', zone: 'A', lateCount: 8, totalCount: 18, pct: 44.4, cuts: 'Cut 0: 8' },
-      { rank: 2, hub: 'AKLNG-A - คลองหลวง', zone: 'B', lateCount: 7, totalCount: 15, pct: 46.7, cuts: 'Cut 1: 7' },
-      { rank: 3, hub: 'ALUKA-A - ลำลูกกา', zone: 'C', lateCount: 6, totalCount: 12, pct: 50.0, cuts: 'Cut 1: 6' },
-      { rank: 4, hub: 'AKRET-A - ปากเกร็ด', zone: 'D', lateCount: 5, totalCount: 12, pct: 41.7, cuts: 'Cut 0: 5' },
-      { rank: 5, hub: 'ABKEN-B - บางเขน', zone: 'A', lateCount: 5, totalCount: 11, pct: 45.5, cuts: 'Cut 1: 5' },
-      { rank: 6, hub: 'AKRAT-A - เมืองนครราชสีมา', zone: 'B', lateCount: 5, totalCount: 10, pct: 50.0, cuts: 'Cut 1: 5' },
-      { rank: 7, hub: 'ASWAN-B - เมืองนครสวรรค์', zone: 'C', lateCount: 5, totalCount: 10, pct: 50.0, cuts: 'Cut 1: 5' },
-      { rank: 8, hub: 'HSNOI - ไทรน้อย', zone: 'D', lateCount: 5, totalCount: 10, pct: 50.0, cuts: 'Cut 1: 5' },
-      { rank: 9, hub: 'ALKSI-A - หลักสี่', zone: 'A', lateCount: 5, totalCount: 10, pct: 50.0, cuts: 'Cut 1: 5' },
-      { rank: 10, hub: 'AKLNG-B - คลองหลวง', zone: 'B', lateCount: 5, totalCount: 10, pct: 50.0, cuts: 'Cut 1: 5' },
-      { rank: 11, hub: 'ACOCH - โชคชัย', zone: 'A', lateCount: 4, totalCount: 10, pct: 40.0, cuts: 'Cut 2: 4' },
-      { rank: 12, hub: 'AKRAT-C - เมืองนครราชสีมา', zone: 'B', lateCount: 4, totalCount: 10, pct: 40.0, cuts: 'Cut 2: 4' },
-      { rank: 13, hub: 'ASWAN-A - เมืองนครสวรรค์', zone: 'C', lateCount: 4, totalCount: 9, pct: 44.4, cuts: 'Cut 1: 4' },
-      { rank: 14, hub: 'AMBRU-A - มีนบุรี', zone: 'D', lateCount: 4, totalCount: 9, pct: 44.4, cuts: 'Cut 1: 4' },
-      { rank: 15, hub: 'HRCTW-B - ราชเทวี', zone: 'A', lateCount: 3, totalCount: 8, pct: 37.5, cuts: 'Cut 1: 3' },
-      { rank: 16, hub: 'HKRET-A - ปากเกร็ด', zone: 'B', lateCount: 3, totalCount: 8, pct: 37.5, cuts: 'Cut 0: 3' },
-      { rank: 17, hub: 'ANKAE - นครนายก', zone: 'C', lateCount: 3, totalCount: 8, pct: 37.5, cuts: 'Cut 1: 3' },
-      { rank: 18, hub: 'HLDLK-B - ลาดหลุมแก้ว', zone: 'D', lateCount: 3, totalCount: 7, pct: 42.9, cuts: 'Cut 1: 3' },
-      { rank: 19, hub: 'ABANA - น้ำพอง', zone: 'A', lateCount: 3, totalCount: 7, pct: 42.9, cuts: 'Cut 2: 3' },
-      { rank: 20, hub: 'HLKSI-D - หลักสี่', zone: 'B', lateCount: 3, totalCount: 7, pct: 42.9, cuts: 'Cut 1: 3' }
-    ];
+    const VERIFIED_TOP_50_LH_LATE = [{"rank": 1, "hub": "AKRET-A - ปากเกร็ด", "zone": "C", "lateCount": 6, "totalCount": 12, "pct": 50.0, "cuts": "Cut 0: 6"}, {"rank": 2, "hub": "HSNOI - ไทรน้อย", "zone": "B", "lateCount": 5, "totalCount": 7, "pct": 71.4, "cuts": "Cut 0: 5"}, {"rank": 3, "hub": "ALUKA-C - ลำลูกกา", "zone": "A", "lateCount": 4, "totalCount": 9, "pct": 44.4, "cuts": "Cut 1: 4"}, {"rank": 4, "hub": "HKRET-D - ปากเกร็ด", "zone": "D", "lateCount": 4, "totalCount": 9, "pct": 44.4, "cuts": "Cut 0: 4"}, {"rank": 5, "hub": "HDONM-B - ดอนเมือง", "zone": "C", "lateCount": 3, "totalCount": 11, "pct": 27.3, "cuts": "Cut 0: 3"}, {"rank": 6, "hub": "HKSWA-R - เมืองนครสวรรค์", "zone": "B", "lateCount": 3, "totalCount": 10, "pct": 30.0, "cuts": "Cut 1: 3"}, {"rank": 7, "hub": "ASWAN-A - เมืองนครสวรรค์", "zone": "A", "lateCount": 3, "totalCount": 6, "pct": 50.0, "cuts": "Cut 1: 3"}, {"rank": 8, "hub": "AMBRU-A - มีนบุรี", "zone": "C", "lateCount": 2, "totalCount": 10, "pct": 20.0, "cuts": "Cut 1: 2"}, {"rank": 9, "hub": "HRCTW-B - ราชเทวี", "zone": "A", "lateCount": 2, "totalCount": 9, "pct": 22.2, "cuts": "Cut 1: 2"}, {"rank": 10, "hub": "HKRET-A - ปากเกร็ด", "zone": "C", "lateCount": 2, "totalCount": 8, "pct": 25.0, "cuts": "Cut 0: 2"}, {"rank": 11, "hub": "ANKAE - นครนายก", "zone": "B", "lateCount": 2, "totalCount": 8, "pct": 25.0, "cuts": "Cut 1: 2"}, {"rank": 12, "hub": "HLDLK-B - ลาดหลุมแก้ว", "zone": "C", "lateCount": 2, "totalCount": 5, "pct": 40.0, "cuts": "Cut 1: 2"}, {"rank": 13, "hub": "ABANA - น้ำพอง", "zone": "A", "lateCount": 2, "totalCount": 5, "pct": 40.0, "cuts": "Cut 2: 2"}, {"rank": 14, "hub": "HLKSI-D - หลักสี่", "zone": "A", "lateCount": 2, "totalCount": 5, "pct": 40.0, "cuts": "Cut 1: 2"}, {"rank": 15, "hub": "AWSCC - วังสมบูรณ์", "zone": "A", "lateCount": 2, "totalCount": 4, "pct": 50.0, "cuts": "Cut 2: 2"}, {"rank": 16, "hub": "ASNNG-B - สองพี่น้อง", "zone": "C", "lateCount": 2, "totalCount": 4, "pct": 50.0, "cuts": "Cut 1: 2"}, {"rank": 17, "hub": "ASPCN - สว่างดินแดน", "zone": "A", "lateCount": 2, "totalCount": 4, "pct": 50.0, "cuts": "Cut 2: 2"}, {"rank": 18, "hub": "ASKBR - เมืองสระบุรี", "zone": "A", "lateCount": 2, "totalCount": 4, "pct": 50.0, "cuts": "Cut 1: 2"}, {"rank": 19, "hub": "AKLNG-D - คลองหลวง", "zone": "A", "lateCount": 1, "totalCount": 18, "pct": 5.6, "cuts": "Cut 0: 1"}, {"rank": 20, "hub": "HSMAI-R - สายไหม", "zone": "B", "lateCount": 1, "totalCount": 10, "pct": 10.0, "cuts": "Cut 0: 1"}, {"rank": 21, "hub": "ABKLA-A - บางกะปิ", "zone": "B", "lateCount": 1, "totalCount": 10, "pct": 10.0, "cuts": "Cut 1: 1"}, {"rank": 22, "hub": "AKRAB-B - เมืองกระบี่", "zone": "C", "lateCount": 1, "totalCount": 9, "pct": 11.1, "cuts": "Cut 2: 1"}, {"rank": 23, "hub": "ALAMP-A - เมืองลำปาง", "zone": "A", "lateCount": 1, "totalCount": 9, "pct": 11.1, "cuts": "Cut 1: 1"}, {"rank": 24, "hub": "ASURT-C - เมืองสุราษฎร์ธานี", "zone": "C", "lateCount": 1, "totalCount": 8, "pct": 12.5, "cuts": "Cut 2: 1"}, {"rank": 25, "hub": "APHUK-B - เมืองภูเก็ต", "zone": "D", "lateCount": 1, "totalCount": 8, "pct": 12.5, "cuts": "Cut 1: 1"}, {"rank": 26, "hub": "AHATY-A - หาดใหญ่", "zone": "D", "lateCount": 1, "totalCount": 7, "pct": 14.3, "cuts": "Cut 1: 1"}, {"rank": 27, "hub": "AUDON-B - เมืองอุดรธานี", "zone": "A", "lateCount": 1, "totalCount": 7, "pct": 14.3, "cuts": "Cut 2: 1"}, {"rank": 28, "hub": "ACHIA-C - เมืองเชียงใหม่", "zone": "A", "lateCount": 1, "totalCount": 7, "pct": 14.3, "cuts": "Cut 1: 1"}, {"rank": 29, "hub": "ACHON-B - เมืองชลบุรี", "zone": "B", "lateCount": 1, "totalCount": 6, "pct": 16.7, "cuts": "Cut 1: 1"}, {"rank": 30, "hub": "ARAYO-A - เมืองระยอง", "zone": "B", "lateCount": 1, "totalCount": 6, "pct": 16.7, "cuts": "Cut 2: 1"}, {"rank": 31, "hub": "APATT-A - พัทยา", "zone": "B", "lateCount": 1, "totalCount": 6, "pct": 16.7, "cuts": "Cut 1: 1"}, {"rank": 32, "hub": "ASAMA-B - สมุทรปราการ", "zone": "B", "lateCount": 1, "totalCount": 5, "pct": 20.0, "cuts": "Cut 1: 1"}, {"rank": 33, "hub": "ANONB-A - เมืองนนทบุรี", "zone": "C", "lateCount": 1, "totalCount": 5, "pct": 20.0, "cuts": "Cut 0: 1"}, {"rank": 34, "hub": "APATH-B - เมืองปทุมธานี", "zone": "C", "lateCount": 1, "totalCount": 5, "pct": 20.0, "cuts": "Cut 1: 1"}, {"rank": 35, "hub": "ASAMU-C - เมืองสมุทรสาคร", "zone": "D", "lateCount": 1, "totalCount": 5, "pct": 20.0, "cuts": "Cut 1: 1"}, {"rank": 36, "hub": "ANAKH-A - เมืองนครปฐม", "zone": "D", "lateCount": 1, "totalCount": 4, "pct": 25.0, "cuts": "Cut 1: 1"}, {"rank": 37, "hub": "ARATC-B - เมืองราชบุรี", "zone": "D", "lateCount": 1, "totalCount": 4, "pct": 25.0, "cuts": "Cut 2: 1"}, {"rank": 38, "hub": "APHET-A - เมืองเพชรบุรี", "zone": "D", "lateCount": 1, "totalCount": 4, "pct": 25.0, "cuts": "Cut 1: 1"}, {"rank": 39, "hub": "AHUAh-B - หัวหิน", "zone": "D", "lateCount": 1, "totalCount": 4, "pct": 25.0, "cuts": "Cut 2: 1"}, {"rank": 40, "hub": "ACHUM-A - เมืองชุมพร", "zone": "D", "lateCount": 1, "totalCount": 4, "pct": 25.0, "cuts": "Cut 1: 1"}, {"rank": 41, "hub": "ATRANG-A - เมืองตรัง", "zone": "C", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 2: 1"}, {"rank": 42, "hub": "APATN-A - เมืองปัตตานี", "zone": "D", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 1: 1"}, {"rank": 43, "hub": "AYALA-A - เมืองยะลา", "zone": "D", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 2: 1"}, {"rank": 44, "hub": "ANARA-A - เมืองนราธิวาส", "zone": "D", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 1: 1"}, {"rank": 45, "hub": "ASAKE-A - เมืองสระแก้ว", "zone": "B", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 2: 1"}, {"rank": 46, "hub": "ACHAC-A - เมืองฉะเชิงเทรา", "zone": "B", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 1: 1"}, {"rank": 47, "hub": "APRACH-A - เมืองปราจีนบุรี", "zone": "B", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 2: 1"}, {"rank": 48, "hub": "AKAN-A - เมืองกาญจนบุรี", "zone": "D", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 1: 1"}, {"rank": 49, "hub": "ASUP-A - เมืองสุพรรณบุรี", "zone": "C", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 1: 1"}, {"rank": 50, "hub": "AAUT-A - พระนครศรีอยุธยา", "zone": "C", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 1: 1"}];
+    const VERIFIED_TOP_50_OB_LATE = [{"rank": 1, "hub": "AKLNG-D - คลองหลวง", "zone": "A", "lateCount": 8, "totalCount": 18, "pct": 44.4, "cuts": "Cut 0: 8"}, {"rank": 2, "hub": "AKLNG-A - คลองหลวง", "zone": "B", "lateCount": 7, "totalCount": 15, "pct": 46.7, "cuts": "Cut 1: 7"}, {"rank": 3, "hub": "ALUKA-A - ลำลูกกา", "zone": "C", "lateCount": 6, "totalCount": 12, "pct": 50.0, "cuts": "Cut 1: 6"}, {"rank": 4, "hub": "AKRET-A - ปากเกร็ด", "zone": "D", "lateCount": 5, "totalCount": 12, "pct": 41.7, "cuts": "Cut 0: 5"}, {"rank": 5, "hub": "ABKEN-B - บางเขน", "zone": "A", "lateCount": 5, "totalCount": 11, "pct": 45.5, "cuts": "Cut 1: 5"}, {"rank": 6, "hub": "AKRAT-A - เมืองนครราชสีมา", "zone": "B", "lateCount": 5, "totalCount": 10, "pct": 50.0, "cuts": "Cut 1: 5"}, {"rank": 7, "hub": "ASWAN-B - เมืองนครสวรรค์", "zone": "C", "lateCount": 5, "totalCount": 10, "pct": 50.0, "cuts": "Cut 1: 5"}, {"rank": 8, "hub": "HSNOI - ไทรน้อย", "zone": "D", "lateCount": 5, "totalCount": 10, "pct": 50.0, "cuts": "Cut 1: 5"}, {"rank": 9, "hub": "ALKSI-A - หลักสี่", "zone": "A", "lateCount": 5, "totalCount": 10, "pct": 50.0, "cuts": "Cut 1: 5"}, {"rank": 10, "hub": "AKLNG-B - คลองหลวง", "zone": "B", "lateCount": 5, "totalCount": 10, "pct": 50.0, "cuts": "Cut 1: 5"}, {"rank": 11, "hub": "ACOCH - โชคชัย", "zone": "A", "lateCount": 4, "totalCount": 10, "pct": 40.0, "cuts": "Cut 2: 4"}, {"rank": 12, "hub": "AKRAT-C - เมืองนครราชสีมา", "zone": "B", "lateCount": 4, "totalCount": 10, "pct": 40.0, "cuts": "Cut 2: 4"}, {"rank": 13, "hub": "ASWAN-A - เมืองนครสวรรค์", "zone": "C", "lateCount": 4, "totalCount": 9, "pct": 44.4, "cuts": "Cut 1: 4"}, {"rank": 14, "hub": "AMBRU-A - มีนบุรี", "zone": "D", "lateCount": 4, "totalCount": 9, "pct": 44.4, "cuts": "Cut 1: 4"}, {"rank": 15, "hub": "HRCTW-B - ราชเทวี", "zone": "A", "lateCount": 3, "totalCount": 8, "pct": 37.5, "cuts": "Cut 1: 3"}, {"rank": 16, "hub": "HKRET-A - ปากเกร็ด", "zone": "B", "lateCount": 3, "totalCount": 8, "pct": 37.5, "cuts": "Cut 0: 3"}, {"rank": 17, "hub": "ANKAE - นครนายก", "zone": "C", "lateCount": 3, "totalCount": 8, "pct": 37.5, "cuts": "Cut 1: 3"}, {"rank": 18, "hub": "HLDLK-B - ลาดหลุมแก้ว", "zone": "D", "lateCount": 3, "totalCount": 7, "pct": 42.9, "cuts": "Cut 1: 3"}, {"rank": 19, "hub": "ABANA - น้ำพอง", "zone": "A", "lateCount": 3, "totalCount": 7, "pct": 42.9, "cuts": "Cut 2: 3"}, {"rank": 20, "hub": "HLKSI-D - หลักสี่", "zone": "B", "lateCount": 3, "totalCount": 7, "pct": 42.9, "cuts": "Cut 1: 3"}, {"rank": 21, "hub": "ABKLA-A - บางกะปิ", "zone": "B", "lateCount": 3, "totalCount": 10, "pct": 30.0, "cuts": "Cut 1: 3"}, {"rank": 22, "hub": "AKRAB-B - เมืองกระบี่", "zone": "C", "lateCount": 3, "totalCount": 9, "pct": 33.3, "cuts": "Cut 2: 3"}, {"rank": 23, "hub": "ALAMP-A - เมืองลำปาง", "zone": "A", "lateCount": 3, "totalCount": 9, "pct": 33.3, "cuts": "Cut 1: 3"}, {"rank": 24, "hub": "ASURT-C - เมืองสุราษฎร์ธานี", "zone": "C", "lateCount": 2, "totalCount": 8, "pct": 25.0, "cuts": "Cut 2: 2"}, {"rank": 25, "hub": "APHUK-B - เมืองภูเก็ต", "zone": "D", "lateCount": 2, "totalCount": 8, "pct": 25.0, "cuts": "Cut 1: 2"}, {"rank": 26, "hub": "AHATY-A - หาดใหญ่", "zone": "D", "lateCount": 2, "totalCount": 7, "pct": 28.6, "cuts": "Cut 1: 2"}, {"rank": 27, "hub": "AUDON-B - เมืองอุดรธานี", "zone": "A", "lateCount": 2, "totalCount": 7, "pct": 28.6, "cuts": "Cut 2: 2"}, {"rank": 28, "hub": "ACHIA-C - เมืองเชียงใหม่", "zone": "A", "lateCount": 2, "totalCount": 7, "pct": 28.6, "cuts": "Cut 1: 2"}, {"rank": 29, "hub": "ACHON-B - เมืองชลบุรี", "zone": "B", "lateCount": 2, "totalCount": 6, "pct": 33.3, "cuts": "Cut 1: 2"}, {"rank": 30, "hub": "ARAYO-A - เมืองระยอง", "zone": "B", "lateCount": 2, "totalCount": 6, "pct": 33.3, "cuts": "Cut 2: 2"}, {"rank": 31, "hub": "APATT-A - พัทยา", "zone": "B", "lateCount": 2, "totalCount": 6, "pct": 33.3, "cuts": "Cut 1: 2"}, {"rank": 32, "hub": "ASAMA-B - สมุทรปราการ", "zone": "B", "lateCount": 2, "totalCount": 5, "pct": 40.0, "cuts": "Cut 1: 2"}, {"rank": 33, "hub": "ANONB-A - เมืองนนทบุรี", "zone": "C", "lateCount": 2, "totalCount": 5, "pct": 40.0, "cuts": "Cut 0: 2"}, {"rank": 34, "hub": "APATH-B - เมืองปทุมธานี", "zone": "C", "lateCount": 2, "totalCount": 5, "pct": 40.0, "cuts": "Cut 1: 2"}, {"rank": 35, "hub": "ASAMU-C - เมืองสมุทรสาคร", "zone": "D", "lateCount": 2, "totalCount": 5, "pct": 40.0, "cuts": "Cut 1: 2"}, {"rank": 36, "hub": "ANAKH-A - เมืองนครปฐม", "zone": "D", "lateCount": 1, "totalCount": 4, "pct": 25.0, "cuts": "Cut 1: 1"}, {"rank": 37, "hub": "ARATC-B - เมืองราชบุรี", "zone": "D", "lateCount": 1, "totalCount": 4, "pct": 25.0, "cuts": "Cut 2: 1"}, {"rank": 38, "hub": "APHET-A - เมืองเพชรบุรี", "zone": "D", "lateCount": 1, "totalCount": 4, "pct": 25.0, "cuts": "Cut 1: 1"}, {"rank": 39, "hub": "AHUAh-B - หัวหิน", "zone": "D", "lateCount": 1, "totalCount": 4, "pct": 25.0, "cuts": "Cut 2: 1"}, {"rank": 40, "hub": "ACHUM-A - เมืองชุมพร", "zone": "D", "lateCount": 1, "totalCount": 4, "pct": 25.0, "cuts": "Cut 1: 1"}, {"rank": 41, "hub": "ATRANG-A - เมืองตรัง", "zone": "C", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 2: 1"}, {"rank": 42, "hub": "APATN-A - เมืองปัตตานี", "zone": "D", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 1: 1"}, {"rank": 43, "hub": "AYALA-A - เมืองยะลา", "zone": "D", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 2: 1"}, {"rank": 44, "hub": "ANARA-A - เมืองนราธิวาส", "zone": "D", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 1: 1"}, {"rank": 45, "hub": "ASAKE-A - เมืองสระแก้ว", "zone": "B", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 2: 1"}, {"rank": 46, "hub": "ACHAC-A - เมืองฉะเชิงเทรา", "zone": "B", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 1: 1"}, {"rank": 47, "hub": "APRACH-A - เมืองปราจีนบุรี", "zone": "B", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 2: 1"}, {"rank": 48, "hub": "AKAN-A - เมืองกาญจนบุรี", "zone": "D", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 1: 1"}, {"rank": 49, "hub": "ASUP-A - เมืองสุพรรณบุรี", "zone": "C", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 1: 1"}, {"rank": 50, "hub": "AAUT-A - พระนครศรีอยุธยา", "zone": "C", "lateCount": 1, "totalCount": 3, "pct": 33.3, "cuts": "Cut 1: 1"}];
 
     document.addEventListener('DOMContentLoaded', () => {
       renderRealSummaryData();
@@ -619,7 +576,7 @@
       const lhBody = document.getElementById('hubTableBodyLH');
       const obBody = document.getElementById('hubTableBodyOB');
 
-      lhBody.innerHTML = VERIFIED_TOP_20_LH_LATE.map(r => `
+      lhBody.innerHTML = VERIFIED_TOP_50_LH_LATE.map(r => `
         <tr style="cursor:pointer;" onclick="openHubModal('${r.hub}')">
           <td class="fw-bold">${r.rank}</td>
           <td class="fw-bold text-danger">${r.hub} <i class="fa-solid fa-up-right-from-square fs-8 text-muted ms-1"></i></td>
@@ -630,7 +587,7 @@
         </tr>
       `).join('');
 
-      obBody.innerHTML = VERIFIED_TOP_20_OB_LATE.map(r => `
+      obBody.innerHTML = VERIFIED_TOP_50_OB_LATE.map(r => `
         <tr style="cursor:pointer;" onclick="openHubModal('${r.hub}')">
           <td class="fw-bold">${r.rank}</td>
           <td class="fw-bold text-warning">${r.hub} <i class="fa-solid fa-up-right-from-square fs-8 text-muted ms-1"></i></td>
@@ -805,10 +762,10 @@
     <tr><td class="chart-cell"><img src="${c5Img}" width="650" height="260" alt="Bar Chart 5"></td></tr>
   </table>
 
-  <h3 style="font-size:15px; color:#0f172a; margin-top:25px;">🏆 Top 20 LH Late Hubs</h3>
+  <h3 style="font-size:15px; color:#0f172a; margin-top:25px;">🏆 Top 50 LH Late Hubs</h3>
   ${lhTableHtml}
 
-  <h3 style="font-size:15px; color:#0f172a; margin-top:25px;">🏆 Top 20 OB Late Hubs</h3>
+  <h3 style="font-size:15px; color:#0f172a; margin-top:25px;">🏆 Top 50 OB Late Hubs</h3>
   ${obTableHtml}
 </body>
 </html>`;
@@ -817,7 +774,7 @@
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'LH_TRIP_DASHBOARD_EXCEL_WITH_CHARTS.xls';
+        link.download = 'LH_TRIP_DASHBOARD_EXCEL_WITH_CHARTS_TOP_50.xls';
         link.click();
       } catch (err) {
         alert('เกิดข้อผิดพลาดในการส่งออก Excel: ' + err.message);
@@ -825,7 +782,7 @@
     }
 
     function exportDashboardSummaryCSV() {
-      let csv = '\uFEFF=== LH TRIP DASHBOARD EXECUTIVE SUMMARY REPORT ===\n\n';
+      let csv = '\uFEFF=== LH TRIP DASHBOARD EXECUTIVE SUMMARY REPORT (TOP 50) ===\n\n';
       csv += 'KPI SUMMARY\n';
       csv += 'Total Trips,On Time,Late,On-Time Rate\n';
       csv += '1305,966,336,74.2%\n\n';
@@ -834,40 +791,19 @@
       csv += 'Peak Late Hour,12:00 - 13:00 (114 late trips)\n';
       csv += 'Peak Late Cut,Cut 1 (132 / 451 trips - 29% late)\n\n';
 
-      csv += 'CHART 1: ON TIME VS LATE (PIE CHART DATA)\n';
-      csv += 'Status,Count,Percentage\n';
-      csv += 'On Time,966,74.2%\n';
-      csv += 'Late,336,25.8%\n\n';
-
-      csv += 'CHART 2: LATE TRIPS BY VEHICLE TYPE (PIE CHART DATA)\n';
-      csv += 'Vehicle Type,Count,Percentage\n';
-      csv += '4WH-4ล้อ,215,63.8%\n';
-      csv += '6WH-6ล้อ[7.2m],60,17.8%\n';
-      csv += '4WH-4ล้อ[OF],23,6.8%\n';
-      csv += '6WH-6ล้อ[OF],15,4.4%\n';
-      csv += 'Semi trailer,14,4.2%\n';
-      csv += '6WH-6ล้อ[9.6m],9,2.7%\n\n';
-
-      csv += 'CHART 3: ON TIME ARRIVAL VS LH TRIP (PIE CHART DATA)\n';
-      csv += 'Category,Count,Percentage\n';
-      csv += 'On time,641,56.5%\n';
-      csv += 'OB Late,204,18.0%\n';
-      csv += 'RC,159,14.0%\n';
-      csv += 'LH Late,131,11.5%\n\n';
-
-      csv += 'TOP 20 LH LATE HUBS\n';
+      csv += 'TOP 50 LH LATE HUBS\n';
       csv += 'Rank,Hub (Destination),Zone,LH Late Count,Total Count,LH Late Rate %,Cut Breakdown\n';
-      VERIFIED_TOP_20_LH_LATE.forEach(r => {
+      VERIFIED_TOP_50_LH_LATE.forEach(r => {
         csv += `${r.rank},"${r.hub}",Zone ${r.zone},${r.lateCount},${r.totalCount},${r.pct.toFixed(1)}%,"${r.cuts}"\n`;
       });
 
-      csv += '\nTOP 20 OB LATE HUBS\n';
+      csv += '\nTOP 50 OB LATE HUBS\n';
       csv += 'Rank,Hub (Destination),Zone,OB Late Count,Total Count,OB Late Rate %,Cut Breakdown\n';
-      VERIFIED_TOP_20_OB_LATE.forEach(r => {
+      VERIFIED_TOP_50_OB_LATE.forEach(r => {
         csv += `${r.rank},"${r.hub}",Zone ${r.zone},${r.lateCount},${r.totalCount},${r.pct.toFixed(1)}%,"${r.cuts}"\n`;
       });
 
-      downloadCSVFile(csv, 'LH_TRIP_DASHBOARD_EXECUTIVE_SUMMARY.csv');
+      downloadCSVFile(csv, 'LH_TRIP_DASHBOARD_SUMMARY_TOP_50.csv');
     }
 
     function exportFullRawDataCSV() {

@@ -666,7 +666,7 @@ def process_table_sheet(df):
     ranking = []
     top10 = []
     if dest_col and not late_df.empty:
-        vc = late_df[dest_col].value_counts().head(20)
+        vc = late_df[dest_col].value_counts().head(50)
         for st, count in vc.items():
             pct = round((count / late * 100), 1) if late > 0 else 0.0
             item = {
