@@ -1495,6 +1495,104 @@ def login_google():
 def lh_trip_page():
     return send_from_directory(BASE_DIR, "lh_trip.html")
 
+@app.route("/ob-bl")
+@app.route("/ob_bl.html")
+@app.route("/ob-backlog")
+def ob_bl_page():
+    return send_from_directory(BASE_DIR, "ob_bl.html")
+
+def process_ob_bl_df(df):
+    headers = [str(c).strip() for c in df.columns]
+    clean_df = df.fillna('')
+    rows = clean_df.values.tolist()
+    return {
+        "success": True,
+        "headers": headers,
+        "rows": rows,
+        "generatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+@app.route("/api/load-ob-bl", methods=["GET"])
+def load_ob_bl():
+    filename = request.args.get("filename", "").strip()
+    
+    target = None
+    if filename:
+        t1 = os.path.join(UPLOAD_FOLDER, filename)
+        t2 = os.path.join(BASE_DIR, filename)
+        if os.path.exists(t1): target = t1
+        elif os.path.exists(t2): target = t2
+
+    if not target:
+        candidates = ["LIVE_OB_BL_SYNC.csv", "LIVE_GOOGLE_SHEET_SYNC.csv"]
+        for c in candidates:
+            p = os.path.join(UPLOAD_FOLDER, c)
+            if os.path.exists(p):
+                target = p
+                break
+
+    if not target:
+        csv_files = [f for f in os.listdir(UPLOAD_FOLDER) if f.endswith(".csv")]
+        if csv_files:
+            target = os.path.join(UPLOAD_FOLDER, csv_files[0])
+
+    if not target or not os.path.exists(target):
+        return jsonify({
+            "success": False,
+            "error": "ยังไม่มีไฟล์รายงาน OB BL ในระบบ (กรุณากดปุ่ม Sync Google Sheet หรือ อัปโหลด CSV/Excel)"
+        }), 200
+
+    try:
+        if target.endswith((".xlsx", ".xls")):
+            df = pd.read_excel(target)
+        else:
+            df = read_dataframe(target)
+            
+        data = process_ob_bl_df(df)
+        data["filename"] = os.path.basename(target)
+        return jsonify(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"ไม่สามารถประมวลผลไฟล์ OB BL ได้: {str(e)}"}), 200
+
+@app.route("/api/sync-ob-bl", methods=["POST"])
+def sync_ob_bl():
+    req_json = request.get_json(silent=True) or {}
+    url = (req_json.get("url") or "").strip()
+    if not url:
+        return jsonify({"success": False, "error": "กรุณาระบุ URL ของ Google Sheet หรือ Apps Script"}), 400
+
+    try:
+        req = requests.get(url, timeout=30, allow_redirects=True)
+        if req.status_code != 200:
+            return jsonify({"success": False, "error": f"ไม่สามารถเชื่อมต่อ URL ได้ (HTTP Status {req.status_code})"}), 200
+
+        try:
+            json_resp = req.json()
+            if isinstance(json_resp, dict) and ("rows" in json_resp or "headers" in json_resp):
+                json_resp["success"] = True
+                log_activity("SYNC_OB_BL", f"Successfully synced OB BL JSON data from {url}")
+                return jsonify(json_resp)
+        except Exception:
+            pass
+
+        target_path = os.path.join(UPLOAD_FOLDER, "LIVE_OB_BL_SYNC.csv")
+        with open(target_path, "wb") as f:
+            f.write(req.content)
+
+        df = pd.read_csv(target_path, low_memory=False)
+        data = process_ob_bl_df(df)
+        data["filename"] = "Live OB BL (Google Sheet)"
+        data["success"] = True
+
+        log_activity("SYNC_OB_BL", f"Successfully synced OB BL data from {url}")
+        return jsonify(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"ไม่สามารถซิงค์ข้อมูล OB BL จาก URL ได้: {str(e)}"}), 200
+
 @app.route("/")
 def index_page():
     return send_from_directory(BASE_DIR, "index.html")

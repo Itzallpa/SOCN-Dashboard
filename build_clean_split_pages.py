@@ -20,6 +20,7 @@ def get_navbar(active_page):
       <a href="skip_process.html" style="{active_style('skip')}">📦 Skip Monitor</a>
       <a href="cutoff_master.html" style="{active_style('cutoff')}">⏰ Cutoff Master</a>
       <a href="lh_trip.html" style="{active_style('lh_trip')}">🚚 LH Trip & OB Late</a>
+      <a href="ob_bl.html" style="{active_style('ob_bl')}">📊 OB Backlog (OB BL)</a>
     </div>
   </nav>
   <script src="auth_guard.js"></script>
