@@ -1,5 +1,50 @@
 [
   {
+    "id": "c554b00c",
+    "timestamp": "2026-09-03 19:38:46",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Ground)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "fd51077e",
+    "timestamp": "2026-09-03 19:38:42",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Ground)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "466c5389",
+    "timestamp": "2026-09-03 19:35:47",
+    "email": "admin.manager@spxexpress.com",
+    "name": "SOC Admin Manager",
+    "action": "VIEW_AUDIT_LOGS",
+    "details": "Accessed Admin Audit Logs Dashboard",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "4c8f0987",
+    "timestamp": "2026-09-03 19:35:47",
+    "email": "admin.manager@spxexpress.com",
+    "name": "SOC Admin Manager",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as admin.manager@spxexpress.com (Role: Admin)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "c78aaec2",
+    "timestamp": "2026-09-03 19:35:47",
+    "email": "operator.ground@spxexpress.com",
+    "name": "Ground Operator",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as operator.ground@spxexpress.com (Role: Ground)",
+    "ip": "127.0.0.1"
+  },
+  {
     "id": "ac28d81e",
     "timestamp": "2026-09-03 18:24:59",
     "email": "admin.manager@spxexpress.com",
