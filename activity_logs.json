@@ -1,5 +1,23 @@
 [
   {
+    "id": "5c5032f8",
+    "timestamp": "2026-09-03 20:06:03",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn",
+    "action": "IDLE_AUTO_LOGOUT",
+    "details": "ผู้ใช้งานกด Logout",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "44149e42",
+    "timestamp": "2026-09-03 20:04:09",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Admin)",
+    "ip": "127.0.0.1"
+  },
+  {
     "id": "dc57abea",
     "timestamp": "2026-09-03 19:57:44",
     "email": "guy.panmanee@spxexpress.com",
