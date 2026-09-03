@@ -187,11 +187,17 @@ def signup_user_api():
 @app.route("/api/users/approve", methods=["POST"])
 def approve_user_api():
     data = request.get_json() or {}
-    user_id = data.get("id")
+    user_id = str(data.get("id") or "").strip()
+    email = str(data.get("email") or "").strip().lower()
     role = data.get("role", "Ground")
 
     users = load_users_db()
-    target = next((u for u in users if u.get("id") == user_id), None)
+    target = None
+    for u in users:
+        if (user_id and str(u.get("id")) == user_id) or (email and u.get("email", "").lower() == email):
+            target = u
+            break
+
     if not target:
         return jsonify({"success": False, "error": "ไม่พบสมาชิก"}), 404
 
@@ -205,11 +211,17 @@ def approve_user_api():
 @app.route("/api/users/role", methods=["POST"])
 def change_role_user_api():
     data = request.get_json() or {}
-    user_id = data.get("id")
-    role = data.get("role")
+    user_id = str(data.get("id") or "").strip()
+    email = str(data.get("email") or "").strip().lower()
+    role = data.get("role", "Ground")
 
     users = load_users_db()
-    target = next((u for u in users if u.get("id") == user_id), None)
+    target = None
+    for u in users:
+        if (user_id and str(u.get("id")) == user_id) or (email and u.get("email", "").lower() == email):
+            target = u
+            break
+
     if not target:
         return jsonify({"success": False, "error": "ไม่พบสมาชิก"}), 404
 
@@ -217,7 +229,7 @@ def change_role_user_api():
     target["role"] = role
     save_users_db(users)
 
-    log_activity("USER_ROLE_CHANGE", f"เปลี่ยนสิทธิ์ {target.get('name')} จาก {old_role} เป็น {role}")
+    log_activity("USER_ROLE_CHANGE", f"เปลี่ยนสิทธิ์ {target.get('name')} ({target.get('email')}) จาก {old_role} เป็น {role}")
     return jsonify({"success": True, "user": target, "users": users})
 
 @app.route("/api/users/delete", methods=["POST"])

@@ -361,37 +361,69 @@
     function changeUserRoleInDashboard(userId, newRole) {
       const db = getUsersDb();
       const target = db.find(u => u.id === userId);
-      if (!target) return;
+      const email = target ? target.email : '';
 
-      const oldRole = target.role;
-      target.role = newRole;
-      saveUsersDb(db);
+      fetch('/api/users/role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: userId, email: email, role: newRole })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          cachedUsersList = data.users;
+          saveUsersDb(data.users);
 
-      // If the modified user is currently logged in, sync their local session too
-      const currUser = window.AuthGuard ? window.AuthGuard.getUser() : null;
-      if (currUser && (currUser.email === target.email || currUser.name === target.name)) {
-        currUser.role = newRole;
-        if (window.AuthGuard) window.AuthGuard.saveUser(currUser);
-      }
+          // If the modified user is currently logged in, sync their local session too
+          const currUser = window.AuthGuard ? window.AuthGuard.getUser() : null;
+          if (currUser && (currUser.email === email || currUser.id === userId)) {
+            currUser.role = newRole;
+            if (window.AuthGuard) window.AuthGuard.saveUser(currUser);
+          }
 
-      if (window.AuthGuard && window.AuthGuard.logActivity) {
-        window.AuthGuard.logActivity('USER_ROLE_CHANGE', `เปลี่ยนสิทธิ์ผู้ใช้ ${target.name} (${target.email}) จาก ${oldRole} เป็น ${newRole}`);
-      }
-
-      alert(`✅ เปลี่ยนสิทธิ์ของ ${target.name} เป็น ${newRole} เรียบร้อยแล้ว!`);
-      renderUsersTable();
+          alert(`✅ เปลี่ยนสิทธิ์เป็น ${newRole} เรียบร้อยแล้ว!`);
+          renderUsersTable();
+        } else {
+          alert(`❌ ${data.error || 'เกิดข้อผิดพลาดในการเปลี่ยนสิทธิ์'}`);
+        }
+      })
+      .catch(() => {
+        if (target) {
+          target.role = newRole;
+          saveUsersDb(db);
+          renderUsersTable();
+        }
+      });
     }
 
     function deleteUserInDashboard(userId) {
       const db = getUsersDb();
-      const idx = db.findIndex(u => u.id === userId);
-      if (idx === -1) return;
+      const target = db.find(u => u.id === userId);
+      if (!target) return;
 
-      if (confirm(`คุณต้องการลบสมาชิก ${db[idx].name} ใช่หรือไม่?`)) {
-        db.splice(idx, 1);
-        saveUsersDb(db);
-        renderUsersTable();
-      }
+      if (!confirm(`คุณต้องการลบสมาชิก ${target.name} ใช่หรือไม่?`)) return;
+
+      fetch('/api/users/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: userId, email: target.email })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          cachedUsersList = data.users;
+          saveUsersDb(data.users);
+          renderUsersTable();
+        }
+      })
+      .catch(() => {
+        const idx = db.findIndex(u => u.id === userId);
+        if (idx !== -1) {
+          db.splice(idx, 1);
+          saveUsersDb(db);
+          renderUsersTable();
+        }
+      });
     }
 
     function openAddUserModal() {
