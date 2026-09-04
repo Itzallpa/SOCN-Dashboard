@@ -1,5 +1,145 @@
 [
   {
+    "id": "128db9ae",
+    "timestamp": "2026-09-04 21:38:34",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "COMPARE_OB_BL",
+    "details": "Compared SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv & SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv — Found 10925 duplicate backlog shipments",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "7427c625",
+    "timestamp": "2026-09-04 21:38:29",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "UPLOAD_COMPARE_FILE",
+    "details": "Uploaded compare file to Backlog Shipment: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "721e2bc4",
+    "timestamp": "2026-09-04 21:38:29",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "9895b63b",
+    "timestamp": "2026-09-04 21:38:23",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "UPLOAD_COMPARE_FILE",
+    "details": "Uploaded compare file to Backlog Shipment: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "b6a46a8e",
+    "timestamp": "2026-09-04 21:38:23",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 17358 KB ในหน้า ob_bl_compare.html",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "ad140b11",
+    "timestamp": "2026-09-04 21:28:52",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "COMPARE_OB_BL",
+    "details": "Compared Backlog_15_7_26.xlsx & Backlog_14_7_26.xlsx — Found 0 duplicate backlog shipments",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "2866efd4",
+    "timestamp": "2026-09-04 21:28:23",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "UPLOAD_COMPARE_FILE",
+    "details": "Uploaded compare file to Backlog Shipment: Backlog_14_7_26.xlsx",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "c157fe5b",
+    "timestamp": "2026-09-04 21:28:22",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: Backlog_14_7_26.xlsx (0 รายการ) - อัปโหลดไฟล์ขนาด 20996 KB ในหน้า ob_bl_compare.html",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "6cd76f03",
+    "timestamp": "2026-09-04 21:28:07",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "COMPARE_OB_BL",
+    "details": "Compared Backlog_1_7_26.xlsx & Backlog_15_7_26.xlsx — Found 0 duplicate backlog shipments",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "e3192167",
+    "timestamp": "2026-09-04 21:27:42",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "UPLOAD_COMPARE_FILE",
+    "details": "Uploaded compare file to Backlog Shipment: Backlog_15_7_26.xlsx",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "5aefcc78",
+    "timestamp": "2026-09-04 21:27:42",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: Backlog_15_7_26.xlsx (0 รายการ) - อัปโหลดไฟล์ขนาด 7832 KB ในหน้า ob_bl_compare.html",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "789413df",
+    "timestamp": "2026-09-04 21:27:32",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "UPLOAD_COMPARE_FILE",
+    "details": "Uploaded compare file to Backlog Shipment: Backlog_1_7_26.xlsx",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "6c493c27",
+    "timestamp": "2026-09-04 21:27:32",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: Backlog_1_7_26.xlsx (0 รายการ) - อัปโหลดไฟล์ขนาด 13502 KB ในหน้า ob_bl_compare.html",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "0522b252",
+    "timestamp": "2026-09-04 21:27:12",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "SYNC_OB_BL",
+    "details": "Successfully synced OB BL data from https://docs.google.com/spreadsheets/d/e/2PACX-1vRByU-6geOW_SbnQxFA4Y05WJMIkpRbUZMehfpDMTaHiXevL5mSA186BUybW3h8cgb4cWK2vOKuTIK3/pub?output=csv",
+    "ip": "127.0.0.1"
+  },
+  {
     "id": "d16dfdb3",
     "timestamp": "2026-09-04 20:39:37",
     "email": "aim.tiantong@spxexpress.com",
