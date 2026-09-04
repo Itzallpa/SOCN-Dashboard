@@ -583,23 +583,30 @@
     });
 
     function safeFetchJson(url, options) {
-      return fetch(url, options).then(res => {
-        return res.text().then(text => {
-          let json = null;
-          try {
-            if (text && text.trim()) json = JSON.parse(text);
-          } catch (e) {}
+      return fetch(url, options)
+        .then(res => {
+          return res.text().then(text => {
+            let json = null;
+            try {
+              if (text && text.trim()) json = JSON.parse(text);
+            } catch (e) {}
 
-          if (!res.ok) {
-            const errDetail = json && json.error ? json.error : `เซิร์ฟเวอร์ตอบกลับ Error Status ${res.status}`;
-            throw new Error(errDetail);
+            if (!res.ok) {
+              const errDetail = json && json.error ? json.error : `เซิร์ฟเวอร์ตอบกลับ Error Status ${res.status}`;
+              throw new Error(errDetail);
+            }
+            if (!json) {
+              throw new Error('ไม่สามารถอ่านข้อมูลจากเซิร์ฟเวอร์ได้ (Response ว่างเปล่าหรือเซิร์ฟเวอร์ปิดอยู่)');
+            }
+            return json;
+          });
+        })
+        .catch(err => {
+          if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+            throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ (Network Error / Backend Offline)\n\nกรุณาตรวจสอบว่าเซิร์ฟเวอร์หลังบ้าน หรือ Serveo Tunnel เปิดทำงานอยู่หรือไม่ครับ');
           }
-          if (!json) {
-            throw new Error('ไม่สามารถอ่านข้อมูลจากเซิร์ฟเวอร์ได้');
-          }
-          return json;
+          throw err;
         });
-      });
     }
 
     function fetchCompareFileList() {

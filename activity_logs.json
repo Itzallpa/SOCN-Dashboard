@@ -1,5 +1,95 @@
 [
   {
+    "id": "d16dfdb3",
+    "timestamp": "2026-09-04 20:39:37",
+    "email": "aim.tiantong@spxexpress.com",
+    "name": "Aim",
+    "role": "Admin",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "ip": "192.168.226.254"
+  },
+  {
+    "id": "9693e62f",
+    "timestamp": "2026-09-04 20:39:20",
+    "email": "aim.tiantong@spxexpress.com",
+    "name": "Aim",
+    "role": "Admin",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as aim.tiantong@spxexpress.com (Role: Admin)",
+    "ip": "192.168.226.254"
+  },
+  {
+    "id": "d32b58d2",
+    "timestamp": "2026-09-04 20:39:20",
+    "email": "aim.tiantong@spxexpress.com",
+    "name": "Aim",
+    "role": "Admin",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "ip": "192.168.226.254"
+  },
+  {
+    "id": "ae9bf451",
+    "timestamp": "2026-09-04 20:39:14",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "USER_ROLE_CHANGE",
+    "details": "เปลี่ยนสิทธิ์ Aim (aim.tiantong@spxexpress.com) จาก Ground เป็น Admin",
+    "ip": "192.168.226.11"
+  },
+  {
+    "id": "a7351e96",
+    "timestamp": "2026-09-04 20:39:12",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "USER_APPROVAL",
+    "details": "อนุมัติบัญชี Aim (aim.tiantong@spxexpress.com) เป็นสิทธิ์ Ground",
+    "ip": "192.168.226.11"
+  },
+  {
+    "id": "202d631a",
+    "timestamp": "2026-09-04 20:39:11",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "192.168.226.11"
+  },
+  {
+    "id": "7e9e4a8a",
+    "timestamp": "2026-09-04 20:39:06",
+    "email": "aim.tiantong@spxexpress.com",
+    "name": "Aim",
+    "role": "Ground",
+    "action": "USER_SIGNUP",
+    "details": "ลงทะเบียนผู้ใช้งานใหม่: Aim (aim.tiantong@spxexpress.com) - รอ Admin อนุมัติ",
+    "ip": "192.168.226.254"
+  },
+  {
+    "id": "2be6f9fe",
+    "timestamp": "2026-09-04 20:38:59",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as admin@spxexpress.com (Role: Admin)",
+    "ip": "192.168.226.11"
+  },
+  {
+    "id": "118aeea0",
+    "timestamp": "2026-09-04 20:38:59",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "ip": "192.168.226.11"
+  },
+  {
     "id": "aa8871fe",
     "timestamp": "2026-09-04 20:03:39",
     "email": "admin@spxexpress.com",

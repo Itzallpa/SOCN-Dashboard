@@ -25,5 +25,14 @@
     "role": "Admin",
     "status": "approved",
     "createdAt": "2026-09-03 20:11:11"
+  },
+  {
+    "id": "u_1788529146167",
+    "name": "Aim",
+    "email": "aim.tiantong@spxexpress.com",
+    "pass": "1234",
+    "role": "Admin",
+    "status": "approved",
+    "createdAt": "2026-09-04 20:39:06"
   }
 ]
