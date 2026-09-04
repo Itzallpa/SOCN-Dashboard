@@ -503,6 +503,36 @@
       }
     }
 
+    function parseOutboundFileLocally(file) {
+      Papa.parse(file, {
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (!results || !results.data || results.data.length < 2) {
+            showOutboundStatus(`อัปโหลดล้มเหลว: ไม่พบข้อมูลในไฟล์`, 'error');
+            return;
+          }
+          const rows = results.data;
+          const headers = rows[0];
+          const dataRows = rows.slice(1);
+          const dataObj = {
+            success: true,
+            filename: file.name,
+            totalRows: dataRows.length,
+            outboundRawRows: dataRows,
+            headers: headers
+          };
+          outboundDataState = dataObj;
+          safeSetLocalStorage('socn_outbound_data', dataObj);
+          updateDashboard(dataObj);
+          showOutboundStatus(`✅ บันทึก "${file.name}" เรียบร้อย! (Browser Sync)`, 'success');
+          fetchFileList();
+        },
+        error: (err) => {
+          showOutboundStatus(`อัปโหลดล้มเหลว: ${err.message}`, 'error');
+        }
+      });
+    }
+
     function handleOutboundFileUpload(file) {
       if (!file) return;
       showOutboundStatus(`กำลังอัปโหลด "${file.name}"...`, 'loading');
@@ -512,17 +542,20 @@
 
       safeFetchJson('/upload', { method: 'POST', body: formData })
         .then(data => {
-          if (data.success) {
+          if (data && data.success) {
             outboundDataState = data;
             safeSetLocalStorage('socn_outbound_data', data);
             updateDashboard(data);
             showOutboundStatus(`✅ บันทึก "${file.name}" เรียบร้อย!`, 'success');
             fetchFileList();
           } else {
-            showOutboundStatus(`เกิดข้อผิดพลาดในการอัปโหลด`, 'error');
+            parseOutboundFileLocally(file);
           }
         })
-        .catch(err => showOutboundStatus(`อัปโหลดล้มเหลว: ${err.message}`, 'error'));
+        .catch(err => {
+          console.warn('Server upload failed, parsing locally in browser:', err);
+          parseOutboundFileLocally(file);
+        });
     }
 
     function updateDashboard(data) {

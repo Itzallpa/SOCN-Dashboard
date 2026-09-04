@@ -604,8 +604,8 @@ def upload_file():
     if file.filename == "":
         return jsonify({"success": False, "error": "Empty filename"}), 400
 
-    if not file.filename.lower().endswith(".csv"):
-        return jsonify({"success": False, "error": "Please upload a CSV file"}), 400
+    if not file.filename.lower().endswith((".csv", ".xlsx", ".xls")):
+        return jsonify({"success": False, "error": "กรุณาอัปโหลดไฟล์ประเภท CSV หรือ Excel (.xlsx, .xls) เท่านั้น"}), 400
 
     save_path = os.path.join(UPLOAD_FOLDER, file.filename)
     try:
@@ -622,7 +622,7 @@ def upload_file():
         
         # Safely extract raw rows for Skip Process Monitor
         try:
-            full_df = pd.read_csv(save_path, low_memory=False)
+            full_df = read_dataframe(save_path)
             total_rows = len(full_df)
             data["totalRows"] = total_rows
             

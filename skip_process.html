@@ -374,6 +374,35 @@
         .catch(() => showSkipStatus('พร้อมสำหรับอัปโหลดไฟล์ Skip Process', 'info'));
     }
 
+    function parseSkipFileLocally(file) {
+      Papa.parse(file, {
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (!results || !results.data || results.data.length < 2) {
+            showSkipStatus(`อัปโหลดล้มเหลว: ไม่พบข้อมูลในไฟล์`, 'error');
+            return;
+          }
+          const rows = results.data;
+          const headers = rows[0];
+          const dataRows = rows.slice(1);
+          const dataObj = {
+            success: true,
+            filename: file.name,
+            totalRows: dataRows.length,
+            rawRows: dataRows,
+            headers: headers
+          };
+          skipDataState = dataObj;
+          safeSetLocalStorage('socn_skip_data', dataObj);
+          updateSkipUI(dataObj);
+          showSkipStatus(`✅ บันทึก "${file.name}" เรียบร้อย! (Browser Sync)`, 'success');
+        },
+        error: (err) => {
+          showSkipStatus(`อัปโหลดล้มเหลว: ${err.message}`, 'error');
+        }
+      });
+    }
+
     function handleSkipFileUpload(file) {
       if (!file) return;
       showSkipStatus(`กำลังอัปโหลด "${file.name}"...`, 'loading');
@@ -383,16 +412,19 @@
 
       safeFetchJson('/upload', { method: 'POST', body: formData })
         .then(data => {
-          if (data.success) {
+          if (data && data.success) {
             skipDataState = data;
             safeSetLocalStorage('socn_skip_data', data);
             updateSkipUI(data);
             showSkipStatus(`✅ บันทึก "${file.name}" เรียบร้อย!`, 'success');
           } else {
-            showSkipStatus(`เกิดข้อผิดพลาดในการอัปโหลด`, 'error');
+            parseSkipFileLocally(file);
           }
         })
-        .catch(err => showSkipStatus(`อัปโหลดล้มเหลว: ${err.message}`, 'error'));
+        .catch(err => {
+          console.warn('Server upload failed, parsing locally in browser:', err);
+          parseSkipFileLocally(file);
+        });
     }
 
     function updateSkipUI(data) {
