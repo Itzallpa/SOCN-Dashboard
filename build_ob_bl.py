@@ -123,7 +123,7 @@ source_content = source_content.replace(
     "// Resilient mode: proceed even if some optional columns are missing"
 )
 
-# Resilient Action Flag Normalizer, lookupTeam, and isOBBL (Skip Monitor Logic)
+# Resilient Action Flag Normalizer, lookupTeam, extractHour, and isOBBL (Skip Monitor Logic)
 resilient_is_obbl = """
     function normalizeActionFlag(v) {
       const raw = (v === null || v === undefined) ? '' : String(v).trim();
@@ -164,6 +164,31 @@ resilient_is_obbl = """
       if (upper.includes('B')) return 'Zone B';
       if (upper.includes('C')) return 'Zone C';
       return String(v).trim() || 'Unknown';
+    }
+
+    // Extract Hour of Day for OB BL Matrix
+    function extractHour(ts) {
+      if (typeof ts === 'number' && isFinite(ts)) {
+        return Math.floor((((ts % 1) + 1) % 1) * 24) % 24;
+      }
+      const s = (ts === null || ts === undefined) ? '' : String(ts).trim();
+      if (!s) return null;
+
+      let m = s.match(/T(\d{2}):/);
+      if (m) {
+        const h = parseInt(m[1], 10);
+        return (h >= 0 && h <= 23) ? h : null;
+      }
+
+      m = s.match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?/);
+      if (!m) return null;
+
+      let h = parseInt(m[1], 10);
+      const ampm = m[3] ? m[3].toUpperCase() : null;
+      if (ampm === 'PM' && h < 12) h += 12;
+      if (ampm === 'AM' && h === 12) h = 0;
+
+      return (h >= 0 && h <= 23) ? h : null;
     }
 
     // Skip Monitor & OB BL Filter Logic

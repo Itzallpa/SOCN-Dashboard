@@ -494,6 +494,31 @@
       return String(v).trim() || 'Unknown';
     }
 
+    // Extract Hour of Day for OB BL Matrix
+    function extractHour(ts) {
+      if (typeof ts === 'number' && isFinite(ts)) {
+        return Math.floor((((ts % 1) + 1) % 1) * 24) % 24;
+      }
+      const s = (ts === null || ts === undefined) ? '' : String(ts).trim();
+      if (!s) return null;
+
+      let m = s.match(/T(\d{2}):/);
+      if (m) {
+        const h = parseInt(m[1], 10);
+        return (h >= 0 && h <= 23) ? h : null;
+      }
+
+      m = s.match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?/);
+      if (!m) return null;
+
+      let h = parseInt(m[1], 10);
+      const ampm = m[3] ? m[3].toUpperCase() : null;
+      if (ampm === 'PM' && h < 12) h += 12;
+      if (ampm === 'AM' && h === 12) h = 0;
+
+      return (h >= 0 && h <= 23) ? h : null;
+    }
+
     // Skip Monitor & OB BL Filter Logic
     function isOBBL(rec) {
       const af = normalizeActionFlag(rec.action_flag);
