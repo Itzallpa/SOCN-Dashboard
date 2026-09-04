@@ -666,8 +666,19 @@
       renderDatatable(filteredDuplicates);
     }
 
+    function getApiUrl(url) {
+      if (!url) return url;
+      if (url.startsWith('http://') || url.startsWith('https://')) return url;
+      const path = url.startsWith('/') ? url : '/' + url;
+      if (window.location.protocol === 'file:' || (window.location.port && window.location.port !== '5000')) {
+        return 'http://127.0.0.1:5000' + path;
+      }
+      return path;
+    }
+
     function safeFetchJson(url, options) {
-      return fetch(url, options)
+      const fullUrl = getApiUrl(url);
+      return fetch(fullUrl, options)
         .then(res => {
           return res.text().then(text => {
             let json = null;

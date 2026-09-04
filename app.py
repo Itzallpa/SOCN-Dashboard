@@ -1897,8 +1897,12 @@ def sync_ob_bl():
 def ob_bl_compare_page():
     return send_from_directory(BASE_DIR, "ob_bl_compare.html")
 
-@app.route("/api/upload-compare-file", methods=["POST"])
+@app.route("/api/upload-compare-file", methods=["POST", "OPTIONS"])
+@app.route("/upload-compare-file", methods=["POST", "OPTIONS"])
 def upload_compare_file():
+    if request.method == "OPTIONS":
+        return jsonify({"success": True}), 200
+
     if "file" not in request.files:
         return jsonify({"success": False, "error": "ไม่ได้เลือกไฟล์"}), 400
     file = request.files["file"]
@@ -1909,6 +1913,7 @@ def upload_compare_file():
     if not filename.lower().endswith((".csv", ".xlsx", ".xls")):
         return jsonify({"success": False, "error": "กรุณาอัปโหลดไฟล์ประเภท CSV หรือ Excel เท่านั้น"}), 400
 
+    os.makedirs(BACKLOG_COMPARE_FOLDER, exist_ok=True)
     save_path = os.path.join(BACKLOG_COMPARE_FOLDER, filename)
     try:
         file.save(save_path)
