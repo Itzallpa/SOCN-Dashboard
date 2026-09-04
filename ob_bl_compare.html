@@ -714,7 +714,7 @@
         if (listRaw) localList = JSON.parse(listRaw);
       } catch (e) {}
 
-      safeFetchJson('/api/list-compare-files')
+      return safeFetchJson('/api/list-compare-files')
         .then(data => {
           const serverFiles = data.files || [];
           const combinedMap = new Map();
@@ -873,6 +873,8 @@
     function handleUploadCompareFile(event) {
       const file = event.target.files[0];
       if (!file) return;
+      // Reset input so same file can be re-uploaded if needed
+      event.target.value = '';
 
       const formData = new FormData();
       formData.append('file', file);
@@ -892,10 +894,42 @@
         body: formData
       })
         .then(data => {
-          saveCompareFileLocally(file, true);
+          // Also save to localStorage for browser-side access
+          saveCompareFileLocally(file, false);
+          // Refresh dropdown list so the file appears immediately
+          fetchCompareFileList().then(() => {
+            // Auto-select the newly uploaded file in file2Select (latest)
+            const sel2 = document.getElementById('file2Select');
+            if (sel2) {
+              sel2.value = file.name;
+              if (!sel2.value) {
+                const sel1 = document.getElementById('file1Select');
+                if (sel1) sel1.value = file.name;
+              }
+            }
+          });
+          Swal.fire({
+            icon: 'success',
+            title: '✅ บันทึกไฟล์สำเร็จ',
+            html: `<b>${file.name}</b><br><span style="font-size:0.85rem; color:#94a3b8;">บันทึกเข้า Folder: Backlog Shipment แล้ว</span>`,
+            background: '#0d1b2a',
+            color: '#ffffff',
+            confirmButtonColor: '#22c55e',
+            timer: 3000,
+            timerProgressBar: true
+          });
         })
-        .catch(() => {
+        .catch((err) => {
+          // Fallback: save locally only (server might be offline)
           saveCompareFileLocally(file, true);
+          Swal.fire({
+            icon: 'warning',
+            title: '⚠️ บันทึกเฉพาะ Browser',
+            html: `<b>${file.name}</b><br><span style="font-size:0.82rem; color:#fbbf24;">ไม่สามารถบันทึกลง Server ได้<br>(${err && err.message ? err.message : 'Server ไม่ตอบสนอง'})</span><br><span style="font-size:0.8rem; color:#94a3b8;">ไฟล์ถูกเก็บใน Browser ชั่วคราว</span>`,
+            background: '#0d1b2a',
+            color: '#ffffff',
+            confirmButtonColor: '#f59e0b'
+          });
         });
     }
 
