@@ -682,7 +682,23 @@
             Swal.fire({ icon: 'error', title: 'อัปโหลดไม่สำเร็จ', text: data.error, background: '#0d1b2a', color: '#ffffff' });
           }
         })
-        .catch(err => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message, background: '#0d1b2a', color: '#ffffff' }));
+        .catch(err => {
+          Swal.fire({
+            icon: 'warning',
+            title: '⚠️ ไม่สามารถอัปโหลดเข้าเซิร์ฟเวอร์ได้',
+            html: `ไม่พบการเชื่อมต่อเซิร์ฟเวอร์หลังบ้าน/Serveo Tunnel<br><br>หากต้องการเปรียบเทียบไฟล์สดข้ามรอบ สามารถใช้ปุ่ม <b>"⚡ เปรียบเทียบไฟล์สด (Browser)"</b> ได้ทันทีครับ`,
+            showCancelButton: true,
+            confirmButtonText: '⚡ เลือกไฟล์ CSV เปรียบเทียบสด',
+            cancelButtonText: 'ปิด',
+            confirmButtonColor: '#8b5cf6',
+            background: '#0d1b2a',
+            color: '#ffffff'
+          }).then(res => {
+            if (res.isConfirmed) {
+              handleLocalCompareUpload();
+            }
+          });
+        });
     }
 
     function handleLocalCompareUpload() {
