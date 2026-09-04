@@ -8,6 +8,7 @@
   <title>OB Backlog Compare - SOC Operations Portal</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 
   <style>
     :root {
@@ -397,6 +398,11 @@
       </div>
 
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <button onclick="handleLocalCompareUpload()"
+          style="background:#8b5cf6; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px; font-size:13px; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 10px rgba(139,92,246,0.3);">
+          <i class="fa-solid fa-file-csv"></i> ⚡ เปรียบเทียบไฟล์สด (Browser)
+        </button>
+
         <button onclick="document.getElementById('compareFileInput').click()"
           style="background:#10b981; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
           <i class="fa-solid fa-upload"></i> อัปโหลดเข้า Backlog Shipment
@@ -679,12 +685,220 @@
         .catch(err => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message, background: '#0d1b2a', color: '#ffffff' }));
     }
 
+    function handleLocalCompareUpload() {
+      Swal.fire({
+        title: '🔀 เปรียบเทียบไฟล์ตรงบน Browser',
+        html: `
+          <div style="text-align:left; font-size:0.88rem; color:#cbd5e1; margin-bottom:12px;">
+            เลือกไฟล์รายงาน OB Backlog 2 ฉบับ (.csv) จากเครื่องคอมพิวเตอร์เพื่อเปรียบเทียบสด:
+          </div>
+          <div style="text-align:left; margin-bottom:10px;">
+            <label style="font-size:0.8rem; font-weight:700; color:#93c5fd; display:block; margin-bottom:4px;">1. ไฟล์รายงานรอบแรก (File 1 / Baseline):</label>
+            <input type="file" id="swalLocalFile1" class="swal2-file" accept=".csv" style="width:100%; font-size:0.85rem; background:#1e293b; color:#fff;">
+          </div>
+          <div style="text-align:left;">
+            <label style="font-size:0.8rem; font-weight:700; color:#86efac; display:block; margin-bottom:4px;">2. ไฟล์รายงานรอบล่าสุด (File 2 / Current):</label>
+            <input type="file" id="swalLocalFile2" class="swal2-file" accept=".csv" style="width:100%; font-size:0.85rem; background:#1e293b; color:#fff;">
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '⚡ ประมวลผลบน Browser ทันที',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#8b5cf6',
+        background: '#0d1b2a',
+        color: '#ffffff',
+        preConfirm: () => {
+          const f1 = document.getElementById('swalLocalFile1').files[0];
+          const f2 = document.getElementById('swalLocalFile2').files[0];
+          if (!f1 || !f2) {
+            Swal.showValidationMessage('กรุณาเลือกไฟล์ให้ครบทั้ง 2 ฉบับครับ');
+            return false;
+          }
+          return { file1: f1, file2: f2 };
+        }
+      }).then(res => {
+        if (res.isConfirmed && res.value) {
+          runBrowserFileComparison(res.value.file1, res.value.file2);
+        }
+      });
+    }
+
+    function parseCsvFilePromise(file) {
+      return new Promise((resolve, reject) => {
+        Papa.parse(file, {
+          skipEmptyLines: true,
+          complete: (results) => resolve(results.data),
+          error: (err) => reject(err)
+        });
+      });
+    }
+
+    async function runBrowserFileComparison(f1, f2) {
+      document.getElementById('stateMsg').style.display = 'block';
+      try {
+        const data1 = await parseCsvFilePromise(f1);
+        const data2 = await parseCsvFilePromise(f2);
+
+        if (!data1 || data1.length < 2 || !data2 || data2.length < 2) {
+          throw new Error('ไฟล์ที่เลือกไม่มีข้อมูลเพียงพอสำหรับการเปรียบเทียบ');
+        }
+
+        const headers1 = data1[0].map(h => String(h || '').trim());
+        const rows1 = data1.slice(1);
+        const headers2 = data2[0].map(h => String(h || '').trim());
+        const rows2 = data2.slice(1);
+
+        const getColIndices = (headers) => {
+          const idx = {};
+          headers.forEach((h, i) => {
+            const hl = h.toLowerCase().replace(/_/g, ' ').trim();
+            if (hl.includes('shipment') || hl.includes('tracking') || hl === 'col 1' || i === 1) {
+              if (idx.shipment_id === undefined) idx.shipment_id = i;
+            }
+            if (hl.includes('action') || hl.includes('flag')) {
+              if (idx.action_flag === undefined) idx.action_flag = i;
+            }
+            if (hl.includes('timestamp') || hl.includes('time') || hl.includes('status time')) {
+              if (idx.latest_status_timestamp === undefined) idx.latest_status_timestamp = i;
+            }
+            if (hl.includes('day') || hl.includes('soc')) {
+              if (idx.day_in_soc === undefined) idx.day_in_soc = i;
+            }
+            if (hl.includes('station') || hl.includes('awb')) {
+              if (idx.latest_awb_station_name === undefined) idx.latest_awb_station_name = i;
+            }
+            if (hl.includes('operator') || hl.includes('user')) {
+              if (idx.latest_operator_name === undefined) idx.latest_operator_name = i;
+            }
+          });
+          return idx;
+        };
+
+        const idx1 = getColIndices(headers1);
+        const idx2 = getColIndices(headers2);
+
+        const obActions = ['_02_pending_packed', '_03_pending_linehual_packed', '_04_pending_reworked'];
+
+        const processRows = (rows, idx) => {
+          const mapOut = {};
+          let obCount = 0;
+          rows.forEach(r => {
+            if (!r || r.length === 0) return;
+            const sId = String(r[idx.shipment_id !== undefined ? idx.shipment_id : 1] || '').trim();
+            if (!sId) return;
+
+            const af = String(r[idx.action_flag !== undefined ? idx.action_flag : 12] || '').trim();
+            const afLower = af.toLowerCase();
+            const isOb = obActions.includes(af) || ['packed', 'linehual', 'linehaul', 'rework', 'pending', 'skip'].some(k => afLower.includes(k));
+            if (!isOb && af !== '') return;
+
+            const ts = String(r[idx.latest_status_timestamp !== undefined ? idx.latest_status_timestamp : 7] || '').trim();
+            const ds = String(r[idx.day_in_soc !== undefined ? idx.day_in_soc : 13] || '').trim();
+            const st = String(r[idx.latest_awb_station_name !== undefined ? idx.latest_awb_station_name : 4] || '').trim();
+            const op = String(r[idx.latest_operator_name !== undefined ? idx.latest_operator_name : 8] || '').trim();
+
+            mapOut[sId] = {
+              shipment_id: sId,
+              action_flag: af || '_03_pending_linehual_packed',
+              latest_status_timestamp: ts,
+              day_in_soc: ds,
+              latest_awb_station_name: st,
+              latest_operator_name: op
+            };
+            obCount++;
+          });
+          return { map: mapOut, count: obCount };
+        };
+
+        const res1 = processRows(rows1, idx1);
+        const res2 = processRows(rows2, idx2);
+
+        const duplicatesList = [];
+        const stationBreakdown = {};
+        const actionBreakdown = {};
+
+        Object.keys(res1.map).forEach(sId => {
+          if (res2.map[sId]) {
+            const item1 = res1.map[sId];
+            const item2 = res2.map[sId];
+
+            const st = item2.latest_awb_station_name || item1.latest_awb_station_name || '-';
+            const af = item2.action_flag || item1.action_flag || '-';
+
+            stationBreakdown[st] = (stationBreakdown[st] || 0) + 1;
+            actionBreakdown[af] = (actionBreakdown[af] || 0) + 1;
+
+            duplicatesList.push({
+              shipment_id: sId,
+              action_flag: af,
+              timestamp1: item1.latest_status_timestamp || '-',
+              timestamp2: item2.latest_status_timestamp || '-',
+              day_in_soc: item2.day_in_soc || item1.day_in_soc || '-',
+              station_name: st,
+              operator: item2.latest_operator_name || item1.latest_operator_name || '-'
+            });
+          }
+        });
+
+        const compareData = {
+          success: true,
+          duplicate_count: duplicatesList.length,
+          file1: { filename: f1.name, ob_rows: res1.count },
+          file2: { filename: f2.name, ob_rows: res2.count },
+          station_breakdown: stationBreakdown,
+          action_breakdown: actionBreakdown,
+          duplicates: duplicatesList
+        };
+
+        document.getElementById('stateMsg').style.display = 'none';
+        compareResults = compareData;
+        filteredDuplicates = duplicatesList;
+
+        renderKpis(compareData);
+        renderBreakdowns(compareData);
+        populateFilters(compareData);
+        renderDatatable(filteredDuplicates);
+
+        Swal.fire({
+          icon: 'success',
+          title: 'เปรียบเทียบสำเร็จ! 🚀 (Browser Sync)',
+          text: `ตรวจพบพัสดุค้างซ้ำทั้งหมด ${duplicatesList.length.toLocaleString()} รายการ`,
+          timer: 2500,
+          showConfirmButton: false,
+          background: '#0d1b2a',
+          color: '#ffffff'
+        });
+
+      } catch (err) {
+        document.getElementById('stateMsg').style.display = 'none';
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาดในการประมวลผล',
+          text: err.message,
+          background: '#0d1b2a',
+          color: '#ffffff'
+        });
+      }
+    }
+
     function startObBlComparison() {
       const file1 = document.getElementById('file1Select').value;
       const file2 = document.getElementById('file2Select').value;
 
       if (!file1 || !file2) {
-        Swal.fire({ icon: 'warning', title: 'เลือกไฟล์ไม่ครบ', text: 'กรุณาเลือกไฟล์ที่ต้องการเปรียบเทียบทั้ง 2 ไฟล์ครับ', background: '#0d1b2a', color: '#ffffff' });
+        Swal.fire({
+          icon: 'warning',
+          title: 'เลือกไฟล์ไม่ครบ',
+          html: 'กรุณาเลือกไฟล์จากรายการ หรือกดปุ่ม <b>"เลือกไฟล์ CSV เปรียบเทียบสด"</b> เพื่ออัปโหลดไฟล์จากเครื่องคอมพิวเตอร์ครับ',
+          showCancelButton: true,
+          confirmButtonText: '⚡ เลือกไฟล์ CSV จากเครื่อง',
+          cancelButtonText: 'ปิด',
+          confirmButtonColor: '#8b5cf6',
+          background: '#0d1b2a',
+          color: '#ffffff'
+        }).then(res => {
+          if (res.isConfirmed) handleLocalCompareUpload();
+        });
         return;
       }
 
@@ -722,7 +936,21 @@
         })
         .catch(err => {
           document.getElementById('stateMsg').style.display = 'none';
-          Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message, background: '#0d1b2a', color: '#ffffff' });
+          Swal.fire({
+            icon: 'warning',
+            title: '⚠️ ไม่สามารถเชื่อมต่อหลังบ้านได้',
+            html: `ไม่พบการเชื่อมต่อเซิร์ฟเวอร์หลังบ้าน/Serveo Tunnel<br><br>คุณต้องการ<b>เลือกไฟล์ CSV 2 ฉบับจากเครื่องคอมพิวเตอร์</b> เพื่อเปรียบเทียบข้ามรอบบน Browser ทันทีหรือไม่ครับ?`,
+            showCancelButton: true,
+            confirmButtonText: '⚡ เลือกไฟล์ CSV เปรียบเทียบสด',
+            cancelButtonText: 'ปิด',
+            confirmButtonColor: '#8b5cf6',
+            background: '#0d1b2a',
+            color: '#ffffff'
+          }).then(res => {
+            if (res.isConfirmed) {
+              handleLocalCompareUpload();
+            }
+          });
         });
     }
 
