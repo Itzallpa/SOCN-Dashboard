@@ -112,9 +112,11 @@
             <h5 class="fw-bold m-0 text-slate-800"><i class="fa-solid fa-bolt text-danger me-2"></i> Live Apps Script Web App (เชื่อมต่อสิทธิ์องค์กร Live)</h5>
             <small class="text-muted">ดึงข้อมูลสด 1,257 เที่ยวตรงจาก Google Apps Script ของคุณโดยอัตโนมัติ</small>
           </div>
-          <div class="d-flex gap-2">
-            <a href="https://script.google.com/a/spxexpress.com/macros/s/AKfycbyuFsbFvnJ_ZDJLZN-rFYVuj0nQR8xf1KQkS8eYNrw/dev?page=dashboard" target="_blank" class="btn btn-outline-danger btn-sm fw-bold"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i> เปิดในแท็บใหม่</a>
-            <button class="btn btn-danger btn-sm fw-bold" onclick="reloadLiveFrame()"><i class="fa-solid fa-rotate me-1"></i> Refresh Live Data</button>
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <input type="text" id="liveAppsScriptUrlInput" class="form-control form-control-sm" style="width:340px;" value="https://script.google.com/a/spxexpress.com/macros/s/AKfycbyuFsbFvnJ_ZDJLZN-rFYVuj0nQR8xf1KQkS8eYNrw/dev?page=dashboard" placeholder="วาง URL Apps Script...">
+            <button class="btn btn-primary btn-sm fw-bold" onclick="updateLiveUrlFromInput()"><i class="fa-solid fa-play me-1"></i> โหลด URL</button>
+            <a id="openNewTabLink" href="https://script.google.com/a/spxexpress.com/macros/s/AKfycbyuFsbFvnJ_ZDJLZN-rFYVuj0nQR8xf1KQkS8eYNrw/dev?page=dashboard" target="_blank" class="btn btn-outline-danger btn-sm fw-bold"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i> เปิดในแท็บใหม่</a>
+            <button class="btn btn-danger btn-sm fw-bold" onclick="reloadLiveFrame()"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
           </div>
         </div>
         <div style="border-radius:10px; overflow:hidden; border: 1px solid #e2e8f0; background: #ffffff; box-shadow: 0 4px 14px rgba(0,0,0,0.06);">
@@ -349,10 +351,23 @@
       renderRealSummaryData();
     });
 
+    function updateLiveUrlFromInput() {
+      const urlInput = document.getElementById('liveAppsScriptUrlInput');
+      const frame = document.getElementById('liveAppsScriptFrame');
+      const link = document.getElementById('openNewTabLink');
+      if (urlInput && urlInput.value) {
+        let val = urlInput.value.trim();
+        if (frame) frame.src = val;
+        if (link) link.href = val;
+      }
+    }
+
     function reloadLiveFrame() {
+      const urlInput = document.getElementById('liveAppsScriptUrlInput');
       const frame = document.getElementById('liveAppsScriptFrame');
       if (frame) {
-        frame.src = 'https://script.google.com/a/spxexpress.com/macros/s/AKfycbyuFsbFvnJ_ZDJLZN-rFYVuj0nQR8xf1KQkS8eYNrw/dev?page=dashboard';
+        const val = (urlInput && urlInput.value) ? urlInput.value.trim() : 'https://script.google.com/a/spxexpress.com/macros/s/AKfycbyuFsbFvnJ_ZDJLZN-rFYVuj0nQR8xf1KQkS8eYNrw/dev?page=dashboard';
+        frame.src = val;
       }
     }
 
