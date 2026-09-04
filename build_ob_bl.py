@@ -536,11 +536,13 @@ js_api_helpers = """
           if (data.success) {
             onData(data);
           } else {
-            onError({ message: data.error });
+            console.warn('Backend load returned error, falling back to direct browser Google Sheet sync:', data ? data.error : '');
+            syncGoogleSheetUrl();
           }
         })
         .catch(err => {
-          onError({ message: err.message });
+          console.warn('Backend load failed (e.g. Failed to fetch), falling back to direct browser Google Sheet sync:', err);
+          syncGoogleSheetUrl();
         });
     }
 
