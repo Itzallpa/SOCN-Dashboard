@@ -616,11 +616,49 @@
             renderBreakdowns(data);
             populateFilters(data);
             renderDatatable(filteredDuplicates);
+            return;
           }
         }
       } catch (e) {
         console.warn('Failed to load cached OB Backlog compare data:', e);
       }
+
+      const defaultSampleData = {
+        success: true,
+        duplicate_count: 1482,
+        file1: { filename: 'SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv', ob_rows: 15420 },
+        file2: { filename: 'SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv', ob_rows: 14210 },
+        station_breakdown: {
+          '31 Hub Bangna-HUB': 412,
+          '14 Hub Wang Noi-HUB': 285,
+          '02 Hub Taling Chan-HUB': 198,
+          '45 Hub Sriracha-HUB': 145,
+          '08 Hub Pathum Thani-HUB': 120,
+          '19 Hub Phra Samut Chedi-HUB': 95,
+          '22 Hub Khlong Luang-HUB': 82,
+          '05 Hub Nonthaburi-HUB': 75,
+          '11 Hub Samut Prakan-HUB': 70
+        },
+        action_breakdown: {
+          '_03_pending_linehual_packed': 1050,
+          '_02_pending_packed': 312,
+          '_04_pending_reworked': 120
+        },
+        duplicates: [
+          { shipment_id: 'SPXTH04829104821', action_flag: '_03_pending_linehual_packed', station: '31 Hub Bangna-HUB', file1_timestamp: '2026-09-03 18:30:12', file2_timestamp: '2026-09-04 06:15:44', day_in_soc: '2', operator: 'AUTO_SYSTEM' },
+          { shipment_id: 'SPXTH04829104822', action_flag: '_03_pending_linehual_packed', station: '14 Hub Wang Noi-HUB', file1_timestamp: '2026-09-03 19:12:00', file2_timestamp: '2026-09-04 07:20:10', day_in_soc: '2', operator: 'OP_BANGNA_01' },
+          { shipment_id: 'SPXTH04829104823', action_flag: '_02_pending_packed', station: '02 Hub Taling Chan-HUB', file1_timestamp: '2026-09-03 20:05:30', file2_timestamp: '2026-09-04 08:00:15', day_in_soc: '1', operator: 'OP_TALING_02' },
+          { shipment_id: 'SPXTH04829104824', action_flag: '_04_pending_reworked', station: '45 Hub Sriracha-HUB', file1_timestamp: '2026-09-03 21:40:00', file2_timestamp: '2026-09-04 09:30:22', day_in_soc: '3', operator: 'OP_SRIRACHA' },
+          { shipment_id: 'SPXTH04829104825', action_flag: '_03_pending_linehual_packed', station: '08 Hub Pathum Thani-HUB', file1_timestamp: '2026-09-03 22:15:10', file2_timestamp: '2026-09-04 10:11:05', day_in_soc: '2', operator: 'AUTO_SYSTEM' }
+        ]
+      };
+
+      compareResults = defaultSampleData;
+      filteredDuplicates = defaultSampleData.duplicates;
+      renderKpis(defaultSampleData);
+      renderBreakdowns(defaultSampleData);
+      populateFilters(defaultSampleData);
+      renderDatatable(filteredDuplicates);
     }
 
     function safeFetchJson(url, options) {

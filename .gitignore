@@ -1,6 +1,8 @@
 uploads/
 *.csv
+!Backlog Shipment/*.csv
 *.xlsx
+!Backlog Shipment/*.xlsx
 __pycache__/
 *.pyc
 .env
