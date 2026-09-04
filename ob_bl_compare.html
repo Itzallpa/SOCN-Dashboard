@@ -405,7 +405,7 @@
 
         <button onclick="document.getElementById('compareFileInput').click()"
           style="background:#10b981; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
-          <i class="fa-solid fa-upload"></i> อัปโหลดเข้า Backlog Shipment
+          <i class="fa-solid fa-upload"></i> อัปโหลด CSV/Excel เข้า Backlog Shipment
         </button>
         <input type="file" id="compareFileInput" accept=".csv, .xlsx, .xls" style="display:none;" onchange="handleUploadCompareFile(event)">
 
@@ -426,6 +426,11 @@
         <button onclick="startObBlComparison()"
           style="background:#2563eb; color:#fff; font-weight:700; border:none; padding:8px 16px; border-radius:8px; font-size:13px; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 10px rgba(37,99,235,0.4);">
           <i class="fa-solid fa-bolt"></i> ⚡ เปรียบเทียบ
+        </button>
+
+        <button onclick="deleteSelectedCompareFile()"
+          style="background:rgba(239,68,68,0.15); color:#fca5a5; font-weight:700; border:1px solid rgba(239,68,68,0.4); padding:8px 12px; border-radius:8px; font-size:12.5px; display:inline-flex; align-items:center; gap:5px;" title="ลบไฟล์ที่เลือกในรายการออกจากระบบ">
+          <i class="fa-solid fa-trash"></i> ลบไฟล์ที่เลือก
         </button>
       </div>
     </header>
@@ -749,7 +754,7 @@
         });
     }
 
-    function saveCompareFileLocally(file) {
+    function saveCompareFileLocally(file, autoCompare = false) {
       Papa.parse(file, {
         skipEmptyLines: true,
         complete: (results) => {
@@ -783,18 +788,73 @@
 
           fetchCompareFileList();
 
+          const select1 = document.getElementById('file1Select');
+          const select2 = document.getElementById('file2Select');
+          if (select2) {
+            select2.value = file.name;
+            if (!select2.value && select1) select1.value = file.name;
+          }
+
           Swal.fire({
             icon: 'success',
-            title: 'บันทึกไฟล์เรียบร้อย! 🚀 (Browser Sync)',
-            text: `ไฟล์ "${file.name}" พร้อมสำหรับเปรียบเทียบในรายการแล้วครับ`,
+            title: 'บันทึกไฟล์เรียบร้อย! 🚀',
+            text: `ไฟล์ "${file.name}" พร้อมเปรียบเทียบในระบบเรียบร้อยแล้ว`,
             timer: 2000,
             showConfirmButton: false,
             background: '#0d1b2a',
             color: '#ffffff'
           });
+
+          if (autoCompare && select1 && select2 && select1.value && select2.value) {
+            startObBlComparison();
+          }
         },
         error: (err) => {
           Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการอ่านไฟล์', text: err.message, background: '#0d1b2a', color: '#ffffff' });
+        }
+      });
+    }
+
+    function deleteSelectedCompareFile() {
+      const select1 = document.getElementById('file1Select');
+      const select2 = document.getElementById('file2Select');
+      const filename = (select2 && select2.value) ? select2.value : ((select1 && select1.value) ? select1.value : '');
+
+      if (!filename) {
+        Swal.fire({ title: 'กรุณาเลือกไฟล์', text: 'กรุณาเลือกไฟล์ในรายการรอบ 1 หรือรอบ 2 ที่ต้องการลบก่อนครับ', icon: 'info', confirmButtonColor: '#2563eb', background: '#0d1b2a', color: '#fff' });
+        return;
+      }
+
+      Swal.fire({
+        title: '⚠️ ยืนยันการลบไฟล์ถาวร?',
+        html: `คุณต้องการลบไฟล์ <b>"${filename}"</b> ออกจากระบบใช่หรือไม่?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'ลบไฟล์ถาวร',
+        cancelButtonText: 'ยกเลิก',
+        background: '#0d1b2a',
+        color: '#ffffff'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          safeFetchJson('/api/delete-file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: filename })
+          }).catch(() => {});
+
+          try {
+            localStorage.removeItem(`socn_compare_file_${filename}`);
+            let localList = [];
+            const raw = localStorage.getItem('socn_local_compare_file_list');
+            if (raw) localList = JSON.parse(raw);
+            localList = localList.filter(f => f.filename !== filename);
+            localStorage.setItem('socn_local_compare_file_list', JSON.stringify(localList));
+          } catch (e) {}
+
+          Swal.fire({ title: 'ลบไฟล์สำเร็จ! 🗑️', text: `ลบไฟล์ "${filename}" ออกจากระบบเรียบร้อยแล้ว`, icon: 'success', timer: 1800, showConfirmButton: false, background: '#0d1b2a', color: '#fff' });
+          fetchCompareFileList();
         }
       });
     }
@@ -821,22 +881,13 @@
       })
         .then(data => {
           if (data && data.success) {
-            Swal.fire({
-              icon: 'success',
-              title: 'อัปโหลดสำเร็จ! 🚀',
-              text: data.message,
-              timer: 2000,
-              showConfirmButton: false,
-              background: '#0d1b2a',
-              color: '#ffffff'
-            });
-            fetchCompareFileList();
+            saveCompareFileLocally(file, true);
           } else {
-            saveCompareFileLocally(file);
+            saveCompareFileLocally(file, true);
           }
         })
         .catch(() => {
-          saveCompareFileLocally(file);
+          saveCompareFileLocally(file, true);
         });
     }
 
