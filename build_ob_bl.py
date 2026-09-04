@@ -480,18 +480,26 @@ js_api_helpers = """
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          Swal.fire({ icon: 'success', title: 'เชื่อมต่อข้อมูลสำเร็จ!', timer: 2000, showConfirmButton: false });
-          fetchObBlData();
+          Swal.fire({ icon: 'success', title: 'เชื่อมต่อข้อมูลสำเร็จ!', timer: 2000, showConfirmButton: false, background: '#0d1b2a', color: '#ffffff' });
+          if (data.headers && data.rows) {
+            onData(data);
+          } else {
+            fetchObBlData();
+          }
           fetchFileList();
         } else {
+          const formattedErr = (data.error || 'ไม่สามารถดึงข้อมูลจาก URL ที่ระบุได้').replace(/\n/g, '<br>');
           Swal.fire({
-            icon: 'error',
-            title: 'ซิงค์ข้อมูลไม่สำเร็จ',
-            text: data.error || 'ไม่สามารถดึงข้อมูลจาก URL ที่ระบุได้'
+            icon: 'warning',
+            title: '⚠️ จำเป็นต้องเปิดสิทธิ์เข้าถึง (Require Permission)',
+            html: `<div style="text-align:left; font-size:0.88rem; line-height:1.5;">${formattedErr}</div>`,
+            confirmButtonColor: '#2563eb',
+            background: '#0d1b2a',
+            color: '#ffffff'
           });
         }
       })
-      .catch(err => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message }));
+      .catch(err => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message, background: '#0d1b2a', color: '#ffffff' }));
     }
 
     function fetchObBlData(filename, force) {

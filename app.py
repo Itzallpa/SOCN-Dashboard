@@ -699,10 +699,10 @@ def sync_google_sheet():
         if req.status_code == 401:
             return jsonify({
                 "success": False,
-                "error": "Google Sheet Require Permission (HTTP 401): Please Share/Publish to Web (File > Share > Publish to web > CSV) or provide your Google Apps Script Web App URL."
-            }), 400
+                "error": "URL นี้ติดสิทธิ์เข้าถึงของ Google (HTTP 401 / Permission Required)\n\nกรุณาเลือกเปิดสิทธิ์อย่างใดอย่างหนึ่งดังนี้:\n1. หากเป็น Google Sheet: ไปที่ 'ไฟล์ (File)' > 'แชร์ (Share)' > 'เผยแพร่ไปยังเว็บ (Publish to web)' > เลือกแท็บ OB BL เป็น CSV แล้วกด 'เผยแพร่ (Publish)'\n2. หากเป็น Apps Script: ไปที่ 'Deploy' > 'Manage deployments' > เปลี่ยน 'Who has access' เป็น 'Anyone'"
+            }), 200
         elif req.status_code != 200:
-            return jsonify({"success": False, "error": f"HTTP {req.status_code}: Unable to fetch Google Sheet data"}), 400
+            return jsonify({"success": False, "error": f"HTTP {req.status_code}: ไม่สามารถดึงข้อมูลจาก Google Sheet / Apps Script ได้"}), 200
 
         # Check if Google returned an HTML login redirect page instead of CSV/JSON
         if req.content.strip().startswith(b"<!DOCTYPE html") or req.content.strip().startswith(b"<html") or b"Sign in - Google Accounts" in req.content:
@@ -1581,7 +1581,12 @@ def sync_ob_bl():
 
     try:
         req = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=True)
-        if req.status_code != 200:
+        if req.status_code == 401:
+            return jsonify({
+                "success": False,
+                "error": "URL นี้ติดสิทธิ์เข้าถึงของ Google (HTTP 401 / Permission Required)\n\nกรุณาเลือกเปิดสิทธิ์อย่างใดอย่างหนึ่งดังนี้:\n1. หากเป็น Google Sheet: ไปที่ 'ไฟล์ (File)' > 'แชร์ (Share)' > 'เผยแพร่ไปยังเว็บ (Publish to web)' > เลือกแท็บ OB BL เป็น CSV แล้วกด 'เผยแพร่ (Publish)'\n2. หากเป็น Apps Script: ไปที่ 'Deploy' > 'Manage deployments' > เปลี่ยน 'Who has access' เป็น 'Anyone'"
+            }), 200
+        elif req.status_code != 200:
             return jsonify({"success": False, "error": f"ไม่สามารถเชื่อมต่อ URL ได้ (HTTP Status {req.status_code})"}), 200
 
         # Check if Google returned an HTML login redirect page instead of CSV/JSON
