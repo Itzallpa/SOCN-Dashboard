@@ -597,6 +597,9 @@ def index():
 @app.route("/upload", methods=["POST", "OPTIONS"])
 @app.route("/api/upload", methods=["POST", "OPTIONS"])
 def upload_file():
+    if request.method == "OPTIONS":
+        return jsonify({"success": True}), 200
+
     if "file" not in request.files:
         return jsonify({"success": False, "error": "No file uploaded"}), 400
     
@@ -607,9 +610,18 @@ def upload_file():
     if not file.filename.lower().endswith((".csv", ".xlsx", ".xls")):
         return jsonify({"success": False, "error": "กรุณาอัปโหลดไฟล์ประเภท CSV หรือ Excel (.xlsx, .xls) เท่านั้น"}), 400
 
-    save_path = os.path.join(UPLOAD_FOLDER, file.filename)
+    scope = (request.form.get("scope") or "").strip().lower()
+    fn_lower = file.filename.lower()
+    if scope in ["compare", "backlog", "ob_bl_compare", "ob_bl"] or "backlog" in fn_lower or "compare" in fn_lower:
+        target_folder = BACKLOG_COMPARE_FOLDER
+    else:
+        target_folder = UPLOAD_FOLDER
+
+    os.makedirs(target_folder, exist_ok=True)
+    save_path = os.path.join(target_folder, file.filename)
     try:
         file.save(save_path)
+        print(f"✅ Saved file to folder ({target_folder}): {save_path}")
     except Exception as e:
         print("Error saving uploaded file:", e)
         return jsonify({"success": False, "error": f"Failed to save file: {str(e)}"}), 500

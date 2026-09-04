@@ -876,6 +876,7 @@
 
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('scope', 'compare');
 
       Swal.fire({
         title: 'กำลังบันทึกไฟล์เข้า Backlog Shipment...',
@@ -886,16 +887,12 @@
         didOpen: () => { Swal.showLoading(); }
       });
 
-      safeFetchJson('/api/upload-compare-file', {
+      safeFetchJson('/upload', {
         method: 'POST',
         body: formData
       })
         .then(data => {
-          if (data && data.success) {
-            saveCompareFileLocally(file, true);
-          } else {
-            saveCompareFileLocally(file, true);
-          }
+          saveCompareFileLocally(file, true);
         })
         .catch(() => {
           saveCompareFileLocally(file, true);
