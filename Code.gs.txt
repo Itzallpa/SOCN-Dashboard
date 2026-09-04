@@ -2,10 +2,110 @@ const ROSTER_SPREADSHEET_ID = '1vN4L90zXupLEm6UYV-twF22JCDW47IWPMvEwMekehmA';
 const RAW_DATA_SPREADSHEET_ID = '1a7KdFxp5vZrMhRIeBRg2dFC0pJBzZZtmSoTe_2FEgig';
 const VOLUME_SPREADSHEET_ID = '1Z5sAcsGSQBu1A_7crK51a1wnWvSO_NnmXVBrx3te32s';
 
+// ========== API Key สำหรับ doPost (เว็บ Server ใช้ key นี้ยิงมา) ==========
+const API_SECRET_KEY = 'SOCN_OBBL_2026_SECRET_KEY_XK9M3';
+
+// ========== doGet: ใช้งาน Web App UI เดิม ==========
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('SOC Investigation & Skip Process Dashboard')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+// ========== doPost: รับ Request จากเว็บ Server (ใช้ API Key ลับ) ==========
+function doPost(e) {
+  try {
+    const params = e && e.postData && e.postData.contents
+      ? JSON.parse(e.postData.contents)
+      : {};
+
+    // ตรวจ API Key
+    if (!params.key || params.key !== API_SECRET_KEY) {
+      return buildJsonResponse({ success: false, error: 'Unauthorized: Invalid API Key' });
+    }
+
+    const page = (params.page || '').toLowerCase();
+
+    if (page === 'obbl') {
+      return buildJsonResponse(getObBlDataForApi());
+    } else {
+      return buildJsonResponse({ success: false, error: 'Unknown page: ' + page });
+    }
+
+  } catch(err) {
+    return buildJsonResponse({ success: false, error: err.toString() });
+  }
+}
+
+function buildJsonResponse(obj) {
+  const output = ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+  return output;
+}
+
+// ========== ดึงข้อมูล OB BL จาก RAW_DATA_SPREADSHEET ==========
+function getObBlDataForApi() {
+  try {
+    const rawSs = SpreadsheetApp.openById(RAW_DATA_SPREADSHEET_ID);
+    
+    // หา sheet ที่ชื่อ OB หรือ OBBL หรือ sheet แรก
+    let rawSheet = rawSs.getSheetByName('OB BL')
+      || rawSs.getSheetByName('OBBL')
+      || rawSs.getSheetByName('OB_BL')
+      || rawSs.getSheetByName('Raw')
+      || rawSs.getSheets()[0];
+
+    const lastRow = rawSheet.getLastRow();
+    const lastCol = rawSheet.getLastColumn();
+
+    if (lastRow < 2 || lastCol < 1) {
+      return { success: false, error: 'ไม่พบข้อมูลใน Sheet' };
+    }
+
+    // ดึง Headers
+    const headers = rawSheet.getRange(1, 1, 1, lastCol).getValues()[0]
+      .map(h => h ? String(h).trim() : '');
+
+    // หาบรรทัดสุดท้ายที่มีข้อมูลจริงใน Col A
+    const colAValues = rawSheet.getRange('A:A').getValues();
+    let actualLastRow = 1;
+    for (let i = colAValues.length - 1; i >= 1; i--) {
+      if (colAValues[i][0] !== '' && colAValues[i][0] !== null && colAValues[i][0] !== undefined) {
+        actualLastRow = i + 1;
+        break;
+      }
+    }
+
+    const dataCount = actualLastRow - 1;
+    if (dataCount <= 0) {
+      return { success: false, error: 'ไม่มีข้อมูลในแถวที่ 2 เป็นต้นไป' };
+    }
+
+    const rawValues = rawSheet.getRange(2, 1, dataCount, lastCol).getValues();
+
+    // Convert rows เป็น Array of Arrays
+    const rows = rawValues.map(row =>
+      row.map(cell => {
+        if (cell instanceof Date) {
+          return Utilities.formatDate(cell, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+        }
+        return cell === null || cell === undefined ? '' : cell;
+      })
+    );
+
+    return {
+      success: true,
+      headers: headers,
+      rows: rows,
+      total: rows.length,
+      sheet: rawSheet.getName(),
+      generatedAt: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss')
+    };
+
+  } catch(err) {
+    return { success: false, error: 'getObBlDataForApi error: ' + err.toString() };
+  }
 }
 
 function getDashboardData(selectedDateColIndex) {

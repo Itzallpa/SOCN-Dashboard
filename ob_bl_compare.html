@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OB Backlog Compare - SOC Operations Portal</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    :root {
+      --ink: #1a1d29;
+      --ink-soft: #64748b;
+      --line: #e2e8f0;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --accent: #2563eb;
+      --accent2: #1d4ed8;
+      --accent-soft: #eff6ff;
+      --green: #0f9d58;
+      --green-bg: #e3f8ea;
+      --red: #d0311d;
+      --red-bg: #fdece8;
+      --amber: #b7791f;
+      --amber-bg: #fdf3dc;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Segoe UI', Tahoma, 'Noto Sans Thai', 'Sarabun', Arial, sans-serif;
+      font-size: 14px;
+    }
+
+    .app {
+      min-height: 100vh;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: linear-gradient(120deg, #0d1b2a, #1e293b);
+      border-radius: var(--radius);
+      padding: 16px 22px;
+      color: #fff;
+      box-shadow: 0 8px 20px -8px rgba(13, 27, 42, .4);
+    }
+
+    h1 {
+      font-size: 21px;
+      margin: 0 0 2px;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .subtitle {
+      color: #94a3b8;
+      font-size: 12.5px;
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+      border-radius: 8px;
+      border: none;
+      padding: 8px 16px;
+      font-weight: 700;
+      background: #fff;
+      color: var(--accent);
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: wait;
+      transform: none;
+    }
+
+    .export-btn {
+      background: linear-gradient(120deg, #1a1d29, #3a3f58);
+      color: #fff;
+    }
+
+    .export-btn:hover {
+      background: linear-gradient(120deg, #23273a, #454b68);
+    }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .kpi-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .kpi-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .04);
+      border-left: 5px solid #cbd5e1;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, .08);
+    }
+
+    .kpi-card.kpi-red { border-left-color: var(--red); }
+    .kpi-card.kpi-blue { border-left-color: var(--accent); }
+    .kpi-card.kpi-green { border-left-color: var(--green); }
+    .kpi-card.kpi-amber { border-left-color: var(--amber); }
+
+    .kpi-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.1;
+    }
+
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--ink-soft);
+      margin-top: 5px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .04);
+      border: 1px solid var(--line);
+    }
+
+    .card-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-sub {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      margin-top: 2px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 992px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table.pivot {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 13px;
+    }
+
+    table.pivot th,
+    table.pivot td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    table.pivot thead th {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 800;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    table.pivot tbody tr:hover td {
+      background: var(--accent-soft);
+    }
+
+    .badge-tag {
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      display: inline-block;
+    }
+
+    .badge-red {
+      background: var(--red-bg);
+      color: var(--red);
+    }
+
+    .badge-amber {
+      background: var(--amber-bg);
+      color: var(--amber);
+    }
+
+    .badge-blue {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .badge-green {
+      background: var(--green-bg);
+      color: var(--green);
+    }
+
+    .form-select, .form-input {
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      color: var(--ink);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-select:focus, .form-input:focus {
+      border-color: var(--accent);
+    }
+
+    /* Loader */
+    .state-msg {
+      padding: 30px 20px 10px;
+      text-align: center;
+      color: var(--ink-soft);
+    }
+
+    .truck-loader {
+      padding: 6px 0 2px;
+    }
+
+    .truck-track {
+      position: relative;
+      width: 240px;
+      height: 78px;
+      margin: 0 auto 12px;
+    }
+
+    .road-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 16px;
+      height: 4px;
+      border-radius: 2px;
+      background-image: repeating-linear-gradient(90deg, var(--accent) 0 16px, transparent 16px 30px);
+      animation: roadMove .55s linear infinite;
+    }
+
+    @keyframes roadMove {
+      from { background-position: 0 0; }
+      to { background-position: -46px 0; }
+    }
+
+    .truck-svg {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      width: 96px;
+      height: 60px;
+      transform: translateX(-50%);
+      animation: truckBounce 1.3s ease-in-out infinite;
+      filter: drop-shadow(0 4px 4px rgba(37, 99, 235, .25));
+    }
+
+    @keyframes truckBounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-3px); }
+    }
+
+    .truck-wheel {
+      animation: wheelSpin .45s linear infinite;
+    }
+
+    @keyframes wheelSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    .truck-loader-text {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 13.5px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Top Navigation Header -->
+  <nav
+    style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:1020;">
+    <a href="index.html"
+      style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
+      <span style="font-size:1.4rem;">📦</span> SOC Operations Portal
+    </a>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <a href="index.html"
+        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠
+        Portal Hub</a>
+      <a href="investigation.html"
+        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚀
+        Investigation</a>
+      <a href="skip_process.html"
+        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📦
+        Skip Monitor</a>
+      <a href="cutoff_master.html"
+        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰
+        Cutoff Master</a>
+      <a href="lh_trip.html"
+        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚
+        LH Trip & OB Late</a>
+      <a href="ob_bl.html"
+        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊
+        OB Backlog (OB BL)</a>
+      <a href="ob_bl_compare.html"
+        style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">🔀
+        OB Backlog Compare</a>
+    </div>
+  </nav>
+  <script src="auth_guard.js"></script>
+
+  <div class="app">
+
+    <!-- Header Banner & Controls -->
+    <header>
+      <div>
+        <h1><i class="fa-solid fa-code-compare" style="color:#60a5fa;"></i> OB Backlog Compare Dashboard</h1>
+        <div class="subtitle" id="subtitle">ระบบเปรียบเทียบหาพัสดุค้างซ้ำข้ามรอบ (Detecting Stuck Backlog Across Snapshots)</div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <button onclick="document.getElementById('compareFileInput').click()"
+          style="background:#10b981; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-upload"></i> อัปโหลดเข้า Backlog Shipment
+        </button>
+        <input type="file" id="compareFileInput" accept=".csv, .xlsx, .xls" style="display:none;" onchange="handleUploadCompareFile(event)">
+
+        <div style="display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.12);">
+          <span style="font-size:12px; color:#cbd5e1; font-weight:700;"><i class="fa-solid fa-file-invoice text-info"></i> รอบ 1:</span>
+          <select id="file1Select" class="form-select" style="max-width:210px; background:#1e293b; color:#fff; border-color:rgba(255,255,255,0.2); font-weight:700; font-size:12.5px;">
+            <option value="">-- เลือกไฟล์รอบแรก --</option>
+          </select>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.12);">
+          <span style="font-size:12px; color:#cbd5e1; font-weight:700;"><i class="fa-solid fa-file-invoice text-success"></i> รอบ 2:</span>
+          <select id="file2Select" class="form-select" style="max-width:210px; background:#1e293b; color:#fff; border-color:rgba(255,255,255,0.2); font-weight:700; font-size:12.5px;">
+            <option value="">-- เลือกไฟล์รอบล่าสุด --</option>
+          </select>
+        </div>
+
+        <button onclick="startObBlComparison()"
+          style="background:#2563eb; color:#fff; font-weight:700; border:none; padding:8px 16px; border-radius:8px; font-size:13px; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 10px rgba(37,99,235,0.4);">
+          <i class="fa-solid fa-bolt"></i> ⚡ เปรียบเทียบ
+        </button>
+      </div>
+    </header>
+
+    <!-- Truck Loader -->
+    <div id="stateMsg" class="state-msg" style="display:none;">
+      <div class="truck-loader">
+        <div class="truck-track">
+          <div class="road-line"></div>
+          <svg class="truck-svg" viewBox="0 0 96 60" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="16" width="50" height="26" rx="4" fill="#2563eb" />
+            <path d="M52 22 L72 22 L84 34 L84 42 L52 42 Z" fill="#3b82f6" />
+            <rect x="57" y="25" width="15" height="11" rx="2" fill="#dbeafe" />
+            <g class="truck-wheel" style="transform-origin: 18px 46px;">
+              <circle cx="18" cy="46" r="8" fill="#2b2b2b" />
+              <rect x="17" y="39.5" width="2" height="13" rx="1" fill="#8a8a8a" />
+              <rect x="11.5" y="45" width="13" height="2" rx="1" fill="#8a8a8a" />
+              <circle cx="18" cy="46" r="2.5" fill="#e6e6e6" />
+            </g>
+            <g class="truck-wheel" style="transform-origin: 68px 46px;">
+              <circle cx="68" cy="46" r="8" fill="#2b2b2b" />
+              <rect x="67" y="39.5" width="2" height="13" rx="1" fill="#8a8a8a" />
+              <rect x="61.5" y="45" width="13" height="2" rx="1" fill="#8a8a8a" />
+              <circle cx="68" cy="46" r="2.5" fill="#e6e6e6" />
+            </g>
+          </svg>
+        </div>
+        <div class="truck-loader-text">กำลังเปรียบเทียบประมวลผลพัสดุค้างซ้ำ…</div>
+      </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <div id="content" style="display:flex; flex-direction:column; gap:14px;">
+
+      <!-- KPI Summary Cards -->
+      <div class="kpi-row" id="kpiRow">
+        <div class="kpi-card kpi-red">
+          <div class="kpi-label"><i class="fa-solid fa-triangle-exclamation text-danger"></i> พัสดุค้างซ้ำ (Duplicate Backlog)</div>
+          <div class="kpi-value" id="kpiDuplicateCount" style="color:var(--red);">0</div>
+          <div class="kpi-sub" id="kpiDuplicateSub">พัสดุที่ค้างซ้ำทั้ง 2 รอบ (ยังไม่ได้ออก)</div>
+        </div>
+
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-label"><i class="fa-solid fa-file-csv text-primary"></i> ยอด OB BL รอบแรก (File 1)</div>
+          <div class="kpi-value" id="kpiFile1Count" style="color:var(--accent);">0</div>
+          <div class="kpi-sub" id="kpiFile1Name">File 1</div>
+        </div>
+
+        <div class="kpi-card kpi-green">
+          <div class="kpi-label"><i class="fa-solid fa-file-excel text-success"></i> ยอด OB BL รอบล่าสุด (File 2)</div>
+          <div class="kpi-value" id="kpiFile2Count" style="color:var(--green);">0</div>
+          <div class="kpi-sub" id="kpiFile2Name">File 2</div>
+        </div>
+
+        <div class="kpi-card kpi-amber">
+          <div class="kpi-label"><i class="fa-solid fa-percent text-warning"></i> อัตราค้างซ้ำสะสม (% Stuck Rate)</div>
+          <div class="kpi-value" id="kpiStuckPct" style="color:var(--amber);">0%</div>
+          <div class="kpi-sub">สัดส่วนเทียบกับรอบแรก</div>
+        </div>
+      </div>
+
+      <!-- Breakdown Grid -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title-row">
+            <div>
+              <div class="card-title"><i class="fa-solid fa-warehouse style="color:var(--accent);"></i> Station ที่มีพัสดุค้างซ้ำมากที่สุด (Top Stations)</div>
+              <div class="card-sub">จำแนกตามสถานีปลายทางที่ตรวจพบพัสดุค้างซ้ำ</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="pivot" id="stationTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Station ปลายทาง</th>
+                  <th style="text-align:right;">จำนวนพัสดุค้างซ้ำ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="3" style="text-align:center; color:var(--ink-soft);">ยังไม่ได้เลือกเปรียบเทียบไฟล์</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title-row">
+            <div>
+              <div class="card-title"><i class="fa-solid fa-list-check" style="color:var(--amber);"></i> สรุปตาม Action Flag</div>
+              <div class="card-sub">จำแนกพัสดุค้างซ้ำตามสถานะการทำงาน</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="pivot" id="actionTable">
+              <thead>
+                <tr>
+                  <th>Action Flag</th>
+                  <th style="text-align:right;">จำนวนพัสดุค้างซ้ำ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="2" style="text-align:center; color:var(--ink-soft);">ยังไม่ได้เลือกเปรียบเทียบไฟล์</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Datatable Details Card -->
+      <div class="card">
+        <div class="card-title-row">
+          <div>
+            <div class="card-title"><i class="fa-solid fa-table-list" style="color:var(--red);"></i> ตารางรายการพัสดุตกค้างซ้ำ (Duplicate Backlog Details)</div>
+            <div class="card-sub" id="datatableSub">แสดงรายการ Tracking Number ที่ค้างซ้ำข้ามรอบ</div>
+          </div>
+          <button class="export-btn" onclick="exportDuplicateCsv()"><i class="fa-solid fa-download me-1"></i> ⇩ Export CSV (รายการพัสดุค้างซ้ำ)</button>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+          <input type="text" id="searchInput" class="form-input" style="max-width:300px;" placeholder="🔍 ค้นหา Tracking / Station / Operator..." oninput="filterTable()">
+          <select id="stationFilter" class="form-select" style="max-width:200px;" onchange="filterTable()">
+            <option value="">-- ทุกสถานี --</option>
+          </select>
+          <select id="actionFilter" class="form-select" style="max-width:200px;" onchange="filterTable()">
+            <option value="">-- ทุก Action Flag --</option>
+          </select>
+        </div>
+
+        <div class="table-wrap">
+          <table class="pivot" id="duplicateDatatable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Tracking Number (Shipment ID)</th>
+                <th>Action Flag</th>
+                <th>Station ปลายทาง</th>
+                <th>เวลาสแกนล่าสุด (File 1)</th>
+                <th>เวลาสแกนล่าสุด (File 2)</th>
+                <th>Day in SOC</th>
+                <th>Operator</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="8" style="text-align:center; color:var(--ink-soft);">กรุณาเลือกไฟล์และกดปุ่มเปรียบเทียบข้อมูล</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    let compareResults = null;
+    let filteredDuplicates = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchCompareFileList();
+    });
+
+    function fetchCompareFileList() {
+      fetch('/api/list-compare-files')
+        .then(res => res.json())
+        .then(data => {
+          const select1 = document.getElementById('file1Select');
+          const select2 = document.getElementById('file2Select');
+
+          if (!data.files || data.files.length === 0) {
+            select1.innerHTML = '<option value="">-- ไม่พบไฟล์ใน Backlog Shipment --</option>';
+            select2.innerHTML = '<option value="">-- ไม่พบไฟล์ใน Backlog Shipment --</option>';
+            return;
+          }
+
+          let optionsHtml = '<option value="">-- เลือกไฟล์รายงาน --</option>';
+          data.files.forEach(f => {
+            optionsHtml += `<option value="${f.filename}">${f.filename}</option>`;
+          });
+
+          select1.innerHTML = optionsHtml;
+          select2.innerHTML = optionsHtml;
+
+          if (data.files.length >= 2) {
+            select1.selectedIndex = 2;
+            select2.selectedIndex = 1;
+          } else if (data.files.length === 1) {
+            select1.selectedIndex = 1;
+            select2.selectedIndex = 1;
+          }
+        })
+        .catch(err => console.error('Error fetching file list:', err));
+    }
+
+    function handleUploadCompareFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      Swal.fire({
+        title: 'กำลังอัปโหลดไฟล์เข้า Backlog Shipment...',
+        text: file.name,
+        allowOutsideClick: false,
+        background: '#0d1b2a',
+        color: '#ffffff',
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      fetch('/api/upload-compare-file', {
+        method: 'POST',
+        body: formData
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            Swal.fire({
+              icon: 'success',
+              title: 'อัปโหลดสำเร็จ! 🚀',
+              text: data.message,
+              timer: 2000,
+              showConfirmButton: false,
+              background: '#0d1b2a',
+              color: '#ffffff'
+            });
+            fetchCompareFileList();
+          } else {
+            Swal.fire({ icon: 'error', title: 'อัปโหลดไม่สำเร็จ', text: data.error, background: '#0d1b2a', color: '#ffffff' });
+          }
+        })
+        .catch(err => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message, background: '#0d1b2a', color: '#ffffff' }));
+    }
+
+    function startObBlComparison() {
+      const file1 = document.getElementById('file1Select').value;
+      const file2 = document.getElementById('file2Select').value;
+
+      if (!file1 || !file2) {
+        Swal.fire({ icon: 'warning', title: 'เลือกไฟล์ไม่ครบ', text: 'กรุณาเลือกไฟล์ที่ต้องการเปรียบเทียบทั้ง 2 ไฟล์ครับ', background: '#0d1b2a', color: '#ffffff' });
+        return;
+      }
+
+      document.getElementById('stateMsg').style.display = 'block';
+
+      fetch('/api/compare-ob-bl', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename1: file1, filename2: file2 })
+      })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('stateMsg').style.display = 'none';
+
+          if (data.success) {
+            compareResults = data;
+            filteredDuplicates = data.duplicates || [];
+
+            renderKpis(data);
+            renderBreakdowns(data);
+            populateFilters(data);
+            renderDatatable(filteredDuplicates);
+
+            Swal.fire({
+              icon: 'success',
+              title: 'เปรียบเทียบสำเร็จ! 🚀',
+              text: `ตรวจพบพัสดุค้างซ้ำทั้งหมด ${data.duplicate_count.toLocaleString()} รายการ`,
+              timer: 2200,
+              showConfirmButton: false,
+              background: '#0d1b2a',
+              color: '#ffffff'
+            });
+          } else {
+            Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: data.error, background: '#0d1b2a', color: '#ffffff' });
+          }
+        })
+        .catch(err => {
+          document.getElementById('stateMsg').style.display = 'none';
+          Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message, background: '#0d1b2a', color: '#ffffff' });
+        });
+    }
+
+    function renderKpis(data) {
+      document.getElementById('kpiDuplicateCount').textContent = data.duplicate_count.toLocaleString();
+      document.getElementById('kpiFile1Count').textContent = data.file1.ob_rows.toLocaleString();
+      document.getElementById('kpiFile1Name').textContent = data.file1.filename;
+      document.getElementById('kpiFile2Count').textContent = data.file2.ob_rows.toLocaleString();
+      document.getElementById('kpiFile2Name').textContent = data.file2.filename;
+
+      const pct = data.file1.ob_rows > 0 ? ((data.duplicate_count / data.file1.ob_rows) * 100).toFixed(1) : 0;
+      document.getElementById('kpiStuckPct').textContent = `${pct}%`;
+    }
+
+    function renderBreakdowns(data) {
+      // Station
+      const stTbody = document.querySelector('#stationTable tbody');
+      const stEntries = Object.entries(data.station_breakdown || {}).sort((a, b) => b[1] - a[1]).slice(0, 15);
+
+      if (stEntries.length === 0) {
+        stTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--ink-soft);">ไม่มีข้อมูลพัสดุค้างซ้ำ</td></tr>';
+      } else {
+        stTbody.innerHTML = stEntries.map(([st, count], i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td style="font-weight:700;">${st || '(blank)'}</td>
+            <td style="text-align:right; font-weight:800; color:var(--accent);">${count.toLocaleString()}</td>
+          </tr>
+        `).join('');
+      }
+
+      // Action Flag
+      const acTbody = document.querySelector('#actionTable tbody');
+      const acEntries = Object.entries(data.action_breakdown || {}).sort((a, b) => b[1] - a[1]);
+
+      if (acEntries.length === 0) {
+        acTbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:var(--ink-soft);">ไม่มีข้อมูลพัสดุค้างซ้ำ</td></tr>';
+      } else {
+        acTbody.innerHTML = acEntries.map(([ac, count]) => `
+          <tr>
+            <td><span class="badge-tag badge-amber">${ac}</span></td>
+            <td style="text-align:right; font-weight:800; color:var(--accent);">${count.toLocaleString()}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function populateFilters(data) {
+      const stSelect = document.getElementById('stationFilter');
+      const acSelect = document.getElementById('actionFilter');
+
+      const stations = Object.keys(data.station_breakdown || {}).sort();
+      stSelect.innerHTML = '<option value="">-- ทุกสถานี --</option>' + stations.map(s => `<option value="${s}">${s}</option>`).join('');
+
+      const actions = Object.keys(data.action_breakdown || {}).sort();
+      acSelect.innerHTML = '<option value="">-- ทุก Action Flag --</option>' + actions.map(a => `<option value="${a}">${a}</option>`).join('');
+    }
+
+    function renderDatatable(rows) {
+      const tbody = document.querySelector('#duplicateDatatable tbody');
+      document.getElementById('datatableSub').textContent = `แสดง ${rows.length.toLocaleString()} รายการพัสดุค้างซ้ำ`;
+
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--ink-soft);">ไม่พบรายการพัสดุตกค้างซ้ำตามเงื่อนไขที่เลือก</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map((r, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td style="font-weight:700; color:var(--accent);">${r.shipment_id}</td>
+          <td><span class="badge-tag badge-amber">${r.action_flag}</span></td>
+          <td style="font-weight:600;">${r.station}</td>
+          <td style="font-size:12px; color:var(--ink-soft);">${r.file1_timestamp || '-'}</td>
+          <td style="font-size:12px; color:var(--accent); font-weight:600;">${r.file2_timestamp || '-'}</td>
+          <td><span class="badge-tag badge-red">${r.day_in_soc}</span></td>
+          <td style="font-size:12px;">${r.operator || '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    function filterTable() {
+      if (!compareResults || !compareResults.duplicates) return;
+
+      const search = document.getElementById('searchInput').value.trim().toLowerCase();
+      const station = document.getElementById('stationFilter').value;
+      const action = document.getElementById('actionFilter').value;
+
+      filteredDuplicates = compareResults.duplicates.filter(r => {
+        const matchSearch = !search ||
+          r.shipment_id.toLowerCase().includes(search) ||
+          r.station.toLowerCase().includes(search) ||
+          r.operator.toLowerCase().includes(search);
+        const matchStation = !station || r.station === station;
+        const matchAction = !action || r.action_flag === action;
+        return matchSearch && matchStation && matchAction;
+      });
+
+      renderDatatable(filteredDuplicates);
+    }
+
+    function exportDuplicateCsv() {
+      if (!filteredDuplicates || filteredDuplicates.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'ไม่มีข้อมูลให้ export', text: 'ไม่พบพัสดุค้างซ้ำในตารางขณะนี้', background: '#0d1b2a', color: '#ffffff' });
+        return;
+      }
+
+      const headers = ['#', 'Shipment ID / Tracking', 'Action Flag', 'Station', 'File 1 Status Timestamp', 'File 2 Status Timestamp', 'Day in SOC', 'Operator'];
+      const lines = [headers.map(v => `"${v}"`).join(',')];
+
+      filteredDuplicates.forEach((r, i) => {
+        lines.push([
+          i + 1,
+          `"${r.shipment_id}"`,
+          `"${r.action_flag}"`,
+          `"${r.station}"`,
+          `"${r.file1_timestamp}"`,
+          `"${r.file2_timestamp}"`,
+          `"${r.day_in_soc}"`,
+          `"${r.operator}"`
+        ].join(','));
+      });
+
+      const csv = lines.join('\r\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `OB_Backlog_Duplicates_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+
+</html>

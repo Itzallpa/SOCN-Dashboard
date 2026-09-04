@@ -228,8 +228,17 @@
   <!-- Top Navigation Header -->
   <nav class="top-nav">
     <a href="index.html" class="brand-title">
-      <span style="font-size:1.4rem;">📦</span> SOC Operations Portal - Control Center
+      <span style="font-size:1.4rem;">📦</span> SOC Operations Portal
     </a>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <a href="index.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">🏠 Portal Hub</a>
+      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚀 Investigation</a>
+      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📦 Skip Monitor</a>
+      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff Master</a>
+      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
+      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
+      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🔀 OB Backlog Compare</a>
+    </div>
   </nav>
   <script src="auth_guard.js"></script>
 
@@ -365,7 +374,7 @@
       </div>
 
       <!-- Module 4: Cutoff & TTB Master -->
-      <div class="col-lg-6 col-md-6">
+      <div class="col-lg-4 col-md-6">
         <div class="module-card">
           <div>
             <div class="card-icon-box icon-dark">
@@ -383,6 +392,29 @@
           </div>
           <a href="cutoff_master.html" class="btn-launch btn-dark">
             ค้นหา Cutoff & TTB <i class="fa-solid fa-arrow-right"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Module 4.5: OB Backlog Compare -->
+      <div class="col-lg-4 col-md-6">
+        <div class="module-card">
+          <div>
+            <div class="card-icon-box" style="background:#eff6ff; color:#2563eb;">
+              <i class="fa-solid fa-code-compare"></i>
+            </div>
+            <h3 class="card-heading">OB Backlog Compare</h3>
+            <p class="card-desc">
+              ระบบเปรียบเทียบหาพัสดุค้างซ้ำข้ามรอบ (Detecting Stuck Backlog Across Snapshots) คำนวณ % Stuck Rate และส่งออก CSV รายการพัสดุตกค้างซ้ำ
+            </p>
+            <div class="mb-4">
+              <span class="tag-badge"><i class="fa-solid fa-check text-primary me-1"></i> Snapshot Comparison</span>
+              <span class="tag-badge"><i class="fa-solid fa-check text-primary me-1"></i> Duplicate Detection</span>
+              <span class="tag-badge"><i class="fa-solid fa-check text-primary me-1"></i> Export Duplicate CSV</span>
+            </div>
+          </div>
+          <a href="ob_bl_compare.html" class="btn-launch" style="background:linear-gradient(135deg, #2563eb, #3b82f6); color:#fff;">
+            เข้าใช้งาน OB BL Compare <i class="fa-solid fa-arrow-right"></i>
           </a>
         </div>
       </div>

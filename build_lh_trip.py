@@ -288,8 +288,8 @@ lh_trip_html = f"""<!DOCTYPE html>
               <div class="fs-1 text-warning"><i class="fa-regular fa-clock"></i></div>
               <div>
                 <div class="callout-title">ช่วงเวลาที่สายมากที่สุด (PEAK LATE HOUR)</div>
-                <div class="callout-value text-danger" id="peakHour">12:00 - 13:00</div>
-                <div class="callout-detail" id="peakHourSub">114 เที่ยวที่ออกเดินทางสายในชั่วโมงนี้ (จาก 336 เที่ยวที่สายทั้งหมด)</div>
+                <div class="callout-value text-danger" id="peakHour">--</div>
+                <div class="callout-detail" id="peakHourSub">กำลังคำนวณข้อมูลสด...</div>
               </div>
             </div>
           </div>
@@ -299,8 +299,8 @@ lh_trip_html = f"""<!DOCTYPE html>
             <div class="d-flex justify-content-between align-items-start">
               <div>
                 <div class="callout-title">สถิติแยกตาม CUT (BY CUT)</div>
-                <div class="callout-value text-danger" id="peakCut">Cut 1</div>
-                <div class="callout-detail" id="peakCutSub">132 จาก 451 เที่ยว (29% สาย)</div>
+                <div class="callout-value text-danger" id="peakCut">--</div>
+                <div class="callout-detail" id="peakCutSub">กำลังคำนวณข้อมูลสด...</div>
               </div>
               <div class="d-flex gap-1 flex-wrap justify-content-end">
                 <select id="intentSelect" class="form-select form-select-sm" style="width: 130px;" onchange="applyDashFilters()"><option value="All">All Intentional</option><option value="Intentional">Intentional</option><option value="Non Intentional">Non Intentional</option></select>
@@ -574,24 +574,26 @@ lh_trip_html = f"""<!DOCTYPE html>
       downloadCSVFile(csv, 'LH_TRIP_FILTERED_MODAL_RAW_DATA.csv');
     }}
 
-    function renderRealSummaryData() {{
-      const realData = {{
-        success: true,
-        totalTrips: 1305,
-        onTimeTrips: 966,
-        lateTrips: 336,
-        totalLate: 336,
-        onTimeRate: '74.2%',
-        outboundRawRows: VERIFIED_REAL_1305_TRIP_ROWS
-      }};
-      renderLHData(realData);
+    function renderRealSummaryData(apiData) {{
+      if (apiData && (apiData.totalTrips || apiData.rows || apiData.success)) {{
+        latestSyncedData = apiData;
+        renderLHData(apiData);
+        return;
+      }}
+      if (latestSyncedData) {{
+        renderLHData(latestSyncedData);
+        return;
+      }}
     }}
 
     function renderLHData(data) {{
-      const totalTrips = data.totalTrips || 1305;
-      const onTimeTrips = data.onTimeTrips || 966;
-      const lateTrips = data.lateTrips || data.totalLate || 336;
-      const rate = data.onTimeRate || '74.2%';
+      if (!data) return;
+      const totalTrips = data.totalTrips || (data.rows ? data.rows.length : (data.outboundRawRows ? data.outboundRawRows.length : 0));
+      const onTimeTrips = data.onTimeTrips !== undefined ? data.onTimeTrips : 0;
+      const lateTrips = data.lateTrips !== undefined ? data.lateTrips : (data.totalLate !== undefined ? data.totalLate : 0);
+      const onTimePct = totalTrips ? ((onTimeTrips / totalTrips) * 100).toFixed(1) : '0.0';
+      const latePct = totalTrips ? ((lateTrips / totalTrips) * 100).toFixed(1) : '0.0';
+      const rate = data.onTimeRate || (totalTrips ? `${{onTimePct}}%` : '0.0%');
 
       document.getElementById('kpiTotal').innerText = Number(totalTrips).toLocaleString();
       document.getElementById('kpiOnTime').innerText = Number(onTimeTrips).toLocaleString();
@@ -606,8 +608,9 @@ lh_trip_html = f"""<!DOCTYPE html>
     }}
 
     function renderAll5Charts(data) {{
+      const records = rawTripRecords;
       // Chart 1: Status Pie
-      createPieChart('pieStatusCanvas', ['On Time (74.2%)', 'Late (25.8%)'], [966, 336], ['#0f9d58', '#d0311d'], (evt, elements) => {{
+      createPieChart('pieStatusCanvas', ['On Time', 'Late'], [records.filter(r => !String(r.status || '').toLowerCase().includes('late')).length, records.filter(r => String(r.status || '').toLowerCase().includes('late')).length], ['#0f9d58', '#d0311d'], (evt, elements) => {{
         if (!elements || !elements.length) return;
         const idx = elements[0].index;
         if (idx === 0) openOnTimeModal();
@@ -615,7 +618,7 @@ lh_trip_html = f"""<!DOCTYPE html>
       }});
 
       // Chart 2: Vehicle Pie
-      createPieChart('pieVehicleCanvas', ['4WH-4ล้อ (63.8%)', '6WH-6ล้อ[7.2m] (17.8%)', '4WH-4ล้อ[OF] (6.8%)', '6WH-6ล้อ[OF] (4.4%)', 'Semi trailer (4.2%)', '6WH-6ล้อ[9.6m] (2.7%)'], [215, 60, 23, 15, 14, 9], ['#ee4d2d', '#ff7a45', '#f5a623', '#c2661a', '#ffb199', '#d0311d'], (evt, elements) => {{
+      createPieChart('pieVehicleCanvas', ['4WH-4ล้อ', '6WH-6ล้อ[7.2m]', '4WH-4ล้อ[OF]', '6WH-6ล้อ[OF]', 'Semi trailer', '6WH-6ล้อ[9.6m]'], [215, 60, 23, 15, 14, 9], ['#ee4d2d', '#ff7a45', '#f5a623', '#c2661a', '#ffb199', '#d0311d'], (evt, elements) => {{
         if (!elements || !elements.length) return;
         const labels = ['4WH-4ล้อ', '6WH-6ล้อ[7.2m]', '4WH-4ล้อ[OF]', '6WH-6ล้อ[OF]', 'Semi trailer', '6WH-6ล้อ[9.6m]'];
         const veh = labels[elements[0].index];
@@ -623,22 +626,82 @@ lh_trip_html = f"""<!DOCTYPE html>
         openRawDataModal(`เที่ยวรถประเภท ${{veh}}`, subset.length ? subset : VERIFIED_REAL_1305_TRIP_ROWS.filter(r => r.vehicle_type === veh));
       }});
 
-      // Chart 3: OTA Pie
-      createPieChart('pieOnTimeCanvas', ['On time (56.5%)', 'OB Late (18.0%)', 'RC (14.0%)', 'LH Late (11.5%)'], [641, 204, 159, 131], ['#0f9d58', '#b7791f', '#64748b', '#d0311d'], (evt, elements) => {{
-        if (!elements || !elements.length) return;
-        const labels = ['On time', 'OB Late', 'RC', 'LH Late'];
-        const cat = labels[elements[0].index];
-        if (cat === 'On time') openOnTimeModal();
-        else openAllLateModal();
+      // Chart 3: OTA Pie (On time / LH Late / OB Late / RC)
+      let otaOnTime = 0, otaLhLate = 0, otaObLate = 0, otaRc = 0;
+      records.forEach(r => {{
+        const isLate = String(r.status || '').toLowerCase().includes('late');
+        const cat = String(r.trip_category || '').toLowerCase();
+        const dest = String(r.dest_station_name || '').toLowerCase();
+        const zone = String(r.zone || '').toLowerCase();
+        if (!isLate) {{
+          otaOnTime++;
+        }} else if (dest.includes('rc') || zone.includes('return') || cat.includes('rc')) {{
+          otaRc++;
+        }} else if (cat.includes('timetable') || cat.includes('รถหลัก') || cat.includes('main')) {{
+          otaLhLate++;
+        }} else {{
+          otaObLate++;
+        }}
       }});
+      const otaTotal = records.length || 1;
+      const pctOnTime = ((otaOnTime / otaTotal) * 100).toFixed(1);
+      const pctLhLate = ((otaLhLate / otaTotal) * 100).toFixed(1);
+      const pctObLate = ((otaObLate / otaTotal) * 100).toFixed(1);
+      const pctRc = ((otaRc / otaTotal) * 100).toFixed(1);
+
+      const otaLabels = [];
+      const otaValues = [];
+      const otaColors = [];
+
+      if (otaOnTime) {{ otaLabels.push(`On time (${{pctOnTime}}%)`); otaValues.push(otaOnTime); otaColors.push('#0f9d58'); }}
+      if (otaLhLate) {{ otaLabels.push(`LH Late (${{pctLhLate}}%)`); otaValues.push(otaLhLate); otaColors.push('#d0311d'); }}
+      if (otaObLate) {{ otaLabels.push(`OB Late (${{pctObLate}}%)`); otaValues.push(otaObLate); otaColors.push('#f5a623'); }}
+      if (otaRc) {{ otaLabels.push(`RC (${{pctRc}}%)`); otaValues.push(otaRc); otaColors.push('#64748b'); }}
+
+      createPieChart('pieOnTimeCanvas',
+        otaLabels.length ? otaLabels : ['No Data'],
+        otaValues.length ? otaValues : [1],
+        otaColors.length ? otaColors : ['#0f9d58'],
+        (evt, elements) => {{
+          if (!elements || !elements.length) return;
+          const selectedLabel = otaLabels[elements[0].index] || '';
+          if (selectedLabel.includes('On time')) openOnTimeModal();
+          else openAllLateModal();
+        }}
+      );
 
       // Chart 4: Bar Cut
-      createStackedBarChart('barCutCanvas', ['Cut 0', 'Cut 1', 'Cut 2'], [120, 319, 390], [80, 132, 124], (evt, elements) => {{
+      let cutOnTime = [0, 0, 0];
+      let cutLate = [0, 0, 0];
+      records.forEach(r => {{
+        const isLate = String(r.status || '').toLowerCase().includes('late');
+        const c0 = String(r.cut0 || '').trim();
+        const c1 = String(r.cut1 || '').trim();
+        const c2 = String(r.cut2 || '').trim();
+        const isC0 = c0 && c0 !== 'nan' && c0 !== '—' && c0 !== '-';
+        const isC1 = c1 && c1 !== 'nan' && c1 !== '—' && c1 !== '-';
+        const isC2 = c2 && c2 !== 'nan' && c2 !== '—' && c2 !== '-';
+
+        if (isC0) {{
+          if (isLate) cutLate[0]++; else cutOnTime[0]++;
+        }} else if (isC1) {{
+          if (isLate) cutLate[1]++; else cutOnTime[1]++;
+        }} else if (isC2) {{
+          if (isLate) cutLate[2]++; else cutOnTime[2]++;
+        }}
+      }});
+
+      createStackedBarChart('barCutCanvas', ['Cut 0', 'Cut 1', 'Cut 2'], cutOnTime, cutLate, (evt, elements) => {{
         if (!elements || !elements.length) return;
         const cuts = ['Cut 0', 'Cut 1', 'Cut 2'];
-        const cut = cuts[elements[0].index];
-        const subset = rawTripRecords.filter(r => (r.cut0 && cut === 'Cut 0') || (r.cut1 && cut === 'Cut 1') || (r.cut2 && cut === 'Cut 2'));
-        openRawDataModal(`เที่ยวรถประจำ ${{cut}}`, subset.length ? subset : VERIFIED_REAL_1305_TRIP_ROWS);
+        const idx = elements[0].index;
+        const subset = records.filter(r => {{
+          if (idx === 0) return r.cut0 && r.cut0 !== 'nan' && r.cut0 !== '—' && r.cut0 !== '-';
+          if (idx === 1) return r.cut1 && r.cut1 !== 'nan' && r.cut1 !== '—' && r.cut1 !== '-';
+          if (idx === 2) return r.cut2 && r.cut2 !== 'nan' && r.cut2 !== '—' && r.cut2 !== '-';
+          return false;
+        }});
+        openRawDataModal(`เที่ยวรถประจำ ${{cuts[idx]}}`, subset.length ? subset : records);
       }});
 
       // Chart 5: Bar Hour

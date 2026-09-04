@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import json
 import uuid
@@ -27,6 +28,9 @@ def add_header(response):
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+BACKLOG_COMPARE_FOLDER = os.path.join(BASE_DIR, "Backlog Shipment")
+os.makedirs(BACKLOG_COMPARE_FOLDER, exist_ok=True)
 
 LOGS_FILE = os.path.join(BASE_DIR, "activity_logs.json")
 
@@ -290,9 +294,9 @@ def read_dataframe(filepath):
             return pd.read_excel(filepath, sheet_name=sheet_to_use)
         except Exception as ex:
             print("Error reading excel file:", ex)
-            return pd.read_csv(filepath, low_memory=False)
+            return pd.read_csv(filepath, low_memory=False, on_bad_lines='skip')
     else:
-        return pd.read_csv(filepath, low_memory=False)
+        return pd.read_csv(filepath, low_memory=False, on_bad_lines='skip')
 
 
 def process_csv(filepath):
@@ -670,17 +674,172 @@ def upload_file():
     except Exception as e:
         import traceback
         traceback.print_exc()
+
+# ===== GAS PUSH endpoint: GAS ยิง POST มาหาเรา (แก้ปัญหา Workspace restriction) =====
+GAS_PUSH_CACHE = {
+    "lhtrip": None,
+    "obbl": None
+}
+
+RECEIVE_API_KEY = "SOCN_OBBL_2026_SECRET_KEY_XK9M3"
+
+@app.route("/api/receive-gas-data", methods=["POST", "GET"])
+def receive_gas_data():
+    """
+    GAS ยิง POST มาที่นี่พร้อมข้อมูล headers+rows
+    แก้ปัญหา 'Anyone within Shopee Mobile' — GAS รันใน account ที่มีสิทธิ์ แล้ว push มาให้เรา
+    """
+    # รองรับ GET เพื่อ health check
+    if request.method == "GET":
+        status = {}
+        for k, v in GAS_PUSH_CACHE.items():
+            if v:
+                status[k] = {"rows": len(v.get("rows", [])), "updatedAt": v.get("updatedAt", "?")}
+            else:
+                status[k] = None
+        return jsonify({"success": True, "cache": status})
+
+    try:
+        data = request.get_json(silent=True) or {}
+        key = (data.get("key") or "").strip()
+        page = (data.get("page") or "").strip().lower()
+
+        # ตรวจ API Key
+        if key != RECEIVE_API_KEY:
+            return jsonify({"success": False, "error": "Unauthorized"}), 403
+
+        if not page:
+            return jsonify({"success": False, "error": "Missing page parameter"}), 400
+
+        headers = data.get("headers", [])
+        rows = data.get("rows", [])
+
+        if not headers:
+            return jsonify({"success": False, "error": "No headers in payload"}), 400
+
+        cache_entry = {
+            "success": True,
+            "headers": headers,
+            "rows": rows,
+            "total": len(rows),
+            "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "pushedBy": data.get("pushedBy", "GAS"),
+            "sheet": data.get("sheet", ""),
+            "filename": f"Live {page.upper()} (GAS Push)"
+        }
+
+        GAS_PUSH_CACHE[page] = cache_entry
+
+        # บันทึก disk cache ด้วย
+        cache_path = os.path.join(UPLOAD_FOLDER, f"GAS_PUSH_{page.upper()}.json")
+        try:
+            import json as json_lib
+            with open(cache_path, "w", encoding="utf-8") as f:
+                json_lib.dump(cache_entry, f, ensure_ascii=False)
+        except Exception:
+            pass
+
+        # ถ้าเป็น obbl ให้บันทึก CSV ด้วย
+        if page == "obbl" and headers and rows:
+            try:
+                import csv as csv_lib
+                csv_path = os.path.join(UPLOAD_FOLDER, "LIVE_OB_BL_SYNC.csv")
+                with open(csv_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv_lib.writer(f)
+                    writer.writerow(headers)
+                    writer.writerows(rows)
+            except Exception:
+                pass
+
+        log_activity("GAS_PUSH", f"GAS pushed {page} data — {len(rows)} rows")
+        return jsonify({"success": True, "received": len(rows), "page": page})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/get-gas-cache", methods=["GET"])
+def get_gas_cache():
+    """ให้ dashboard ดึงข้อมูลที่ GAS push มาแล้ว"""
+    page = request.args.get("page", "lhtrip").strip().lower()
+
+    # ลอง memory cache ก่อน
+    cached = GAS_PUSH_CACHE.get(page)
+    if cached and cached.get("rows"):
+        return jsonify(cached)
+
+    # ลอง disk cache
+    cache_path = os.path.join(UPLOAD_FOLDER, f"GAS_PUSH_{page.upper()}.json")
+    if os.path.exists(cache_path):
+        try:
+            import json as json_lib
+            with open(cache_path, "r", encoding="utf-8") as f:
+                data = json_lib.load(f)
+            GAS_PUSH_CACHE[page] = data
+            return jsonify(data)
+        except Exception:
+            pass
+
+    return jsonify({
+        "success": False,
+        "error": f"ยังไม่มีข้อมูล {page} ที่ GAS push มา — กรุณากด 'Push to Dashboard' ใน Apps Script ก่อนครับ"
+    }), 200
+
+
 @app.route("/api/sync-google-sheet", methods=["GET", "POST"])
 def sync_google_sheet():
     url = request.args.get("url", "") or (request.json.get("url", "") if request.is_json else "")
     url = str(url).strip()
 
     # Default Google Sheet Published CSV / GViz URL if none provided
-    default_sheet_url = "https://docs.google.com/spreadsheets/d/1gH3gDAuf0CWKYthnua50qLWC3gUWYovMVMN1hUKyFJo/gviz/tq?tqx=out:csv&sheet=Table"
+    default_sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv"
 
     import re
     gid_match = re.search(r'gid=([0-9]+)', url)
     gid_param = f"&gid={gid_match.group(1)}" if gid_match else ""
+
+    # ======= Apps Script URL → relay ผ่าน POST + API Key (แก้ domain restriction) =======
+    if url and "script.google.com" in url:
+        try:
+            # ใช้ API Key เดียวกับที่กำหนดใน GAS_API_KEY
+            payload = {"key": GAS_API_KEY, "page": "lhtrip"}
+            resp = requests.post(
+                url,
+                json=payload,
+                timeout=60,
+                headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"},
+                allow_redirects=True
+            )
+
+            # ถ้า response เป็น HTML (ติด login) ให้แจ้ง error ชัดเจน
+            if (resp.content.strip().startswith(b"<!DOCTYPE html") or
+                    b"Sign in - Google Accounts" in resp.content or
+                    b"accounts.google.com" in resp.content):
+                return jsonify({
+                    "success": False,
+                    "error": "Apps Script ยังติด Login Google ❌\n\nวิธีแก้:\n1. เปิด Apps Script > Deploy > Manage Deployments\n2. กด Edit (✏️) ตรง Deployment ที่ใช้งาน\n3. เปลี่ยน 'Who has access' → 'Anyone'\n4. กด Deploy ใหม่"
+                }), 200
+
+            if resp.status_code == 200:
+                try:
+                    json_res = resp.json()
+                    if isinstance(json_res, dict):
+                        # ถ้า GAS ตอบ error (key ผิด หรือ page ผิด) → ลอง GET format แบบเดิม
+                        if json_res.get("success") == False and "Unauthorized" in str(json_res.get("error", "")):
+                            pass  # fall through to old GET method below
+                        else:
+                            if "rows" in json_res or "data" in json_res or "headers" in json_res:
+                                json_res["success"] = True
+                                log_activity("SYNC_GOOGLE_SHEET", f"Synced LH Trip via GAS API Key from {url}")
+                                return jsonify(json_res)
+                except Exception:
+                    pass  # fall through to old method
+        except requests.Timeout:
+            return jsonify({"success": False, "error": "Apps Script ใช้เวลานานเกินไป (Timeout 60s) กรุณาลองใหม่"}), 200
+        except Exception:
+            pass  # fall through to old GET method
 
     if not url:
         url = default_sheet_url
@@ -744,7 +903,7 @@ def sync_google_sheet():
             f.write(req.content)
 
         try:
-            df = pd.read_csv(target_path, low_memory=False)
+            df = pd.read_csv(target_path, low_memory=False, on_bad_lines='skip')
             cols_lower = [str(c).lower() for c in df.columns]
             if any('trip number' in c or 'show on time' in c or 'vehicle' in c for c in cols_lower) or len(df.columns) >= 20:
                 data = process_table_sheet(df)
@@ -755,30 +914,12 @@ def sync_google_sheet():
         except Exception:
             pass
 
-        if data.get("totalTrips", 0) == 0 and data.get("totalLate", 0) == 0:
-            excel_path = os.path.join(BASE_DIR, "OB Late", "test.xlsx")
-            if os.path.exists(excel_path):
-                df = pd.read_excel(excel_path, sheet_name='Table')
-                data = process_table_sheet(df)
-                data["filename"] = "Google Sheet Table (Live)"
-                data["success"] = True
-
-        log_activity("SYNC_GOOGLE_SHEET", f"Successfully synced live Google Sheet data from {url}")
+        log_activity("SYNC_GOOGLE_SHEET", f"Synced Google Sheet data from {url}")
         return jsonify(data)
     except Exception as e:
         import traceback
         traceback.print_exc()
-        try:
-            excel_path = os.path.join(BASE_DIR, "OB Late", "test.xlsx")
-            if os.path.exists(excel_path):
-                df = pd.read_excel(excel_path, sheet_name='Table')
-                data = process_table_sheet(df)
-                data["filename"] = "Google Sheet Table (Live)"
-                data["success"] = True
-                return jsonify(data)
-        except Exception:
-            pass
-        return jsonify({"success": False, "error": f"Failed to sync Google Sheet: {str(e)}"}), 500
+        return jsonify({"success": False, "error": f"ไม่สามารถดึงข้อมูลจาก Google Sheet ได้: {str(e)}"}), 500
 
 
 def process_table_sheet(df):
@@ -863,10 +1004,19 @@ def process_table_sheet(df):
         rows_cells.append({"cells": cells, "routeLink": ""})
         raw_rows.append({
             "shipment_id": str(row.get(trip_col, '')),
+            "trip_category": str(row.get(df_clean.columns[2], '')) if len(df_clean.columns) > 2 else '',
+            "vehicle_type": str(row.get(veh_col, '')) if veh_col else '',
+            "vehicle_plate": str(row.get(df_clean.columns[4], '')) if len(df_clean.columns) > 4 else '',
+            "driver": str(row.get(df_clean.columns[5], '')) if len(df_clean.columns) > 5 else '',
+            "origin": str(row.get(df_clean.columns[6], '')) if len(df_clean.columns) > 6 else '',
             "dest_station_name": str(row.get(dest_col, '')) if dest_col else '',
-            "soc_outbound_based_received_2nd_cut_off_timestamp": str(row.get(df_clean.columns[16], '')) if len(df_clean.columns) > 16 else '',
-            "first_soc_outbound_timestamp": str(row.get(df_clean.columns[19], '')) if len(df_clean.columns) > 19 else '',
-            "status": str(row.get(status_col, '')) if status_col else ''
+            "cut0": str(row.get(df_clean.columns[15], '')) if len(df_clean.columns) > 15 else '',
+            "cut1": str(row.get(df_clean.columns[16], '')) if len(df_clean.columns) > 16 else '',
+            "cut2": str(row.get(df_clean.columns[17], '')) if len(df_clean.columns) > 17 else '',
+            "actual_dep_cut": str(row.get(df_clean.columns[19], '')) if len(df_clean.columns) > 19 else '',
+            "status": str(row.get(status_col, '')) if status_col else '',
+            "region": str(row.get(df_clean.columns[25], '')) if len(df_clean.columns) > 25 else '',
+            "zone": str(row.get(df_clean.columns[26], '')) if len(df_clean.columns) > 26 else ''
         })
 
     return {
@@ -1586,12 +1736,89 @@ def load_ob_bl():
         traceback.print_exc()
         return jsonify({"success": False, "error": f"ไม่สามารถประมวลผลไฟล์ OB BL ได้: {str(e)}"}), 200
 
-@app.route("/api/sync-ob-bl", methods=["POST"])
+GAS_OB_BL_URL = "https://script.google.com/a/spxexpress.com/macros/s/AKfycbxFOtGts0EfjNswnThfQhN57Q7zG5G6gPRGAG80lboIQfzhCh9W9t_d_uEP32Fi1Bc/exec"
+GAS_API_KEY = "SOCN_OBBL_2026_SECRET_KEY_XK9M3"
+
+@app.route("/api/sync-ob-bl-gas", methods=["POST"])
+def sync_ob_bl_gas():
+    """
+    Server-side relay: ส่ง POST ไปหา Google Apps Script พร้อม API Key ลับ
+    แก้ปัญหา domain restriction (/a/spxexpress.com/) — browser ยิงตรงไม่ได้
+    """
+    try:
+        req_json = request.get_json(silent=True) or {}
+        custom_url = (req_json.get("url") or "").strip()
+        custom_key = (req_json.get("key") or "").strip()
+
+        target_url = custom_url if custom_url else GAS_OB_BL_URL
+        api_key = custom_key if custom_key else GAS_API_KEY
+
+        payload = {"key": api_key, "page": "obbl"}
+
+        resp = requests.post(
+            target_url,
+            json=payload,
+            timeout=60,
+            headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"},
+            allow_redirects=True
+        )
+
+        if resp.status_code == 401:
+            return jsonify({
+                "success": False,
+                "error": "HTTP 401: Google Apps Script ยังต้องการ Login\n\nกรุณาไปที่ Apps Script > Deploy > Manage Deployments > เปลี่ยน 'Who has access' เป็น 'Anyone' แล้ว Re-deploy"
+            }), 200
+
+        if resp.status_code != 200:
+            return jsonify({"success": False, "error": f"Apps Script ตอบกลับ HTTP {resp.status_code}"}), 200
+
+        # Check ถ้า Google redirect ไปหน้า login
+        if (resp.content.strip().startswith(b"<!DOCTYPE html") or
+                b"Sign in - Google Accounts" in resp.content or
+                b"accounts.google.com" in resp.content):
+            return jsonify({
+                "success": False,
+                "error": "Apps Script ยังติด Login Google ❌\n\nวิธีแก้:\n1. เปิด Apps Script > Deploy > Manage Deployments\n2. กด Edit (ดินสอ)\n3. เปลี่ยน 'Who has access' จาก 'Anyone with Google account' → 'Anyone'\n4. กด Deploy ใหม่\n5. คัดลอก URL ใหม่มาใช้"
+            }), 200
+
+        try:
+            data = resp.json()
+        except Exception:
+            return jsonify({"success": False, "error": "Apps Script ไม่ได้ส่ง JSON กลับมา — ตรวจสอบ doPost() ใน Code.gs"}), 200
+
+        if not data.get("success"):
+            err_msg = data.get("error", "Apps Script ส่งข้อผิดพลาดกลับมา")
+            return jsonify({"success": False, "error": err_msg}), 200
+
+        # บันทึก cache ไว้ที่ server ด้วย
+        if data.get("headers") and data.get("rows"):
+            try:
+                import csv as csv_lib
+                cache_path = os.path.join(UPLOAD_FOLDER, "LIVE_OB_BL_SYNC.csv")
+                with open(cache_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv_lib.writer(f)
+                    writer.writerow(data["headers"])
+                    writer.writerows(data["rows"])
+            except Exception:
+                pass
+
+        data["filename"] = "Live OB BL (Google Apps Script)"
+        log_activity("SYNC_OB_BL_GAS", f"Synced OB BL via GAS API — {data.get('total', 0)} rows")
+        return jsonify(data)
+
+    except requests.Timeout:
+        return jsonify({"success": False, "error": "Apps Script ใช้เวลานานเกินไป (Timeout 60s) — ข้อมูลอาจมีจำนวนมาก กรุณาลองใหม่"}), 200
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาด server-side: {str(e)}"}), 200
+
+@app.route("/api/sync-ob-bl", methods=["GET", "POST"])
 def sync_ob_bl():
     req_json = request.get_json(silent=True) or {}
-    url = (req_json.get("url") or "").strip()
+    url = (request.args.get("url") or req_json.get("url") or "").strip()
     if not url:
-        return jsonify({"success": False, "error": "กรุณาระบุ URL ของ Google Sheet หรือ Apps Script"}), 400
+        url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRByU-6geOW_SbnQxFA4Y05WJMIkpRbUZMehfpDMTaHiXevL5mSA186BUybW3h8cgb4cWK2vOKuTIK3/pub?output=csv"
 
     import re
     gid_match = re.search(r'gid=([0-9]+)', url)
@@ -1637,7 +1864,7 @@ def sync_ob_bl():
         with open(target_path, "wb") as f:
             f.write(req.content)
 
-        df = pd.read_csv(target_path, low_memory=False)
+        df = pd.read_csv(target_path, low_memory=False, on_bad_lines='skip')
         data = process_ob_bl_df(df)
         data["filename"] = "Live OB BL (Google Sheet)"
         data["success"] = True
@@ -1648,6 +1875,228 @@ def sync_ob_bl():
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "error": f"ไม่สามารถซิงค์ข้อมูล OB BL จาก URL ได้: {str(e)}"}), 200
+
+# =======================================================================
+# OB BACKLOG COMPARE API & PAGE ROUTES
+# =======================================================================
+@app.route("/ob-bl-compare")
+@app.route("/ob_bl_compare.html")
+def ob_bl_compare_page():
+    return send_from_directory(BASE_DIR, "ob_bl_compare.html")
+
+@app.route("/api/upload-compare-file", methods=["POST"])
+def upload_compare_file():
+    if "file" not in request.files:
+        return jsonify({"success": False, "error": "ไม่ได้เลือกไฟล์"}), 400
+    file = request.files["file"]
+    if not file or file.filename == "":
+        return jsonify({"success": False, "error": "ชื่อไฟล์ว่างเปล่า"}), 400
+
+    filename = os.path.basename(file.filename)
+    if not filename.lower().endswith((".csv", ".xlsx", ".xls")):
+        return jsonify({"success": False, "error": "กรุณาอัปโหลดไฟล์ประเภท CSV หรือ Excel เท่านั้น"}), 400
+
+    save_path = os.path.join(BACKLOG_COMPARE_FOLDER, filename)
+    try:
+        file.save(save_path)
+        log_activity("UPLOAD_COMPARE_FILE", f"Uploaded compare file to Backlog Shipment: {filename}")
+        return jsonify({"success": True, "filename": filename, "message": f"อัปโหลดไฟล์ {filename} เข้าสู่โฟลเดอร์ Backlog Shipment เรียบร้อยแล้ว"})
+    except Exception as e:
+        return jsonify({"success": False, "error": f"ไม่สามารถบันทึกไฟล์ได้: {str(e)}"}), 500
+
+@app.route("/api/list-compare-files", methods=["GET"])
+def list_compare_files():
+    files = []
+    if os.path.exists(BACKLOG_COMPARE_FOLDER):
+        for f in os.listdir(BACKLOG_COMPARE_FOLDER):
+            if f.lower().endswith((".csv", ".xlsx", ".xls")):
+                p = os.path.join(BACKLOG_COMPARE_FOLDER, f)
+                files.append({
+                    "filename": f,
+                    "mtime": os.path.getmtime(p),
+                    "size": os.path.getsize(p)
+                })
+    files.sort(key=lambda x: x["mtime"], reverse=True)
+    return jsonify({"success": True, "files": files})
+
+@app.route("/api/compare-ob-bl", methods=["GET", "POST"])
+def api_compare_ob_bl():
+    req_json = request.get_json(silent=True) or {}
+    file1 = (request.args.get("filename1") or req_json.get("filename1") or "").strip()
+    file2 = (request.args.get("filename2") or req_json.get("filename2") or "").strip()
+
+    if not file1 or not file2:
+        return jsonify({"success": False, "error": "กรุณาเลือกไฟล์ที่ต้องการเปรียบเทียบทั้ง 2 ไฟล์"}), 400
+
+    path1 = os.path.join(BACKLOG_COMPARE_FOLDER, file1)
+    if not os.path.exists(path1): path1 = os.path.join(UPLOAD_FOLDER, file1)
+    if not os.path.exists(path1): path1 = os.path.join(BASE_DIR, file1)
+
+    path2 = os.path.join(BACKLOG_COMPARE_FOLDER, file2)
+    if not os.path.exists(path2): path2 = os.path.join(UPLOAD_FOLDER, file2)
+    if not os.path.exists(path2): path2 = os.path.join(BASE_DIR, file2)
+
+    if not os.path.exists(path1) or not os.path.exists(path2):
+        return jsonify({"success": False, "error": "ไม่พบไฟล์รายงานบนเซิร์ฟเวอร์ กรุณาตรวจสอบและอัปโหลดไฟล์ใหม่อีกครั้ง"}), 404
+
+    try:
+        def parse_xlsx_fast(file_path):
+            import zipfile, xml.etree.ElementTree as ET
+            with zipfile.ZipFile(file_path, 'r') as z:
+                strings = []
+                if 'xl/sharedStrings.xml' in z.namelist():
+                    tree = ET.fromstring(z.read('xl/sharedStrings.xml'))
+                    for elem in tree.iter('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t'):
+                        strings.append(elem.text if elem.text else '')
+
+                sheet_tree = ET.fromstring(z.read('xl/worksheets/sheet1.xml'))
+                ns = {'s': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
+                
+                rows = []
+                for row_elem in sheet_tree.findall('.//s:row', ns):
+                    row_vals = []
+                    for cell in row_elem.findall('s:c', ns):
+                        t = cell.get('t')
+                        v_elem = cell.find('s:v', ns)
+                        val = v_elem.text if v_elem is not None else ''
+                        if t == 's' and val != '':
+                            try:
+                                idx_val = int(val)
+                                val = strings[idx_val] if idx_val < len(strings) else val
+                            except ValueError:
+                                pass
+                        row_vals.append(val)
+                    if row_vals and any(row_vals):
+                        rows.append(row_vals)
+                if not rows:
+                    return [], []
+                return [str(h).strip() for h in rows[0]], rows[1:]
+
+        def read_file_rows(file_path):
+            headers = []
+            rows = []
+            if file_path.lower().endswith((".xlsx", ".xls")):
+                try:
+                    headers, rows = parse_xlsx_fast(file_path)
+                except Exception:
+                    df = read_dataframe(file_path)
+                    headers = [str(c).strip() for c in df.columns]
+                    rows = df.fillna('').values.tolist()
+            else:
+                with open(file_path, "r", encoding="utf-8-sig", errors="ignore") as f:
+                    r = csv.reader(f)
+                    try:
+                        headers = [str(c).strip() for c in next(r)]
+                    except StopIteration:
+                        headers = []
+                    rows = [row for row in r if row and any(row)]
+            return headers, rows
+
+        headers1, rows1 = read_file_rows(path1)
+        headers2, rows2 = read_file_rows(path2)
+
+        def get_col_indices(headers):
+            idx = {}
+            for i, h in enumerate(headers):
+                h_lower = h.lower().replace("_", " ").strip()
+                if "shipment" in h_lower or "tracking" in h_lower or h_lower == "col 1" or i == 1:
+                    idx.setdefault("shipment_id", i)
+                if "action" in h_lower or "flag" in h_lower:
+                    idx.setdefault("action_flag", i)
+                if "timestamp" in h_lower or "time" in h_lower or "status time" in h_lower:
+                    idx.setdefault("latest_status_timestamp", i)
+                if "day" in h_lower or "soc" in h_lower:
+                    idx.setdefault("day_in_soc", i)
+                if "station" in h_lower or "awb" in h_lower:
+                    idx.setdefault("latest_awb_station_name", i)
+                if "operator" in h_lower or "user" in h_lower:
+                    idx.setdefault("latest_operator_name", i)
+            return idx
+
+        idx1 = get_col_indices(headers1)
+        idx2 = get_col_indices(headers2)
+
+        ob_actions = ["_02_pending_packed", "_03_pending_linehual_packed", "_04_pending_reworked"]
+
+        def process_dataset(headers, rows, idx):
+            dict_out = {}
+            total_ob = 0
+            for r in rows:
+                if not r: continue
+                s_id = str(r[idx.get("shipment_id", 1)]).strip() if len(r) > idx.get("shipment_id", 1) else ""
+                if not s_id: continue
+
+                af = str(r[idx.get("action_flag", 12)]).strip() if len(r) > idx.get("action_flag", 12) else ""
+                af_lower = af.lower()
+                is_ob = (af in ob_actions) or any(k in af_lower for k in ["packed", "linehual", "linehaul", "rework", "pending", "skip"])
+                if not is_ob and af != "":
+                    continue
+
+                ts = str(r[idx.get("latest_status_timestamp", 7)]).strip() if len(r) > idx.get("latest_status_timestamp", 7) else ""
+                ds = str(r[idx.get("day_in_soc", 13)]).strip() if len(r) > idx.get("day_in_soc", 13) else ""
+                st = str(r[idx.get("latest_awb_station_name", 4)]).strip() if len(r) > idx.get("latest_awb_station_name", 4) else ""
+                op = str(r[idx.get("latest_operator_name", 8)]).strip() if len(r) > idx.get("latest_operator_name", 8) else ""
+
+                dict_out[s_id] = {
+                    "shipment_id": s_id,
+                    "action_flag": af or "_03_pending_linehual_packed",
+                    "latest_status_timestamp": ts,
+                    "day_in_soc": ds,
+                    "latest_awb_station_name": st,
+                    "latest_operator_name": op
+                }
+                total_ob += 1
+            return dict_out, total_ob
+
+        dict1, total_ob1 = process_dataset(headers1, rows1, idx1)
+        dict2, total_ob2 = process_dataset(headers2, rows2, idx2)
+
+        duplicate_ids = set(dict1.keys()).intersection(set(dict2.keys()))
+
+        duplicate_list = []
+        station_counts = {}
+        action_counts = {}
+
+        for s_id in duplicate_ids:
+            item1 = dict1[s_id]
+            item2 = dict2[s_id]
+
+            ts1 = item1["latest_status_timestamp"]
+            ts2 = item2["latest_status_timestamp"]
+            ds = item2["day_in_soc"] or item1["day_in_soc"] or "-"
+            st = item2["latest_awb_station_name"] or item1["latest_awb_station_name"] or "-"
+            op = item2["latest_operator_name"] or item1["latest_operator_name"] or "-"
+            af = item2["action_flag"] or item1["action_flag"] or "-"
+
+            station_counts[st] = station_counts.get(st, 0) + 1
+            action_counts[af] = action_counts.get(af, 0) + 1
+
+            duplicate_list.append({
+                "shipment_id": s_id,
+                "action_flag": af,
+                "station": st,
+                "operator": op,
+                "day_in_soc": ds,
+                "file1_timestamp": ts1,
+                "file2_timestamp": ts2
+            })
+
+        log_activity("COMPARE_OB_BL", f"Compared {file1} & {file2} — Found {len(duplicate_ids)} duplicate backlog shipments")
+
+        return jsonify({
+            "success": True,
+            "file1": { "filename": file1, "total_rows": len(rows1), "ob_rows": total_ob1 },
+            "file2": { "filename": file2, "total_rows": len(rows2), "ob_rows": total_ob2 },
+            "duplicate_count": len(duplicate_ids),
+            "duplicates": duplicate_list[:5000],
+            "station_breakdown": station_counts,
+            "action_breakdown": action_counts,
+            "generatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการเปรียบเทียบไฟล์: {str(e)}"}), 500
 
 @app.route("/")
 def index_page():

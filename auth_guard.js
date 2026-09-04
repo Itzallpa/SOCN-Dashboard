@@ -65,10 +65,13 @@
     overlay.innerHTML = `
       <style>
         #socnAuthOverlay {
-          position:fixed; inset:0; z-index:99999999;
+          position:fixed; inset:0; z-index:99900;
           background:rgba(13,27,42,0.85); backdrop-filter:blur(8px);
           display:flex; align-items:center; justify-content:center;
           font-family:'Segoe UI',system-ui,sans-serif; padding:16px;
+        }
+        .swal2-container {
+          z-index: 99999999 !important;
         }
         #socnAuthCard {
           background:#fff; border-radius:22px; width:100%; max-width:450px;
@@ -191,6 +194,12 @@
   }
 
   function showSweetAlert(title, text, icon = 'info', confirmText = 'ตกลง', showCancel = false, cancelText = 'ยกเลิก', callback = null) {
+    if (!document.getElementById('swalTopZIndexStyle')) {
+      const st = document.createElement('style');
+      st.id = 'swalTopZIndexStyle';
+      st.innerHTML = '.swal2-container { z-index: 99999999 !important; }';
+      document.head.appendChild(st);
+    }
     const runSwal = () => {
       if (typeof Swal !== 'undefined') {
         Swal.fire({

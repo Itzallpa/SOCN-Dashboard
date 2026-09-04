@@ -1,7 +1,87 @@
 [
   {
-    "id": "6ac21063",
-    "timestamp": "2026-09-04 13:09:27",
+    "id": "84aa1a14",
+    "timestamp": "2026-09-04 18:42:34",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYNC_OB_BL",
+    "details": "Successfully synced OB BL data from https://docs.google.com/spreadsheets/d/e/2PACX-1vRByU-6geOW_SbnQxFA4Y05WJMIkpRbUZMehfpDMTaHiXevL5mSA186BUybW3h8cgb4cWK2vOKuTIK3/pub?output=csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "8831c8a0",
+    "timestamp": "2026-09-04 18:42:25",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "761ca451",
+    "timestamp": "2026-09-04 18:42:13",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "9c0d1492",
+    "timestamp": "2026-09-04 18:40:15",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "e838a0ce",
+    "timestamp": "2026-09-04 18:36:49",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYNC_OB_BL",
+    "details": "Successfully synced OB BL data from https://docs.google.com/spreadsheets/d/e/2PACX-1vRByU-6geOW_SbnQxFA4Y05WJMIkpRbUZMehfpDMTaHiXevL5mSA186BUybW3h8cgb4cWK2vOKuTIK3/pub?output=csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "4e6ccabc",
+    "timestamp": "2026-09-04 18:36:42",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "71a1178b",
+    "timestamp": "2026-09-04 18:36:03",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "COMPARE_OB_BL",
+    "details": "Compared SOCN OB BL FOR Board (1).xlsx & SOCN OB BL FOR Board (1).xlsx — Found 79045 duplicate backlog shipments",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "98c7cf64",
+    "timestamp": "2026-09-04 18:35:32",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYNC_OB_BL",
+    "details": "Successfully synced OB BL data from https://docs.google.com/spreadsheets/d/e/2PACX-1vRByU-6geOW_SbnQxFA4Y05WJMIkpRbUZMehfpDMTaHiXevL5mSA186BUybW3h8cgb4cWK2vOKuTIK3/pub?output=csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "448cda25",
+    "timestamp": "2026-09-04 18:34:59",
     "email": "guy.panmanee@spxexpress.com",
     "name": "Natakorn Panmanee",
     "role": "Admin",
@@ -10,8 +90,8 @@
     "ip": "127.0.0.1"
   },
   {
-    "id": "79a13178",
-    "timestamp": "2026-09-04 13:09:27",
+    "id": "1a367487",
+    "timestamp": "2026-09-04 18:34:59",
     "email": "guy.panmanee@spxexpress.com",
     "name": "Natakorn Panmanee",
     "role": "Admin",
@@ -20,8 +100,18 @@
     "ip": "127.0.0.1"
   },
   {
-    "id": "d346220d",
-    "timestamp": "2026-09-04 12:57:25",
+    "id": "ce382d52",
+    "timestamp": "2026-09-04 18:34:45",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "COMPARE_OB_BL",
+    "details": "Compared SOCN OB BL FOR Board (1).xlsx & SOCN OB BL FOR Board (1).xlsx — Found 79045 duplicate backlog shipments",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "0a2a54c1",
+    "timestamp": "2026-09-04 18:34:41",
     "email": "admin@spxexpress.com",
     "name": "Admin SOC",
     "role": "Admin",
@@ -30,8 +120,48 @@
     "ip": "127.0.0.1"
   },
   {
-    "id": "6dd41a59",
-    "timestamp": "2026-09-03 23:56:26",
+    "id": "7e7095b3",
+    "timestamp": "2026-09-04 18:12:32",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "SYNC_OB_BL",
+    "details": "Successfully synced OB BL data from https://docs.google.com/spreadsheets/d/e/2PACX-1vRByU-6geOW_SbnQxFA4Y05WJMIkpRbUZMehfpDMTaHiXevL5mSA186BUybW3h8cgb4cWK2vOKuTIK3/pub?output=csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "ec3f3fee",
+    "timestamp": "2026-09-04 18:04:16",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "SYNC_OB_BL",
+    "details": "Successfully synced OB BL data from https://docs.google.com/spreadsheets/d/e/2PACX-1vRByU-6geOW_SbnQxFA4Y05WJMIkpRbUZMehfpDMTaHiXevL5mSA186BUybW3h8cgb4cWK2vOKuTIK3/pub?output=csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "b6f71fa4",
+    "timestamp": "2026-09-04 18:01:16",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "SYNC_OB_BL",
+    "details": "Successfully synced OB BL data from https://docs.google.com/spreadsheets/d/e/2PACX-1vRByU-6geOW_SbnQxFA4Y05WJMIkpRbUZMehfpDMTaHiXevL5mSA186BUybW3h8cgb4cWK2vOKuTIK3/pub?output=csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "fc503f0e",
+    "timestamp": "2026-09-04 17:57:31",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "SYNC_OB_BL",
+    "details": "Successfully synced OB BL data from https://docs.google.com/spreadsheets/d/e/2PACX-1vRByU-6geOW_SbnQxFA4Y05WJMIkpRbUZMehfpDMTaHiXevL5mSA186BUybW3h8cgb4cWK2vOKuTIK3/pub?output=csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "a078f796",
+    "timestamp": "2026-09-04 17:57:27",
     "email": "admin@spxexpress.com",
     "name": "Admin SOC",
     "role": "Admin",
@@ -40,8 +170,8 @@
     "ip": "127.0.0.1"
   },
   {
-    "id": "233e1348",
-    "timestamp": "2026-09-03 23:56:26",
+    "id": "d17db8f6",
+    "timestamp": "2026-09-04 17:57:26",
     "email": "admin@spxexpress.com",
     "name": "Admin SOC",
     "role": "Admin",
@@ -50,8 +180,8 @@
     "ip": "127.0.0.1"
   },
   {
-    "id": "146f36c3",
-    "timestamp": "2026-09-03 23:54:16",
+    "id": "23d06a4a",
+    "timestamp": "2026-09-04 17:54:20",
     "email": "admin@spxexpress.com",
     "name": "Admin SOC",
     "role": "Admin",
@@ -60,93 +190,13 @@
     "ip": "127.0.0.1"
   },
   {
-    "id": "5f295ba2",
-    "timestamp": "2026-09-03 23:07:59",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
-    "role": "Admin",
-    "action": "FILE_DELETE",
-    "details": "🗑️ ลบไฟล์ข้อมูล: SOC-BISOCinvestigateshipment_DownloadTable_31 aug.csv",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "70d4f1cc",
-    "timestamp": "2026-09-03 23:07:46",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
-    "role": "Admin",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "71600f05",
-    "timestamp": "2026-09-03 23:07:39",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
-    "role": "Admin",
-    "action": "LOGIN",
-    "details": "Signed in via Google/Gmail as admin@spxexpress.com (Role: Admin)",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "3933b65b",
-    "timestamp": "2026-09-03 23:07:39",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
-    "role": "Admin",
-    "action": "USER_LOGIN",
-    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "c14f171f",
-    "timestamp": "2026-09-03 23:07:38",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
+    "id": "29b08808",
+    "timestamp": "2026-09-04 17:53:57",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
     "role": "Admin",
     "action": "LOGOUT",
-    "details": "User logged out (admin@spxexpress.com)",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "356d0a80",
-    "timestamp": "2026-09-03 23:07:38",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
-    "role": "Admin",
-    "action": "IDLE_AUTO_LOGOUT",
-    "details": "ผู้ใช้งานกด Logout",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "6615954c",
-    "timestamp": "2026-09-03 23:05:31",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
-    "role": "Admin",
-    "action": "LOGIN",
-    "details": "Signed in via Google/Gmail as admin@spxexpress.com (Role: Admin)",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "51207925",
-    "timestamp": "2026-09-03 23:05:31",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
-    "role": "Admin",
-    "action": "LOGIN",
-    "details": "Signed in via Google/Gmail as admin@spxexpress.com (Role: Admin)",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "fc00fa75",
-    "timestamp": "2026-09-03 23:05:30",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
-    "role": "Admin",
-    "action": "USER_LOGIN",
-    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "details": "User logged out (guy.panmanee@spxexpress.com)",
     "ip": "127.0.0.1"
   }
 ]
