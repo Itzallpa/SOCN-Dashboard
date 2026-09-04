@@ -342,12 +342,11 @@ investigation_html = f"""<!DOCTYPE html>
       const statusEl = document.getElementById('syncStatusMsg');
       if (statusEl) statusEl.innerHTML = '<div class="alert alert-info py-2 small"><i class="fa-solid fa-spinner fa-spin me-2"></i> กำลังเชื่อมต่อและดึงข้อมูลจาก Google Sheet...</div>';
 
-      fetch('/api/sync-google-sheet', {{
+      safeFetchJson('/api/sync-google-sheet', {{
         method: 'POST',
         headers: {{ 'Content-Type': 'application/json' }},
         body: JSON.stringify({{ url: url }})
       }})
-      .then(res => res.json())
       .then(data => {{
         if (data.success) {{
           if (statusEl) statusEl.innerHTML = '<div class="alert alert-success py-2 small">✅ เชื่อมต่อและอัปเดตข้อมูลแดชบอร์ดจาก Google Sheet สำเร็จ!</div>';
@@ -864,8 +863,7 @@ investigation_html = f"""<!DOCTYPE html>
       bodyEl.innerHTML = '<div class="text-center py-3 text-muted">กำลังค้นหาข้อมูลรอบ Cutoff...</div>';
       modalEl.show();
 
-      fetch('/api/cutoff-schedule')
-        .then(res => res.json())
+      safeFetchJson('/api/cutoff-schedule')
         .then(data => {{
           if (data.success && data.data) {{
             const stClean = stationName.split(' - ')[0].trim().toLowerCase();
@@ -1312,8 +1310,7 @@ skip_process_html = f"""<!DOCTYPE html>
       formData.append('file', file);
       formData.append('scope', 'skip');
 
-      fetch('/upload', {{ method: 'POST', body: formData }})
-        .then(res => res.json())
+      safeFetchJson('/upload', {{ method: 'POST', body: formData }})
         .then(data => {{
           if (data.success) {{
             skipDataState = data;
@@ -1513,12 +1510,11 @@ skip_process_html = f"""<!DOCTYPE html>
 
       currentActualVolume = val;
 
-      fetch('/api/volume-history', {{
+      safeFetchJson('/api/volume-history', {{
         method: 'POST',
         headers: {{ 'Content-Type': 'application/json' }},
         body: JSON.stringify({{ date: dateStr, actual: val, setActive: true }})
       }})
-      .then(res => res.json())
       .then(res => {{
         if (res.success) {{
           updateSkipUI(skipDataState || {{}});
@@ -1546,8 +1542,7 @@ skip_process_html = f"""<!DOCTYPE html>
     }}
 
     function loadVolumeHistory() {{
-      fetch('/api/volume-history')
-        .then(res => res.json())
+      safeFetchJson('/api/volume-history')
         .then(data => {{
           if (data.success && data.history) {{
             const tbody = document.getElementById('volumeHistoryTableBody');

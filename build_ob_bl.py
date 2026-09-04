@@ -472,12 +472,11 @@ js_api_helpers = """
     }
 
     function fallbackToServerSync(url) {
-      fetch('/api/sync-google-sheet', {
+      safeFetchJson('/api/sync-google-sheet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url })
       })
-      .then(res => res.json())
       .then(data => {
         const stateEl = document.getElementById('stateMsg');
         const contentEl = document.getElementById('content');

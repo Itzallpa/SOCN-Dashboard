@@ -381,8 +381,7 @@
       formData.append('file', file);
       formData.append('scope', 'skip');
 
-      fetch('/upload', { method: 'POST', body: formData })
-        .then(res => res.json())
+      safeFetchJson('/upload', { method: 'POST', body: formData })
         .then(data => {
           if (data.success) {
             skipDataState = data;
@@ -582,12 +581,11 @@
 
       currentActualVolume = val;
 
-      fetch('/api/volume-history', {
+      safeFetchJson('/api/volume-history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date: dateStr, actual: val, setActive: true })
       })
-      .then(res => res.json())
       .then(res => {
         if (res.success) {
           updateSkipUI(skipDataState || {});
@@ -615,8 +613,7 @@
     }
 
     function loadVolumeHistory() {
-      fetch('/api/volume-history')
-        .then(res => res.json())
+      safeFetchJson('/api/volume-history')
         .then(data => {
           if (data.success && data.history) {
             const tbody = document.getElementById('volumeHistoryTableBody');

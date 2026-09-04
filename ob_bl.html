@@ -1019,12 +1019,11 @@
         cancelButtonText: 'ยกเลิก'
       }).then(result => {
         if (result.isConfirmed) {
-          fetch('/api/delete-file', {
+          safeFetchJson('/api/delete-file', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ filename: filename })
           })
-            .then(res => res.json())
             .then(data => {
               if (data.success) {
                 Swal.fire({ icon: 'success', title: 'ลบไฟล์เรียบร้อย!', timer: 1500, showConfirmButton: false });
@@ -1053,11 +1052,10 @@
         didOpen: () => { Swal.showLoading(); }
       });
 
-      fetch('/api/upload', {
+      safeFetchJson('/api/upload', {
         method: 'POST',
         body: formData
       })
-        .then(res => res.json())
         .then(data => {
           if (data.success) {
             Swal.fire({ icon: 'success', title: 'อัปโหลดสำเร็จ!', timer: 1500, showConfirmButton: false });
@@ -1128,6 +1126,64 @@
       return u;
     }
 
+    function syncObBlViaBrowserCsv(url) {
+      const directCsvUrl = convertToDirectCsvUrl(url || DEFAULT_OB_BL_SHEET_URL);
+
+      Swal.fire({
+        title: 'กำลังดึงข้อมูลสดผ่าน Browser...',
+        text: 'กำลังดึงข้อมูล Google Sheet เข้าสู่ระบบ Dashboard โดยตรง',
+        allowOutsideClick: false,
+        background: '#0d1b2a',
+        color: '#ffffff',
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      Papa.parse(directCsvUrl, {
+        download: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          if (!results || !results.data || results.data.length < 2) {
+            Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูล', text: 'ไม่สามารถอ่านแถวข้อมูลจาก Google Sheet ได้', background: '#0d1b2a', color: '#ffffff' });
+            return;
+          }
+          const rows = results.data;
+          const firstCell = String(rows[0][0] || '');
+          if (firstCell.includes('<') || firstCell.toLowerCase().includes('sign in')) {
+            Swal.fire({
+              icon: 'warning',
+              title: '⚠️ ต้องเปิดสิทธิ์ Google Sheet',
+              html: 'URL นี้ติดสิทธิ์ล็อกอินของ Google<br><br>กรุณาไปที่ Google Sheet > <b>ไฟล์</b> > <b>แชร์</b> > <b>เผยแพร่ไปยังเว็บ (Publish to web)</b> แล้วเลือกแท็บเป็น CSV กดเผยแพร่ครับ',
+              background: '#0d1b2a',
+              color: '#ffffff'
+            });
+            return;
+          }
+          const headers = rows[0];
+          const dataRows = rows.slice(1);
+          onData({ headers: headers, rows: dataRows, success: true });
+          fetchFileList();
+          Swal.fire({
+            icon: 'success',
+            title: 'Sync สำเร็จ! 🚀',
+            text: `ดึงข้อมูลสดสำเร็จ ${dataRows.length.toLocaleString()} รายการ (Direct Browser Sync)`,
+            timer: 2000,
+            showConfirmButton: false,
+            background: '#0d1b2a',
+            color: '#ffffff'
+          });
+        },
+        error: function(err) {
+          Swal.fire({
+            icon: 'error',
+            title: '❌ ไม่สามารถดึงข้อมูลได้',
+            text: 'เกิดข้อผิดพลาดในการเชื่อมต่อ Google Sheet กรุณาตรวจสอบสิทธิ์ของลิงก์',
+            background: '#0d1b2a',
+            color: '#ffffff'
+          });
+        }
+      });
+    }
+
     function syncGoogleSheetUrl(url) {
       const targetUrl = url || DEFAULT_OB_BL_SHEET_URL;
       localStorage.setItem('socn_google_sheet_url', targetUrl);
@@ -1145,9 +1201,9 @@
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-      fetch('/api/sync-ob-bl?url=' + encodeURIComponent(targetUrl), { signal: controller.signal })
-        .then(res => { clearTimeout(timeoutId); return res.json(); })
+      safeFetchJson('/api/sync-ob-bl?url=' + encodeURIComponent(targetUrl), { signal: controller.signal })
         .then(data => {
+          clearTimeout(timeoutId);
           if (data && data.success) {
             onData(data);
             fetchFileList();
@@ -1162,23 +1218,14 @@
               color: '#ffffff'
             });
           } else {
-            const formattedErr = (data.error || 'ไม่สามารถดึงข้อมูลจาก URL ที่ระบุได้').replace(/\n/g, '<br>');
-            Swal.fire({
-              icon: 'warning',
-              title: '⚠️ ไม่สามารถซิงค์ข้อมูลได้',
-              html: `<div style="text-align:left; font-size:0.88rem; line-height:1.5;">${formattedErr}</div>`,
-              confirmButtonColor: '#2563eb',
-              background: '#0d1b2a',
-              color: '#ffffff'
-            });
+            console.warn('Backend sync returned error, falling back to browser CSV parse:', data ? data.error : 'No data');
+            syncObBlViaBrowserCsv(targetUrl);
           }
         })
         .catch(err => {
           clearTimeout(timeoutId);
-          const msg = err.name === 'AbortError'
-            ? 'Timeout: ใช้เวลานานเกินไปในการดึงข้อมูล (เกิน 60 วินาที) กรุณาลองใหม่อีกครั้ง'
-            : err.message;
-          Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: msg, background: '#0d1b2a', color: '#ffffff' });
+          console.warn('Backend sync failed, falling back to browser CSV parse:', err);
+          syncObBlViaBrowserCsv(targetUrl);
         });
     }
 

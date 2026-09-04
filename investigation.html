@@ -328,12 +328,11 @@
       const statusEl = document.getElementById('syncStatusMsg');
       if (statusEl) statusEl.innerHTML = '<div class="alert alert-info py-2 small"><i class="fa-solid fa-spinner fa-spin me-2"></i> กำลังเชื่อมต่อและดึงข้อมูลจาก Google Sheet...</div>';
 
-      fetch('/api/sync-google-sheet', {
+      safeFetchJson('/api/sync-google-sheet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url })
       })
-      .then(res => res.json())
       .then(data => {
         if (data.success) {
           if (statusEl) statusEl.innerHTML = '<div class="alert alert-success py-2 small">✅ เชื่อมต่อและอัปเดตข้อมูลแดชบอร์ดจาก Google Sheet สำเร็จ!</div>';
@@ -343,7 +342,7 @@
             if (modalEl) modalEl.hide();
           }, 1200);
         } else {
-          if (statusEl) statusEl.innerHTML = `<div class="alert alert-danger py-2 small">เกิดข้อผิดพลาด: ${data.error}</div>`;
+          if (statusEl) statusEl.innerHTML = `<div class="alert alert-danger py-2 small">เกิดข้อผิดพลาด: ${data.error || 'ไม่สามารถดึงข้อมูลได้'}</div>`;
         }
       })
       .catch(err => {
@@ -850,8 +849,7 @@
       bodyEl.innerHTML = '<div class="text-center py-3 text-muted">กำลังค้นหาข้อมูลรอบ Cutoff...</div>';
       modalEl.show();
 
-      fetch('/api/cutoff-schedule')
-        .then(res => res.json())
+      safeFetchJson('/api/cutoff-schedule')
         .then(data => {
           if (data.success && data.data) {
             const stClean = stationName.split(' - ')[0].trim().toLowerCase();

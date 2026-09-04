@@ -216,9 +216,28 @@
       fetchTTBData();
     });
 
+    function safeFetchJson(url, options) {
+      return fetch(url, options).then(res => {
+        return res.text().then(text => {
+          let json = null;
+          try {
+            if (text && text.trim()) json = JSON.parse(text);
+          } catch (e) {}
+
+          if (!res.ok) {
+            const errDetail = json && json.error ? json.error : `เซิร์ฟเวอร์ตอบกลับ Error Status ${res.status}`;
+            throw new Error(errDetail);
+          }
+          if (!json) {
+            throw new Error('ไม่สามารถอ่านข้อมูลจากเซิร์ฟเวอร์ได้');
+          }
+          return json;
+        });
+      });
+    }
+
     function fetchCutoffData() {
-      fetch('/api/cutoff-schedule')
-        .then(res => res.json())
+      safeFetchJson('/api/cutoff-schedule')
         .then(data => {
           if (data.success && data.data) {
             globalCutoffData = data.data;
@@ -285,8 +304,7 @@
     }
 
     function fetchTTBData() {
-      fetch('/api/ttb-schedule')
-        .then(res => res.json())
+      safeFetchJson('/api/ttb-schedule')
         .then(data => {
           if (data.success && data.sheets) {
             globalTTBData = data.sheets;

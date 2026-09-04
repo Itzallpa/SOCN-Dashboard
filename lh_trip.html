@@ -338,6 +338,26 @@
       syncAppsScriptDataToDashboard(EMBEDDED_PERSONAL_SHEET_URL);
     }
 
+    function safeFetchJson(url, options) {
+      return fetch(url, options).then(res => {
+        return res.text().then(text => {
+          let json = null;
+          try {
+            if (text && text.trim()) json = JSON.parse(text);
+          } catch (e) { }
+
+          if (!res.ok) {
+            const errDetail = json && json.error ? json.error : `เซิร์ฟเวอร์ตอบกลับ Error Status ${res.status}`;
+            throw new Error(errDetail);
+          }
+          if (!json) {
+            throw new Error('ไม่สามารถอ่านข้อมูลจากเซิร์ฟเวอร์ได้ (Response ว่างเปล่าหรือเกิด Timeout)');
+          }
+          return json;
+        });
+      });
+    }
+
     function syncAppsScriptDataToDashboard(url) {
       const targetUrl = url || EMBEDDED_PERSONAL_SHEET_URL;
 
@@ -351,9 +371,9 @@
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-      fetch('/api/sync-google-sheet?url=' + encodeURIComponent(targetUrl), { signal: controller.signal })
-        .then(res => { clearTimeout(timeoutId); return res.json(); })
+      safeFetchJson('/api/sync-google-sheet?url=' + encodeURIComponent(targetUrl), { signal: controller.signal })
         .then(data => {
+          clearTimeout(timeoutId);
           if (data && data.success) {
             latestSyncedData = data;
             if (data.rows && data.rows.length > 0) {
@@ -370,20 +390,14 @@
               showConfirmButton: false
             });
           } else {
-            Swal.fire({
-              icon: 'error',
-              title: 'ไม่สามารถซิงค์ข้อมูลได้',
-              text: data.error || 'เกิดข้อผิดพลาดในการดึงข้อมูลจาก Google Sheet',
-              confirmButtonText: 'ตกลง'
-            });
+            console.warn('Backend sync returned error, falling back to browser CSV parse:', data ? data.error : 'No data');
+            syncLhTripViaBrowserCsv(targetUrl);
           }
         })
         .catch(err => {
           clearTimeout(timeoutId);
-          const msg = err.name === 'AbortError'
-            ? 'Timeout: ใช้เวลานานเกินไปในการดึงข้อมูล (เกิน 60 วินาที) กรุณาลองใหม่อีกครั้ง'
-            : err.message;
-          Swal.fire('เกิดข้อผิดพลาด', msg, 'error');
+          console.warn('Backend sync failed, falling back to browser CSV parse:', err);
+          syncLhTripViaBrowserCsv(targetUrl);
         });
     }
 

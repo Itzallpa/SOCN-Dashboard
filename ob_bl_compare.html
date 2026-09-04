@@ -582,9 +582,28 @@
       fetchCompareFileList();
     });
 
+    function safeFetchJson(url, options) {
+      return fetch(url, options).then(res => {
+        return res.text().then(text => {
+          let json = null;
+          try {
+            if (text && text.trim()) json = JSON.parse(text);
+          } catch (e) {}
+
+          if (!res.ok) {
+            const errDetail = json && json.error ? json.error : `เซิร์ฟเวอร์ตอบกลับ Error Status ${res.status}`;
+            throw new Error(errDetail);
+          }
+          if (!json) {
+            throw new Error('ไม่สามารถอ่านข้อมูลจากเซิร์ฟเวอร์ได้');
+          }
+          return json;
+        });
+      });
+    }
+
     function fetchCompareFileList() {
-      fetch('/api/list-compare-files')
-        .then(res => res.json())
+      safeFetchJson('/api/list-compare-files')
         .then(data => {
           const select1 = document.getElementById('file1Select');
           const select2 = document.getElementById('file2Select');
@@ -630,11 +649,10 @@
         didOpen: () => { Swal.showLoading(); }
       });
 
-      fetch('/api/upload-compare-file', {
+      safeFetchJson('/api/upload-compare-file', {
         method: 'POST',
         body: formData
       })
-        .then(res => res.json())
         .then(data => {
           if (data.success) {
             Swal.fire({
@@ -665,12 +683,11 @@
 
       document.getElementById('stateMsg').style.display = 'block';
 
-      fetch('/api/compare-ob-bl', {
+      safeFetchJson('/api/compare-ob-bl', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename1: file1, filename2: file2 })
       })
-        .then(res => res.json())
         .then(data => {
           document.getElementById('stateMsg').style.display = 'none';
 
