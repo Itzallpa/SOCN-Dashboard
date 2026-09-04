@@ -402,20 +402,43 @@
     }
 
     // ดึงข้อมูลผ่าน browser (cookie Shopee Mobile) แปลงเป็นข้อมูล LH Trip
+    function convertToDirectCsvUrl(url) {
+      if (!url) return '';
+      let u = url.trim();
+      const gidMatch = u.match(/gid=([0-9]+)/);
+      const gidParam = gidMatch ? `&gid=${gidMatch[1]}` : '';
+
+      if (u.includes('/pubhtml')) {
+        let base = u.replace('/pubhtml', '/pub?output=csv');
+        if (gidMatch && !base.includes('gid=')) {
+          base += `&gid=${gidMatch[1]}`;
+        }
+        return base;
+      }
+      if (u.includes('docs.google.com/spreadsheets')) {
+        if (u.includes('gviz/tq') || u.includes('output=csv') || u.includes('export?format=csv')) {
+          return u;
+        }
+        const match = u.match(/\/d\/e\/([a-zA-Z0-9-_]+)/) || u.match(/\/d\/([a-zA-Z0-9-_]+)/);
+        if (match) {
+          return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv${gidParam}`;
+        }
+      }
+      return u;
+    }
+
     function syncLhTripViaBrowserCsv(url) {
-      let csvUrl = url.includes('pubhtml') ? url.replace('pubhtml', 'pub?output=csv') : url;
-      if (!csvUrl.includes('output=csv')) csvUrl += (csvUrl.includes('?') ? '&' : '?') + 'output=csv';
+      const csvUrl = convertToDirectCsvUrl(url || EMBEDDED_PERSONAL_SHEET_URL);
 
       Swal.fire({
-        title: 'กำลังดึงข้อมูลสด...',
-        text: 'ดึงผ่านสิทธิ์ Shopee Mobile ของ browser คุณ',
+        title: 'กำลังดึงข้อมูลสดผ่าน Browser...',
+        text: 'กำลังดึงข้อมูล Google Sheet เข้าสู่ Dashboard โดยตรง',
         allowOutsideClick: false,
         didOpen: () => Swal.showLoading()
       });
 
       Papa.parse(csvUrl, {
         download: true,
-        withCredentials: true,
         skipEmptyLines: true,
         complete: function(results) {
           if (!results || !results.data || results.data.length < 2) {
@@ -434,7 +457,7 @@
           Swal.fire({ icon: 'success', title: '✅ Sync สำเร็จ!', text: `ดึง ${dataRows.length.toLocaleString()} แถวสำเร็จ`, timer: 2000 });
         },
         error: function() {
-          Swal.fire('❌ ไม่สามารถดึงข้อมูล', 'Browser ไม่สามารถดึง CSV จาก URL นี้ — ตรวจ Login Google ใน Browser', 'error');
+          Swal.fire('❌ ไม่สามารถดึงข้อมูล', 'Browser ไม่สามารถดึง CSV จาก URL นี้ — กรุณาตรวจสอบสิทธิ์ของลิงก์ Google Sheet', 'error');
         }
       });
     }
