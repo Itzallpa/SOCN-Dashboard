@@ -586,7 +586,42 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       fetchCompareFileList();
+      loadCachedCompareData();
     });
+
+    function safeSetLocalStorage(key, data) {
+      if (!key || !data) return;
+      try {
+        localStorage.setItem(key, JSON.stringify(data));
+      } catch (e) {
+        try {
+          if (data && data.duplicates && data.duplicates.length > 2000) {
+            const trimmed = { ...data, duplicates: data.duplicates.slice(0, 2000) };
+            localStorage.setItem(key, JSON.stringify(trimmed));
+          }
+        } catch (err) {}
+      }
+    }
+
+    function loadCachedCompareData() {
+      try {
+        const raw = localStorage.getItem('socn_ob_bl_compare_data');
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data && data.success) {
+            compareResults = data;
+            filteredDuplicates = data.duplicates || [];
+            document.getElementById('stateMsg').style.display = 'none';
+            renderKpis(data);
+            renderBreakdowns(data);
+            populateFilters(data);
+            renderDatatable(filteredDuplicates);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load cached OB Backlog compare data:', e);
+      }
+    }
 
     function safeFetchJson(url, options) {
       return fetch(url, options)
@@ -847,10 +882,10 @@
             duplicatesList.push({
               shipment_id: sId,
               action_flag: af,
-              timestamp1: item1.latest_status_timestamp || '-',
-              timestamp2: item2.latest_status_timestamp || '-',
+              station: st,
+              file1_timestamp: item1.latest_status_timestamp || '-',
+              file2_timestamp: item2.latest_status_timestamp || '-',
               day_in_soc: item2.day_in_soc || item1.day_in_soc || '-',
-              station_name: st,
               operator: item2.latest_operator_name || item1.latest_operator_name || '-'
             });
           }
@@ -869,6 +904,7 @@
         document.getElementById('stateMsg').style.display = 'none';
         compareResults = compareData;
         filteredDuplicates = duplicatesList;
+        safeSetLocalStorage('socn_ob_bl_compare_data', compareData);
 
         renderKpis(compareData);
         renderBreakdowns(compareData);
@@ -931,6 +967,7 @@
           if (data.success) {
             compareResults = data;
             filteredDuplicates = data.duplicates || [];
+            safeSetLocalStorage('socn_ob_bl_compare_data', data);
 
             renderKpis(data);
             renderBreakdowns(data);
