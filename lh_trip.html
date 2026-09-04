@@ -88,45 +88,45 @@
         </div>
         <!-- View Switcher Tabs -->
         <div class="btn-group btn-group-sm bg-light p-1 rounded-3 border">
-          <button class="btn btn-primary nav-toggle-btn px-3" id="tabLiveBtn" onclick="switchView('live')"><i class="fa-solid fa-bolt me-1 text-warning"></i> Live Apps Script (1,257 เที่ยว)</button>
-          <button class="btn btn-outline-secondary nav-toggle-btn px-3" id="tabDashboardBtn" onclick="switchView('dashboard')"><i class="fa-solid fa-chart-pie me-1"></i> Offline Dashboard</button>
+          <button class="btn btn-primary nav-toggle-btn px-3" id="tabDashboardBtn" onclick="switchView('dashboard')"><i class="fa-solid fa-chart-pie me-1"></i> SOC Portal Dashboard</button>
           <button class="btn btn-outline-secondary nav-toggle-btn px-3" id="tabTableBtn" onclick="switchView('table')"><i class="fa-solid fa-table me-1"></i> Raw Data Table</button>
+          <button class="btn btn-outline-secondary nav-toggle-btn px-3" id="tabLiveBtn" onclick="switchView('live')"><i class="fa-solid fa-bolt me-1 text-warning"></i> Frame View</button>
         </div>
       </div>
 
       <div class="d-flex align-items-center gap-2 flex-wrap">
-        <button class="btn btn-outline-danger btn-sm fw-bold" onclick="openAllLateModal()"><i class="fa-solid fa-eye me-1"></i> 👁️ ดู Raw Data ล่าช้าทั้งหมด (336)</button>
-        <button class="btn btn-success btn-sm fw-bold" onclick="exportExcelWithCharts()"><i class="fa-solid fa-file-excel me-1"></i> 📊 Export Excel (Top 50)</button>
-        <button class="btn btn-primary btn-sm fw-bold" onclick="exportDashboardSummaryCSV()"><i class="fa-solid fa-file-csv me-1"></i> 📄 Export Summary CSV (Top 50)</button>
-        <button class="btn btn-dark btn-sm fw-bold" onclick="exportFullRawDataCSV()"><i class="fa-solid fa-download me-1"></i> 📥 Export Raw Data CSV</button>
+        <button class="btn btn-danger btn-sm fw-bold" onclick="openAppsScriptSyncModal()"><i class="fa-solid fa-link me-1"></i> 🔗 Sync Apps Script URL</button>
+        <button class="btn btn-outline-danger btn-sm fw-bold" onclick="openAllLateModal()"><i class="fa-solid fa-eye me-1"></i> 👁️ ดู Raw Data ล่าช้า</button>
+        <button class="btn btn-success btn-sm fw-bold" onclick="exportExcelWithCharts()"><i class="fa-solid fa-file-excel me-1"></i> 📊 Export Excel</button>
+        <button class="btn btn-dark btn-sm fw-bold" onclick="exportFullRawDataCSV()"><i class="fa-solid fa-download me-1"></i> 📥 Export Raw CSV</button>
       </div>
     </div>
 
     <div id="lhStatusMsg" class="mb-3"></div>
 
     <!-- SECTION 0: LIVE APPS SCRIPT WEB APP VIEW -->
-    <div id="viewLiveSection" style="display: block;">
+    <div id="viewLiveSection" style="display: none;">
       <div class="card-custom mb-3 p-3" style="background:#ffffff; border-radius:12px; border-left: 5px solid #ee4d2d;">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
           <div>
-            <h5 class="fw-bold m-0 text-slate-800"><i class="fa-solid fa-bolt text-danger me-2"></i> Live Apps Script Web App (เชื่อมต่อสิทธิ์องค์กร Live)</h5>
-            <small class="text-muted">ดึงข้อมูลสด 1,257 เที่ยวตรงจาก Google Apps Script ของคุณโดยอัตโนมัติ</small>
+            <h5 class="fw-bold m-0 text-slate-800"><i class="fa-solid fa-bolt text-danger me-2"></i> Live Apps Script Web App</h5>
+            <small class="text-muted">ดึงข้อมูลสดตรงจาก Google Apps Script ของคุณ</small>
           </div>
           <div class="d-flex gap-2 align-items-center flex-wrap">
-            <input type="text" id="liveAppsScriptUrlInput" class="form-control form-control-sm" style="width:340px;" value="https://script.google.com/a/spxexpress.com/macros/s/AKfycbyuFsbFvnJ_ZDJLZN-rFYVuj0nQR8xf1KQkS8eYNrw/dev?page=dashboard" placeholder="วาง URL Apps Script...">
+            <input type="text" id="liveAppsScriptUrlInput" class="form-control form-control-sm" style="width:340px;" value="https://script.google.com/a/macros/spxexpress.com/s/AKfycbx1_SFi7AuGcn3gVxK2YNedOOjjYHkamElRGgFhqXHtLaQ4LGf79ITaR5aaGUE8egk/exec" placeholder="วาง URL Apps Script...">
             <button class="btn btn-primary btn-sm fw-bold" onclick="updateLiveUrlFromInput()"><i class="fa-solid fa-play me-1"></i> โหลด URL</button>
-            <a id="openNewTabLink" href="https://script.google.com/a/spxexpress.com/macros/s/AKfycbyuFsbFvnJ_ZDJLZN-rFYVuj0nQR8xf1KQkS8eYNrw/dev?page=dashboard" target="_blank" class="btn btn-outline-danger btn-sm fw-bold"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i> เปิดในแท็บใหม่</a>
+            <a id="openNewTabLink" href="https://script.google.com/a/macros/spxexpress.com/s/AKfycbx1_SFi7AuGcn3gVxK2YNedOOjjYHkamElRGgFhqXHtLaQ4LGf79ITaR5aaGUE8egk/exec" target="_blank" class="btn btn-outline-danger btn-sm fw-bold"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i> เปิดในแท็บใหม่</a>
             <button class="btn btn-danger btn-sm fw-bold" onclick="reloadLiveFrame()"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
           </div>
         </div>
         <div style="border-radius:10px; overflow:hidden; border: 1px solid #e2e8f0; background: #ffffff; box-shadow: 0 4px 14px rgba(0,0,0,0.06);">
-          <iframe id="liveAppsScriptFrame" src="https://script.google.com/a/spxexpress.com/macros/s/AKfycbyuFsbFvnJ_ZDJLZN-rFYVuj0nQR8xf1KQkS8eYNrw/dev?page=dashboard" style="width:100%; height:880px; border:none;" allow="autoplay; encrypted-media"></iframe>
+          <iframe id="liveAppsScriptFrame" src="https://script.google.com/a/macros/spxexpress.com/s/AKfycbx1_SFi7AuGcn3gVxK2YNedOOjjYHkamElRGgFhqXHtLaQ4LGf79ITaR5aaGUE8egk/exec" style="width:100%; height:880px; border:none;" allow="autoplay; encrypted-media"></iframe>
         </div>
       </div>
     </div>
 
     <!-- SECTION 1: DASHBOARD VIEW -->
-    <div id="viewDashboardSection" style="display: none;">
+    <div id="viewDashboardSection" style="display: block;">
       <!-- 4 KPI Summary Cards -->
       <div class="row g-3 mb-3">
         <div class="col-md-3" style="cursor:pointer;" onclick="openAllTripsModal()">
