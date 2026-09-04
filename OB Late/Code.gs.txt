@@ -50,6 +50,15 @@ const OBBL_CACHE_TTL_SECONDS = 1500;
  */
 function doGet(e) {
   const page = (e && e.parameter && e.parameter.page) || 'table';
+  const format = (e && e.parameter && e.parameter.format) || (e && e.parameter && e.parameter.raw ? 'json' : '');
+
+  // ⚡ Return raw JSON data for native dashboard API sync
+  if (format === 'json' || page === 'json' || page === 'api') {
+    const data = getTableData(false);
+    return ContentService.createTextOutput(JSON.stringify(data))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   const templateFile =
     page === 'dashboard' ? 'Dashboard' :
     page === 'upload' ? 'Upload' :
