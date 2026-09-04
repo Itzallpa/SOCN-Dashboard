@@ -479,6 +479,11 @@ js_api_helpers = """
       })
       .then(res => res.json())
       .then(data => {
+        const stateEl = document.getElementById('stateMsg');
+        const contentEl = document.getElementById('content');
+        if (stateEl) stateEl.style.display = 'none';
+        if (contentEl) contentEl.style.display = 'block';
+
         if (data.success) {
           Swal.fire({ icon: 'success', title: 'เชื่อมต่อข้อมูลสำเร็จ!', timer: 2000, showConfirmButton: false, background: '#0d1b2a', color: '#ffffff' });
           if (data.headers && data.rows) {
@@ -499,7 +504,13 @@ js_api_helpers = """
           });
         }
       })
-      .catch(err => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message, background: '#0d1b2a', color: '#ffffff' }));
+      .catch(err => {
+        const stateEl = document.getElementById('stateMsg');
+        const contentEl = document.getElementById('content');
+        if (stateEl) stateEl.style.display = 'none';
+        if (contentEl) contentEl.style.display = 'block';
+        Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message, background: '#0d1b2a', color: '#ffffff' });
+      });
     }
 
     function fetchObBlData(filename, force) {
@@ -550,12 +561,7 @@ source_content = re.sub(orig_load_pattern, js_api_helpers, source_content, flags
 onload_script = """
     window.addEventListener('DOMContentLoaded', () => {
       fetchFileList();
-      const savedGsUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || DEFAULT_OB_BL_SHEET_URL;
-      if (savedGsUrl) {
-        syncGoogleSheetUrl(savedGsUrl);
-      } else {
-        load();
-      }
+      load();
     });
 """
 source_content = source_content.replace("</script>", onload_script + "\n  </script>")

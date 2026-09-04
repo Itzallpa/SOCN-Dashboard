@@ -231,24 +231,14 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11">
     window.addEventListener('DOMContentLoaded', () => {
       fetchFileList();
-      const savedGsUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || DEFAULT_OB_BL_SHEET_URL;
-      if (savedGsUrl) {
-        syncGoogleSheetUrl(savedGsUrl);
-      } else {
-        load();
-      }
+      load();
     });
 
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js">
     window.addEventListener('DOMContentLoaded', () => {
       fetchFileList();
-      const savedGsUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || DEFAULT_OB_BL_SHEET_URL;
-      if (savedGsUrl) {
-        syncGoogleSheetUrl(savedGsUrl);
-      } else {
-        load();
-      }
+      load();
     });
 
   </script>
@@ -273,12 +263,7 @@
   <script src="auth_guard.js">
     window.addEventListener('DOMContentLoaded', () => {
       fetchFileList();
-      const savedGsUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || DEFAULT_OB_BL_SHEET_URL;
-      if (savedGsUrl) {
-        syncGoogleSheetUrl(savedGsUrl);
-      } else {
-        load();
-      }
+      load();
     });
 
   </script>
@@ -904,6 +889,11 @@
       })
       .then(res => res.json())
       .then(data => {
+        const stateEl = document.getElementById('stateMsg');
+        const contentEl = document.getElementById('content');
+        if (stateEl) stateEl.style.display = 'none';
+        if (contentEl) contentEl.style.display = 'block';
+
         if (data.success) {
           Swal.fire({ icon: 'success', title: 'เชื่อมต่อข้อมูลสำเร็จ!', timer: 2000, showConfirmButton: false, background: '#0d1b2a', color: '#ffffff' });
           if (data.headers && data.rows) {
@@ -925,7 +915,13 @@
           });
         }
       })
-      .catch(err => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message, background: '#0d1b2a', color: '#ffffff' }));
+      .catch(err => {
+        const stateEl = document.getElementById('stateMsg');
+        const contentEl = document.getElementById('content');
+        if (stateEl) stateEl.style.display = 'none';
+        if (contentEl) contentEl.style.display = 'block';
+        Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message, background: '#0d1b2a', color: '#ffffff' });
+      });
     }
 
     function fetchObBlData(filename, force) {
@@ -1456,12 +1452,7 @@
   
     window.addEventListener('DOMContentLoaded', () => {
       fetchFileList();
-      const savedGsUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || DEFAULT_OB_BL_SHEET_URL;
-      if (savedGsUrl) {
-        syncGoogleSheetUrl(savedGsUrl);
-      } else {
-        load();
-      }
+      load();
     });
 
   </script>
