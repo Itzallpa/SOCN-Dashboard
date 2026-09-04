@@ -231,14 +231,24 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11">
     window.addEventListener('DOMContentLoaded', () => {
       fetchFileList();
-      load();
+      const savedGsUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || DEFAULT_OB_BL_SHEET_URL;
+      if (savedGsUrl) {
+        syncGoogleSheetUrl(savedGsUrl);
+      } else {
+        load();
+      }
     });
 
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js">
     window.addEventListener('DOMContentLoaded', () => {
       fetchFileList();
-      load();
+      const savedGsUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || DEFAULT_OB_BL_SHEET_URL;
+      if (savedGsUrl) {
+        syncGoogleSheetUrl(savedGsUrl);
+      } else {
+        load();
+      }
     });
 
   </script>
@@ -263,7 +273,12 @@
   <script src="auth_guard.js">
     window.addEventListener('DOMContentLoaded', () => {
       fetchFileList();
-      load();
+      const savedGsUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || DEFAULT_OB_BL_SHEET_URL;
+      if (savedGsUrl) {
+        syncGoogleSheetUrl(savedGsUrl);
+      } else {
+        load();
+      }
     });
 
   </script>
@@ -452,33 +467,32 @@
     // (case/whitespace-insensitive match). Returns '' if it doesn't match any
     // known OB action at all, so callers can tell "not an OB action" apart
     // from "matched but weirdly formatted".
-    
     function normalizeActionFlag(v) {
       const raw = (v === null || v === undefined) ? '' : String(v).trim();
       const key = raw.toLowerCase();
-      if (Object.prototype.hasOwnProperty.call(OB_ACTIONS_LOOKUP, key)) {
-        return OB_ACTIONS_LOOKUP[key];
-      }
-      if (key.includes('packed') && !key.includes('linehual') && !key.includes('linehaul')) {
-        return '_02_pending_packed';
-      }
-      if (key.includes('linehual') || key.includes('linehaul')) {
-        return '_03_pending_linehual_packed';
-      }
-      if (key.includes('rework') || key.includes('reworked')) {
-        return '_04_pending_reworked';
-      }
-      if (key.includes('02')) return '_02_pending_packed';
-      if (key.includes('03')) return '_03_pending_linehual_packed';
-      if (key.includes('04')) return '_04_pending_reworked';
-      return raw;
+      return Object.prototype.hasOwnProperty.call(OB_ACTIONS_LOOKUP, key) ? OB_ACTIONS_LOOKUP[key] : raw;
     }
 
     function normalizeOperator(v) {
       return (v === null || v === undefined ? '' : String(v)).trim().toLowerCase();
     }
 
-    // Skip Monitor Team / Zone Matching Logic
+    // Google Sheets can return a date/time as its numeric day serial when the
+    // source cell has General formatting. Convert that serial as a wall-clock
+    // value (no UTC/local timezone shift) for display and hour bucketing.
+    function normalizeSheetTimestamp(v) {
+      if (typeof v === 'number' && isFinite(v)) {
+        const ms = Math.round((v - 25569) * 86400000);
+        const d = new Date(ms);
+        const pad = n => String(n).padStart(2, '0');
+        return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' +
+          pad(d.getUTCDate()) + ' ' + pad(d.getUTCHours()) + ':' +
+          pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds());
+      }
+      return v === null || v === undefined ? '' : String(v);
+    }
+
+    
     function lookupTeam(v) {
       if (!v) return '(blank)';
       const norm = normalizeOperator(v);
@@ -494,7 +508,10 @@
       return String(v).trim() || 'Unknown';
     }
 
-    // Extract Hour of Day for OB BL Matrix
+
+    // Pulls the hour-of-day out of latest_status_timestamp. Code.gs returns
+    // this field as a UTC ISO string so the buckets match the board/Excel
+    // pivot (other fields are still returned as display values).
     function extractHour(ts) {
       if (typeof ts === 'number' && isFinite(ts)) {
         return Math.floor((((ts % 1) + 1) % 1) * 24) % 24;
@@ -519,7 +536,13 @@
       return (h >= 0 && h <= 23) ? h : null;
     }
 
-    // Skip Monitor & OB BL Filter Logic
+    // OB BL rule: action_flag in OB_ACTIONS + route_type FWD +
+    // intentional_backlog_type "backlog" + day_in_soc < 1.
+    // (IB BL, on the Inbound side, instead uses action_flag
+    // "_01_pending_inbound_fwd" + a Before/After cutoff check on the
+    // timestamp column, and does NOT check intentional_backlog_type
+    // or day_in_soc — keep these two rule sets separate.)
+    
     function isOBBL(rec) {
       const af = normalizeActionFlag(rec.action_flag);
       if (af && OB_ACTIONS.indexOf(af) === -1) {
@@ -543,8 +566,14 @@
 
       // Check day_in_soc (If empty, DO NOT REJECT!)
       if (rec.day_in_soc !== undefined && rec.day_in_soc !== null && String(rec.day_in_soc).trim() !== '') {
-        const val = parseFloat(rec.day_in_soc);
-        if (!isNaN(val) && val > 1) return false;
+        const str = String(rec.day_in_soc).trim().toLowerCase();
+        if (str.includes('< 1') || str.includes('under 1') || str.includes('<1')) {
+          // Pass under 1 day
+        } else {
+          const val = parseFloat(str);
+          if (!isNaN(val) && val >= 1) return false;
+          if (str.includes('2 day') || str.includes('3 day') || str.includes('4 day')) return false;
+        }
       }
 
       return true;
@@ -720,15 +749,15 @@
       .catch(err => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message }));
     }
 
-    const DEFAULT_OB_BL_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1XHfU83vjja5wINCC0AeNsTJTAlRCp9WdnQa0Rf9VR1U/edit?gid=1875191002#gid=1875191002';
+    const DEFAULT_OB_BL_SHEET_URL = 'https://script.google.com/a/spxexpress.com/macros/s/AKfycbyluFSbFvnJ_ZDJLZN-rFYVujOnQRIlxf1KQKlS9eYNrw/exec';
 
     function openGoogleSheetModal() {
       const savedUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || DEFAULT_OB_BL_SHEET_URL;
       Swal.fire({
-        title: '🔗 ดึงข้อมูลสดจาก Google Sheet / Board Auto Sync',
+        title: '🔗 ดึงข้อมูลสดจาก Apps Script / Google Sheet',
         html: `
-          <p class="text-start small text-muted mb-2">กรอก URL ของ Google Sheet (Board Auto Sync) หรือ Google Apps Script Web App ที่มีข้อมูล OB BL:</p>
-          <input id="swal-gs-url" class="swal2-input" placeholder="https://docs.google.com/spreadsheets/d/... หรือ Apps Script URL" value="${savedUrl}">
+          <p class="text-start small text-muted mb-2">กรอก URL ของ Google Apps Script Web App หรือ Google Sheet URL ที่มีข้อมูล OB BL:</p>
+          <input id="swal-gs-url" class="swal2-input" placeholder="https://script.google.com/macros/s/.../exec หรือ Google Sheet URL" value="${savedUrl}">
         `,
         showCancelButton: true,
         confirmButtonText: '⚡ ดึงข้อมูลสดทันที',
@@ -781,11 +810,41 @@
       localStorage.setItem('socn_google_sheet_obbl_url', url);
 
       Swal.fire({
-        title: 'กำลังเชื่อมต่อและดึงข้อมูล...',
-        text: 'กรุณารอสักครู่ ระบบกำลังดึงข้อมูลผ่านสิทธิ์ Shopee Mobile ในเบราว์เซอร์',
+        title: 'กำลังเชื่อมต่อและดึงข้อมูลสด...',
+        text: 'กรุณารอสักครู่ ระบบกำลังดึงข้อมูลสดเข้าสู่ระบบ',
         allowOutsideClick: false,
+        background: '#0d1b2a',
+        color: '#ffffff',
         didOpen: () => { Swal.showLoading(); }
       });
+
+      if (url.includes('script.google.com') || url.includes('/exec') || url.includes('/dev')) {
+        let fetchUrl = url;
+        if (!fetchUrl.includes('page=obbl')) {
+          fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + 'page=obbl';
+        }
+        fetch(fetchUrl)
+          .then(res => res.json())
+          .then(data => {
+            if (data && (data.rows || data.data || data.headers || data.success)) {
+              Swal.fire({
+                icon: 'success',
+                title: 'ซิงค์ข้อมูลสดสำเร็จ!',
+                text: `ดึงข้อมูลสดสำเร็จทั้งหมด ${(data.rows || data.data || []).length.toLocaleString()} แถว`,
+                timer: 2000,
+                showConfirmButton: false,
+                background: '#0d1b2a',
+                color: '#ffffff'
+              });
+              onData(data);
+              fetchFileList();
+            } else {
+              fallbackToServerSync(url);
+            }
+          })
+          .catch(() => fallbackToServerSync(url));
+        return;
+      }
 
       const directCsvUrl = convertToDirectCsvUrl(url);
 
@@ -1388,7 +1447,12 @@
   
     window.addEventListener('DOMContentLoaded', () => {
       fetchFileList();
-      load();
+      const savedGsUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || DEFAULT_OB_BL_SHEET_URL;
+      if (savedGsUrl) {
+        syncGoogleSheetUrl(savedGsUrl);
+      } else {
+        load();
+      }
     });
 
   </script>

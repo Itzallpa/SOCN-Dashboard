@@ -123,34 +123,8 @@ source_content = source_content.replace(
     "// Resilient mode: proceed even if some optional columns are missing"
 )
 
-# Resilient Action Flag Normalizer, lookupTeam, extractHour, and isOBBL (Skip Monitor Logic)
-resilient_is_obbl = """
-    function normalizeActionFlag(v) {
-      const raw = (v === null || v === undefined) ? '' : String(v).trim();
-      const key = raw.toLowerCase();
-      if (Object.prototype.hasOwnProperty.call(OB_ACTIONS_LOOKUP, key)) {
-        return OB_ACTIONS_LOOKUP[key];
-      }
-      if (key.includes('packed') && !key.includes('linehual') && !key.includes('linehaul')) {
-        return '_02_pending_packed';
-      }
-      if (key.includes('linehual') || key.includes('linehaul')) {
-        return '_03_pending_linehual_packed';
-      }
-      if (key.includes('rework') || key.includes('reworked')) {
-        return '_04_pending_reworked';
-      }
-      if (key.includes('02')) return '_02_pending_packed';
-      if (key.includes('03')) return '_03_pending_linehual_packed';
-      if (key.includes('04')) return '_04_pending_reworked';
-      return raw;
-    }
-
-    function normalizeOperator(v) {
-      return (v === null || v === undefined ? '' : String(v)).trim().toLowerCase();
-    }
-
-    // Skip Monitor Team / Zone Matching Logic
+# Resilient lookupTeam and isOBBL replacements while preserving OPERATOR_TEAM_MAP (15,250 operator mappings)
+resilient_lookup_team = """
     function lookupTeam(v) {
       if (!v) return '(blank)';
       const norm = normalizeOperator(v);
@@ -165,33 +139,9 @@ resilient_is_obbl = """
       if (upper.includes('C')) return 'Zone C';
       return String(v).trim() || 'Unknown';
     }
+"""
 
-    // Extract Hour of Day for OB BL Matrix
-    function extractHour(ts) {
-      if (typeof ts === 'number' && isFinite(ts)) {
-        return Math.floor((((ts % 1) + 1) % 1) * 24) % 24;
-      }
-      const s = (ts === null || ts === undefined) ? '' : String(ts).trim();
-      if (!s) return null;
-
-      let m = s.match(/T(\d{2}):/);
-      if (m) {
-        const h = parseInt(m[1], 10);
-        return (h >= 0 && h <= 23) ? h : null;
-      }
-
-      m = s.match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?/);
-      if (!m) return null;
-
-      let h = parseInt(m[1], 10);
-      const ampm = m[3] ? m[3].toUpperCase() : null;
-      if (ampm === 'PM' && h < 12) h += 12;
-      if (ampm === 'AM' && h === 12) h = 0;
-
-      return (h >= 0 && h <= 23) ? h : null;
-    }
-
-    // Skip Monitor & OB BL Filter Logic
+resilient_is_obbl_fn = """
     function isOBBL(rec) {
       const af = normalizeActionFlag(rec.action_flag);
       if (af && OB_ACTIONS.indexOf(af) === -1) {
@@ -215,8 +165,14 @@ resilient_is_obbl = """
 
       // Check day_in_soc (If empty, DO NOT REJECT!)
       if (rec.day_in_soc !== undefined && rec.day_in_soc !== null && String(rec.day_in_soc).trim() !== '') {
-        const val = parseFloat(rec.day_in_soc);
-        if (!isNaN(val) && val > 1) return false;
+        const str = String(rec.day_in_soc).trim().toLowerCase();
+        if (str.includes('< 1') || str.includes('under 1') || str.includes('<1')) {
+          // Pass under 1 day
+        } else {
+          const val = parseFloat(str);
+          if (!isNaN(val) && val >= 1) return false;
+          if (str.includes('2 day') || str.includes('3 day') || str.includes('4 day')) return false;
+        }
       }
 
       return true;
@@ -224,8 +180,15 @@ resilient_is_obbl = """
 """
 
 source_content = re.sub(
-    r'function normalizeActionFlag\(v\)\s*\{.*?function isOBBL\(rec\)\s*\{.*?return true;\s*\}',
-    resilient_is_obbl,
+    r'function lookupTeam\(v\)\s*\{.*?return \'Unknown\';\s*\}',
+    resilient_lookup_team,
+    source_content,
+    flags=re.DOTALL
+)
+
+source_content = re.sub(
+    r'function isOBBL\(rec\)\s*\{.*?return true;\s*\}',
+    resilient_is_obbl_fn,
     source_content,
     flags=re.DOTALL
 )
@@ -361,15 +324,15 @@ js_api_helpers = """
       .catch(err => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message }));
     }
 
-    const DEFAULT_OB_BL_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1XHfU83vjja5wINCC0AeNsTJTAlRCp9WdnQa0Rf9VR1U/edit?gid=1875191002#gid=1875191002';
+    const DEFAULT_OB_BL_SHEET_URL = 'https://script.google.com/a/spxexpress.com/macros/s/AKfycbyluFSbFvnJ_ZDJLZN-rFYVujOnQRIlxf1KQKlS9eYNrw/exec';
 
     function openGoogleSheetModal() {
       const savedUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || DEFAULT_OB_BL_SHEET_URL;
       Swal.fire({
-        title: '🔗 ดึงข้อมูลสดจาก Google Sheet / Board Auto Sync',
+        title: '🔗 ดึงข้อมูลสดจาก Apps Script / Google Sheet',
         html: `
-          <p class="text-start small text-muted mb-2">กรอก URL ของ Google Sheet (Board Auto Sync) หรือ Google Apps Script Web App ที่มีข้อมูล OB BL:</p>
-          <input id="swal-gs-url" class="swal2-input" placeholder="https://docs.google.com/spreadsheets/d/... หรือ Apps Script URL" value="${savedUrl}">
+          <p class="text-start small text-muted mb-2">กรอก URL ของ Google Apps Script Web App หรือ Google Sheet URL ที่มีข้อมูล OB BL:</p>
+          <input id="swal-gs-url" class="swal2-input" placeholder="https://script.google.com/macros/s/.../exec หรือ Google Sheet URL" value="${savedUrl}">
         `,
         showCancelButton: true,
         confirmButtonText: '⚡ ดึงข้อมูลสดทันที',
@@ -422,11 +385,41 @@ js_api_helpers = """
       localStorage.setItem('socn_google_sheet_obbl_url', url);
 
       Swal.fire({
-        title: 'กำลังเชื่อมต่อและดึงข้อมูล...',
-        text: 'กรุณารอสักครู่ ระบบกำลังดึงข้อมูลผ่านสิทธิ์ Shopee Mobile ในเบราว์เซอร์',
+        title: 'กำลังเชื่อมต่อและดึงข้อมูลสด...',
+        text: 'กรุณารอสักครู่ ระบบกำลังดึงข้อมูลสดเข้าสู่ระบบ',
         allowOutsideClick: false,
+        background: '#0d1b2a',
+        color: '#ffffff',
         didOpen: () => { Swal.showLoading(); }
       });
+
+      if (url.includes('script.google.com') || url.includes('/exec') || url.includes('/dev')) {
+        let fetchUrl = url;
+        if (!fetchUrl.includes('page=obbl')) {
+          fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + 'page=obbl';
+        }
+        fetch(fetchUrl)
+          .then(res => res.json())
+          .then(data => {
+            if (data && (data.rows || data.data || data.headers || data.success)) {
+              Swal.fire({
+                icon: 'success',
+                title: 'ซิงค์ข้อมูลสดสำเร็จ!',
+                text: `ดึงข้อมูลสดสำเร็จทั้งหมด ${(data.rows || data.data || []).length.toLocaleString()} แถว`,
+                timer: 2000,
+                showConfirmButton: false,
+                background: '#0d1b2a',
+                color: '#ffffff'
+              });
+              onData(data);
+              fetchFileList();
+            } else {
+              fallbackToServerSync(url);
+            }
+          })
+          .catch(() => fallbackToServerSync(url));
+        return;
+      }
 
       const directCsvUrl = convertToDirectCsvUrl(url);
 
@@ -549,7 +542,12 @@ source_content = re.sub(orig_load_pattern, js_api_helpers, source_content, flags
 onload_script = """
     window.addEventListener('DOMContentLoaded', () => {
       fetchFileList();
-      load();
+      const savedGsUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || DEFAULT_OB_BL_SHEET_URL;
+      if (savedGsUrl) {
+        syncGoogleSheetUrl(savedGsUrl);
+      } else {
+        load();
+      }
     });
 """
 source_content = source_content.replace("</script>", onload_script + "\n  </script>")
