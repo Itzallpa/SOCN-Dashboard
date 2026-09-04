@@ -697,11 +697,26 @@ def sync_google_sheet():
         url += "&format=json" if "?" in url else "?format=json"
 
     try:
-        req = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=True)
+        # Fast check first without following endless Google SSO redirects (0.4s response)
+        init_req = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=False)
+        loc = init_req.headers.get("Location", "")
+
+        # Check if redirected to Google Account Sign-in
+        if init_req.status_code in [301, 302, 303, 307] and ("ServiceLogin" in loc or "accounts.google.com" in loc or "google.com/a/" in loc):
+            return jsonify({
+                "success": False,
+                "error": "URL นี้ติดสิทธิ์ล็อกอินองค์กร Google (Google Accounts Required)\n\n👉 วิธีแก้เปิดสิทธิ์ให้ดึงข้อมูลได้:\n1. หากใช้ Apps Script: ไปที่ 'Deploy' > 'Manage deployments' > เปลี่ยน 'Who has access' เป็น 'Anyone'\n2. หากใช้ Google Sheet: ไปที่ 'ไฟล์' > 'แชร์' > เปลี่ยนเป็น 'ทุกคนที่มีลิงก์' (Anyone with the link)"
+            }), 200
+
+        if init_req.status_code in [301, 302, 303, 307] and loc:
+            req = requests.get(loc, timeout=15, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=True)
+        else:
+            req = init_req
+
         if req.status_code == 401:
             return jsonify({
                 "success": False,
-                "error": "URL นี้ติดสิทธิ์เข้าถึงของ Google (HTTP 401 / Permission Required)\n\nกรุณาเลือกเปิดสิทธิ์อย่างใดอย่างหนึ่งดังนี้:\n1. หากเป็น Google Sheet: ไปที่ 'ไฟล์ (File)' > 'แชร์ (Share)' > 'เผยแพร่ไปยังเว็บ (Publish to web)' > เลือกแท็บ OB BL เป็น CSV แล้วกด 'เผยแพร่ (Publish)'\n2. หากเป็น Apps Script: ไปที่ 'Deploy' > 'Manage deployments' > เปลี่ยน 'Who has access' เป็น 'Anyone'"
+                "error": "URL นี้ติดสิทธิ์เข้าถึงของ Google (HTTP 401 / Permission Required)"
             }), 200
         elif req.status_code != 200:
             return jsonify({"success": False, "error": f"HTTP {req.status_code}: ไม่สามารถดึงข้อมูลจาก Google Sheet / Apps Script ได้"}), 200
@@ -710,7 +725,7 @@ def sync_google_sheet():
         if req.content.strip().startswith(b"<!DOCTYPE html") or req.content.strip().startswith(b"<html") or b"Sign in - Google Accounts" in req.content or b"accounts.google.com" in req.content:
             return jsonify({
                 "success": False,
-                "error": "URL นี้ติดสิทธิ์ล็อกอินของ Google (Google Accounts Required)\n\nกรุณาตั้งค่าเปิดสิทธิ์อย่างใดอย่างหนึ่งดังนี้ครับ:\n\n👉 วิธีที่ 1 (หากใช้ Apps Script Web App):\nไปที่หน้า Apps Script > กดปุ่ม 'Deploy' > 'Manage deployments' > ตรง 'Who has access (ผู้ที่มีสิทธิ์เข้าถึง)' เปลี่ยนเป็น 'Anyone (ทุกคน)' แล้วกด Deploy\n\n👉 วิธีที่ 2 (หากใช้ Google Sheet):\nไปที่ Google Sheet > 'ไฟล์ (File)' > 'แชร์ (Share)' > 'เผยแพร่ไปยังเว็บ (Publish to web)' > เลือกแท็บ OB BL เป็น CSV แล้วกด 'เผยแพร่ (Publish)'"
+                "error": "URL นี้ติดสิทธิ์ล็อกอินองค์กร Google (Google Accounts Required)\n\n👉 วิธีแก้เปิดสิทธิ์ให้ดึงข้อมูลได้:\n1. หากใช้ Apps Script: ไปที่ 'Deploy' > 'Manage deployments' > เปลี่ยน 'Who has access' เป็น 'Anyone'\n2. หากใช้ Google Sheet: ไปที่ 'ไฟล์' > 'แชร์' > เปลี่ยนเป็น 'ทุกคนที่มีลิงก์' (Anyone with the link)"
             }), 200
 
         # Check if response is JSON (Google Apps Script Web App API response)
@@ -872,15 +887,26 @@ def process_table_sheet(df):
 
 
 @app.route("/api/load-ob-late", methods=["GET"])
+@app.route("/api/load-lh", methods=["GET"])
 def load_ob_late():
     excel_path = os.path.join(BASE_DIR, "OB Late", "test.xlsx")
+    if os.path.exists(UPLOAD_FOLDER):
+        upload_files = [os.path.join(UPLOAD_FOLDER, f) for f in os.listdir(UPLOAD_FOLDER) if f.endswith(".csv") or f.endswith(".xlsx")]
+        if upload_files:
+            upload_files.sort(key=os.path.getmtime, reverse=True)
+            excel_path = upload_files[0]
+
     if not os.path.exists(excel_path):
         return jsonify({"success": False, "error": "test.xlsx not found in OB Late folder"}), 404
 
     try:
-        df = pd.read_excel(excel_path, sheet_name='Table')
+        if excel_path.endswith('.xlsx') or excel_path.endswith('.xls'):
+            df = pd.read_excel(excel_path, sheet_name='Table')
+        else:
+            df = pd.read_csv(excel_path, low_memory=False)
         data = process_table_sheet(df)
-        data["filename"] = "OB Late (test.xlsx)"
+        data["filename"] = os.path.basename(excel_path)
+        data["success"] = True
         return jsonify(data)
     except Exception as e:
         import traceback
