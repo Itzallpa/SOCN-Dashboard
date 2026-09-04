@@ -705,10 +705,10 @@ def sync_google_sheet():
             return jsonify({"success": False, "error": f"HTTP {req.status_code}: ไม่สามารถดึงข้อมูลจาก Google Sheet / Apps Script ได้"}), 200
 
         # Check if Google returned an HTML login redirect page instead of CSV/JSON
-        if req.content.strip().startswith(b"<!DOCTYPE html") or req.content.strip().startswith(b"<html") or b"Sign in - Google Accounts" in req.content:
+        if req.content.strip().startswith(b"<!DOCTYPE html") or req.content.strip().startswith(b"<html") or b"Sign in - Google Accounts" in req.content or b"accounts.google.com" in req.content:
             return jsonify({
                 "success": False,
-                "error": "URL นี้จำเป็นต้องสิทธิ์เข้าถึง (@spxexpress.com Google Account Required) กรุณาเปลี่ยนสิทธิ์ Web App เป็น 'Anyone' หรือนำ Google Sheet CSV Link มาวางแทนครับ"
+                "error": "URL นี้ติดสิทธิ์ล็อกอินของ Google (Google Accounts Required)\n\nกรุณาตั้งค่าเปิดสิทธิ์อย่างใดอย่างหนึ่งดังนี้ครับ:\n\n👉 วิธีที่ 1 (หากใช้ Apps Script Web App):\nไปที่หน้า Apps Script > กดปุ่ม 'Deploy' > 'Manage deployments' > ตรง 'Who has access (ผู้ที่มีสิทธิ์เข้าถึง)' เปลี่ยนเป็น 'Anyone (ทุกคน)' แล้วกด Deploy\n\n👉 วิธีที่ 2 (หากใช้ Google Sheet):\nไปที่ Google Sheet > 'ไฟล์ (File)' > 'แชร์ (Share)' > 'เผยแพร่ไปยังเว็บ (Publish to web)' > เลือกแท็บ OB BL เป็น CSV แล้วกด 'เผยแพร่ (Publish)'"
             }), 200
 
         # Check if response is JSON (Google Apps Script Web App API response)
@@ -1590,10 +1590,10 @@ def sync_ob_bl():
             return jsonify({"success": False, "error": f"ไม่สามารถเชื่อมต่อ URL ได้ (HTTP Status {req.status_code})"}), 200
 
         # Check if Google returned an HTML login redirect page instead of CSV/JSON
-        if req.content.strip().startswith(b"<!DOCTYPE html") or req.content.strip().startswith(b"<html") or b"Sign in - Google Accounts" in req.content:
+        if req.content.strip().startswith(b"<!DOCTYPE html") or req.content.strip().startswith(b"<html") or b"Sign in - Google Accounts" in req.content or b"accounts.google.com" in req.content:
             return jsonify({
                 "success": False,
-                "error": "URL นี้จำเป็นต้องมีสิทธิ์เข้าถึง (@spxexpress.com Google Account Required) กรุณาแชร์สิทธิ์ Web App เป็น 'Anyone' หรือนำ Google Sheet CSV Link มาวางแทนครับ"
+                "error": "URL นี้ติดสิทธิ์ล็อกอินของ Google (Google Accounts Required)\n\nกรุณาตั้งค่าเปิดสิทธิ์อย่างใดอย่างหนึ่งดังนี้ครับ:\n\n👉 วิธีที่ 1 (หากใช้ Apps Script Web App):\nไปที่หน้า Apps Script > กดปุ่ม 'Deploy' > 'Manage deployments' > ตรง 'Who has access (ผู้ที่มีสิทธิ์เข้าถึง)' เปลี่ยนเป็น 'Anyone (ทุกคน)' แล้วกด Deploy\n\n👉 วิธีที่ 2 (หากใช้ Google Sheet):\nไปที่ Google Sheet > 'ไฟล์ (File)' > 'แชร์ (Share)' > 'เผยแพร่ไปยังเว็บ (Publish to web)' > เลือกแท็บ OB BL เป็น CSV แล้วกด 'เผยแพร่ (Publish)'"
             }), 200
 
         try:

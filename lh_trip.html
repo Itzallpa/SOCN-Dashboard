@@ -88,8 +88,9 @@
         </div>
         <!-- View Switcher Tabs -->
         <div class="btn-group btn-group-sm bg-light p-1 rounded-3 border">
-          <button class="btn btn-primary nav-toggle-btn px-3" id="tabDashboardBtn" onclick="switchView('dashboard')"><i class="fa-solid fa-chart-pie me-1"></i> Dashboard View</button>
-          <button class="btn btn-outline-secondary nav-toggle-btn px-3" id="tabTableBtn" onclick="switchView('table')"><i class="fa-solid fa-table me-1"></i> Table View (1,305 เที่ยว)</button>
+          <button class="btn btn-primary nav-toggle-btn px-3" id="tabLiveBtn" onclick="switchView('live')"><i class="fa-solid fa-bolt me-1 text-warning"></i> Live Apps Script (1,257 เที่ยว)</button>
+          <button class="btn btn-outline-secondary nav-toggle-btn px-3" id="tabDashboardBtn" onclick="switchView('dashboard')"><i class="fa-solid fa-chart-pie me-1"></i> Offline Dashboard</button>
+          <button class="btn btn-outline-secondary nav-toggle-btn px-3" id="tabTableBtn" onclick="switchView('table')"><i class="fa-solid fa-table me-1"></i> Raw Data Table</button>
         </div>
       </div>
 
@@ -103,8 +104,27 @@
 
     <div id="lhStatusMsg" class="mb-3"></div>
 
+    <!-- SECTION 0: LIVE APPS SCRIPT WEB APP VIEW -->
+    <div id="viewLiveSection" style="display: block;">
+      <div class="card-custom mb-3 p-3" style="background:#ffffff; border-radius:12px; border-left: 5px solid #ee4d2d;">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+          <div>
+            <h5 class="fw-bold m-0 text-slate-800"><i class="fa-solid fa-bolt text-danger me-2"></i> Live Apps Script Web App (เชื่อมต่อสิทธิ์องค์กร Live)</h5>
+            <small class="text-muted">ดึงข้อมูลสด 1,257 เที่ยวตรงจาก Google Apps Script ของคุณโดยอัตโนมัติ</small>
+          </div>
+          <div class="d-flex gap-2">
+            <a href="https://script.google.com/a/spxexpress.com/macros/s/AKfycbyuFsbFvnJ_ZDJLZN-rFYVuj0nQR8xf1KQkS8eYNrw/dev?page=dashboard" target="_blank" class="btn btn-outline-danger btn-sm fw-bold"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i> เปิดในแท็บใหม่</a>
+            <button class="btn btn-danger btn-sm fw-bold" onclick="reloadLiveFrame()"><i class="fa-solid fa-rotate me-1"></i> Refresh Live Data</button>
+          </div>
+        </div>
+        <div style="border-radius:10px; overflow:hidden; border: 1px solid #e2e8f0; background: #ffffff; box-shadow: 0 4px 14px rgba(0,0,0,0.06);">
+          <iframe id="liveAppsScriptFrame" src="https://script.google.com/a/spxexpress.com/macros/s/AKfycbyuFsbFvnJ_ZDJLZN-rFYVuj0nQR8xf1KQkS8eYNrw/dev?page=dashboard" style="width:100%; height:880px; border:none;" allow="autoplay; encrypted-media"></iframe>
+        </div>
+      </div>
+    </div>
+
     <!-- SECTION 1: DASHBOARD VIEW -->
-    <div id="viewDashboardSection">
+    <div id="viewDashboardSection" style="display: none;">
       <!-- 4 KPI Summary Cards -->
       <div class="row g-3 mb-3">
         <div class="col-md-3" style="cursor:pointer;" onclick="openAllTripsModal()">
@@ -329,20 +349,45 @@
       renderRealSummaryData();
     });
 
+    function reloadLiveFrame() {
+      const frame = document.getElementById('liveAppsScriptFrame');
+      if (frame) {
+        frame.src = 'https://script.google.com/a/spxexpress.com/macros/s/AKfycbyuFsbFvnJ_ZDJLZN-rFYVuj0nQR8xf1KQkS8eYNrw/dev?page=dashboard';
+      }
+    }
+
     function switchView(viewName) {
+      const liveSec = document.getElementById('viewLiveSection');
       const dashSec = document.getElementById('viewDashboardSection');
       const tblSec = document.getElementById('viewTableSection');
+
+      const liveBtn = document.getElementById('tabLiveBtn');
       const dashBtn = document.getElementById('tabDashboardBtn');
       const tblBtn = document.getElementById('tabTableBtn');
 
-      if (viewName === 'dashboard') {
+      if (viewName === 'live') {
+        liveSec.style.display = 'block';
+        dashSec.style.display = 'none';
+        tblSec.style.display = 'none';
+
+        liveBtn.className = 'btn btn-primary nav-toggle-btn px-3';
+        dashBtn.className = 'btn btn-outline-secondary nav-toggle-btn px-3';
+        tblBtn.className = 'btn btn-outline-secondary nav-toggle-btn px-3';
+      } else if (viewName === 'dashboard') {
+        liveSec.style.display = 'none';
         dashSec.style.display = 'block';
         tblSec.style.display = 'none';
+
+        liveBtn.className = 'btn btn-outline-secondary nav-toggle-btn px-3';
         dashBtn.className = 'btn btn-primary nav-toggle-btn px-3';
         tblBtn.className = 'btn btn-outline-secondary nav-toggle-btn px-3';
+        renderRealSummaryData();
       } else {
+        liveSec.style.display = 'none';
         dashSec.style.display = 'none';
         tblSec.style.display = 'block';
+
+        liveBtn.className = 'btn btn-outline-secondary nav-toggle-btn px-3';
         dashBtn.className = 'btn btn-outline-secondary nav-toggle-btn px-3';
         tblBtn.className = 'btn btn-primary nav-toggle-btn px-3';
         renderFullTable();
