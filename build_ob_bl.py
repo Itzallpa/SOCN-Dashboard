@@ -361,18 +361,22 @@ js_api_helpers = """
       .catch(err => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message }));
     }
 
+    const DEFAULT_OB_BL_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1XHfU83vjja5wINCC0AeNsTJTAlRCp9WdnQa0Rf9VR1U/edit?gid=1875191002#gid=1875191002';
+
     function openGoogleSheetModal() {
-      const savedUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || '';
+      const savedUrl = localStorage.getItem('socn_google_sheet_url') || localStorage.getItem('socn_google_sheet_obbl_url') || DEFAULT_OB_BL_SHEET_URL;
       Swal.fire({
-        title: '🔗 ดึงข้อมูลสดจาก Google Sheet / Apps Script',
+        title: '🔗 ดึงข้อมูลสดจาก Google Sheet / Board Auto Sync',
         html: `
-          <p class="text-start small text-muted mb-2">กรอก URL ของ Google Apps Script Web App หรือ Google Sheet CSV Link ที่มีข้อมูล OB BL:</p>
-          <input id="swal-gs-url" class="swal2-input" placeholder="https://script.google.com/macros/s/.../exec หรือ Google Sheet URL" value="${savedUrl}">
+          <p class="text-start small text-muted mb-2">กรอก URL ของ Google Sheet (Board Auto Sync) หรือ Google Apps Script Web App ที่มีข้อมูล OB BL:</p>
+          <input id="swal-gs-url" class="swal2-input" placeholder="https://docs.google.com/spreadsheets/d/... หรือ Apps Script URL" value="${savedUrl}">
         `,
         showCancelButton: true,
-        confirmButtonText: '⚡ ดึงข้อมูลทันที',
+        confirmButtonText: '⚡ ดึงข้อมูลสดทันที',
         cancelButtonText: 'ยกเลิก',
         confirmButtonColor: '#10b981',
+        background: '#0d1b2a',
+        color: '#ffffff',
         preConfirm: () => {
           const url = document.getElementById('swal-gs-url').value.trim();
           if (!url) {
@@ -391,13 +395,23 @@ js_api_helpers = """
     function convertToDirectCsvUrl(url) {
       if (!url) return '';
       let u = url.trim();
+      const gidMatch = u.match(/gid=([0-9]+)/);
+      const gidParam = gidMatch ? `&gid=${gidMatch[1]}` : '';
+
       if (u.includes('/pubhtml')) {
-        return u.replace('/pubhtml', '/pub?output=csv');
+        let base = u.replace('/pubhtml', '/pub?output=csv');
+        if (gidMatch && !base.includes('gid=')) {
+          base += `&gid=${gidMatch[1]}`;
+        }
+        return base;
       }
-      if (u.includes('docs.google.com/spreadsheets') && !u.includes('output=csv') && !u.includes('gviz/tq')) {
+      if (u.includes('docs.google.com/spreadsheets')) {
+        if (u.includes('gviz/tq') || u.includes('output=csv') || u.includes('export?format=csv')) {
+          return u;
+        }
         const match = u.match(/\/d\/e\/([a-zA-Z0-9-_]+)/) || u.match(/\/d\/([a-zA-Z0-9-_]+)/);
         if (match) {
-          return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv`;
+          return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv${gidParam}`;
         }
       }
       return u;

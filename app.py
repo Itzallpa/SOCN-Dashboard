@@ -678,16 +678,21 @@ def sync_google_sheet():
     # Default Google Sheet Published CSV / GViz URL if none provided
     default_sheet_url = "https://docs.google.com/spreadsheets/d/1gH3gDAuf0CWKYthnua50qLWC3gUWYovMVMN1hUKyFJo/gviz/tq?tqx=out:csv&sheet=Table"
 
+    import re
+    gid_match = re.search(r'gid=([0-9]+)', url)
+    gid_param = f"&gid={gid_match.group(1)}" if gid_match else ""
+
     if not url:
         url = default_sheet_url
     elif "/pubhtml" in url:
         url = url.replace("/pubhtml", "/pub?output=csv")
+        if gid_match and "gid=" not in url:
+            url += gid_param
     elif "docs.google.com/spreadsheets" in url and "gviz/tq" not in url and "export" not in url and "/pub" not in url:
-        import re
-        match = re.search(r'/d/([a-zA-Z0-9-_]+)', url)
+        match = re.search(r'/d/e/([a-zA-Z0-9-_]+)', url) or re.search(r'/d/([a-zA-Z0-9-_]+)', url)
         if match:
             spreadsheet_id = match.group(1)
-            url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv&sheet=Table"
+            url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv{gid_param}"
 
     try:
         req = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=True)
@@ -1560,14 +1565,19 @@ def sync_ob_bl():
     if not url:
         return jsonify({"success": False, "error": "กรุณาระบุ URL ของ Google Sheet หรือ Apps Script"}), 400
 
+    import re
+    gid_match = re.search(r'gid=([0-9]+)', url)
+    gid_param = f"&gid={gid_match.group(1)}" if gid_match else ""
+
     if "/pubhtml" in url:
         url = url.replace("/pubhtml", "/pub?output=csv")
+        if gid_match and "gid=" not in url:
+            url += gid_param
     elif "docs.google.com/spreadsheets" in url and "gviz/tq" not in url and "export" not in url and "/pub" not in url:
-        import re
         match = re.search(r'/d/e/([a-zA-Z0-9-_]+)', url) or re.search(r'/d/([a-zA-Z0-9-_]+)', url)
         if match:
             spreadsheet_id = match.group(1)
-            url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv"
+            url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv{gid_param}"
 
     try:
         req = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=True)
