@@ -18,11 +18,23 @@ app.secret_key = "socn_ops_portal_super_secret_key_2026"
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # Allow up to 500MB uploads
 
+@app.before_request
+def handle_options_preflight():
+    if request.method == "OPTIONS":
+        res = app.make_default_options_response()
+        res.headers['Access-Control-Allow-Origin'] = '*'
+        res.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+        res.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        return res
+
 @app.after_request
 def add_header(response):
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '-1'
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
     return response
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -582,7 +594,8 @@ def serve_favicon():
 def index():
     return send_from_directory(BASE_DIR, "index.html")
 
-@app.route("/upload", methods=["POST"])
+@app.route("/upload", methods=["POST", "OPTIONS"])
+@app.route("/api/upload", methods=["POST", "OPTIONS"])
 def upload_file():
     if "file" not in request.files:
         return jsonify({"success": False, "error": "No file uploaded"}), 400
