@@ -693,6 +693,8 @@ def sync_google_sheet():
         if match:
             spreadsheet_id = match.group(1)
             url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv{gid_param}"
+    elif "script.google.com" in url and "format=" not in url and "raw=" not in url and "page=" not in url:
+        url += "&format=json" if "?" in url else "?format=json"
 
     try:
         req = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=True)
