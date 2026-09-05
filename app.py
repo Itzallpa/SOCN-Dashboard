@@ -38,13 +38,13 @@ def add_header(response):
     return response
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-BACKLOG_COMPARE_FOLDER = os.path.join(BASE_DIR, "Backlog Shipment")
-os.makedirs(BACKLOG_COMPARE_FOLDER, exist_ok=True)
+DATA_DIR = os.path.join(BASE_DIR, "data")
+os.makedirs(DATA_DIR, exist_ok=True)
 
-LOGS_FILE = os.path.join(BASE_DIR, "activity_logs.json")
+LOGS_FILE = os.path.join(DATA_DIR, "activity_logs.json")
+if not os.path.exists(LOGS_FILE) and os.path.exists(os.path.join(BASE_DIR, "activity_logs.json")):
+    LOGS_FILE = os.path.join(BASE_DIR, "activity_logs.json")
 
 def load_activity_logs():
     if os.path.exists(LOGS_FILE):
@@ -55,7 +55,9 @@ def load_activity_logs():
             pass
     return []
 
-USERS_FILE = os.path.join(BASE_DIR, "users_db.json")
+USERS_FILE = os.path.join(DATA_DIR, "users_db.json")
+if not os.path.exists(USERS_FILE) and os.path.exists(os.path.join(BASE_DIR, "users_db.json")):
+    USERS_FILE = os.path.join(BASE_DIR, "users_db.json")
 
 def load_users_db():
     if os.path.exists(USERS_FILE):
@@ -1385,7 +1387,9 @@ def get_current_data():
 
     return jsonify({"success": False, "message": "No CSV loaded yet"})
 
-VOLUME_FILE = os.path.join(BASE_DIR, "volume_history.json")
+VOLUME_FILE = os.path.join(DATA_DIR, "volume_history.json")
+if not os.path.exists(VOLUME_FILE) and os.path.exists(os.path.join(BASE_DIR, "volume_history.json")):
+    VOLUME_FILE = os.path.join(BASE_DIR, "volume_history.json")
 
 DEFAULT_VOLUME_DATA = {
     "history": [
