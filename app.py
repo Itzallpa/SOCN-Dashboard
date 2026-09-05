@@ -626,6 +626,15 @@ def upload_file():
         print("Error saving uploaded file:", e)
         return jsonify({"success": False, "error": f"Failed to save file: {str(e)}"}), 500
 
+    if target_folder == BACKLOG_COMPARE_FOLDER:
+        log_activity("UPLOAD_COMPARE_FILE", f"อัปโหลดไฟล์เปรียบเทียบเข้า Backlog Shipment: {file.filename}")
+        return jsonify({
+            "success": True,
+            "filename": file.filename,
+            "savedPath": save_path,
+            "message": f"บันทึกไฟล์ {file.filename} เข้าโฟลเดอร์ Backlog Shipment เรียบร้อย"
+        })
+
     try:
         data = process_csv(save_path)
         data["filename"] = file.filename
@@ -1133,12 +1142,20 @@ def delete_file():
 
     filename_clean = os.path.basename(filename)
     target_upload = os.path.join(UPLOAD_FOLDER, filename_clean)
+    target_compare = os.path.join(BACKLOG_COMPARE_FOLDER, filename_clean)
     target_base = os.path.join(BASE_DIR, filename_clean)
 
     deleted = False
     deleted_path = ""
 
-    if os.path.exists(target_upload):
+    if os.path.exists(target_compare):
+        try:
+            os.remove(target_compare)
+            deleted = True
+            deleted_path = target_compare
+        except Exception as e:
+            return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ได้: {str(e)}"}), 500
+    elif os.path.exists(target_upload):
         try:
             os.remove(target_upload)
             deleted = True

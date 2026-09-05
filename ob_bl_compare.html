@@ -350,6 +350,54 @@
       color: var(--accent);
       font-size: 13.5px;
     }
+    /* Alert Status Box */
+    .alert {
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .alert-info {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+    }
+    .alert-success {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+    }
+    .alert-danger {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+    .alert-warning {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+    }
+    .alert-primary {
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      color: #1d4ed8;
+    }
+    .btn-close {
+      background: none;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      color: inherit;
+      opacity: 0.7;
+      padding: 0 4px;
+    }
+    .btn-close:hover {
+      opacity: 1;
+    }
   </style>
 </head>
 
@@ -398,16 +446,15 @@
       </div>
 
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <label class="btn btn-primary btn-sm fw-bold mb-0" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:8px; font-size:13px; background:#10b981; color:#fff; border:none; box-shadow:0 4px 10px rgba(16,185,129,0.3);">
+          <i class="fa-solid fa-upload"></i> อัปโหลด CSV/Excel เข้า Backlog Shipment
+          <input type="file" id="compareFileInput" accept=".csv, .xlsx, .xls" style="display:none;" onchange="handleCompareFileUpload(this.files[0])">
+        </label>
+
         <button onclick="handleLocalCompareUpload()"
           style="background:#8b5cf6; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px; font-size:13px; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 10px rgba(139,92,246,0.3);">
           <i class="fa-solid fa-file-csv"></i> ⚡ เปรียบเทียบไฟล์สด (Browser)
         </button>
-
-        <button onclick="document.getElementById('compareFileInput').click()"
-          style="background:#10b981; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
-          <i class="fa-solid fa-upload"></i> อัปโหลด CSV/Excel เข้า Backlog Shipment
-        </button>
-        <input type="file" id="compareFileInput" accept=".csv, .xlsx, .xls" style="display:none;" onchange="handleUploadCompareFile(event)">
 
         <div style="display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.12);">
           <span style="font-size:12px; color:#cbd5e1; font-weight:700;"><i class="fa-solid fa-file-invoice text-info"></i> รอบ 1:</span>
@@ -429,11 +476,13 @@
         </button>
 
         <button onclick="deleteSelectedCompareFile()"
-          style="background:rgba(239,68,68,0.15); color:#fca5a5; font-weight:700; border:1px solid rgba(239,68,68,0.4); padding:8px 12px; border-radius:8px; font-size:12.5px; display:inline-flex; align-items:center; gap:5px;" title="ลบไฟล์ที่เลือกในรายการออกจากระบบ">
+          style="background:rgba(239,68,68,0.15); color:#fca5a5; font-weight:700; border:1px solid rgba(239,68,68,0.4); padding:8px 12px; border-radius:8px; font-size:12.5px; display:inline-flex; align-items:center; gap:5px;" title="ลบไฟล์ที่เลือกในรายการออกจาก Backlog Shipment">
           <i class="fa-solid fa-trash"></i> ลบไฟล์ที่เลือก
         </button>
       </div>
     </header>
+
+    <div id="compareUploadStatus" class="mb-3" style="display:none;"></div>
 
     <!-- Truck Loader -->
     <div id="stateMsg" class="state-msg" style="display:none;">
@@ -497,7 +546,7 @@
         <div class="card">
           <div class="card-title-row">
             <div>
-              <div class="card-title"><i class="fa-solid fa-warehouse style="color:var(--accent);"></i> Station ที่มีพัสดุค้างซ้ำมากที่สุด (Top Stations)</div>
+              <div class="card-title"><i class="fa-solid fa-warehouse" style="color:var(--accent);"></i> Station ที่มีพัสดุค้างซ้ำมากที่สุด (Top Stations)</div>
               <div class="card-sub">จำแนกตามสถานีปลายทางที่ตรวจพบพัสดุค้างซ้ำ</div>
             </div>
           </div>
@@ -704,6 +753,42 @@
         });
     }
 
+    function showCompareStatus(msg, type = 'info') {
+      const el = document.getElementById('compareUploadStatus');
+      if (!el) return;
+      if (!msg) {
+        el.innerHTML = '';
+        el.style.display = 'none';
+        return;
+      }
+      el.style.display = 'block';
+      let alertClass = 'alert-info';
+      let icon = '<i class="fa-solid fa-circle-info text-info"></i>';
+      if (type === 'success') {
+        alertClass = 'alert-success';
+        icon = '<i class="fa-solid fa-circle-check text-success"></i>';
+      } else if (type === 'error') {
+        alertClass = 'alert-danger';
+        icon = '<i class="fa-solid fa-triangle-exclamation text-danger"></i>';
+      } else if (type === 'warning') {
+        alertClass = 'alert-warning';
+        icon = '<i class="fa-solid fa-circle-exclamation text-warning"></i>';
+      } else if (type === 'loading') {
+        alertClass = 'alert-primary';
+        icon = '<i class="fa-solid fa-spinner fa-spin text-primary"></i>';
+      }
+
+      el.innerHTML = `
+        <div class="alert ${alertClass}">
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${icon}
+            <span>${msg}</span>
+          </div>
+          <button type="button" class="btn-close" onclick="showCompareStatus(null)" title="ปิด">✖</button>
+        </div>
+      `;
+    }
+
     function fetchCompareFileList() {
       const select1 = document.getElementById('file1Select');
       const select2 = document.getElementById('file2Select');
@@ -832,49 +917,78 @@
       const filename = (select2 && select2.value) ? select2.value : ((select1 && select1.value) ? select1.value : '');
 
       if (!filename) {
-        Swal.fire({ title: 'กรุณาเลือกไฟล์', text: 'กรุณาเลือกไฟล์ในรายการรอบ 1 หรือรอบ 2 ที่ต้องการลบก่อนครับ', icon: 'info', confirmButtonColor: '#2563eb', background: '#0d1b2a', color: '#fff' });
+        Swal.fire({
+          title: 'กรุณาเลือกไฟล์',
+          text: 'กรุณาเลือกไฟล์ในรายการรอบ 1 หรือรอบ 2 ที่ต้องการลบก่อนครับ',
+          icon: 'info',
+          confirmButtonColor: '#2563eb',
+          background: '#0d1b2a',
+          color: '#fff'
+        });
         return;
       }
 
       Swal.fire({
         title: '⚠️ ยืนยันการลบไฟล์ถาวร?',
-        html: `คุณต้องการลบไฟล์ <b>"${filename}"</b> ออกจากระบบใช่หรือไม่?`,
+        html: `คุณต้องการลบไฟล์ <b>"${filename}"</b> ออกจากโฟลเดอร์ Backlog Shipment ใช่หรือไม่?<br><span style="color:#ef4444; font-size:0.83rem; margin-top:6px; display:inline-block;">คำเตือน: ไฟล์จะถูกลบออกจากโฟลเดอร์ทันที</span>`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#dc2626',
         cancelButtonColor: '#64748b',
-        confirmButtonText: 'ลบไฟล์ถาวร',
+        confirmButtonText: 'ใช่, ลบไฟล์ถาวร',
         cancelButtonText: 'ยกเลิก',
         background: '#0d1b2a',
         color: '#ffffff'
       }).then((result) => {
         if (result.isConfirmed) {
+          showCompareStatus(`กำลังลบไฟล์ "${filename}" ออกจากโฟลเดอร์...`, 'loading');
           safeFetchJson('/api/delete-file', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ filename: filename })
-          }).catch(() => {});
+          })
+            .then(data => {
+              if (data && data.success) {
+                showCompareStatus(`✅ ลบไฟล์ "${filename}" ออกจากโฟลเดอร์เรียบร้อยแล้ว`, 'success');
+                Swal.fire({
+                  title: 'ลบไฟล์สำเร็จ! 🗑️',
+                  text: `ลบไฟล์ "${filename}" ออกจากโฟลเดอร์ Backlog Shipment เรียบร้อยแล้ว`,
+                  icon: 'success',
+                  timer: 2000,
+                  showConfirmButton: false,
+                  background: '#0d1b2a',
+                  color: '#fff'
+                });
+              } else {
+                throw new Error((data && data.error) ? data.error : 'ไม่สามารถลบไฟล์ได้');
+              }
+            })
+            .catch(err => {
+              showCompareStatus(`ลบไฟล์จากเซิร์ฟเวอร์ไม่สำเร็จ (${err.message})`, 'warning');
+            })
+            .finally(() => {
+              try {
+                localStorage.removeItem(`socn_compare_file_${filename}`);
+                let localList = [];
+                const raw = localStorage.getItem('socn_local_compare_file_list');
+                if (raw) localList = JSON.parse(raw);
+                localList = localList.filter(f => f.filename !== filename);
+                localStorage.setItem('socn_local_compare_file_list', JSON.stringify(localList));
+              } catch (e) {}
 
-          try {
-            localStorage.removeItem(`socn_compare_file_${filename}`);
-            let localList = [];
-            const raw = localStorage.getItem('socn_local_compare_file_list');
-            if (raw) localList = JSON.parse(raw);
-            localList = localList.filter(f => f.filename !== filename);
-            localStorage.setItem('socn_local_compare_file_list', JSON.stringify(localList));
-          } catch (e) {}
-
-          Swal.fire({ title: 'ลบไฟล์สำเร็จ! 🗑️', text: `ลบไฟล์ "${filename}" ออกจากระบบเรียบร้อยแล้ว`, icon: 'success', timer: 1800, showConfirmButton: false, background: '#0d1b2a', color: '#fff' });
-          fetchCompareFileList();
+              fetchCompareFileList();
+            });
         }
       });
     }
 
-    function handleUploadCompareFile(event) {
-      const file = event.target.files[0];
+    function handleCompareFileUpload(file) {
       if (!file) return;
-      // Reset input so same file can be re-uploaded if needed
-      event.target.value = '';
+
+      const input = document.getElementById('compareFileInput');
+      if (input) input.value = '';
+
+      showCompareStatus(`กำลังบันทึก "${file.name}" เข้าโฟลเดอร์ Backlog Shipment...`, 'loading');
 
       const formData = new FormData();
       formData.append('file', file);
@@ -882,7 +996,7 @@
 
       Swal.fire({
         title: 'กำลังบันทึกไฟล์เข้า Backlog Shipment...',
-        text: file.name,
+        html: `<b>${file.name}</b><br><span style="font-size:0.85rem; color:#94a3b8;">กำลังอัปโหลดเข้าเซิร์ฟเวอร์...</span>`,
         allowOutsideClick: false,
         background: '#0d1b2a',
         color: '#ffffff',
@@ -894,24 +1008,23 @@
         body: formData
       })
         .then(data => {
-          // Also save to localStorage for browser-side access
+          // Also save in localStorage cache
           saveCompareFileLocally(file, false);
-          // Refresh dropdown list so the file appears immediately
+
           fetchCompareFileList().then(() => {
-            // Auto-select the newly uploaded file in file2Select (latest)
+            const sel1 = document.getElementById('file1Select');
             const sel2 = document.getElementById('file2Select');
             if (sel2) {
               sel2.value = file.name;
-              if (!sel2.value) {
-                const sel1 = document.getElementById('file1Select');
-                if (sel1) sel1.value = file.name;
-              }
+              if (!sel2.value && sel1) sel1.value = file.name;
             }
           });
+
+          showCompareStatus(`✅ บันทึก "${file.name}" เข้าโฟลเดอร์ Backlog Shipment เรียบร้อย!`, 'success');
           Swal.fire({
             icon: 'success',
             title: '✅ บันทึกไฟล์สำเร็จ',
-            html: `<b>${file.name}</b><br><span style="font-size:0.85rem; color:#94a3b8;">บันทึกเข้า Folder: Backlog Shipment แล้ว</span>`,
+            html: `<b>${file.name}</b><br><span style="font-size:0.85rem; color:#94a3b8;">บันทึกเข้า Folder: Backlog Shipment แล้ว พร้อมเปรียบเทียบ</span>`,
             background: '#0d1b2a',
             color: '#ffffff',
             confirmButtonColor: '#22c55e',
@@ -919,18 +1032,32 @@
             timerProgressBar: true
           });
         })
-        .catch((err) => {
-          // Fallback: save locally only (server might be offline)
-          saveCompareFileLocally(file, true);
+        .catch(err => {
+          console.warn('Server upload failed, saving locally in browser:', err);
+          saveCompareFileLocally(file, false);
+          fetchCompareFileList().then(() => {
+            const sel1 = document.getElementById('file1Select');
+            const sel2 = document.getElementById('file2Select');
+            if (sel2) {
+              sel2.value = file.name;
+              if (!sel2.value && sel1) sel1.value = file.name;
+            }
+          });
+          showCompareStatus(`⚠️ บันทึก "${file.name}" ใน Browser ชั่วคราว (${err && err.message ? err.message : 'Server ออฟไลน์'})`, 'warning');
           Swal.fire({
             icon: 'warning',
             title: '⚠️ บันทึกเฉพาะ Browser',
-            html: `<b>${file.name}</b><br><span style="font-size:0.82rem; color:#fbbf24;">ไม่สามารถบันทึกลง Server ได้<br>(${err && err.message ? err.message : 'Server ไม่ตอบสนอง'})</span><br><span style="font-size:0.8rem; color:#94a3b8;">ไฟล์ถูกเก็บใน Browser ชั่วคราว</span>`,
+            html: `<b>${file.name}</b><br><span style="font-size:0.82rem; color:#fbbf24;">ไม่สามารถบันทึกลงเซิร์ฟเวอร์ได้ (${err && err.message ? err.message : 'เซิร์ฟเวอร์ไม่ตอบสนอง'})</span><br><span style="font-size:0.8rem; color:#94a3b8;">ไฟล์ถูกเก็บใน Browser ชั่วคราว สามารถใช้งานเปรียบเทียบได้ทันที</span>`,
             background: '#0d1b2a',
             color: '#ffffff',
             confirmButtonColor: '#f59e0b'
           });
         });
+    }
+
+    function handleUploadCompareFile(event) {
+      if (!event || !event.target || !event.target.files) return;
+      handleCompareFileUpload(event.target.files[0]);
     }
 
     function handleLocalCompareUpload() {
@@ -1164,11 +1291,20 @@
       const file2 = document.getElementById('file2Select').value;
 
       if (!file1 || !file2) {
-        handleLocalCompareUpload();
+        showCompareStatus('กรุณาเลือกไฟล์รายงานทั้งรอบ 1 และรอบ 2 จากโฟลเดอร์ Backlog Shipment ก่อนครับ', 'error');
+        Swal.fire({
+          icon: 'info',
+          title: 'กรุณาเลือกไฟล์ให้ครบทั้ง 2 รอบ',
+          text: 'กรุณาเลือกไฟล์ในช่องรอบ 1 และรอบ 2 เพื่อเปรียบเทียบหาพัสดุค้างซ้ำ',
+          confirmButtonColor: '#2563eb',
+          background: '#0d1b2a',
+          color: '#ffffff'
+        });
         return;
       }
 
       document.getElementById('stateMsg').style.display = 'block';
+      showCompareStatus(`กำลังเปรียบเทียบไฟล์ "${file1}" กับ "${file2}"...`, 'loading');
 
       safeFetchJson('/api/compare-ob-bl', {
         method: 'POST',
@@ -1188,6 +1324,7 @@
             populateFilters(data);
             renderDatatable(filteredDuplicates);
 
+            showCompareStatus(`✅ เปรียบเทียบสำเร็จ! พบพัสดุค้างซ้ำข้ามรอบ ${data.duplicate_count.toLocaleString()} รายการ`, 'success');
             Swal.fire({
               icon: 'success',
               title: 'เปรียบเทียบสำเร็จ! 🚀',
@@ -1198,6 +1335,7 @@
               color: '#ffffff'
             });
           } else {
+            console.warn('Server comparison unsuccessful, trying browser comparison:', data);
             tryCompareFromLocalStorage(file1, file2);
           }
         })
