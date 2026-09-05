@@ -1003,7 +1003,7 @@
         didOpen: () => { Swal.showLoading(); }
       });
 
-      safeFetchJson('/api/upload', {
+      safeFetchJson('/api/upload-compare-file', {
         method: 'POST',
         body: formData
       })
