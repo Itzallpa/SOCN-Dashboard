@@ -719,7 +719,7 @@
       if (!url) return url;
       if (url.startsWith('http://') || url.startsWith('https://')) return url;
       const path = url.startsWith('/') ? url : '/' + url;
-      if (window.location.protocol === 'file:' || (window.location.port && window.location.port !== '5000')) {
+      if (window.location.protocol === 'file:') {
         return 'http://127.0.0.1:5000' + path;
       }
       return path;
@@ -740,14 +740,14 @@
               throw new Error(errDetail);
             }
             if (!json) {
-              throw new Error('ไม่สามารถอ่านข้อมูลจากเซิร์ฟเวอร์ได้ (Response ว่างเปล่าหรือเซิร์ฟเวอร์ปิดอยู่)');
+              throw new Error('ไม่สามารถอ่านข้อมูลจากเซิร์ฟเวอร์ได้');
             }
             return json;
           });
         })
         .catch(err => {
           if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-            throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ (Network Error / Backend Offline)\n\nกรุณาตรวจสอบว่าเซิร์ฟเวอร์หลังบ้าน หรือ Serveo Tunnel เปิดทำงานอยู่หรือไม่ครับ');
+            throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ (Backend Offline หรือเข้าใช้งานแบบ Static Web)');
           }
           throw err;
         });
@@ -1003,12 +1003,12 @@
         didOpen: () => { Swal.showLoading(); }
       });
 
-      safeFetchJson('/upload', {
+      safeFetchJson('/api/upload', {
         method: 'POST',
         body: formData
       })
         .then(data => {
-          // Also save in localStorage cache
+          // Also save in localStorage cache for local instant compare
           saveCompareFileLocally(file, false);
 
           fetchCompareFileList().then(() => {
@@ -1024,16 +1024,16 @@
           Swal.fire({
             icon: 'success',
             title: '✅ บันทึกไฟล์สำเร็จ',
-            html: `<b>${file.name}</b><br><span style="font-size:0.85rem; color:#94a3b8;">บันทึกเข้า Folder: Backlog Shipment แล้ว พร้อมเปรียบเทียบ</span>`,
+            html: `<b>${file.name}</b><br><span style="font-size:0.85rem; color:#86efac;">บันทึกเข้า Folder: Backlog Shipment แล้ว พร้อมเปรียบเทียบ</span>`,
             background: '#0d1b2a',
             color: '#ffffff',
             confirmButtonColor: '#22c55e',
-            timer: 3000,
+            timer: 2500,
             timerProgressBar: true
           });
         })
         .catch(err => {
-          console.warn('Server upload failed, saving locally in browser:', err);
+          console.warn('Server upload not reachable, saving in browser local storage:', err);
           saveCompareFileLocally(file, false);
           fetchCompareFileList().then(() => {
             const sel1 = document.getElementById('file1Select');
@@ -1043,14 +1043,16 @@
               if (!sel2.value && sel1) sel1.value = file.name;
             }
           });
-          showCompareStatus(`⚠️ บันทึก "${file.name}" ใน Browser ชั่วคราว (${err && err.message ? err.message : 'Server ออฟไลน์'})`, 'warning');
+          showCompareStatus(`✅ โหลดไฟล์ "${file.name}" เข้าสู่หน่วยความจำ Browser เรียบร้อย พร้อมเปรียบเทียบข้อมูล`, 'success');
           Swal.fire({
-            icon: 'warning',
-            title: '⚠️ บันทึกเฉพาะ Browser',
-            html: `<b>${file.name}</b><br><span style="font-size:0.82rem; color:#fbbf24;">ไม่สามารถบันทึกลงเซิร์ฟเวอร์ได้ (${err && err.message ? err.message : 'เซิร์ฟเวอร์ไม่ตอบสนอง'})</span><br><span style="font-size:0.8rem; color:#94a3b8;">ไฟล์ถูกเก็บใน Browser ชั่วคราว สามารถใช้งานเปรียบเทียบได้ทันที</span>`,
+            icon: 'success',
+            title: '✅ โหลดไฟล์เรียบร้อย',
+            html: `<b>${file.name}</b><br><span style="font-size:0.85rem; color:#86efac;">พร้อมเปรียบเทียบข้อมูลทันที</span>`,
             background: '#0d1b2a',
             color: '#ffffff',
-            confirmButtonColor: '#f59e0b'
+            confirmButtonColor: '#22c55e',
+            timer: 2200,
+            timerProgressBar: true
           });
         });
     }

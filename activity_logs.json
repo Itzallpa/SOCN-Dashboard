@@ -1,5 +1,15 @@
 [
   {
+    "id": "c8e517e9",
+    "timestamp": "2026-09-05 13:07:54",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "IDLE_AUTO_LOGOUT",
+    "details": "ไม่มีการใช้งานเกิน 1 ชั่วโมง (Idle Timeout)",
+    "ip": "127.0.0.1"
+  },
+  {
     "id": "3f73f7f9",
     "timestamp": "2026-09-04 23:01:06",
     "email": "guest",
