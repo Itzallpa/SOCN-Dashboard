@@ -803,8 +803,8 @@
         .then(data => {
           const serverFiles = data.files || [];
           const combinedMap = new Map();
-          serverFiles.forEach(f => combinedMap.set(f.filename, f.filename));
           localList.forEach(f => combinedMap.set(f.filename, `${f.filename} (Local)`));
+          serverFiles.forEach(f => combinedMap.set(f.filename, f.filename));
 
           if (combinedMap.size === 0) {
             select1.innerHTML = '<option value="">-- ไม่พบไฟล์ใน Backlog Shipment --</option>';
