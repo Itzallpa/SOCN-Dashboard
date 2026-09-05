@@ -1,1484 +1,1020 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
-  <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OB Backlog Compare - SOC Operations Portal</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <title>OB Backlog Compare Dashboard | SOC Operations</title>
+  
+  <!-- CSS Frameworks & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  
+  <!-- Libraries for Data & Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
     :root {
-      --ink: #1a1d29;
-      --ink-soft: #64748b;
-      --line: #e2e8f0;
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --accent: #2563eb;
-      --accent2: #1d4ed8;
-      --accent-soft: #eff6ff;
-      --green: #0f9d58;
-      --green-bg: #e3f8ea;
-      --red: #d0311d;
-      --red-bg: #fdece8;
-      --amber: #b7791f;
-      --amber-bg: #fdf3dc;
-      --radius: 14px;
+      --primary-color: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary-color: #0f172a;
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --danger-color: #ef4444;
+      --warning-color: #f59e0b;
+      --success-color: #10b981;
     }
 
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
     body {
-      margin: 0;
-      padding: 0;
-      background: var(--bg);
-      color: var(--ink);
-      font-family: 'Segoe UI', Tahoma, 'Noto Sans Thai', 'Sarabun', Arial, sans-serif;
-      font-size: 14px;
+      background-color: var(--bg-color);
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      color: var(--text-main);
+      padding-bottom: 40px;
     }
 
-    .app {
-      min-height: 100vh;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      max-width: 1600px;
-      margin: 0 auto;
+    /* Card Styling */
+    .card-custom {
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+      margin-bottom: 16px;
+      padding: 16px 20px;
+      transition: box-shadow 0.2s ease;
+    }
+    .card-custom:hover {
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.07);
     }
 
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      flex-wrap: wrap;
-      background: linear-gradient(120deg, #0d1b2a, #1e293b);
-      border-radius: var(--radius);
-      padding: 16px 22px;
-      color: #fff;
-      box-shadow: 0 8px 20px -8px rgba(13, 27, 42, .4);
-    }
-
-    h1 {
-      font-size: 21px;
-      margin: 0 0 2px;
-      font-weight: 800;
-      color: #ffffff;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .subtitle {
-      color: #94a3b8;
-      font-size: 12.5px;
-    }
-
-    button {
-      font: inherit;
-      cursor: pointer;
-      border-radius: 8px;
-      border: none;
-      padding: 8px 16px;
-      font-weight: 700;
-      background: #fff;
-      color: var(--accent);
-      transition: all 0.2s;
-    }
-
-    button:hover {
-      opacity: 0.92;
-      transform: translateY(-1px);
-    }
-
-    button:disabled {
-      opacity: .6;
-      cursor: wait;
-      transform: none;
-    }
-
-    .export-btn {
-      background: linear-gradient(120deg, #1a1d29, #3a3f58);
-      color: #fff;
-    }
-
-    .export-btn:hover {
-      background: linear-gradient(120deg, #23273a, #454b68);
-    }
-
-    .kpi-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-    }
-
-    @media (max-width: 900px) {
-      .kpi-row {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
+    /* KPI Cards */
     .kpi-card {
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 16px 18px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, .04);
+      border-radius: 12px;
+      background: #ffffff;
       border-left: 5px solid #cbd5e1;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+      padding: 16px 18px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease;
     }
-
     .kpi-card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, .08);
     }
+    .kpi-danger { border-left-color: var(--danger-color); }
+    .kpi-warning { border-left-color: var(--warning-color); }
+    .kpi-blue { border-left-color: var(--primary-color); }
+    .kpi-purple { border-left-color: #8b5cf6; }
 
-    .kpi-card.kpi-red { border-left-color: var(--red); }
-    .kpi-card.kpi-blue { border-left-color: var(--accent); }
-    .kpi-card.kpi-green { border-left-color: var(--green); }
-    .kpi-card.kpi-amber { border-left-color: var(--amber); }
-
-    .kpi-label {
-      font-size: 11.5px;
+    .kpi-title {
+      font-size: 0.78rem;
       font-weight: 700;
-      color: var(--ink-soft);
+      color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: .4px;
+      letter-spacing: 0.5px;
       margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
     }
-
     .kpi-value {
-      font-size: 26px;
+      font-size: 1.85rem;
       font-weight: 800;
       color: #0f172a;
       line-height: 1.1;
     }
-
-    .kpi-sub {
-      font-size: 12px;
-      color: var(--ink-soft);
-      margin-top: 5px;
+    .kpi-subtext {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+    .kpi-icon {
+      position: absolute;
+      right: 16px;
+      top: 18px;
+      font-size: 2rem;
+      opacity: 0.12;
     }
 
-    .card {
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 18px 20px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, .04);
-      border: 1px solid var(--line);
+    /* Table Customization */
+    .table-custom {
+      font-size: 0.86rem;
+      vertical-align: middle;
     }
-
-    .card-title-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-
-    .card-title {
-      font-size: 15px;
-      font-weight: 800;
-      color: #0f172a;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .card-sub {
-      font-size: 12.5px;
-      color: var(--ink-soft);
-      margin-top: 2px;
-    }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    @media (max-width: 992px) {
-      .grid-2 {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .table-wrap {
-      overflow-x: auto;
-    }
-
-    table.pivot {
-      border-collapse: collapse;
-      width: 100%;
-      font-size: 13px;
-    }
-
-    table.pivot th,
-    table.pivot td {
-      padding: 9px 12px;
-      border-bottom: 1px solid var(--line);
-      text-align: left;
+    .table-custom th {
+      background-color: #0f172a;
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      padding: 10px 12px;
       white-space: nowrap;
     }
-
-    table.pivot thead th {
-      background: var(--accent-soft);
-      color: var(--accent);
-      font-weight: 800;
-      position: sticky;
-      top: 0;
-      z-index: 10;
+    .table-custom td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .table-custom tbody tr:hover {
+      background-color: #f8fafc;
     }
 
-    table.pivot tbody tr:hover td {
-      background: var(--accent-soft);
-    }
-
-    .badge-tag {
-      padding: 3px 8px;
+    /* Action Badges */
+    .badge-action {
+      padding: 4px 8px;
       border-radius: 6px;
-      font-size: 11px;
-      font-weight: 700;
+      font-size: 0.75rem;
+      font-weight: 600;
       display: inline-block;
     }
+    .badge-packed { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+    .badge-linehaul { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .badge-rework { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .badge-other { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
 
-    .badge-red {
-      background: var(--red-bg);
-      color: var(--red);
-    }
-
-    .badge-amber {
-      background: var(--amber-bg);
-      color: var(--amber);
-    }
-
-    .badge-blue {
-      background: var(--accent-soft);
-      color: var(--accent);
-    }
-
-    .badge-green {
-      background: var(--green-bg);
-      color: var(--green);
-    }
-
-    .form-select, .form-input {
-      padding: 7px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--line);
-      background: #ffffff;
-      color: var(--ink);
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .form-select:focus, .form-input:focus {
-      border-color: var(--accent);
-    }
-
-    /* Loader */
-    .state-msg {
-      padding: 30px 20px 10px;
+    /* Dropzone Styling */
+    .dropzone-box {
+      border: 2px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 24px 16px;
       text-align: center;
-      color: var(--ink-soft);
-    }
-
-    .truck-loader {
-      padding: 6px 0 2px;
-    }
-
-    .truck-track {
-      position: relative;
-      width: 240px;
-      height: 78px;
-      margin: 0 auto 12px;
-    }
-
-    .road-line {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 16px;
-      height: 4px;
-      border-radius: 2px;
-      background-image: repeating-linear-gradient(90deg, var(--accent) 0 16px, transparent 16px 30px);
-      animation: roadMove .55s linear infinite;
-    }
-
-    @keyframes roadMove {
-      from { background-position: 0 0; }
-      to { background-position: -46px 0; }
-    }
-
-    .truck-svg {
-      position: absolute;
-      bottom: 14px;
-      left: 50%;
-      width: 96px;
-      height: 60px;
-      transform: translateX(-50%);
-      animation: truckBounce 1.3s ease-in-out infinite;
-      filter: drop-shadow(0 4px 4px rgba(37, 99, 235, .25));
-    }
-
-    @keyframes truckBounce {
-      0%, 100% { transform: translateX(-50%) translateY(0); }
-      50% { transform: translateX(-50%) translateY(-3px); }
-    }
-
-    .truck-wheel {
-      animation: wheelSpin .45s linear infinite;
-    }
-
-    @keyframes wheelSpin {
-      to { transform: rotate(360deg); }
-    }
-
-    .truck-loader-text {
-      font-weight: 700;
-      color: var(--accent);
-      font-size: 13.5px;
-    }
-    /* Alert Status Box */
-    .alert {
-      padding: 10px 16px;
-      border-radius: 8px;
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    .alert-info {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      color: #1e40af;
-    }
-    .alert-success {
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      color: #166534;
-    }
-    .alert-danger {
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      color: #991b1b;
-    }
-    .alert-warning {
-      background: #fffbeb;
-      border: 1px solid #fde68a;
-      color: #92400e;
-    }
-    .alert-primary {
-      background: #eff6ff;
-      border: 1px solid #93c5fd;
-      color: #1d4ed8;
-    }
-    .btn-close {
-      background: none;
-      border: none;
-      font-size: 14px;
+      background: #f8fafc;
       cursor: pointer;
-      color: inherit;
-      opacity: 0.7;
-      padding: 0 4px;
+      transition: all 0.2s ease;
     }
-    .btn-close:hover {
-      opacity: 1;
+    .dropzone-box:hover, .dropzone-box.dragover {
+      border-color: var(--primary-color);
+      background: #eff6ff;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 992px) {
+      .kpi-value { font-size: 1.45rem !important; }
+      .card-custom { padding: 12px !important; }
     }
   </style>
 </head>
-
 <body>
 
   <!-- Top Navigation Header -->
-  <nav
-    style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:1020;">
-    <a href="index.html"
-      style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
+  <nav style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:1020;">
+    <a href="index.html" style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
       <span style="font-size:1.4rem;">📦</span> SOC Operations Portal
     </a>
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-      <a href="index.html"
-        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠
-        Portal Hub</a>
-      <a href="investigation.html"
-        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚀
-        Investigation</a>
-      <a href="skip_process.html"
-        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📦
-        Skip Monitor</a>
-      <a href="cutoff_master.html"
-        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰
-        Cutoff Master</a>
-      <a href="lh_trip.html"
-        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚
-        LH Trip & OB Late</a>
-      <a href="ob_bl.html"
-        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊
-        OB Backlog (OB BL)</a>
-      <a href="ob_bl_compare.html"
-        style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">🔀
-        OB Backlog Compare</a>
+      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠 Portal Hub</a>
+      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚀 Investigation</a>
+      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📦 Skip Monitor</a>
+      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff Master</a>
+      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
+      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
+      <a href="ob_bl_compare.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">🔀 OB Backlog Compare</a>
     </div>
   </nav>
+
+  <!-- Role & Auth Guard Script -->
   <script src="auth_guard.js"></script>
 
-  <div class="app">
+  <div class="container-fluid px-3 py-3" style="max-width: 1600px; margin: 0 auto;">
 
-    <!-- Header Banner & Controls -->
-    <header>
+    <!-- Header Banner & File Selector Controls (Same layout & logic as investigation.html) -->
+    <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-3 rounded-3 shadow-sm border flex-wrap gap-2">
       <div>
-        <h1><i class="fa-solid fa-code-compare" style="color:#60a5fa;"></i> OB Backlog Compare Dashboard</h1>
-        <div class="subtitle" id="subtitle">ระบบเปรียบเทียบหาพัสดุค้างซ้ำข้ามรอบ (Detecting Stuck Backlog Across Snapshots)</div>
+        <h4 class="fw-bold mb-1 text-slate-800 d-flex align-items-center gap-2">
+          <i class="fa-solid fa-code-compare text-primary"></i> 
+          <span>OB Backlog Compare (ระบบตรวจจับพัสดุตกค้างซ้ำข้ามรอบ)</span>
+        </h4>
+        <p class="text-muted small mb-0">
+          เปรียบเทียบ Snapshot พัสดุ Outbound Backlog สองช่วงเวลาเพื่อค้นหาพัสดุที่ยังคงค้างซ้ำ (Stuck Backlog) ไม่ถูกระบายออก
+        </p>
       </div>
 
-      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-        <label class="btn btn-primary btn-sm fw-bold mb-0" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:8px; font-size:13px; background:#10b981; color:#fff; border:none; box-shadow:0 4px 10px rgba(16,185,129,0.3);">
-          <i class="fa-solid fa-upload"></i> อัปโหลด CSV/Excel เข้า Backlog Shipment
-          <input type="file" id="compareFileInput" accept=".csv, .xlsx, .xls" style="display:none;" onchange="handleCompareFileUpload(this.files[0])">
+      <!-- Action Toolbar -->
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <label class="btn btn-primary btn-sm fw-bold mb-0 shadow-sm" style="cursor:pointer;">
+          <i class="fa-solid fa-cloud-arrow-up me-1"></i> อัปโหลดเข้าโฟลเดอร์ Backlog Shipment
+          <input type="file" id="compareFileInput" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleFileUpload(this.files[0])">
         </label>
-
-        <button onclick="handleLocalCompareUpload()"
-          style="background:#8b5cf6; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px; font-size:13px; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 10px rgba(139,92,246,0.3);">
-          <i class="fa-solid fa-file-csv"></i> ⚡ เปรียบเทียบไฟล์สด (Browser)
+        <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="fetchCompareFileList()" title="รีเฟรชรายชื่อไฟล์">
+          <i class="fa-solid fa-arrows-rotate"></i>
         </button>
-
-        <div style="display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.12);">
-          <span style="font-size:12px; color:#cbd5e1; font-weight:700;"><i class="fa-solid fa-file-invoice text-info"></i> รอบ 1:</span>
-          <select id="file1Select" class="form-select" style="max-width:210px; background:#1e293b; color:#fff; border-color:rgba(255,255,255,0.2); font-weight:700; font-size:12.5px;">
-            <option value="">-- เลือกไฟล์รอบแรก --</option>
-          </select>
-        </div>
-
-        <div style="display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.12);">
-          <span style="font-size:12px; color:#cbd5e1; font-weight:700;"><i class="fa-solid fa-file-invoice text-success"></i> รอบ 2:</span>
-          <select id="file2Select" class="form-select" style="max-width:210px; background:#1e293b; color:#fff; border-color:rgba(255,255,255,0.2); font-weight:700; font-size:12.5px;">
-            <option value="">-- เลือกไฟล์รอบล่าสุด --</option>
-          </select>
-        </div>
-
-        <button onclick="startObBlComparison()"
-          style="background:#2563eb; color:#fff; font-weight:700; border:none; padding:8px 16px; border-radius:8px; font-size:13px; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 10px rgba(37,99,235,0.4);">
-          <i class="fa-solid fa-bolt"></i> ⚡ เปรียบเทียบ
-        </button>
-
-        <button onclick="deleteSelectedCompareFile()"
-          style="background:rgba(239,68,68,0.15); color:#fca5a5; font-weight:700; border:1px solid rgba(239,68,68,0.4); padding:8px 12px; border-radius:8px; font-size:12.5px; display:inline-flex; align-items:center; gap:5px;" title="ลบไฟล์ที่เลือกในรายการออกจาก Backlog Shipment">
-          <i class="fa-solid fa-trash"></i> ลบไฟล์ที่เลือก
-        </button>
-      </div>
-    </header>
-
-    <div id="compareUploadStatus" class="mb-3" style="display:none;"></div>
-
-    <!-- Truck Loader -->
-    <div id="stateMsg" class="state-msg" style="display:none;">
-      <div class="truck-loader">
-        <div class="truck-track">
-          <div class="road-line"></div>
-          <svg class="truck-svg" viewBox="0 0 96 60" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="16" width="50" height="26" rx="4" fill="#2563eb" />
-            <path d="M52 22 L72 22 L84 34 L84 42 L52 42 Z" fill="#3b82f6" />
-            <rect x="57" y="25" width="15" height="11" rx="2" fill="#dbeafe" />
-            <g class="truck-wheel" style="transform-origin: 18px 46px;">
-              <circle cx="18" cy="46" r="8" fill="#2b2b2b" />
-              <rect x="17" y="39.5" width="2" height="13" rx="1" fill="#8a8a8a" />
-              <rect x="11.5" y="45" width="13" height="2" rx="1" fill="#8a8a8a" />
-              <circle cx="18" cy="46" r="2.5" fill="#e6e6e6" />
-            </g>
-            <g class="truck-wheel" style="transform-origin: 68px 46px;">
-              <circle cx="68" cy="46" r="8" fill="#2b2b2b" />
-              <rect x="67" y="39.5" width="2" height="13" rx="1" fill="#8a8a8a" />
-              <rect x="61.5" y="45" width="13" height="2" rx="1" fill="#8a8a8a" />
-              <circle cx="68" cy="46" r="2.5" fill="#e6e6e6" />
-            </g>
-          </svg>
-        </div>
-        <div class="truck-loader-text">กำลังเปรียบเทียบประมวลผลพัสดุค้างซ้ำ…</div>
       </div>
     </div>
 
-    <!-- Main Content Container -->
-    <div id="content" style="display:flex; flex-direction:column; gap:14px;">
+    <!-- File Selection Panel -->
+    <div class="card-custom mb-3 bg-white">
+      <div class="row g-3 align-items-center">
+        <!-- File 1 Selector -->
+        <div class="col-lg-4 col-md-6">
+          <label class="form-label small fw-bold text-muted mb-1">
+            <i class="fa-solid fa-file-lines text-primary me-1"></i> ไฟล์รอบแรก (File 1 - Base Snapshot)
+          </label>
+          <div class="input-group input-group-sm">
+            <select class="form-select" id="fileSelect1" onchange="onFileSelectionChanged()">
+              <option value="">-- เลือกไฟล์รอบแรก --</option>
+            </select>
+            <button class="btn btn-outline-danger" type="button" onclick="deleteSelectedFile('fileSelect1')" title="ลบไฟล์นี้ออกจาก Backlog Shipment">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Swap Button -->
+        <div class="col-lg-1 col-md-12 text-center d-flex justify-content-center align-items-end">
+          <button class="btn btn-outline-secondary btn-sm rounded-circle p-2 mt-lg-3" onclick="swapFiles()" title="สลับไฟล์ File 1 <-> File 2" style="width: 36px; height: 36px;">
+            <i class="fa-solid fa-right-left"></i>
+          </button>
+        </div>
+
+        <!-- File 2 Selector -->
+        <div class="col-lg-4 col-md-6">
+          <label class="form-label small fw-bold text-muted mb-1">
+            <i class="fa-solid fa-file-circle-check text-success me-1"></i> ไฟล์รอบสอง (File 2 - Compare Snapshot)
+          </label>
+          <div class="input-group input-group-sm">
+            <select class="form-select" id="fileSelect2" onchange="onFileSelectionChanged()">
+              <option value="">-- เลือกไฟล์รอบสอง --</option>
+            </select>
+            <button class="btn btn-outline-danger" type="button" onclick="deleteSelectedFile('fileSelect2')" title="ลบไฟล์นี้ออกจาก Backlog Shipment">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Compare Action Button -->
+        <div class="col-lg-3 col-md-12 text-lg-end pt-lg-3">
+          <button class="btn btn-success btn-sm fw-bold px-3 py-2 w-100 shadow-sm" id="btnRunCompare" onclick="executeCompare()">
+            <i class="fa-solid fa-bolt me-1"></i> ประมวลผลเปรียบเทียบข้อมูล
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Notification Bar -->
+    <div id="uploadStatusBanner" class="mb-3"></div>
+
+    <!-- Dashboard Content Area -->
+    <div id="compareResultsArea" style="display: none;">
 
       <!-- KPI Summary Cards -->
-      <div class="kpi-row" id="kpiRow">
-        <div class="kpi-card kpi-red">
-          <div class="kpi-label"><i class="fa-solid fa-triangle-exclamation text-danger"></i> พัสดุค้างซ้ำ (Duplicate Backlog)</div>
-          <div class="kpi-value" id="kpiDuplicateCount" style="color:var(--red);">0</div>
-          <div class="kpi-sub" id="kpiDuplicateSub">พัสดุที่ค้างซ้ำทั้ง 2 รอบ (ยังไม่ได้ออก)</div>
-        </div>
-
-        <div class="kpi-card kpi-blue">
-          <div class="kpi-label"><i class="fa-solid fa-file-csv text-primary"></i> ยอด OB BL รอบแรก (File 1)</div>
-          <div class="kpi-value" id="kpiFile1Count" style="color:var(--accent);">0</div>
-          <div class="kpi-sub" id="kpiFile1Name">File 1</div>
-        </div>
-
-        <div class="kpi-card kpi-green">
-          <div class="kpi-label"><i class="fa-solid fa-file-excel text-success"></i> ยอด OB BL รอบล่าสุด (File 2)</div>
-          <div class="kpi-value" id="kpiFile2Count" style="color:var(--green);">0</div>
-          <div class="kpi-sub" id="kpiFile2Name">File 2</div>
-        </div>
-
-        <div class="kpi-card kpi-amber">
-          <div class="kpi-label"><i class="fa-solid fa-percent text-warning"></i> อัตราค้างซ้ำสะสม (% Stuck Rate)</div>
-          <div class="kpi-value" id="kpiStuckPct" style="color:var(--amber);">0%</div>
-          <div class="kpi-sub">สัดส่วนเทียบกับรอบแรก</div>
-        </div>
-      </div>
-
-      <!-- Breakdown Grid -->
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title-row">
-            <div>
-              <div class="card-title"><i class="fa-solid fa-warehouse" style="color:var(--accent);"></i> Station ที่มีพัสดุค้างซ้ำมากที่สุด (Top Stations)</div>
-              <div class="card-sub">จำแนกตามสถานีปลายทางที่ตรวจพบพัสดุค้างซ้ำ</div>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table class="pivot" id="stationTable">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Station ปลายทาง</th>
-                  <th style="text-align:right;">จำนวนพัสดุค้างซ้ำ</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td colspan="3" style="text-align:center; color:var(--ink-soft);">ยังไม่ได้เลือกเปรียบเทียบไฟล์</td></tr>
-              </tbody>
-            </table>
+      <div class="row g-3 mb-4">
+        <!-- Stuck Count -->
+        <div class="col-xl-3 col-md-6">
+          <div class="kpi-card kpi-danger">
+            <i class="fa-solid fa-triangle-exclamation kpi-icon text-danger"></i>
+            <div class="kpi-title">พัสดุตกค้างสะสมซ้ำ (STUCK BACKLOG)</div>
+            <div class="kpi-value text-danger" id="kpiStuckCount">0</div>
+            <div class="kpi-subtext">พัสดุที่มีรหัสซ้ำกันทั้งใน File 1 และ File 2</div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-title-row">
-            <div>
-              <div class="card-title"><i class="fa-solid fa-list-check" style="color:var(--amber);"></i> สรุปตาม Action Flag</div>
-              <div class="card-sub">จำแนกพัสดุค้างซ้ำตามสถานะการทำงาน</div>
-            </div>
+        <!-- Stuck Rate -->
+        <div class="col-xl-3 col-md-6">
+          <div class="kpi-card kpi-warning">
+            <i class="fa-solid fa-percent kpi-icon text-warning"></i>
+            <div class="kpi-title">อัตราการตกค้างสะสม (% STUCK RATE)</div>
+            <div class="kpi-value text-warning" id="kpiStuckRate">0.0%</div>
+            <div class="kpi-subtext" id="kpiStuckRateSub">เทียบกับยอด OB Backlog รอบแรก</div>
           </div>
-          <div class="table-wrap">
-            <table class="pivot" id="actionTable">
-              <thead>
-                <tr>
-                  <th>Action Flag</th>
-                  <th style="text-align:right;">จำนวนพัสดุค้างซ้ำ</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td colspan="2" style="text-align:center; color:var(--ink-soft);">ยังไม่ได้เลือกเปรียบเทียบไฟล์</td></tr>
-              </tbody>
-            </table>
+        </div>
+
+        <!-- File 1 Total OB BL -->
+        <div class="col-xl-3 col-md-6">
+          <div class="kpi-card kpi-blue">
+            <i class="fa-solid fa-box-archive kpi-icon text-primary"></i>
+            <div class="kpi-title">ยอด OB BACKLOG รอบแรก (FILE 1)</div>
+            <div class="kpi-value text-primary" id="kpiFile1Count">0</div>
+            <div class="kpi-subtext" id="kpiFile1Name">Base Snapshot</div>
+          </div>
+        </div>
+
+        <!-- File 2 Total OB BL -->
+        <div class="col-xl-3 col-md-6">
+          <div class="kpi-card kpi-purple">
+            <i class="fa-solid fa-boxes-stacked kpi-icon text-purple"></i>
+            <div class="kpi-title">ยอด OB BACKLOG รอบสอง (FILE 2)</div>
+            <div class="kpi-value" style="color:#7c3aed;" id="kpiFile2Count">0</div>
+            <div class="kpi-subtext" id="kpiFile2Name">Compare Snapshot</div>
           </div>
         </div>
       </div>
 
-      <!-- Datatable Details Card -->
-      <div class="card">
-        <div class="card-title-row">
+      <!-- Charts & Visual Analytics Row -->
+      <div class="row g-3 mb-4">
+        <!-- Top Stations Chart -->
+        <div class="col-lg-8">
+          <div class="card-custom h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="fw-bold text-slate-800 mb-0">
+                <i class="fa-solid fa-chart-column text-primary me-2"></i> Top 15 สถานีปลายทางที่มีพัสดุค้างซ้ำสูงสุด (Stations)
+              </h6>
+              <span class="badge bg-light text-dark border">Top Stations</span>
+            </div>
+            <div style="position: relative; height: 280px;">
+              <canvas id="stationChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Breakdown Chart -->
+        <div class="col-lg-4">
+          <div class="card-custom h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="fw-bold text-slate-800 mb-0">
+                <i class="fa-solid fa-chart-pie text-success me-2"></i> สัดส่วนตาม Action Flag
+              </h6>
+              <span class="badge bg-light text-dark border">Actions</span>
+            </div>
+            <div style="position: relative; height: 240px;">
+              <canvas id="actionChart"></canvas>
+            </div>
+            <div id="actionLegendList" class="mt-2 small"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailed Duplicate Backlog Table -->
+      <div class="card-custom">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
           <div>
-            <div class="card-title"><i class="fa-solid fa-table-list" style="color:var(--red);"></i> ตารางรายการพัสดุตกค้างซ้ำ (Duplicate Backlog Details)</div>
-            <div class="card-sub" id="datatableSub">แสดงรายการ Tracking Number ที่ค้างซ้ำข้ามรอบ</div>
+            <h6 class="fw-bold text-slate-800 mb-1">
+              <i class="fa-solid fa-table-list text-primary me-2"></i> รายละเอียดพัสดุตกค้างซ้ำ (Duplicate Backlog Shipments)
+            </h6>
+            <div class="text-muted small" id="tableFilterSummary">แสดงรายการทั้งหมด</div>
           </div>
-          <button class="export-btn" onclick="exportDuplicateCsv()"><i class="fa-solid fa-download me-1"></i> ⇩ Export CSV (รายการพัสดุค้างซ้ำ)</button>
+
+          <!-- Table Controls -->
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <input type="text" id="tableSearchInput" class="form-control form-control-sm" placeholder="🔍 ค้นหา Tracking, สถานี..." style="width: 220px;" oninput="onFilterChanged()">
+            
+            <select id="stationFilterSelect" class="form-select form-select-sm" style="width: 170px;" onchange="onFilterChanged()">
+              <option value="">ทุกสถานีปลายทาง</option>
+            </select>
+
+            <select id="actionFilterSelect" class="form-select form-select-sm" style="width: 170px;" onchange="onFilterChanged()">
+              <option value="">ทุกประเภท Action</option>
+            </select>
+
+            <button class="btn btn-outline-success btn-sm fw-bold" onclick="exportDuplicateCSV()">
+              <i class="fa-solid fa-file-csv me-1"></i> Export CSV
+            </button>
+          </div>
         </div>
 
-        <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
-          <input type="text" id="searchInput" class="form-input" style="max-width:300px;" placeholder="🔍 ค้นหา Tracking / Station / Operator..." oninput="filterTable()">
-          <select id="stationFilter" class="form-select" style="max-width:200px;" onchange="filterTable()">
-            <option value="">-- ทุกสถานี --</option>
-          </select>
-          <select id="actionFilter" class="form-select" style="max-width:200px;" onchange="filterTable()">
-            <option value="">-- ทุก Action Flag --</option>
-          </select>
-        </div>
-
-        <div class="table-wrap">
-          <table class="pivot" id="duplicateDatatable">
-            <thead>
+        <!-- Table Responsive Container -->
+        <div class="table-responsive" style="max-height: 520px; overflow-y: auto;">
+          <table class="table table-custom table-hover table-bordered mb-0" id="duplicateTable">
+            <thead class="sticky-top">
               <tr>
-                <th>#</th>
-                <th>Tracking Number (Shipment ID)</th>
+                <th style="width: 50px;">#</th>
+                <th>Shipment ID (Tracking)</th>
+                <th>สถานีปลายทาง (Destination)</th>
                 <th>Action Flag</th>
-                <th>Station ปลายทาง</th>
-                <th>เวลาสแกนล่าสุด (File 1)</th>
-                <th>เวลาสแกนล่าสุด (File 2)</th>
+                <th>Timestamp (File 1)</th>
+                <th>Timestamp (File 2)</th>
                 <th>Day in SOC</th>
-                <th>Operator</th>
+                <th>ผู้ดำเนินการ (Operator)</th>
               </tr>
             </thead>
-            <tbody>
-              <tr><td colspan="8" style="text-align:center; color:var(--ink-soft);">กรุณาเลือกไฟล์และกดปุ่มเปรียบเทียบข้อมูล</td></tr>
+            <tbody id="duplicateTableBody">
+              <tr>
+                <td colspan="8" class="text-center py-4 text-muted">กำลังโหลดข้อมูล...</td>
+              </tr>
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination Controls -->
+        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2 small text-muted">
+          <div id="paginationInfo">แสดง 0 ถึง 0 จาก 0 รายการ</div>
+          <div class="d-flex align-items-center gap-1" id="paginationButtons"></div>
+        </div>
+
       </div>
 
+    </div>
+
+    <!-- Empty / Initial Guide State -->
+    <div id="initialGuideArea" class="card-custom text-center py-5">
+      <div style="max-width: 620px; margin: 0 auto;">
+        <i class="fa-solid fa-code-compare text-primary mb-3" style="font-size: 3.5rem; opacity: 0.85;"></i>
+        <h5 class="fw-bold text-slate-800 mb-2">ยินดีต้อนรับสู่ระบบ OB Backlog Compare</h5>
+        <p class="text-muted small mb-4">
+          กรุณาเลือกไฟล์รายงาน Outbound Backlog 2 รอบเวลาจาก Dropdown ด้านบน หรืออัปโหลดไฟล์รายงานใหม่ (CSV / Excel) เข้าสู่โฟลเดอร์ <code>Backlog Shipment</code> เพื่อเริ่มการวิเคราะห์เปรียบเทียบ
+        </p>
+        <div class="dropzone-box" onclick="document.getElementById('compareFileInput').click()">
+          <i class="fa-solid fa-cloud-arrow-up text-primary mb-2" style="font-size: 2rem;"></i>
+          <div class="fw-bold small text-dark">คลิกเพื่ออัปโหลดไฟล์รายงาน Outbound Backlog</div>
+          <div class="text-muted" style="font-size: 0.78rem;">รองรับไฟล์ .csv, .xlsx, .xls (บันทึกเข้าโฟลเดอร์ Backlog Shipment อัตโนมัติ)</div>
+        </div>
+      </div>
     </div>
 
   </div>
 
+  <!-- JavaScript Logic -->
   <script>
-    let compareResults = null;
-    let filteredDuplicates = [];
+    // Global State
+    let availableFiles = [];
+    let compareResultData = null;
+    let filteredRecords = [];
+    let currentPage = 1;
+    const pageSize = 50;
+    let stationChartInstance = null;
+    let actionChartInstance = null;
 
-    document.addEventListener('DOMContentLoaded', () => {
+    // Cache for client-side fallback parsing
+    const localFileRowsCache = {};
+
+    window.addEventListener('DOMContentLoaded', () => {
       fetchCompareFileList();
-      loadCachedCompareData();
     });
 
-    function safeSetLocalStorage(key, data) {
-      if (!key || !data) return;
-      try {
-        localStorage.setItem(key, JSON.stringify(data));
-      } catch (e) {
-        try {
-          if (data && data.duplicates && data.duplicates.length > 2000) {
-            const trimmed = { ...data, duplicates: data.duplicates.slice(0, 2000) };
-            localStorage.setItem(key, JSON.stringify(trimmed));
+    // =========================================================================
+    // 1. FILE LIST & FETCHING (Backlog Shipment Folder)
+    // =========================================================================
+    function fetchCompareFileList(autoSelectRecent = false) {
+      showStatus('กำลังโหลดรายชื่อไฟล์ใน Backlog Shipment...', 'loading');
+      
+      const p1 = safeFetchJson('/api/list-compare-files');
+      const p2 = safeFetchJson('/api/list-files');
+
+      Promise.allSettled([p1, p2])
+        .then(results => {
+          let files = [];
+          
+          if (results[0].status === 'fulfilled' && results[0].value && results[0].value.success) {
+            files = results[0].value.files || [];
+          } else if (results[1].status === 'fulfilled' && results[1].value && results[1].value.success) {
+            files = results[1].value.files || [];
           }
-        } catch (err) {}
-      }
-    }
 
-    function loadCachedCompareData() {
-      try {
-        const raw = localStorage.getItem('socn_ob_bl_compare_data');
-        if (raw) {
-          const data = JSON.parse(raw);
-          if (data && data.success) {
-            compareResults = data;
-            filteredDuplicates = data.duplicates || [];
-            document.getElementById('stateMsg').style.display = 'none';
-            renderKpis(data);
-            renderBreakdowns(data);
-            populateFilters(data);
-            renderDatatable(filteredDuplicates);
-            return;
+          availableFiles = files;
+          populateFileDropdowns(files);
+
+          if (files.length >= 2) {
+            showStatus(`✅ พร้อมเปรียบเทียบข้อมูล (พบ ${files.length} ไฟล์ในระบบ)`, 'success');
+            if (autoSelectRecent) {
+              document.getElementById('fileSelect1').value = files[1].filename;
+              document.getElementById('fileSelect2').value = files[0].filename;
+              executeCompare();
+            }
+          } else if (files.length === 1) {
+            showStatus(`พบ 1 ไฟล์ในระบบ กรุณาอัปโหลดอีก 1 ไฟล์เพื่อเปรียบเทียบ`, 'info');
+          } else {
+            showStatus('พร้อมสำหรับอัปโหลดไฟล์รายงาน Outbound Backlog เข้าสู่ระบบ', 'info');
           }
-        }
-      } catch (e) {
-        console.warn('Failed to load cached OB Backlog compare data:', e);
-      }
-
-      const defaultSampleData = {
-        success: true,
-        duplicate_count: 1482,
-        file1: { filename: 'SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv', ob_rows: 15420 },
-        file2: { filename: 'SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv', ob_rows: 14210 },
-        station_breakdown: {
-          '31 Hub Bangna-HUB': 412,
-          '14 Hub Wang Noi-HUB': 285,
-          '02 Hub Taling Chan-HUB': 198,
-          '45 Hub Sriracha-HUB': 145,
-          '08 Hub Pathum Thani-HUB': 120,
-          '19 Hub Phra Samut Chedi-HUB': 95,
-          '22 Hub Khlong Luang-HUB': 82,
-          '05 Hub Nonthaburi-HUB': 75,
-          '11 Hub Samut Prakan-HUB': 70
-        },
-        action_breakdown: {
-          '_03_pending_linehual_packed': 1050,
-          '_02_pending_packed': 312,
-          '_04_pending_reworked': 120
-        },
-        duplicates: [
-          { shipment_id: 'SPXTH04829104821', action_flag: '_03_pending_linehual_packed', station: '31 Hub Bangna-HUB', file1_timestamp: '2026-09-03 18:30:12', file2_timestamp: '2026-09-04 06:15:44', day_in_soc: '2', operator: 'AUTO_SYSTEM' },
-          { shipment_id: 'SPXTH04829104822', action_flag: '_03_pending_linehual_packed', station: '14 Hub Wang Noi-HUB', file1_timestamp: '2026-09-03 19:12:00', file2_timestamp: '2026-09-04 07:20:10', day_in_soc: '2', operator: 'OP_BANGNA_01' },
-          { shipment_id: 'SPXTH04829104823', action_flag: '_02_pending_packed', station: '02 Hub Taling Chan-HUB', file1_timestamp: '2026-09-03 20:05:30', file2_timestamp: '2026-09-04 08:00:15', day_in_soc: '1', operator: 'OP_TALING_02' },
-          { shipment_id: 'SPXTH04829104824', action_flag: '_04_pending_reworked', station: '45 Hub Sriracha-HUB', file1_timestamp: '2026-09-03 21:40:00', file2_timestamp: '2026-09-04 09:30:22', day_in_soc: '3', operator: 'OP_SRIRACHA' },
-          { shipment_id: 'SPXTH04829104825', action_flag: '_03_pending_linehual_packed', station: '08 Hub Pathum Thani-HUB', file1_timestamp: '2026-09-03 22:15:10', file2_timestamp: '2026-09-04 10:11:05', day_in_soc: '2', operator: 'AUTO_SYSTEM' }
-        ]
-      };
-
-      compareResults = defaultSampleData;
-      filteredDuplicates = defaultSampleData.duplicates;
-      renderKpis(defaultSampleData);
-      renderBreakdowns(defaultSampleData);
-      populateFilters(defaultSampleData);
-      renderDatatable(filteredDuplicates);
-    }
-
-    function getApiUrl(url) {
-      if (!url) return url;
-      if (url.startsWith('http://') || url.startsWith('https://')) return url;
-      const path = url.startsWith('/') ? url : '/' + url;
-      if (window.location.protocol === 'file:') {
-        return 'http://127.0.0.1:5000' + path;
-      }
-      return path;
-    }
-
-    function safeFetchJson(url, options) {
-      const fullUrl = getApiUrl(url);
-      return fetch(fullUrl, options)
-        .then(res => {
-          return res.text().then(text => {
-            let json = null;
-            try {
-              if (text && text.trim()) json = JSON.parse(text);
-            } catch (e) {}
-
-            if (!res.ok) {
-              const errDetail = json && json.error ? json.error : `เซิร์ฟเวอร์ตอบกลับ Error Status ${res.status}`;
-              throw new Error(errDetail);
-            }
-            if (!json) {
-              throw new Error('ไม่สามารถอ่านข้อมูลจากเซิร์ฟเวอร์ได้');
-            }
-            return json;
-          });
         })
         .catch(err => {
-          if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-            throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ (Backend Offline หรือเข้าใช้งานแบบ Static Web)');
-          }
-          throw err;
+          console.error(err);
+          showStatus('ไม่สามารถเชื่อมต่อรายชื่อไฟล์จากเซิร์ฟเวอร์ได้ กำลังทำงานในโหมด Browser Local', 'info');
         });
     }
 
-    function showCompareStatus(msg, type = 'info') {
-      const el = document.getElementById('compareUploadStatus');
-      if (!el) return;
-      if (!msg) {
-        el.innerHTML = '';
-        el.style.display = 'none';
-        return;
-      }
-      el.style.display = 'block';
-      let alertClass = 'alert-info';
-      let icon = '<i class="fa-solid fa-circle-info text-info"></i>';
-      if (type === 'success') {
-        alertClass = 'alert-success';
-        icon = '<i class="fa-solid fa-circle-check text-success"></i>';
-      } else if (type === 'error') {
-        alertClass = 'alert-danger';
-        icon = '<i class="fa-solid fa-triangle-exclamation text-danger"></i>';
-      } else if (type === 'warning') {
-        alertClass = 'alert-warning';
-        icon = '<i class="fa-solid fa-circle-exclamation text-warning"></i>';
-      } else if (type === 'loading') {
-        alertClass = 'alert-primary';
-        icon = '<i class="fa-solid fa-spinner fa-spin text-primary"></i>';
-      }
+    function populateFileDropdowns(files) {
+      const select1 = document.getElementById('fileSelect1');
+      const select2 = document.getElementById('fileSelect2');
 
-      el.innerHTML = `
-        <div class="alert ${alertClass}">
-          <div style="display:flex; align-items:center; gap:8px;">
-            ${icon}
-            <span>${msg}</span>
-          </div>
-          <button type="button" class="btn-close" onclick="showCompareStatus(null)" title="ปิด">✖</button>
-        </div>
-      `;
+      const val1 = select1.value;
+      const val2 = select2.value;
+
+      let optionsHtml = '<option value="">-- เลือกไฟล์รายงาน --</option>';
+      files.forEach(f => {
+        const sizeKb = f.size ? ` (${(f.size / 1024).toFixed(0)} KB)` : '';
+        optionsHtml += `<option value="${f.filename}">📄 ${f.filename}${sizeKb}</option>`;
+      });
+
+      select1.innerHTML = optionsHtml;
+      select2.innerHTML = optionsHtml;
+
+      if (val1 && files.some(f => f.filename === val1)) select1.value = val1;
+      if (val2 && files.some(f => f.filename === val2)) select2.value = val2;
     }
 
-    function fetchCompareFileList() {
-      const select1 = document.getElementById('file1Select');
-      const select2 = document.getElementById('file2Select');
+    function onFileSelectionChanged() {
+      const f1 = document.getElementById('fileSelect1').value;
+      const f2 = document.getElementById('fileSelect2').value;
 
-      let localList = [];
+      if (f1 && f2 && f1 !== f2) {
+        // Auto trigger or notify ready
+        showStatus(`พร้อมเปรียบเทียบระหว่าง "${f1}" และ "${f2}"`, 'info');
+      }
+    }
+
+    function swapFiles() {
+      const s1 = document.getElementById('fileSelect1');
+      const s2 = document.getElementById('fileSelect2');
+      const tmp = s1.value;
+      s1.value = s2.value;
+      s2.value = tmp;
+
+      if (s1.value && s2.value && s1.value !== s2.value) {
+        executeCompare();
+      }
+    }
+
+    // =========================================================================
+    // 2. UPLOAD LOGIC (Chunked Upload directly to Backlog Shipment folder)
+    // =========================================================================
+    async function handleFileUpload(file) {
+      if (!file) return;
+
+      const fn = file.name;
+      const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunks (completely bypasses Tunnel limit)
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+      showStatus(`กำลังอัปโหลด "${fn}" เข้าโฟลเดอร์ Backlog Shipment (0%)...`, 'loading');
+
       try {
-        const listRaw = localStorage.getItem('socn_local_compare_file_list');
-        if (listRaw) localList = JSON.parse(listRaw);
-      } catch (e) {}
+        for (let i = 0; i < totalChunks; i++) {
+          const start = i * CHUNK_SIZE;
+          const end = Math.min(start + CHUNK_SIZE, file.size);
+          const chunk = file.slice(start, end);
 
-      return safeFetchJson('/api/list-compare-files')
-        .then(data => {
-          const serverFiles = data.files || [];
-          const combinedMap = new Map();
-          localList.forEach(f => combinedMap.set(f.filename, `${f.filename} (Local)`));
-          serverFiles.forEach(f => combinedMap.set(f.filename, f.filename));
+          const formData = new FormData();
+          formData.append('chunk', chunk, fn);
+          formData.append('filename', fn);
+          formData.append('chunk_index', i);
+          formData.append('total_chunks', totalChunks);
 
-          if (combinedMap.size === 0) {
-            select1.innerHTML = '<option value="">-- ไม่พบไฟล์ใน Backlog Shipment --</option>';
-            select2.innerHTML = '<option value="">-- ไม่พบไฟล์ใน Backlog Shipment --</option>';
-            return;
+          const percent = Math.round(((i + 1) / totalChunks) * 100);
+          showStatus(`กำลังอัปโหลด "${fn}" เข้าโฟลเดอร์ Backlog Shipment... (${percent}%)`, 'loading');
+
+          const res = await safeFetchJson('/api/upload-compare-chunk', { method: 'POST', body: formData });
+          if (!res || !res.success) {
+            throw new Error(res ? res.error : 'Upload chunk failed');
           }
+        }
 
-          let optionsHtml = '<option value="">-- เลือกไฟล์รายงาน --</option>';
-          combinedMap.forEach((label, filename) => {
-            optionsHtml += `<option value="${filename}">${label}</option>`;
-          });
-
-          select1.innerHTML = optionsHtml;
-          select2.innerHTML = optionsHtml;
-
-          if (select1.options.length >= 3) {
-            select1.selectedIndex = 2;
-            select2.selectedIndex = 1;
-          } else if (select1.options.length === 2) {
-            select1.selectedIndex = 1;
-            select2.selectedIndex = 1;
-          }
-        })
-        .catch(() => {
-          if (localList.length > 0) {
-            let optionsHtml = '<option value="">-- เลือกไฟล์รายงาน (Local) --</option>';
-            localList.forEach(f => {
-              optionsHtml += `<option value="${f.filename}">📄 ${f.filename} (Local)</option>`;
-            });
-            select1.innerHTML = optionsHtml;
-            select2.innerHTML = optionsHtml;
-            if (localList.length >= 2) {
-              select1.selectedIndex = 2;
-              select2.selectedIndex = 1;
-            } else if (localList.length === 1) {
-              select1.selectedIndex = 1;
-              select2.selectedIndex = 1;
-            }
-          } else {
-            select1.innerHTML = '<option value="">-- ไม่พบไฟล์ (กรุณาเลือกไฟล์ CSV) --</option>';
-            select2.innerHTML = '<option value="">-- ไม่พบไฟล์ (กรุณาเลือกไฟล์ CSV) --</option>';
-          }
-        });
-    }
-
-    function saveCompareFileLocally(file, autoCompare = false) {
-      Papa.parse(file, {
-        skipEmptyLines: true,
-        complete: (results) => {
-          if (!results || !results.data || results.data.length < 2) {
-            Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูลในไฟล์', text: file.name, background: '#0d1b2a', color: '#ffffff' });
-            return;
-          }
-
-          const fileData = {
-            filename: file.name,
-            rows: results.data.slice(0, 10000),
-            uploadedAt: new Date().toISOString()
-          };
-
-          try {
-            localStorage.setItem(`socn_compare_file_${file.name}`, JSON.stringify(fileData));
-
-            let localList = [];
-            try {
-              const listRaw = localStorage.getItem('socn_local_compare_file_list');
-              if (listRaw) localList = JSON.parse(listRaw);
-            } catch (e) {}
-
-            if (!localList.some(item => item.filename === file.name)) {
-              localList.push({ filename: file.name, uploadedAt: new Date().toISOString() });
-              localStorage.setItem('socn_local_compare_file_list', JSON.stringify(localList));
-            }
-          } catch (e) {
-            console.warn('LocalStorage quota reached while saving file:', e);
-          }
-
-          fetchCompareFileList();
-
-          const select1 = document.getElementById('file1Select');
-          const select2 = document.getElementById('file2Select');
-          if (select2) {
-            select2.value = file.name;
-            if (!select2.value && select1) select1.value = file.name;
-          }
-
+        handleUploadSuccess(fn);
+      } catch (err) {
+        showStatus(`อัปโหลดล้มเหลว: ${err.message}`, 'error');
+        if (typeof Swal !== 'undefined') {
           Swal.fire({
-            icon: 'success',
-            title: 'บันทึกไฟล์เรียบร้อย! 🚀',
-            text: `ไฟล์ "${file.name}" พร้อมเปรียบเทียบในระบบเรียบร้อยแล้ว`,
-            timer: 2000,
-            showConfirmButton: false,
+            icon: 'error',
+            title: 'อัปโหลดล้มเหลว',
+            text: `เกิดข้อผิดพลาดในการส่งไฟล์: ${err.message}`,
             background: '#0d1b2a',
             color: '#ffffff'
           });
-
-          if (autoCompare && select1 && select2 && select1.value && select2.value) {
-            startObBlComparison();
-          }
-        },
-        error: (err) => {
-          Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการอ่านไฟล์', text: err.message, background: '#0d1b2a', color: '#ffffff' });
         }
-      });
-    }
-
-    function deleteSelectedCompareFile() {
-      const select1 = document.getElementById('file1Select');
-      const select2 = document.getElementById('file2Select');
-      const filename = (select2 && select2.value) ? select2.value : ((select1 && select1.value) ? select1.value : '');
-
-      if (!filename) {
-        Swal.fire({
-          title: 'กรุณาเลือกไฟล์',
-          text: 'กรุณาเลือกไฟล์ในรายการรอบ 1 หรือรอบ 2 ที่ต้องการลบก่อนครับ',
-          icon: 'info',
-          confirmButtonColor: '#2563eb',
-          background: '#0d1b2a',
-          color: '#fff'
-        });
-        return;
-      }
-
-      Swal.fire({
-        title: '⚠️ ยืนยันการลบไฟล์ถาวร?',
-        html: `คุณต้องการลบไฟล์ <b>"${filename}"</b> ออกจากโฟลเดอร์ Backlog Shipment ใช่หรือไม่?<br><span style="color:#ef4444; font-size:0.83rem; margin-top:6px; display:inline-block;">คำเตือน: ไฟล์จะถูกลบออกจากโฟลเดอร์ทันที</span>`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc2626',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'ใช่, ลบไฟล์ถาวร',
-        cancelButtonText: 'ยกเลิก',
-        background: '#0d1b2a',
-        color: '#ffffff'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          showCompareStatus(`กำลังลบไฟล์ "${filename}" ออกจากโฟลเดอร์...`, 'loading');
-          safeFetchJson('/api/delete-file', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: filename })
-          })
-            .then(data => {
-              if (data && data.success) {
-                showCompareStatus(`✅ ลบไฟล์ "${filename}" ออกจากโฟลเดอร์เรียบร้อยแล้ว`, 'success');
-                Swal.fire({
-                  title: 'ลบไฟล์สำเร็จ! 🗑️',
-                  text: `ลบไฟล์ "${filename}" ออกจากโฟลเดอร์ Backlog Shipment เรียบร้อยแล้ว`,
-                  icon: 'success',
-                  timer: 2000,
-                  showConfirmButton: false,
-                  background: '#0d1b2a',
-                  color: '#fff'
-                });
-              } else {
-                throw new Error((data && data.error) ? data.error : 'ไม่สามารถลบไฟล์ได้');
-              }
-            })
-            .catch(err => {
-              showCompareStatus(`ลบไฟล์จากเซิร์ฟเวอร์ไม่สำเร็จ (${err.message})`, 'warning');
-            })
-            .finally(() => {
-              try {
-                localStorage.removeItem(`socn_compare_file_${filename}`);
-                let localList = [];
-                const raw = localStorage.getItem('socn_local_compare_file_list');
-                if (raw) localList = JSON.parse(raw);
-                localList = localList.filter(f => f.filename !== filename);
-                localStorage.setItem('socn_local_compare_file_list', JSON.stringify(localList));
-              } catch (e) {}
-
-              fetchCompareFileList();
-            });
-        }
-      });
-    }
-
-    function handleCompareFileUpload(file) {
-      if (!file) return;
-
-      const input = document.getElementById('compareFileInput');
-      if (input) input.value = '';
-
-      showCompareStatus(`กำลังบันทึก "${file.name}" เข้าโฟลเดอร์ Backlog Shipment...`, 'loading');
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('scope', 'compare');
-
-      Swal.fire({
-        title: 'กำลังบันทึกไฟล์เข้า Backlog Shipment...',
-        html: `<b>${file.name}</b><br><span style="font-size:0.85rem; color:#94a3b8;">กำลังอัปโหลดเข้าเซิร์ฟเวอร์...</span>`,
-        allowOutsideClick: false,
-        background: '#0d1b2a',
-        color: '#ffffff',
-        didOpen: () => { Swal.showLoading(); }
-      });
-
-      safeFetchJson('/api/upload-compare-file', {
-        method: 'POST',
-        body: formData
-      })
-        .then(data => {
-          // Also save in localStorage cache for local instant compare
-          saveCompareFileLocally(file, false);
-
-          fetchCompareFileList().then(() => {
-            const sel1 = document.getElementById('file1Select');
-            const sel2 = document.getElementById('file2Select');
-            if (sel2) {
-              sel2.value = file.name;
-              if (!sel2.value && sel1) sel1.value = file.name;
-            }
-          });
-
-          showCompareStatus(`✅ บันทึก "${file.name}" เข้าโฟลเดอร์ Backlog Shipment เรียบร้อย!`, 'success');
-          Swal.fire({
-            icon: 'success',
-            title: '✅ บันทึกไฟล์สำเร็จ',
-            html: `<b>${file.name}</b><br><span style="font-size:0.85rem; color:#86efac;">บันทึกเข้า Folder: Backlog Shipment แล้ว พร้อมเปรียบเทียบ</span>`,
-            background: '#0d1b2a',
-            color: '#ffffff',
-            confirmButtonColor: '#22c55e',
-            timer: 2500,
-            timerProgressBar: true
-          });
-        })
-        .catch(err => {
-          console.warn('Server upload not reachable, saving in browser local storage:', err);
-          saveCompareFileLocally(file, false);
-          fetchCompareFileList().then(() => {
-            const sel1 = document.getElementById('file1Select');
-            const sel2 = document.getElementById('file2Select');
-            if (sel2) {
-              sel2.value = file.name;
-              if (!sel2.value && sel1) sel1.value = file.name;
-            }
-          });
-          showCompareStatus(`✅ โหลดไฟล์ "${file.name}" เข้าสู่หน่วยความจำ Browser เรียบร้อย พร้อมเปรียบเทียบข้อมูล`, 'success');
-          Swal.fire({
-            icon: 'success',
-            title: '✅ โหลดไฟล์เรียบร้อย',
-            html: `<b>${file.name}</b><br><span style="font-size:0.85rem; color:#86efac;">พร้อมเปรียบเทียบข้อมูลทันที</span>`,
-            background: '#0d1b2a',
-            color: '#ffffff',
-            confirmButtonColor: '#22c55e',
-            timer: 2200,
-            timerProgressBar: true
-          });
-        });
-    }
-
-    function handleUploadCompareFile(event) {
-      if (!event || !event.target || !event.target.files) return;
-      handleCompareFileUpload(event.target.files[0]);
-    }
-
-    function handleLocalCompareUpload() {
-      Swal.fire({
-        title: '🔀 เปรียบเทียบไฟล์ตรงบน Browser',
-        html: `
-          <div style="text-align:left; font-size:0.88rem; color:#cbd5e1; margin-bottom:12px;">
-            เลือกไฟล์รายงาน OB Backlog 2 ฉบับ (.csv) จากเครื่องคอมพิวเตอร์เพื่อเปรียบเทียบสด:
-          </div>
-          <div style="text-align:left; margin-bottom:10px;">
-            <label style="font-size:0.8rem; font-weight:700; color:#93c5fd; display:block; margin-bottom:4px;">1. ไฟล์รายงานรอบแรก (File 1 / Baseline):</label>
-            <input type="file" id="swalLocalFile1" class="swal2-file" accept=".csv" style="width:100%; font-size:0.85rem; background:#1e293b; color:#fff;">
-          </div>
-          <div style="text-align:left;">
-            <label style="font-size:0.8rem; font-weight:700; color:#86efac; display:block; margin-bottom:4px;">2. ไฟล์รายงานรอบล่าสุด (File 2 / Current):</label>
-            <input type="file" id="swalLocalFile2" class="swal2-file" accept=".csv" style="width:100%; font-size:0.85rem; background:#1e293b; color:#fff;">
-          </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: '⚡ ประมวลผลบน Browser ทันที',
-        cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#8b5cf6',
-        background: '#0d1b2a',
-        color: '#ffffff',
-        preConfirm: () => {
-          const f1 = document.getElementById('swalLocalFile1').files[0];
-          const f2 = document.getElementById('swalLocalFile2').files[0];
-          if (!f1 || !f2) {
-            Swal.showValidationMessage('กรุณาเลือกไฟล์ให้ครบทั้ง 2 ฉบับครับ');
-            return false;
-          }
-          return { file1: f1, file2: f2 };
-        }
-      }).then(res => {
-        if (res.isConfirmed && res.value) {
-          saveCompareFileLocally(res.value.file1);
-          saveCompareFileLocally(res.value.file2);
-          runBrowserFileComparison(res.value.file1, res.value.file2);
-        }
-      });
-    }
-
-    function parseCsvFilePromise(file) {
-      return new Promise((resolve, reject) => {
-        Papa.parse(file, {
-          skipEmptyLines: true,
-          complete: (results) => resolve(results.data),
-          error: (err) => reject(err)
-        });
-      });
-    }
-
-    async function runBrowserFileComparison(f1, f2) {
-      try {
-        const data1 = await parseCsvFilePromise(f1);
-        const data2 = await parseCsvFilePromise(f2);
-        runBrowserRowComparison(data1, data2, f1.name, f2.name);
-      } catch (err) {
-        document.getElementById('stateMsg').style.display = 'none';
-        Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการประมวลผล', text: err.message, background: '#0d1b2a', color: '#ffffff' });
       }
     }
 
-    function runBrowserRowComparison(data1, data2, filename1, filename2) {
-      document.getElementById('stateMsg').style.display = 'block';
-      try {
-        if (!data1 || data1.length < 2 || !data2 || data2.length < 2) {
-          throw new Error('ไฟล์ที่เลือกไม่มีข้อมูลเพียงพอสำหรับการเปรียบเทียบ');
-        }
-
-        const headers1 = data1[0].map(h => String(h || '').trim());
-        const rows1 = data1.slice(1);
-        const headers2 = data2[0].map(h => String(h || '').trim());
-        const rows2 = data2.slice(1);
-
-        const getColIndices = (headers) => {
-          const idx = {};
-          headers.forEach((h, i) => {
-            const hl = h.toLowerCase().replace(/_/g, ' ').trim();
-            if (hl.includes('shipment') || hl.includes('tracking') || hl === 'col 1' || i === 1) {
-              if (idx.shipment_id === undefined) idx.shipment_id = i;
-            }
-            if (hl.includes('action') || hl.includes('flag')) {
-              if (idx.action_flag === undefined) idx.action_flag = i;
-            }
-            if (hl.includes('timestamp') || hl.includes('time') || hl.includes('status time')) {
-              if (idx.latest_status_timestamp === undefined) idx.latest_status_timestamp = i;
-            }
-            if (hl.includes('day') || hl.includes('soc')) {
-              if (idx.day_in_soc === undefined) idx.day_in_soc = i;
-            }
-            if (hl.includes('station') || hl.includes('awb')) {
-              if (idx.latest_awb_station_name === undefined) idx.latest_awb_station_name = i;
-            }
-            if (hl.includes('operator') || hl.includes('user')) {
-              if (idx.latest_operator_name === undefined) idx.latest_operator_name = i;
-            }
-          });
-          return idx;
-        };
-
-        const idx1 = getColIndices(headers1);
-        const idx2 = getColIndices(headers2);
-
-        const obActions = ['_02_pending_packed', '_03_pending_linehual_packed', '_04_pending_reworked'];
-
-        const processRows = (rows, idx) => {
-          const mapOut = {};
-          let obCount = 0;
-          rows.forEach(r => {
-            if (!r || r.length === 0) return;
-            const sId = String(r[idx.shipment_id !== undefined ? idx.shipment_id : 1] || '').trim();
-            if (!sId) return;
-
-            const af = String(r[idx.action_flag !== undefined ? idx.action_flag : 12] || '').trim();
-            const afLower = af.toLowerCase();
-            const isOb = obActions.includes(af) || ['packed', 'linehual', 'linehaul', 'rework', 'pending', 'skip'].some(k => afLower.includes(k));
-            if (!isOb && af !== '') return;
-
-            const ts = String(r[idx.latest_status_timestamp !== undefined ? idx.latest_status_timestamp : 7] || '').trim();
-            const ds = String(r[idx.day_in_soc !== undefined ? idx.day_in_soc : 13] || '').trim();
-            const st = String(r[idx.latest_awb_station_name !== undefined ? idx.latest_awb_station_name : 4] || '').trim();
-            const op = String(r[idx.latest_operator_name !== undefined ? idx.latest_operator_name : 8] || '').trim();
-
-            mapOut[sId] = {
-              shipment_id: sId,
-              action_flag: af || '_03_pending_linehual_packed',
-              latest_status_timestamp: ts,
-              day_in_soc: ds,
-              latest_awb_station_name: st,
-              latest_operator_name: op
-            };
-            obCount++;
-          });
-          return { map: mapOut, count: obCount };
-        };
-
-        const res1 = processRows(rows1, idx1);
-        const res2 = processRows(rows2, idx2);
-
-        const duplicatesList = [];
-        const stationBreakdown = {};
-        const actionBreakdown = {};
-
-        Object.keys(res1.map).forEach(sId => {
-          if (res2.map[sId]) {
-            const item1 = res1.map[sId];
-            const item2 = res2.map[sId];
-
-            const st = item2.latest_awb_station_name || item1.latest_awb_station_name || '-';
-            const af = item2.action_flag || item1.action_flag || '-';
-
-            stationBreakdown[st] = (stationBreakdown[st] || 0) + 1;
-            actionBreakdown[af] = (actionBreakdown[af] || 0) + 1;
-
-            duplicatesList.push({
-              shipment_id: sId,
-              action_flag: af,
-              station: st,
-              file1_timestamp: item1.latest_status_timestamp || '-',
-              file2_timestamp: item2.latest_status_timestamp || '-',
-              day_in_soc: item2.day_in_soc || item1.day_in_soc || '-',
-              operator: item2.latest_operator_name || item1.latest_operator_name || '-'
-            });
-          }
-        });
-
-        const compareData = {
-          success: true,
-          duplicate_count: duplicatesList.length,
-          file1: { filename: filename1 || 'File 1', ob_rows: res1.count },
-          file2: { filename: filename2 || 'File 2', ob_rows: res2.count },
-          station_breakdown: stationBreakdown,
-          action_breakdown: actionBreakdown,
-          duplicates: duplicatesList
-        };
-
-        document.getElementById('stateMsg').style.display = 'none';
-        compareResults = compareData;
-        filteredDuplicates = duplicatesList;
-        safeSetLocalStorage('socn_ob_bl_compare_data', compareData);
-
-        renderKpis(compareData);
-        renderBreakdowns(compareData);
-        populateFilters(compareData);
-        renderDatatable(filteredDuplicates);
-
+    function handleUploadSuccess(filename) {
+      if (typeof Swal !== 'undefined') {
         Swal.fire({
           icon: 'success',
-          title: 'เปรียบเทียบสำเร็จ! 🚀 (Browser Sync)',
-          text: `ตรวจพบพัสดุค้างซ้ำทั้งหมด ${duplicatesList.length.toLocaleString()} รายการ`,
-          timer: 2500,
+          title: 'อัปโหลดสำเร็จ!',
+          text: `บันทึกไฟล์ "${filename}" เข้าสู่โฟลเดอร์ Backlog Shipment บนเซิร์ฟเวอร์เรียบร้อยแล้ว`,
+          timer: 2000,
           showConfirmButton: false,
           background: '#0d1b2a',
           color: '#ffffff'
         });
-
-      } catch (err) {
-        document.getElementById('stateMsg').style.display = 'none';
-        Swal.fire({
-          icon: 'error',
-          title: 'เกิดข้อผิดพลาดในการประมวลผล',
-          text: err.message,
-          background: '#0d1b2a',
-          color: '#ffffff'
-        });
       }
+      showStatus(`✅ อัปโหลด "${filename}" เข้าสู่ Backlog Shipment สำเร็จ`, 'success');
+      
+      // Auto refresh file list and auto-select
+      fetchCompareFileList();
+      setTimeout(() => {
+        const s1 = document.getElementById('fileSelect1');
+        const s2 = document.getElementById('fileSelect2');
+        if (!s1.value) s1.value = filename;
+        else if (!s2.value && s1.value !== filename) {
+          s2.value = filename;
+          executeCompare();
+        }
+      }, 600);
     }
 
-    function tryCompareFromLocalStorage(file1, file2) {
-      let item1 = null;
-      let item2 = null;
+    // =========================================================================
+    // 3. DELETE FILE LOGIC (Server-side Backlog Shipment deletion)
+    // =========================================================================
+    function deleteSelectedFile(selectId) {
+      const selectEl = document.getElementById(selectId);
+      const filename = selectEl ? selectEl.value : '';
 
-      try {
-        const raw1 = localStorage.getItem(`socn_compare_file_${file1}`);
-        if (raw1) item1 = JSON.parse(raw1);
-        const raw2 = localStorage.getItem(`socn_compare_file_${file2}`);
-        if (raw2) item2 = JSON.parse(raw2);
-      } catch (e) {}
-
-      if (item1 && item1.rows && item2 && item2.rows) {
-        runBrowserRowComparison(item1.rows, item2.rows, file1, file2);
-      } else {
-        document.getElementById('stateMsg').style.display = 'none';
-        handleLocalCompareUpload();
-      }
-    }
-
-    function startObBlComparison() {
-      const file1 = document.getElementById('file1Select').value;
-      const file2 = document.getElementById('file2Select').value;
-
-      if (!file1 || !file2) {
-        showCompareStatus('กรุณาเลือกไฟล์รายงานทั้งรอบ 1 และรอบ 2 จากโฟลเดอร์ Backlog Shipment ก่อนครับ', 'error');
-        Swal.fire({
-          icon: 'info',
-          title: 'กรุณาเลือกไฟล์ให้ครบทั้ง 2 รอบ',
-          text: 'กรุณาเลือกไฟล์ในช่องรอบ 1 และรอบ 2 เพื่อเปรียบเทียบหาพัสดุค้างซ้ำ',
-          confirmButtonColor: '#2563eb',
-          background: '#0d1b2a',
-          color: '#ffffff'
-        });
+      if (!filename) {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({ title: 'กรุณาเลือกไฟล์', text: 'กรุณาเลือกไฟล์ที่ต้องการลบก่อนครับ', icon: 'info', confirmButtonColor: '#2563eb', background: '#0d1b2a', color: '#fff' });
+        } else {
+          alert('กรุณาเลือกไฟล์ที่ต้องการลบก่อนครับ');
+        }
         return;
       }
 
-      document.getElementById('stateMsg').style.display = 'block';
-      showCompareStatus(`กำลังเปรียบเทียบไฟล์ "${file1}" กับ "${file2}"...`, 'loading');
-
-      safeFetchJson('/api/compare-ob-bl', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename1: file1, filename2: file2 })
-      })
+      const runDelete = () => {
+        showStatus(`กำลังลบไฟล์ "${filename}"...`, 'loading');
+        
+        safeFetchJson('/api/delete-compare-file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: filename })
+        })
         .then(data => {
-          document.getElementById('stateMsg').style.display = 'none';
-
-          if (data && data.success) {
-            compareResults = data;
-            filteredDuplicates = data.duplicates || [];
-            safeSetLocalStorage('socn_ob_bl_compare_data', data);
-
-            renderKpis(data);
-            renderBreakdowns(data);
-            populateFilters(data);
-            renderDatatable(filteredDuplicates);
-
-            showCompareStatus(`✅ เปรียบเทียบสำเร็จ! พบพัสดุค้างซ้ำข้ามรอบ ${data.duplicate_count.toLocaleString()} รายการ`, 'success');
-            Swal.fire({
-              icon: 'success',
-              title: 'เปรียบเทียบสำเร็จ! 🚀',
-              text: `ตรวจพบพัสดุค้างซ้ำทั้งหมด ${data.duplicate_count.toLocaleString()} รายการ`,
-              timer: 2200,
-              showConfirmButton: false,
-              background: '#0d1b2a',
-              color: '#ffffff'
-            });
+          if (data.success) {
+            if (typeof Swal !== 'undefined') {
+              Swal.fire({ title: 'ลบไฟล์สำเร็จ!', text: `ลบไฟล์ "${filename}" ออกจากระบบเรียบร้อย`, icon: 'success', confirmButtonColor: '#10b981', background: '#0d1b2a', color: '#fff' });
+            }
+            showStatus(`✅ ลบไฟล์ "${filename}" เรียบร้อยแล้ว`, 'success');
+            fetchCompareFileList();
           } else {
-            console.warn('Server comparison unsuccessful, trying browser comparison:', data);
-            tryCompareFromLocalStorage(file1, file2);
+            showStatus(`ไม่สามารถลบไฟล์ได้: ${data.error}`, 'error');
           }
         })
         .catch(err => {
-          console.warn('Server comparison failed, attempting browser local comparison:', err);
-          tryCompareFromLocalStorage(file1, file2);
+          showStatus(`เกิดข้อผิดพลาดในการลบ: ${err.message}`, 'error');
+        });
+      };
+
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          title: '⚠️ ยืนยันการลบไฟล์?',
+          html: `คุณต้องการลบไฟล์ <b>"${filename}"</b> ออกจากโฟลเดอร์ Backlog Shipment ใช่หรือไม่?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc2626',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: '<i class="fa-solid fa-trash me-1"></i> ยืนยันลบไฟล์',
+          cancelButtonText: 'ยกเลิก',
+          background: '#0d1b2a',
+          color: '#ffffff'
+        }).then(result => {
+          if (result.isConfirmed) runDelete();
+        });
+      } else {
+        if (confirm(`⚠️ ยืนยันการลบไฟล์ "${filename}" ออกจากระบบ?`)) {
+          runDelete();
+        }
+      }
+    }
+
+    // =========================================================================
+    // 4. COMPARISON LOGIC (Strictly Server-Side Backend Python Engine)
+    // =========================================================================
+    function executeCompare() {
+      const file1 = document.getElementById('fileSelect1').value;
+      const file2 = document.getElementById('fileSelect2').value;
+
+      if (!file1 || !file2) {
+        showStatus('กรุณาเลือกไฟล์รายงานทั้ง 2 รอบเวลา (File 1 และ File 2)', 'error');
+        return;
+      }
+
+      if (file1 === file2) {
+        showStatus('กรุณาเลือกไฟล์ที่ต่างกันสำหรับการเปรียบเทียบรอบเวลา', 'error');
+        return;
+      }
+
+      showStatus(`⚡ กำลังประมวลผลเปรียบเทียบบนเซิร์ฟเวอร์: "${file1}" ⟷ "${file2}"...`, 'loading');
+      
+      const btn = document.getElementById('btnRunCompare');
+      if (btn) btn.disabled = true;
+
+      // Call Backend Compare API
+      safeFetchJson(`/api/compare-ob-bl?filename1=${encodeURIComponent(file1)}&filename2=${encodeURIComponent(file2)}`)
+        .then(data => {
+          if (btn) btn.disabled = false;
+          if (data && data.success) {
+            renderCompareResults(data);
+            showStatus(`✅ เปรียบเทียบสำเร็จ! พบพัสดุตกค้างซ้ำ ${data.duplicate_count.toLocaleString()} รายการ (Backend Engine)`, 'success');
+          } else {
+            showStatus(`เกิดข้อผิดพลาดในการประมวลผล: ${data.error || 'Server processing failed'}`, 'error');
+            if (typeof Swal !== 'undefined') {
+              Swal.fire({
+                icon: 'error',
+                title: 'เปรียบเทียบไม่สำเร็จ',
+                text: data.error || 'ไม่สามารถประมวลผลบนเซิร์ฟเวอร์ได้',
+                background: '#0d1b2a',
+                color: '#ffffff'
+              });
+            }
+          }
+        })
+        .catch(err => {
+          if (btn) btn.disabled = false;
+          showStatus(`เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: ${err.message}`, 'error');
         });
     }
 
-    function renderKpis(data) {
-      document.getElementById('kpiDuplicateCount').textContent = data.duplicate_count.toLocaleString();
-      document.getElementById('kpiFile1Count').textContent = data.file1.ob_rows.toLocaleString();
-      document.getElementById('kpiFile1Name').textContent = data.file1.filename;
-      document.getElementById('kpiFile2Count').textContent = data.file2.ob_rows.toLocaleString();
-      document.getElementById('kpiFile2Name').textContent = data.file2.filename;
+    // =========================================================================
+    // 5. RENDERING & UI PRESENTATION
+    // =========================================================================
+    function renderCompareResults(data) {
+      compareResultData = data;
+      filteredRecords = data.duplicates || [];
 
-      const pct = data.file1.ob_rows > 0 ? ((data.duplicate_count / data.file1.ob_rows) * 100).toFixed(1) : 0;
-      document.getElementById('kpiStuckPct').textContent = `${pct}%`;
+      // Switch Visibility
+      document.getElementById('initialGuideArea').style.display = 'none';
+      document.getElementById('compareResultsArea').style.display = 'block';
+
+      // Update KPIs
+      const stuckCount = data.duplicate_count || 0;
+      const file1Ob = (data.file1 && data.file1.ob_rows) ? data.file1.ob_rows : (stuckCount || 1);
+      const file2Ob = (data.file2 && data.file2.ob_rows) ? data.file2.ob_rows : 0;
+      
+      const stuckRate = file1Ob > 0 ? ((stuckCount / file1Ob) * 100).toFixed(1) : '0.0';
+
+      document.getElementById('kpiStuckCount').innerText = stuckCount.toLocaleString();
+      document.getElementById('kpiStuckRate').innerText = `${stuckRate}%`;
+      document.getElementById('kpiFile1Count').innerText = file1Ob.toLocaleString();
+      document.getElementById('kpiFile2Count').innerText = file2Ob.toLocaleString();
+
+      document.getElementById('kpiFile1Name').innerText = data.file1 ? `Base: ${data.file1.filename}` : 'File 1';
+      document.getElementById('kpiFile2Name').innerText = data.file2 ? `Compare: ${data.file2.filename}` : 'File 2';
+
+      // Populate Filter Dropdowns
+      populateTableFilters(data.station_breakdown, data.action_breakdown);
+
+      // Render Charts
+      renderStationChart(data.station_breakdown);
+      renderActionChart(data.action_breakdown);
+
+      // Render Table
+      currentPage = 1;
+      renderTablePage();
     }
 
-    function renderBreakdowns(data) {
-      // Station
-      const stTbody = document.querySelector('#stationTable tbody');
-      const stEntries = Object.entries(data.station_breakdown || {}).sort((a, b) => b[1] - a[1]).slice(0, 15);
+    function populateTableFilters(stationMap = {}, actionMap = {}) {
+      const stationSelect = document.getElementById('stationFilterSelect');
+      const actionSelect = document.getElementById('actionFilterSelect');
 
-      if (stEntries.length === 0) {
-        stTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--ink-soft);">ไม่มีข้อมูลพัสดุค้างซ้ำ</td></tr>';
-      } else {
-        stTbody.innerHTML = stEntries.map(([st, count], i) => `
-          <tr>
-            <td>${i + 1}</td>
-            <td style="font-weight:700;">${st || '(blank)'}</td>
-            <td style="text-align:right; font-weight:800; color:var(--accent);">${count.toLocaleString()}</td>
-          </tr>
-        `).join('');
-      }
+      // Station Options
+      const stations = Object.keys(stationMap).sort((a, b) => stationMap[b] - stationMap[a]);
+      let stHtml = '<option value="">ทุกสถานีปลายทาง</option>';
+      stations.forEach(st => {
+        stHtml += `<option value="${st}">${st} (${stationMap[st].toLocaleString()})</option>`;
+      });
+      stationSelect.innerHTML = stHtml;
 
-      // Action Flag
-      const acTbody = document.querySelector('#actionTable tbody');
-      const acEntries = Object.entries(data.action_breakdown || {}).sort((a, b) => b[1] - a[1]);
-
-      if (acEntries.length === 0) {
-        acTbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:var(--ink-soft);">ไม่มีข้อมูลพัสดุค้างซ้ำ</td></tr>';
-      } else {
-        acTbody.innerHTML = acEntries.map(([ac, count]) => `
-          <tr>
-            <td><span class="badge-tag badge-amber">${ac}</span></td>
-            <td style="text-align:right; font-weight:800; color:var(--accent);">${count.toLocaleString()}</td>
-          </tr>
-        `).join('');
-      }
+      // Action Options
+      const actions = Object.keys(actionMap).sort((a, b) => actionMap[b] - actionMap[a]);
+      let actHtml = '<option value="">ทุกประเภท Action</option>';
+      actions.forEach(act => {
+        actHtml += `<option value="${act}">${act} (${actionMap[act].toLocaleString()})</option>`;
+      });
+      actionSelect.innerHTML = actHtml;
     }
 
-    function populateFilters(data) {
-      const stSelect = document.getElementById('stationFilter');
-      const acSelect = document.getElementById('actionFilter');
+    // Chart: Top Stations
+    function renderStationChart(stationMap = {}) {
+      const ctx = document.getElementById('stationChart').getContext('2d');
+      if (stationChartInstance) stationChartInstance.destroy();
 
-      const stations = Object.keys(data.station_breakdown || {}).sort();
-      stSelect.innerHTML = '<option value="">-- ทุกสถานี --</option>' + stations.map(s => `<option value="${s}">${s}</option>`).join('');
+      const sorted = Object.entries(stationMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15);
 
-      const actions = Object.keys(data.action_breakdown || {}).sort();
-      acSelect.innerHTML = '<option value="">-- ทุก Action Flag --</option>' + actions.map(a => `<option value="${a}">${a}</option>`).join('');
+      const labels = sorted.map(item => item[0].length > 18 ? item[0].slice(0, 16) + '...' : item[0]);
+      const counts = sorted.map(item => item[1]);
+
+      stationChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'จำนวนพัสดุตกค้างซ้ำ (ชิ้น)',
+            data: counts,
+            backgroundColor: 'rgba(37, 99, 235, 0.85)',
+            hoverBackgroundColor: '#1d4ed8',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: (items) => sorted[items[0].dataIndex][0],
+                label: (item) => ` ตกค้างซ้ำ: ${item.raw.toLocaleString()} ชิ้น`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' } }
+          }
+        }
+      });
     }
 
-    function renderDatatable(rows) {
-      const tbody = document.querySelector('#duplicateDatatable tbody');
-      document.getElementById('datatableSub').textContent = `แสดง ${rows.length.toLocaleString()} รายการพัสดุค้างซ้ำ`;
+    // Chart: Action Flags
+    function renderActionChart(actionMap = {}) {
+      const ctx = document.getElementById('actionChart').getContext('2d');
+      if (actionChartInstance) actionChartInstance.destroy();
 
-      if (!rows || rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--ink-soft);">ไม่พบรายการพัสดุตกค้างซ้ำตามเงื่อนไขที่เลือก</td></tr>';
-        return;
-      }
+      const entries = Object.entries(actionMap).sort((a, b) => b[1] - a[1]);
+      const labels = entries.map(item => item[0]);
+      const counts = entries.map(item => item[1]);
 
-      tbody.innerHTML = rows.map((r, i) => `
-        <tr>
-          <td>${i + 1}</td>
-          <td style="font-weight:700; color:var(--accent);">${r.shipment_id}</td>
-          <td><span class="badge-tag badge-amber">${r.action_flag}</span></td>
-          <td style="font-weight:600;">${r.station}</td>
-          <td style="font-size:12px; color:var(--ink-soft);">${r.file1_timestamp || '-'}</td>
-          <td style="font-size:12px; color:var(--accent); font-weight:600;">${r.file2_timestamp || '-'}</td>
-          <td><span class="badge-tag badge-red">${r.day_in_soc}</span></td>
-          <td style="font-size:12px;">${r.operator || '-'}</td>
-        </tr>
+      const colors = ['#3b82f6', '#f59e0b', '#ef4444', '#10b981', '#8b5cf6', '#64748b'];
+
+      actionChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: counts,
+            backgroundColor: colors.slice(0, labels.length),
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (item) => ` ${item.label}: ${item.raw.toLocaleString()} ชิ้น`
+              }
+            }
+          },
+          cutout: '65%'
+        }
+      });
+
+      // Legend list
+      const legEl = document.getElementById('actionLegendList');
+      legEl.innerHTML = entries.map((item, i) => `
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="d-flex align-items-center gap-2">
+            <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${colors[i % colors.length]};"></span>
+            <span class="text-truncate" style="max-width: 170px;">${item[0]}</span>
+          </span>
+          <span class="fw-bold text-dark">${item[1].toLocaleString()}</span>
+        </div>
       `).join('');
     }
 
-    function filterTable() {
-      if (!compareResults || !compareResults.duplicates) return;
+    // Table Filtering & Pagination
+    function onFilterChanged() {
+      const search = (document.getElementById('tableSearchInput').value || '').toLowerCase().trim();
+      const station = document.getElementById('stationFilterSelect').value;
+      const action = document.getElementById('actionFilterSelect').value;
 
-      const search = document.getElementById('searchInput').value.trim().toLowerCase();
-      const station = document.getElementById('stationFilter').value;
-      const action = document.getElementById('actionFilter').value;
+      const all = (compareResultData && compareResultData.duplicates) || [];
 
-      filteredDuplicates = compareResults.duplicates.filter(r => {
-        const matchSearch = !search ||
-          r.shipment_id.toLowerCase().includes(search) ||
-          r.station.toLowerCase().includes(search) ||
-          r.operator.toLowerCase().includes(search);
-        const matchStation = !station || r.station === station;
-        const matchAction = !action || r.action_flag === action;
-        return matchSearch && matchStation && matchAction;
+      filteredRecords = all.filter(r => {
+        if (station && r.station !== station) return false;
+        if (action && r.action_flag !== action) return false;
+        if (search) {
+          const matchId = String(r.shipment_id || '').toLowerCase().includes(search);
+          const matchSt = String(r.station || '').toLowerCase().includes(search);
+          const matchOp = String(r.operator || '').toLowerCase().includes(search);
+          if (!matchId && !matchSt && !matchOp) return false;
+        }
+        return true;
       });
 
-      renderDatatable(filteredDuplicates);
+      currentPage = 1;
+      renderTablePage();
     }
 
-    function exportDuplicateCsv() {
-      if (!filteredDuplicates || filteredDuplicates.length === 0) {
-        Swal.fire({ icon: 'warning', title: 'ไม่มีข้อมูลให้ export', text: 'ไม่พบพัสดุค้างซ้ำในตารางขณะนี้', background: '#0d1b2a', color: '#ffffff' });
+    function renderTablePage() {
+      const tbody = document.getElementById('duplicateTableBody');
+      const total = filteredRecords.length;
+
+      if (total === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูลพัสดุตามเงื่อนไขที่เลือก</td></tr>';
+        document.getElementById('paginationInfo').innerText = 'แสดง 0 จาก 0 รายการ';
+        document.getElementById('paginationButtons').innerHTML = '';
         return;
       }
 
-      const headers = ['#', 'Shipment ID / Tracking', 'Action Flag', 'Station', 'File 1 Status Timestamp', 'File 2 Status Timestamp', 'Day in SOC', 'Operator'];
-      const lines = [headers.map(v => `"${v}"`).join(',')];
+      const totalPages = Math.ceil(total / pageSize);
+      if (currentPage > totalPages) currentPage = totalPages;
 
-      filteredDuplicates.forEach((r, i) => {
-        lines.push([
-          i + 1,
-          `"${r.shipment_id}"`,
-          `"${r.action_flag}"`,
-          `"${r.station}"`,
-          `"${r.file1_timestamp}"`,
-          `"${r.file2_timestamp}"`,
-          `"${r.day_in_soc}"`,
-          `"${r.operator}"`
-        ].join(','));
+      const start = (currentPage - 1) * pageSize;
+      const end = Math.min(start + pageSize, total);
+      const pageData = filteredRecords.slice(start, end);
+
+      tbody.innerHTML = pageData.map((r, i) => {
+        const actionBadge = getActionBadge(r.action_flag);
+        return `
+          <tr>
+            <td class="text-muted small">${start + i + 1}</td>
+            <td class="fw-bold text-dark">
+              <span>${r.shipment_id || '-'}</span>
+              <button class="btn btn-link btn-sm p-0 ms-1 text-muted" onclick="navigator.clipboard.writeText('${r.shipment_id}')" title="คัดลอก Tracking">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </td>
+            <td><span class="fw-semibold">${r.station || '-'}</span></td>
+            <td>${actionBadge}</td>
+            <td class="small text-muted">${r.file1_timestamp || '-'}</td>
+            <td class="small text-primary fw-bold">${r.file2_timestamp || '-'}</td>
+            <td class="text-center"><span class="badge bg-light text-dark border">${r.day_in_soc || '-'}</span></td>
+            <td class="small text-muted">${r.operator || '-'}</td>
+          </tr>
+        `;
+      }).join('');
+
+      // Update Pagination UI
+      document.getElementById('paginationInfo').innerText = `แสดง ${start + 1} ถึง ${end} จาก ${total.toLocaleString()} รายการ`;
+
+      let btnsHtml = '';
+      if (currentPage > 1) {
+        btnsHtml += `<button class="btn btn-outline-secondary btn-sm px-2 py-0" onclick="goToPage(${currentPage - 1})">ก่อนหน้า</button>`;
+      }
+      btnsHtml += `<span class="px-2 fw-bold text-dark">หน้า ${currentPage} / ${totalPages}</span>`;
+      if (currentPage < totalPages) {
+        btnsHtml += `<button class="btn btn-outline-secondary btn-sm px-2 py-0" onclick="goToPage(${currentPage + 1})">ถัดไป</button>`;
+      }
+      document.getElementById('paginationButtons').innerHTML = btnsHtml;
+
+      document.getElementById('tableFilterSummary').innerText = `พบพัสดุตกค้างซ้ำ ${total.toLocaleString()} รายการ`;
+    }
+
+    function goToPage(page) {
+      currentPage = page;
+      renderTablePage();
+    }
+
+    function getActionBadge(flag) {
+      if (!flag) return '<span class="badge-action badge-other">-</span>';
+      const f = flag.toLowerCase();
+      if (f.includes('linehual') || f.includes('linehaul')) return `<span class="badge-action badge-linehaul"><i class="fa-solid fa-truck-ramp-box me-1"></i>${flag}</span>`;
+      if (f.includes('packed') || f.includes('pack')) return `<span class="badge-action badge-packed"><i class="fa-solid fa-box me-1"></i>${flag}</span>`;
+      if (f.includes('rework')) return `<span class="badge-action badge-rework"><i class="fa-solid fa-arrows-rotate me-1"></i>${flag}</span>`;
+      return `<span class="badge-action badge-other">${flag}</span>`;
+    }
+
+    // =========================================================================
+    // 6. EXPORT CSV
+    // =========================================================================
+    function exportDuplicateCSV() {
+      if (!filteredRecords || filteredRecords.length === 0) {
+        alert('ไม่มีข้อมูลสำหรับ Export');
+        return;
+      }
+
+      const headers = [
+        'No', 'Shipment_ID', 'Destination_Station', 'Action_Flag',
+        'File1_Timestamp', 'File2_Timestamp', 'Day_In_SOC', 'Operator'
+      ];
+
+      let csvContent = '\uFEFF' + headers.join(',') + '\n';
+
+      filteredRecords.forEach((r, idx) => {
+        const row = [
+          idx + 1,
+          `"${(r.shipment_id || '').replace(/"/g, '""')}"`,
+          `"${(r.station || '').replace(/"/g, '""')}"`,
+          `"${(r.action_flag || '').replace(/"/g, '""')}"`,
+          `"${(r.file1_timestamp || '').replace(/"/g, '""')}"`,
+          `"${(r.file2_timestamp || '').replace(/"/g, '""')}"`,
+          `"${(r.day_in_soc || '').replace(/"/g, '""')}"`,
+          `"${(r.operator || '').replace(/"/g, '""')}"`
+        ];
+        csvContent += row.join(',') + '\n';
       });
 
-      const csv = lines.join('\r\n');
-      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `OB_Backlog_Duplicates_${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `OB_BACKLOG_STUCK_COMPARE_${timestamp}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // =========================================================================
+    // 7. UTILITIES
+    // =========================================================================
+    function showStatus(msg, type) {
+      const banner = document.getElementById('uploadStatusBanner');
+      if (!banner) return;
+
+      const alertClass = type === 'success' ? 'alert-success' : 
+                         type === 'loading' ? 'alert-info' : 
+                         type === 'error' ? 'alert-danger' : 'alert-primary';
+      
+      const icon = type === 'success' ? 'fa-circle-check text-success' : 
+                   type === 'loading' ? 'fa-spinner fa-spin text-primary' : 
+                   type === 'error' ? 'fa-triangle-exclamation text-danger' : 'fa-circle-info text-primary';
+
+      banner.innerHTML = `
+        <div class="alert ${alertClass} py-2 px-3 small d-flex align-items-center justify-content-between flex-wrap gap-2 shadow-sm">
+          <span><i class="fa-solid ${icon} me-2"></i> ${msg}</span>
+        </div>
+      `;
+    }
+
+    function safeFetchJson(url, options = {}) {
+      return fetch(url, options)
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        });
     }
   </script>
 </body>
-
 </html>

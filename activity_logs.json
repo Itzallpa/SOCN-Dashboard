@@ -1,5 +1,465 @@
 [
   {
+    "id": "0595b29e",
+    "timestamp": "2026-09-05 14:57:58",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "COMPARE_OB_BL",
+    "details": "Compared SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv & SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv — Found 10925 duplicate backlog shipments",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "63e515c2",
+    "timestamp": "2026-09-05 14:57:47",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "UPLOAD_COMPARE_FILE",
+    "details": "Uploaded compare file (chunked) to Backlog Shipment: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "d821575d",
+    "timestamp": "2026-09-05 14:57:26",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "6e54715c",
+    "timestamp": "2026-09-05 14:56:45",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "UPLOAD_COMPARE_FILE",
+    "details": "Uploaded compare file (chunked) to Backlog Shipment: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "72ea63de",
+    "timestamp": "2026-09-05 14:56:30",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 17358 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "4a3dd4c4",
+    "timestamp": "2026-09-05 14:56:22",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "UPLOAD_COMPARE_FILE",
+    "details": "Uploaded compare file (chunked) to Backlog Shipment: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "05b24e17",
+    "timestamp": "2026-09-05 14:55:56",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "c018cdeb",
+    "timestamp": "2026-09-05 14:54:39",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_COMPARE_FILE",
+    "details": "Uploaded compare file (chunked) to Backlog Shipment: test_chunk.csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "747935ca",
+    "timestamp": "2026-09-05 14:52:53",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "d5b35489",
+    "timestamp": "2026-09-05 14:15:56",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "COMPARE_OB_BL",
+    "details": "Compared SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv & SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv — Found 10925 duplicate backlog shipments",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "6eca149d",
+    "timestamp": "2026-09-05 14:03:39",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "0c67510b",
+    "timestamp": "2026-09-05 14:03:32",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "DELETE_COMPARE_FILE",
+    "details": "ลบไฟล์ออกจาก Backlog Shipment: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "7f65997e",
+    "timestamp": "2026-09-05 14:03:08",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "8b199451",
+    "timestamp": "2026-09-05 14:02:56",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "UPLOAD_COMPARE_FILE",
+    "details": "Uploaded compare file to Backlog Shipment: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "b31c61e6",
+    "timestamp": "2026-09-05 14:02:47",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 17358 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "896dc5ac",
+    "timestamp": "2026-09-05 14:02:25",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "5e8abb63",
+    "timestamp": "2026-09-05 13:55:46",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "39fc381d",
+    "timestamp": "2026-09-05 13:54:55",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_DELETE",
+    "details": "🗑️ ลบไฟล์ข้อมูล: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "8a886602",
+    "timestamp": "2026-09-05 13:54:49",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_DELETE",
+    "details": "🗑️ ลบไฟล์ข้อมูล: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "e8ce2ac6",
+    "timestamp": "2026-09-05 13:54:36",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "UPLOAD_COMPARE_FILE",
+    "details": "Uploaded compare file to Backlog Shipment: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "44fd93a9",
+    "timestamp": "2026-09-05 13:54:27",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 17358 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "b78afda9",
+    "timestamp": "2026-09-05 13:54:07",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "75920049",
+    "timestamp": "2026-09-05 13:53:56",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_DELETE",
+    "details": "🗑️ ลบไฟล์ข้อมูล: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "d6d23c08",
+    "timestamp": "2026-09-05 13:53:32",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 17358 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "fdbfb926",
+    "timestamp": "2026-09-05 13:53:28",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "e1af1409",
+    "timestamp": "2026-09-05 13:53:22",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_DELETE",
+    "details": "🗑️ ลบไฟล์ข้อมูล: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "7202ad68",
+    "timestamp": "2026-09-05 13:53:15",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_DELETE",
+    "details": "🗑️ ลบไฟล์ข้อมูล: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "2a0bb7e3",
+    "timestamp": "2026-09-05 13:52:59",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "COMPARE_OB_BL",
+    "details": "Compared SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv & SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv — Found 0 duplicate backlog shipments",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "130e2e54",
+    "timestamp": "2026-09-05 13:52:32",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_COMPARE_FILE",
+    "details": "Uploaded compare file to Backlog Shipment: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "7ee5704c",
+    "timestamp": "2026-09-05 13:52:26",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 17358 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "1ee8f714",
+    "timestamp": "2026-09-05 13:52:22",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "95a5ff5a",
+    "timestamp": "2026-09-05 13:51:34",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "753d801d",
+    "timestamp": "2026-09-05 13:51:26",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_DELETE",
+    "details": "🗑️ ลบไฟล์ข้อมูล: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "9cd1a6b5",
+    "timestamp": "2026-09-05 13:49:16",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "06069747",
+    "timestamp": "2026-09-05 13:49:05",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_DELETE",
+    "details": "🗑️ ลบไฟล์ข้อมูล: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "305b8731",
+    "timestamp": "2026-09-05 13:48:41",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "UPLOAD_COMPARE_FILE",
+    "details": "Uploaded compare file to Backlog Shipment: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "268ac6f0",
+    "timestamp": "2026-09-05 13:48:32",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260903.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 17358 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "e415cbaa",
+    "timestamp": "2026-09-05 13:48:11",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "3a2a55e7",
+    "timestamp": "2026-09-05 13:47:51",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "68f699d3",
+    "timestamp": "2026-09-05 13:47:50",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "2a303679",
+    "timestamp": "2026-09-05 13:36:12",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_COMPARE_FILE",
+    "details": "Uploaded compare file to Backlog Shipment: test_upload_compare.csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "3d023623",
+    "timestamp": "2026-09-05 13:33:31",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "45a7be02",
+    "timestamp": "2026-09-05 13:32:28",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_COMPARE_FILE",
+    "details": "อัปโหลดไฟล์เปรียบเทียบเข้า Backlog Shipment: test_socn_upload.csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "4884b3b8",
+    "timestamp": "2026-09-05 13:31:08",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOCBacklogshipmentbreakdownbyaction_DownloadTable_20260904.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 25889 KB ในหน้า ob_bl_compare.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "ea1ff3ec",
+    "timestamp": "2026-09-05 13:30:57",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as admin@spxexpress.com (Role: Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "b8fa44b2",
+    "timestamp": "2026-09-05 13:30:57",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Admin",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "ip": "112.121.130.34"
+  },
+  {
     "id": "c8e517e9",
     "timestamp": "2026-09-05 13:07:54",
     "email": "admin@spxexpress.com",

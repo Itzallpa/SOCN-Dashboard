@@ -1951,6 +1951,50 @@ def upload_compare_file():
     except Exception as e:
         return jsonify({"success": False, "error": f"ไม่สามารถบันทึกไฟล์ได้: {str(e)}"}), 500
 
+@app.route("/api/upload-compare-chunk", methods=["POST", "OPTIONS"])
+@app.route("/upload-compare-chunk", methods=["POST", "OPTIONS"])
+def upload_compare_chunk():
+    if request.method == "OPTIONS":
+        return jsonify({"success": True}), 200
+
+    file_chunk = request.files.get("chunk")
+    filename = (request.form.get("filename") or "").strip()
+    chunk_index = int(request.form.get("chunk_index", 0))
+    total_chunks = int(request.form.get("total_chunks", 1))
+
+    if not file_chunk or not filename:
+        return jsonify({"success": False, "error": "ข้อมูล chunk หรือชื่อไฟล์ไม่ถูกต้อง"}), 400
+
+    filename = os.path.basename(filename)
+    if not filename.lower().endswith((".csv", ".xlsx", ".xls")):
+        return jsonify({"success": False, "error": "กรุณาอัปโหลดไฟล์ประเภท CSV หรือ Excel เท่านั้น"}), 400
+
+    os.makedirs(BACKLOG_COMPARE_FOLDER, exist_ok=True)
+    save_path = os.path.join(BACKLOG_COMPARE_FOLDER, filename)
+
+    try:
+        mode = "wb" if chunk_index == 0 else "ab"
+        with open(save_path, mode) as f:
+            f.write(file_chunk.read())
+
+        if chunk_index == total_chunks - 1:
+            log_activity("UPLOAD_COMPARE_FILE", f"Uploaded compare file (chunked) to Backlog Shipment: {filename}")
+            return jsonify({
+                "success": True,
+                "completed": True,
+                "filename": filename,
+                "message": f"อัปโหลดไฟล์ {filename} เข้าสู่โฟลเดอร์ Backlog Shipment เรียบร้อยแล้ว"
+            })
+        else:
+            return jsonify({
+                "success": True,
+                "completed": False,
+                "chunk_index": chunk_index,
+                "total_chunks": total_chunks
+            })
+    except Exception as e:
+        return jsonify({"success": False, "error": f"ไม่สามารถบันทึก chunk ได้: {str(e)}"}), 500
+
 @app.route("/api/list-compare-files", methods=["GET"])
 def list_compare_files():
     files = []
@@ -1965,6 +2009,45 @@ def list_compare_files():
                 })
     files.sort(key=lambda x: x["mtime"], reverse=True)
     return jsonify({"success": True, "files": files})
+
+@app.route("/api/delete-compare-file", methods=["POST", "OPTIONS"])
+@app.route("/api/delete-file", methods=["POST", "OPTIONS"])
+def delete_compare_or_upload_file():
+    if request.method == "OPTIONS":
+        return jsonify({"success": True}), 200
+    req_data = request.get_json(silent=True) or {}
+    filename = (req_data.get("filename") or request.form.get("filename") or "").strip()
+    if not filename:
+        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์ที่ต้องการลบ"}), 400
+    
+    # Safe base filename only
+    safe_fn = os.path.basename(filename)
+    deleted = False
+    
+    # Check in Backlog Shipment folder
+    p1 = os.path.join(BACKLOG_COMPARE_FOLDER, safe_fn)
+    if os.path.exists(p1):
+        try:
+            os.remove(p1)
+            deleted = True
+            log_activity("DELETE_COMPARE_FILE", f"ลบไฟล์ออกจาก Backlog Shipment: {safe_fn}")
+        except Exception as e:
+            return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ {safe_fn}: {str(e)}"}), 500
+
+    # Check in Upload folder
+    p2 = os.path.join(UPLOAD_FOLDER, safe_fn)
+    if os.path.exists(p2) and not deleted:
+        try:
+            os.remove(p2)
+            deleted = True
+            log_activity("DELETE_FILE", f"ลบไฟล์ออกจาก uploads: {safe_fn}")
+        except Exception as e:
+            return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ {safe_fn}: {str(e)}"}), 500
+
+    if deleted:
+        return jsonify({"success": True, "message": f"ลบไฟล์ {safe_fn} เรียบร้อยแล้ว"})
+    else:
+        return jsonify({"success": False, "error": f"ไม่พบไฟล์ {safe_fn} บนเซิร์ฟเวอร์"}), 404
 
 @app.route("/api/compare-ob-bl", methods=["GET", "POST"])
 def api_compare_ob_bl():
