@@ -1,9 +1,26 @@
 {
-  "updatedAt": "2026-09-07 18:21:49",
+  "updatedAt": "2026-09-07 21:24:38",
   "hourlyTarget": 45000,
   "hourlyMinimum": 40000,
   "hourlyMinimumPct": 90,
   "peakHourTarget": 50000,
+  "zoneTargets": {
+    "Zone A": {
+      "target": 15000,
+      "minimum": 13333,
+      "peakTarget": 17000
+    },
+    "Zone B": {
+      "target": 15000,
+      "minimum": 13333,
+      "peakTarget": 17000
+    },
+    "Zone C": {
+      "target": 15000,
+      "minimum": 13333,
+      "peakTarget": 16000
+    }
+  },
   "peakHours": [
     "13:00",
     "14:00",

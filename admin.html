@@ -314,47 +314,124 @@
       <div class="tab-pane fade" id="tab-settings-pane">
         <form onsubmit="saveSystemSettingsForm(event)">
           
-          <!-- Section 1: Hourly Release Target & Minimum Thresholds -->
+          <!-- Section 1: Hourly Release Target & Minimum Thresholds (By Zone & Overall) -->
           <div class="card-custom mb-3">
             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
               <div>
-                <h5 class="fw-bold mb-0 text-slate-800"><i class="fa-solid fa-bullseye text-danger me-2"></i> 1. กำหนดเป้าหมายรายชั่วโมง & เกณฑ์ขั้นต่ำ (Hourly Targets & Minimum Thresholds)</h5>
-                <p class="text-muted small mb-0">ตั้งค่าตัวเลขเป้าหมายและเกณฑ์ขั้นต่ำที่จะใช้ในการจับชั่วโมงหลุดเป้าในหน้า Hourly Tracker และส่งแจ้งเตือน</p>
+                <h5 class="fw-bold mb-0 text-slate-800"><i class="fa-solid fa-bullseye text-danger me-2"></i> 1. กำหนดเป้าหมายรายชั่วโมงตามโซน & ภาพรวม (Hourly Targets by Zone & Total)</h5>
+                <p class="text-muted small mb-0">ตั้งค่าตัวเลขเป้าหมายและเกณฑ์ขั้นต่ำแยกตาม Zone A, B, C และยอดรวม สำหรับจับชั่วโมงหลุดเป้าในหน้า Hourly Tracker และส่งแจ้งเตือน SeaTalk</p>
               </div>
               <a href="hourly_tracker.html" class="btn btn-outline-primary btn-sm fw-bold"><i class="fa-solid fa-chart-line me-1"></i> ไปยังหน้า Hourly Tracker</a>
             </div>
 
-            <div class="row g-3">
-              <div class="col-md-3">
-                <label class="form-label fw-bold small text-primary">เป้าหมายปกติ (Hourly Target / ชิ้น):</label>
-                <input type="number" id="settingHourlyTarget" class="form-control form-control-sm fw-bold" min="0" step="1" required>
-                <div class="text-muted" style="font-size: 0.76rem;">เป้าหมายชิ้นงานต่อชั่วโมง (เช่น 45,000)</div>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label fw-bold small text-danger">เกณฑ์ขั้นต่ำ (Hourly Minimum Threshold / ชิ้น):</label>
-                <input type="number" id="settingHourlyMinimum" class="form-control form-control-sm fw-bold border-danger text-danger" min="0" step="1" required>
-                <div class="text-muted" style="font-size: 0.76rem;">หากยอดปล่อยต่ำกว่านี้ = หลุดเป้าขั้นต่ำ (Under Target)</div>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label fw-bold small text-warning">เป้าหมายช่วงพีค (Peak Hour Target / ชิ้น):</label>
-                <input type="number" id="settingPeakTarget" class="form-control form-control-sm fw-bold border-warning" min="0" step="1" required>
-                <div class="text-muted" style="font-size: 0.76rem;">เป้าหมายชิ้นงานในชั่วโมงเร่งด่วน (เช่น 50,000)</div>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label fw-bold small text-secondary">เกณฑ์ขั้นต่ำเป็น % (% Minimum of Target):</label>
-                <div class="input-group input-group-sm">
-                  <input type="number" id="settingHourlyMinimumPct" class="form-control fw-bold" min="0" max="100" step="any">
-                  <span class="input-group-text">%</span>
+            <!-- ZONE TARGETS (Zone A, Zone B, Zone C) -->
+            <div class="row g-3 mb-3">
+              <!-- Zone A -->
+              <div class="col-md-4">
+                <div class="p-3 rounded-3 border border-2 border-danger-subtle bg-light" style="border-left: 5px solid #db2777 !important;">
+                  <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
+                    <span class="fw-bold text-dark"><i class="fa-solid fa-layer-group text-danger me-1"></i> Zone A Target</span>
+                    <span class="badge" style="background-color: #fdf2f8; color: #db2777; border: 1px solid #fbcfe8;">Zone A</span>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label fw-semibold small text-slate-700 mb-1">เป้าหมายปกติ (ชิ้น/ชม.):</label>
+                    <input type="number" id="settingZoneATarget" class="form-control form-control-sm fw-bold font-monospace" min="0" step="100" placeholder="15000" oninput="recalcTotalTargetsFromZones()" required>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label fw-semibold small text-danger mb-1">เกณฑ์ขั้นต่ำ (Min Threshold):</label>
+                    <input type="number" id="settingZoneAMinimum" class="form-control form-control-sm fw-bold font-monospace border-danger text-danger" min="0" step="100" placeholder="13333" oninput="recalcTotalTargetsFromZones()" required>
+                  </div>
+                  <div>
+                    <label class="form-label fw-semibold small text-warning-emphasis mb-1">เป้าหมายช่วงพีค (Peak Target):</label>
+                    <input type="number" id="settingZoneAPeakTarget" class="form-control form-control-sm fw-bold font-monospace border-warning" min="0" step="100" placeholder="17000" oninput="recalcTotalTargetsFromZones()" required>
+                  </div>
                 </div>
-                <div class="text-muted" style="font-size: 0.76rem;">เช่น 90% ของ Target</div>
+              </div>
+
+              <!-- Zone B -->
+              <div class="col-md-4">
+                <div class="p-3 rounded-3 border border-2 border-success-subtle bg-light" style="border-left: 5px solid #16a34a !important;">
+                  <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
+                    <span class="fw-bold text-dark"><i class="fa-solid fa-layer-group text-success me-1"></i> Zone B Target</span>
+                    <span class="badge" style="background-color: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0;">Zone B</span>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label fw-semibold small text-slate-700 mb-1">เป้าหมายปกติ (ชิ้น/ชม.):</label>
+                    <input type="number" id="settingZoneBTarget" class="form-control form-control-sm fw-bold font-monospace" min="0" step="100" placeholder="15000" oninput="recalcTotalTargetsFromZones()" required>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label fw-semibold small text-danger mb-1">เกณฑ์ขั้นต่ำ (Min Threshold):</label>
+                    <input type="number" id="settingZoneBMinimum" class="form-control form-control-sm fw-bold font-monospace border-danger text-danger" min="0" step="100" placeholder="13333" oninput="recalcTotalTargetsFromZones()" required>
+                  </div>
+                  <div>
+                    <label class="form-label fw-semibold small text-warning-emphasis mb-1">เป้าหมายช่วงพีค (Peak Target):</label>
+                    <input type="number" id="settingZoneBPeakTarget" class="form-control form-control-sm fw-bold font-monospace border-warning" min="0" step="100" placeholder="17000" oninput="recalcTotalTargetsFromZones()" required>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Zone C -->
+              <div class="col-md-4">
+                <div class="p-3 rounded-3 border border-2 border-warning-subtle bg-light" style="border-left: 5px solid #ca8a04 !important;">
+                  <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
+                    <span class="fw-bold text-dark"><i class="fa-solid fa-layer-group text-warning me-1"></i> Zone C Target</span>
+                    <span class="badge" style="background-color: #fefce8; color: #ca8a04; border: 1px solid #fef08a;">Zone C</span>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label fw-semibold small text-slate-700 mb-1">เป้าหมายปกติ (ชิ้น/ชม.):</label>
+                    <input type="number" id="settingZoneCTarget" class="form-control form-control-sm fw-bold font-monospace" min="0" step="100" placeholder="15000" oninput="recalcTotalTargetsFromZones()" required>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label fw-semibold small text-danger mb-1">เกณฑ์ขั้นต่ำ (Min Threshold):</label>
+                    <input type="number" id="settingZoneCMinimum" class="form-control form-control-sm fw-bold font-monospace border-danger text-danger" min="0" step="100" placeholder="13333" oninput="recalcTotalTargetsFromZones()" required>
+                  </div>
+                  <div>
+                    <label class="form-label fw-semibold small text-warning-emphasis mb-1">เป้าหมายช่วงพีค (Peak Target):</label>
+                    <input type="number" id="settingZoneCPeakTarget" class="form-control form-control-sm fw-bold font-monospace border-warning" min="0" step="100" placeholder="16000" oninput="recalcTotalTargetsFromZones()" required>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div class="row g-3 mt-1">
+            <!-- OVERALL TOTAL TARGETS (AUTO-SUMMED) -->
+            <div class="p-3 rounded-3 bg-white border shadow-sm mb-3">
+              <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+                <span class="fw-bold text-slate-800 small"><i class="fa-solid fa-calculator text-primary me-1"></i> เป้าหมายรวมทุกโซน (Total Auto-Sum = Zone A + B + C)</span>
+                <span class="badge bg-primary bg-opacity-10 text-primary fw-normal">คำนวณอัตโนมัติ</span>
+              </div>
+              <div class="row g-3">
+                <div class="col-md-3">
+                  <label class="form-label fw-bold small text-primary">เป้าหมายรวมปกติ (Total Target / ชิ้น):</label>
+                  <input type="number" id="settingHourlyTarget" class="form-control form-control-sm fw-bold bg-light" min="0" step="1" required>
+                  <div class="text-muted" style="font-size: 0.74rem;">เป้าหมายรวมทุกโซนต่อชั่วโมง (เช่น 45,000)</div>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold small text-danger">เกณฑ์ขั้นต่ำรวม (Total Minimum / ชิ้น):</label>
+                  <input type="number" id="settingHourlyMinimum" class="form-control form-control-sm fw-bold border-danger text-danger bg-light" min="0" step="1" required>
+                  <div class="text-muted" style="font-size: 0.74rem;">หากยอดรวมต่ำกว่านี้ = แจ้งเตือนหลุดเป้า</div>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold small text-warning-emphasis">เป้าหมายรวมช่วงพีค (Total Peak Target):</label>
+                  <input type="number" id="settingPeakTarget" class="form-control form-control-sm fw-bold border-warning bg-light" min="0" step="1" required>
+                  <div class="text-muted" style="font-size: 0.74rem;">เป้าหมายรวมในชั่วโมงพีค (เช่น 50,000)</div>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold small text-secondary">เกณฑ์ขั้นต่ำเป็น % (% Min of Target):</label>
+                  <div class="input-group input-group-sm">
+                    <input type="number" id="settingHourlyMinimumPct" class="form-control fw-bold" min="0" max="100" step="any" oninput="recalcMinPct()">
+                    <span class="input-group-text">%</span>
+                  </div>
+                  <div class="text-muted" style="font-size: 0.74rem;">สัดส่วนขั้นต่ำเทียบกับ Target (เช่น 90%)</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PEAK HOURS & SKIP TARGETS -->
+            <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label fw-bold small">ชั่วโมงพีค / ช่วงเวลาเร่งด่วน (Peak Hours):</label>
                 <input type="text" id="settingPeakHours" class="form-control form-control-sm" placeholder="13:00, 14:00, 15:00, 19:00, 20:00, 21:00">
-                <div class="text-muted" style="font-size: 0.76rem;">ระบุชั่วโมงที่จัดเป็นช่วงพีค คั่นด้วยเครื่องหมายจุลภาค (,)</div>
+                <div class="text-muted" style="font-size: 0.74rem;">ระบุชั่วโมงที่จัดเป็นช่วงพีค คั่นด้วยเครื่องหมายจุลภาค (,)</div>
               </div>
               <div class="col-md-3">
                 <label class="form-label fw-bold small">Skip Target ภาพรวม (%):</label>
@@ -1418,10 +1495,28 @@
 
     function populateSystemSettingsUI(cfg) {
       if (!cfg) return;
-      document.getElementById('settingHourlyTarget').value = cfg.hourlyTarget || 45000;
-      document.getElementById('settingHourlyMinimum').value = cfg.hourlyMinimum || 40000;
+      
+      const zt = cfg.zoneTargets || {};
+      const za = zt['Zone A'] || {};
+      const zb = zt['Zone B'] || {};
+      const zc = zt['Zone C'] || {};
+
+      document.getElementById('settingZoneATarget').value = za.target || 15000;
+      document.getElementById('settingZoneAMinimum').value = za.minimum || 13333;
+      document.getElementById('settingZoneAPeakTarget').value = za.peakTarget || 17000;
+
+      document.getElementById('settingZoneBTarget').value = zb.target || 15000;
+      document.getElementById('settingZoneBMinimum').value = zb.minimum || 13333;
+      document.getElementById('settingZoneBPeakTarget').value = zb.peakTarget || 17000;
+
+      document.getElementById('settingZoneCTarget').value = zc.target || 15000;
+      document.getElementById('settingZoneCMinimum').value = zc.minimum || 13333;
+      document.getElementById('settingZoneCPeakTarget').value = zc.peakTarget || 16000;
+
+      document.getElementById('settingHourlyTarget').value = cfg.hourlyTarget || ( (za.target||15000) + (zb.target||15000) + (zc.target||15000) );
+      document.getElementById('settingHourlyMinimum').value = cfg.hourlyMinimum || ( (za.minimum||13333) + (zb.minimum||13333) + (zc.minimum||13333) );
       document.getElementById('settingHourlyMinimumPct').value = cfg.hourlyMinimumPct || 90;
-      document.getElementById('settingPeakTarget').value = cfg.peakHourTarget || 50000;
+      document.getElementById('settingPeakTarget').value = cfg.peakHourTarget || ( (za.peakTarget||17000) + (zb.peakTarget||17000) + (zc.peakTarget||16000) );
       document.getElementById('settingPeakHours').value = (cfg.peakHours || []).join(', ');
       document.getElementById('settingOverallSkipTarget').value = cfg.overallSkipTargetPct || 0.80;
       document.getElementById('settingZoneSkipTarget').value = cfg.zoneSkipTargetPct || 0.27;
@@ -1438,6 +1533,38 @@
       const gs = cfg.googleSheetSync || {};
       document.getElementById('settingGoogleSheetEnabled').checked = !!gs.enabled;
       document.getElementById('settingGoogleSheetUrl').value = gs.url || '';
+    }
+
+    function recalcTotalTargetsFromZones() {
+      const zaTgt = parseInt(document.getElementById('settingZoneATarget').value, 10) || 0;
+      const zbTgt = parseInt(document.getElementById('settingZoneBTarget').value, 10) || 0;
+      const zcTgt = parseInt(document.getElementById('settingZoneCTarget').value, 10) || 0;
+
+      const zaMin = parseInt(document.getElementById('settingZoneAMinimum').value, 10) || 0;
+      const zbMin = parseInt(document.getElementById('settingZoneBMinimum').value, 10) || 0;
+      const zcMin = parseInt(document.getElementById('settingZoneCMinimum').value, 10) || 0;
+
+      const zaPeak = parseInt(document.getElementById('settingZoneAPeakTarget').value, 10) || 0;
+      const zbPeak = parseInt(document.getElementById('settingZoneBPeakTarget').value, 10) || 0;
+      const zcPeak = parseInt(document.getElementById('settingZoneCPeakTarget').value, 10) || 0;
+
+      const totalTgt = zaTgt + zbTgt + zcTgt;
+      const totalMin = zaMin + zbMin + zcMin;
+      const totalPeak = zaPeak + zbPeak + zcPeak;
+
+      document.getElementById('settingHourlyTarget').value = totalTgt;
+      document.getElementById('settingHourlyMinimum').value = totalMin;
+      document.getElementById('settingPeakTarget').value = totalPeak;
+
+      if (totalTgt > 0) {
+        document.getElementById('settingHourlyMinimumPct').value = Math.round((totalMin / totalTgt) * 100);
+      }
+    }
+
+    function recalcMinPct() {
+      const pct = parseFloat(document.getElementById('settingHourlyMinimumPct').value) || 90;
+      const totalTgt = parseInt(document.getElementById('settingHourlyTarget').value, 10) || 45000;
+      document.getElementById('settingHourlyMinimum').value = Math.round(totalTgt * (pct / 100));
     }
 
     function toggleMentionEmailsInput() {
@@ -1461,11 +1588,30 @@
       const mentionEmailsStr = document.getElementById('settingMentionEmails').value || '';
       const mentionEmailsArr = mentionEmailsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
 
+      const zoneTargets = {
+        "Zone A": {
+          target: parseInt(document.getElementById('settingZoneATarget').value, 10) || 15000,
+          minimum: parseInt(document.getElementById('settingZoneAMinimum').value, 10) || 13333,
+          peakTarget: parseInt(document.getElementById('settingZoneAPeakTarget').value, 10) || 17000
+        },
+        "Zone B": {
+          target: parseInt(document.getElementById('settingZoneBTarget').value, 10) || 15000,
+          minimum: parseInt(document.getElementById('settingZoneBMinimum').value, 10) || 13333,
+          peakTarget: parseInt(document.getElementById('settingZoneBPeakTarget').value, 10) || 17000
+        },
+        "Zone C": {
+          target: parseInt(document.getElementById('settingZoneCTarget').value, 10) || 15000,
+          minimum: parseInt(document.getElementById('settingZoneCMinimum').value, 10) || 13333,
+          peakTarget: parseInt(document.getElementById('settingZoneCPeakTarget').value, 10) || 16000
+        }
+      };
+
       const payload = {
         hourlyTarget: parseInt(document.getElementById('settingHourlyTarget').value, 10) || 45000,
         hourlyMinimum: parseInt(document.getElementById('settingHourlyMinimum').value, 10) || 40000,
         hourlyMinimumPct: parseInt(document.getElementById('settingHourlyMinimumPct').value, 10) || 90,
         peakHourTarget: parseInt(document.getElementById('settingPeakTarget').value, 10) || 50000,
+        zoneTargets: zoneTargets,
         peakHours: peakHoursArr,
         overallSkipTargetPct: parseFloat(document.getElementById('settingOverallSkipTarget').value) || 0.80,
         zoneSkipTargetPct: parseFloat(document.getElementById('settingZoneSkipTarget').value) || 0.27,

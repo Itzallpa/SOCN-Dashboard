@@ -3946,6 +3946,11 @@ def get_hourly_tracker_api():
     target_min = settings.get("hourlyMinimum", 40000)
     target_peak = settings.get("peakHourTarget", 50000)
     peak_hours = set(settings.get("peakHours", ["13:00", "14:00", "15:00", "19:00", "20:00", "21:00"]))
+    zone_targets_cfg = settings.get("zoneTargets", {
+        "Zone A": {"target": 15000, "minimum": 13333, "peakTarget": 17000},
+        "Zone B": {"target": 15000, "minimum": 13333, "peakTarget": 17000},
+        "Zone C": {"target": 15000, "minimum": 13333, "peakTarget": 16000}
+    })
     
     # Operational Shift Order from Sheet: 13:00 to 12:00
     shift_hour_order = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
@@ -4024,6 +4029,28 @@ def get_hourly_tracker_api():
         slow_staff = roster_by_zone.get(zone_key, [])
         supervisors = roster_by_zone.get("ALL", ["Chain", "Big"])
 
+        za_cfg = zone_targets_cfg.get("Zone A", {})
+        za_tgt = za_cfg.get("peakTarget" if is_peak else "target", 15000)
+        za_min = za_cfg.get("minimum", 13333)
+
+        zb_cfg = zone_targets_cfg.get("Zone B", {})
+        zb_tgt = zb_cfg.get("peakTarget" if is_peak else "target", 15000)
+        zb_min = zb_cfg.get("minimum", 13333)
+
+        zc_cfg = zone_targets_cfg.get("Zone C", {})
+        zc_tgt = zc_cfg.get("peakTarget" if is_peak else "target", 15000)
+        zc_min = zc_cfg.get("minimum", 13333)
+
+        za_status = "passed" if za >= za_tgt else ("warning" if za >= za_min else "under")
+        zb_status = "passed" if zb >= zb_tgt else ("warning" if zb >= zb_min else "under")
+        zc_status = "passed" if zc >= zc_tgt else ("warning" if zc >= zc_min else "under")
+
+        under_zones = []
+        if has_data and act > 0:
+            if za < za_tgt: under_zones.append("Zone A")
+            if zb < zb_tgt: under_zones.append("Zone B")
+            if zc < zc_tgt: under_zones.append("Zone C")
+
         slots.append({
             "hour": h,
             "slot": slot_label,
@@ -4046,12 +4073,22 @@ def get_hourly_tracker_api():
             "truckSemi": zone_info.get("truckSemi", 0),
             "orderPct": zone_info.get("orderPct", 0.0),
             "zoneA": za,
+            "zoneATarget": za_tgt,
+            "zoneAMinimum": za_min,
+            "zoneAStatus": za_status,
             "zoneB": zb,
+            "zoneBTarget": zb_tgt,
+            "zoneBMinimum": zb_min,
+            "zoneBStatus": zb_status,
             "zoneC": zc,
+            "zoneCTarget": zc_tgt,
+            "zoneCMinimum": zc_min,
+            "zoneCStatus": zc_status,
             "zoneD": zone_info.get("zoneD", 0),
             "zoneE": zone_info.get("zoneE", 0),
             "zoneOBC": zone_info.get("zoneOBC", 0),
             "lowestZone": lowest_zone,
+            "underZones": under_zones,
             "slowStaff": slow_staff,
             "supervisors": supervisors,
             "evidenceCount": len(slot_evidences),

@@ -695,14 +695,40 @@
 
         const orderPctText = s.orderPct > 0 ? `${s.orderPct}%` : '<span class="text-muted">-</span>';
         
-        // Highlight lowest zone if under
+        // Render individual zone status
+        const formatZoneCell = (val, tgt, minVal, status, isLowest, zoneName) => {
+          if (!val || val === 0) return '<span class="text-muted">-</span>';
+          let cls = 'color:#334155;';
+          let badgeCls = '';
+          let icon = '';
+
+          if (isLowest) {
+            badgeCls = 'badge bg-danger shadow-sm text-white';
+          } else if (status === 'under') {
+            badgeCls = 'badge bg-danger bg-opacity-75 text-white';
+            icon = '<i class="fa-solid fa-triangle-exclamation me-1" style="font-size:0.65rem;"></i>';
+          } else if (status === 'warning') {
+            badgeCls = 'badge bg-warning text-dark';
+          } else {
+            if (zoneName === 'Zone A') cls = 'color:#db2777;';
+            if (zoneName === 'Zone B') cls = 'color:#16a34a;';
+            if (zoneName === 'Zone C') cls = 'color:#ca8a04;';
+          }
+
+          const tooltip = `${zoneName}: ${val.toLocaleString()} ชิ้น (เป้า ${tgt.toLocaleString()}, ขั้นต่ำ ${minVal.toLocaleString()})`;
+          if (badgeCls) {
+            return `<span class="font-monospace fw-bold ${badgeCls}" title="${tooltip}">${icon}${val.toLocaleString()}</span>`;
+          }
+          return `<span class="font-monospace fw-bold" style="${cls}" title="${tooltip}">${val.toLocaleString()}</span>`;
+        };
+
         const isLowestA = (isUnder && s.lowestZone === 'Zone A' && s.zoneA > 0);
         const isLowestB = (isUnder && s.lowestZone === 'Zone B' && s.zoneB > 0);
         const isLowestC = (isUnder && s.lowestZone === 'Zone C' && s.zoneC > 0);
 
-        const zoneA = s.zoneA > 0 ? `<span class="font-monospace fw-bold ${isLowestA ? 'badge bg-danger' : ''}" style="${isLowestA ? '' : 'color:#db2777;'}">${s.zoneA.toLocaleString()}</span>` : '<span class="text-muted">-</span>';
-        const zoneB = s.zoneB > 0 ? `<span class="font-monospace fw-bold ${isLowestB ? 'badge bg-danger' : ''}" style="${isLowestB ? '' : 'color:#16a34a;'}">${s.zoneB.toLocaleString()}</span>` : '<span class="text-muted">-</span>';
-        const zoneC = s.zoneC > 0 ? `<span class="font-monospace fw-bold ${isLowestC ? 'badge bg-danger' : ''}" style="${isLowestC ? '' : 'color:#ca8a04;'}">${s.zoneC.toLocaleString()}</span>` : '<span class="text-muted">-</span>';
+        const zoneA = formatZoneCell(s.zoneA, s.zoneATarget || 15000, s.zoneAMinimum || 13333, s.zoneAStatus, isLowestA, 'Zone A');
+        const zoneB = formatZoneCell(s.zoneB, s.zoneBTarget || 15000, s.zoneBMinimum || 13333, s.zoneBStatus, isLowestB, 'Zone B');
+        const zoneC = formatZoneCell(s.zoneC, s.zoneCTarget || 15000, s.zoneCMinimum || 13333, s.zoneCStatus, isLowestC, 'Zone C');
 
         const targetVal = (s.isQuiet && s.actual === 0) ? '<span class="text-muted">-</span>' : s.target.toLocaleString();
         const minVal = (s.isQuiet && s.actual === 0) ? '<span class="text-muted">-</span>' : s.minimum.toLocaleString();
@@ -711,13 +737,14 @@
         let slowStaffHtml = '';
         if (isUnder && s.actual > 0 && s.lowestZone !== '-') {
           const staffNamesStr = (s.slowStaff && s.slowStaff.length > 0) ? s.slowStaff.slice(0, 3).join(', ') : 'ไม่ระบุ';
+          const underList = (s.underZones && s.underZones.length > 0) ? s.underZones.join(', ') : s.lowestZone;
           slowStaffHtml = `
             <div class="mt-1" style="font-size:0.72rem; line-height: 1.2;">
-              <span class="badge bg-danger bg-opacity-90 text-white shadow-sm" title="โซนที่ปล่อยต่ำสุด">
-                <i class="fa-solid fa-triangle-exclamation me-1"></i> ${s.lowestZone} ช้าสุด
+              <span class="badge bg-danger bg-opacity-90 text-white shadow-sm" title="โซนที่หลุดเป้า">
+                <i class="fa-solid fa-triangle-exclamation me-1"></i> ${underList} หลุดเป้า
               </span>
-              <div class="text-secondary fw-bold mt-1" style="font-size:0.7rem;" title="เจ้าหน้าที่ผู้รับผิดชอบตาม Staff Roster">
-                <i class="fa-solid fa-user-tag text-primary me-1"></i> ${staffNamesStr}
+              <div class="text-secondary fw-bold mt-1" style="font-size:0.7rem;" title="เจ้าหน้าที่ผู้รับผิดชอบตาม Staff Roster (${s.lowestZone})">
+                <i class="fa-solid fa-user-tag text-primary me-1"></i> ${s.lowestZone}: ${staffNamesStr}
               </div>
             </div>
           `;
