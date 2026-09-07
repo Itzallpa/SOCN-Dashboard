@@ -1,5 +1,115 @@
 [
   {
+    "id": "7904e4fb",
+    "timestamp": "2026-09-07 21:24:38",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "SYSTEM_SETTINGS_UPDATE",
+    "details": "🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: 45000, Min: 40000)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "869ef3c2",
+    "timestamp": "2026-09-07 21:24:28",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "SYSTEM_SETTINGS_UPDATE",
+    "details": "🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: 45000, Min: 40000)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "e888682d",
+    "timestamp": "2026-09-07 21:22:01",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "EVIDENCE_DELETE",
+    "details": "🗑️ ลบหลักฐาน: Zone A 2026-09-07 18:00 (2026-09-07_18-00_Zone_A_20260907_200854.jpg)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "8a5eb5be",
+    "timestamp": "2026-09-07 21:21:57",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "EVIDENCE_DELETE",
+    "details": "🗑️ ลบหลักฐาน: Zone A 2026-09-07 19:00 (2026-09-07_19-00_Zone_A_OBS_20260907_205237.jpg)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "f61dcfc2",
+    "timestamp": "2026-09-07 21:21:32",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "10f178d2",
+    "timestamp": "2026-09-07 21:21:18",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "GOOGLE_SHEET_SYNC",
+    "details": "🔄 ซิงค์ข้อมูล Google Sheet สำเร็จ (วันที่ 2026-09-07, ยอดรวม 179,230 ชิ้น, 24 ชั่วโมง)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "c290a807",
+    "timestamp": "2026-09-07 21:21:18",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SEATALK_AUTO_ALERT",
+    "details": "🚨 ส่งแจ้งเตือน SeaTalk อัตโนมัติ: 2026-09-07 21:00 ยอด 15,329 ชิ้น (หลุดเป้า: Zone B (2,951 ชิ้น) | ผู้รับผิดชอบ: SKY, Dum, Korya, Tang, Oat)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "1b3de74a",
+    "timestamp": "2026-09-07 21:21:18",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SEATALK_AUTO_ALERT",
+    "details": "🚨 ส่งแจ้งเตือน SeaTalk อัตโนมัติ: 2026-09-07 18:00 ยอด 30,495 ชิ้น (หลุดเป้า: Zone A (7,887 ชิ้น) | ผู้รับผิดชอบ: Kwang, Nut, Mick, Wave, Porn)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "3e355910",
+    "timestamp": "2026-09-07 21:20:51",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYNC_OB_BL",
+    "details": "Successfully synced OB BL data from https://docs.google.com/spreadsheets/d/e/2PACX-1vRByU-6geOW_SbnQxFA4Y05WJMIkpRbUZMehfpDMTaHiXevL5mSA186BUybW3h8cgb4cWK2vOKuTIK3/pub?output=csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "8f74034f",
+    "timestamp": "2026-09-07 21:20:15",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "7817bfe0",
+    "timestamp": "2026-09-07 21:20:15",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "ip": "112.121.130.34"
+  },
+  {
     "id": "7be4cc59",
     "timestamp": "2026-09-07 20:53:19",
     "email": "admin@spxexpress.com",
