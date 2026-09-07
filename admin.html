@@ -865,7 +865,8 @@
           <button class="btn btn-success btn-sm py-0 px-2 fw-bold" onclick="approveUserInDashboard('${u.id}')"><i class="fa-solid fa-check me-1"></i> อนุมัติ</button>
           <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteUserInDashboard('${u.id}')"><i class="fa-solid fa-trash"></i></button>
         ` : `
-          <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="deleteUserInDashboard('${u.id}')">ลบสมาชิก</button>
+          <button class="btn btn-outline-primary btn-sm py-0 px-2 me-1" onclick="resetUserPasswordInDashboard('${u.id}', '${escapeHtml(u.name)}', '${escapeHtml(u.email)}')" title="รีเซ็ตรหัสผ่าน"><i class="fa-solid fa-key me-1"></i> รีเซ็ตรหัส</button>
+          <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="deleteUserInDashboard('${u.id}')">ลบ</button>
         `;
 
         return `
@@ -999,6 +1000,59 @@
         if (confirm(`คุณต้องการลบสมาชิก ${target.name} ใช่หรือไม่?`)) {
           runDeleteUser();
         }
+      }
+    }
+
+    function resetUserPasswordInDashboard(userId, userName, userEmail) {
+      const doReset = (newPass) => {
+        if (!newPass || newPass.trim().length < 4) {
+          alert('❌ รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร');
+          return;
+        }
+        fetch('/api/users/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: userId, email: userEmail, newPass: newPass.trim() })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showToastNotification('✅ รีเซ็ตรหัสผ่านสำเร็จ', `ตั้งรหัสผ่านใหม่ของ <b>${userName}</b> เรียบร้อยแล้ว`, 'success', 5000);
+            renderUsersTable();
+          } else {
+            alert('❌ ' + (data.error || 'รีเซ็ตรหัสผ่านไม่สำเร็จ'));
+          }
+        })
+        .catch(err => alert('❌ เกิดข้อผิดพลาด: ' + err.message));
+      };
+
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          title: '🔑 รีเซ็ตรหัสผ่านสมาชิก',
+          html: `กรุณากำหนดรหัสผ่านใหม่ให้กับ <b>"${userName}"</b> (${userEmail}):`,
+          input: 'text',
+          inputPlaceholder: 'กรอกรหัสผ่านใหม่ (เช่น 1234)',
+          inputValue: '1234',
+          showCancelButton: true,
+          confirmButtonColor: '#0284c7',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: '<i class="fa-solid fa-save me-1"></i> บันทึกรหัสผ่านใหม่',
+          cancelButtonText: 'ยกเลิก',
+          background: '#0d1b2a',
+          color: '#ffffff',
+          inputValidator: (value) => {
+            if (!value || value.trim().length < 4) {
+              return 'รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร!';
+            }
+          }
+        }).then((result) => {
+          if (result.isConfirmed && result.value) {
+            doReset(result.value);
+          }
+        });
+      } else {
+        const pass = prompt(`กำหนดรหัสผ่านใหม่ให้กับ ${userName}:`, '1234');
+        if (pass) doReset(pass);
       }
     }
 

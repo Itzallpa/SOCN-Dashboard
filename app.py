@@ -425,6 +425,107 @@ def login_user_api():
     return jsonify({"success": True, "user": sanitize_user(matched)})
 
 
+@app.route("/api/users/change-password", methods=["POST"])
+def change_user_password_api():
+    data = request.get_json() or {}
+    email = (data.get("email") or session.get("user_email") or "").strip().lower()
+    current_pass = (data.get("currentPass") or "").strip()
+    new_pass = (data.get("newPass") or "").strip()
+    confirm_pass = (data.get("confirmPass") or "").strip()
+
+    if not email:
+        return jsonify({"success": False, "error": "ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่"}), 401
+    if not current_pass or not new_pass or not confirm_pass:
+        return jsonify({"success": False, "error": "กรุณากรอกรหัสผ่านให้ครบทุกช่อง"}), 400
+    if new_pass != confirm_pass:
+        return jsonify({"success": False, "error": "รหัสผ่านใหม่และการยืนยันรหัสผ่านไม่ตรงกัน"}), 400
+    if len(new_pass) < 4:
+        return jsonify({"success": False, "error": "รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร"}), 400
+
+    users = load_users_db()
+    target = next((u for u in users if u.get("email", "").lower() == email or u.get("name", "").lower() == email), None)
+    if not target:
+        return jsonify({"success": False, "error": "ไม่พบบัญชีผู้ใช้งานในระบบ"}), 404
+
+    if target.get("pass") != current_pass:
+        return jsonify({"success": False, "error": "รหัสผ่านปัจจุบันไม่ถูกต้อง"}), 400
+
+    target["pass"] = new_pass
+    target["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    save_users_db(users)
+
+    log_activity("USER_PASSWORD_CHANGE", f"เปลี่ยนรหัสผ่านสำเร็จ: {target.get('name')} ({target.get('email')})", user_email=target.get("email"), user_name=target.get("name"), user_role=target.get("role"))
+    return jsonify({"success": True, "message": "เปลี่ยนรหัสผ่านสำเร็จเรียบร้อยแล้ว!"})
+
+
+@app.route("/api/users/reset-password", methods=["POST"])
+def reset_user_password_api():
+    data = request.get_json() or {}
+    user_id = str(data.get("id") or "").strip()
+    email = str(data.get("email") or "").strip().lower()
+    new_pass = (data.get("newPass") or "1234").strip()
+
+    users = load_users_db()
+    target = next((u for u in users if (user_id and str(u.get("id")) == user_id) or (email and u.get("email", "").lower() == email)), None)
+    if not target:
+        return jsonify({"success": False, "error": "ไม่พบสมาชิก"}), 404
+
+    target["pass"] = new_pass
+    target["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    save_users_db(users)
+
+@app.route("/api/users/update-profile", methods=["POST"])
+def update_user_profile_api():
+    data = request.get_json() or {}
+    email = (data.get("email") or session.get("user_email") or "").strip().lower()
+    new_name = (data.get("name") or "").strip()
+    current_pass = (data.get("currentPass") or "").strip()
+    new_pass = (data.get("newPass") or "").strip()
+    confirm_pass = (data.get("confirmPass") or "").strip()
+
+    if not email:
+        return jsonify({"success": False, "error": "ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่"}), 401
+    if not new_name:
+        return jsonify({"success": False, "error": "กรุณากรอกชื่อผู้ใช้งาน (Username)"}), 400
+
+    users = load_users_db()
+    target = next((u for u in users if u.get("email", "").lower() == email or u.get("name", "").lower() == email), None)
+    if not target:
+        return jsonify({"success": False, "error": "ไม่พบบัญชีผู้ใช้งานในระบบ"}), 404
+
+    # If updating name, check duplicate
+    for u in users:
+        if u.get("id") != target.get("id") and u.get("name", "").lower() == new_name.lower():
+            return jsonify({"success": False, "error": "ชื่อผู้ใช้งานนี้ถูกใช้งานแล้ว กรุณาเลือกชื่ออื่น"}), 400
+
+    old_name = target.get("name")
+    target["name"] = new_name
+    session["user_name"] = new_name
+
+    # If password change is also requested
+    if new_pass or current_pass:
+        if not current_pass:
+            return jsonify({"success": False, "error": "กรุณากรอกรหัสผ่านปัจจุบันเพื่อยืนยันการเปลี่ยนรหัส"}), 400
+        if target.get("pass") != current_pass:
+            return jsonify({"success": False, "error": "รหัสผ่านปัจจุบันไม่ถูกต้อง"}), 400
+        if new_pass != confirm_pass:
+            return jsonify({"success": False, "error": "รหัสผ่านใหม่และการยืนยันรหัสผ่านไม่ตรงกัน"}), 400
+        if len(new_pass) < 4:
+            return jsonify({"success": False, "error": "รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร"}), 400
+        target["pass"] = new_pass
+
+    target["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    save_users_db(users)
+
+    log_activity("USER_PROFILE_UPDATE", f"อัปเดตโปรไฟล์: {old_name} -> {new_name} ({target.get('email')})", user_email=target.get("email"), user_name=new_name, user_role=target.get("role"))
+    return jsonify({
+        "success": True,
+        "message": "อัปเดตข้อมูลผู้ใช้งานเรียบร้อยแล้ว!",
+        "user": sanitize_user(target),
+        "users": sanitize_users(users)
+    })
+
+
 def read_dataframe(filepath):
     if str(filepath).lower().endswith(('.xlsx', '.xls')):
         try:

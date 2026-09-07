@@ -718,6 +718,176 @@
     logActivity('DATA_EXPORT', `📤 ดาวน์โหลด/ส่งออกข้อมูล: ${exportName} (${rowCount || 0} รายการ) ${details ? '- ' + details : ''}`);
   }
 
+  /* ─── Edit Profile & Change Password Modal ─── */
+  function openProfileModal() {
+    var user = getStoredUser();
+    if (!user) {
+      showAuthModal('กรุณาเข้าสู่ระบบก่อนแก้ไขข้อมูล');
+      return;
+    }
+
+    var overlay = document.getElementById('socnProfileOverlay');
+    if (overlay) {
+      document.getElementById('cpNameField').value = user.name || '';
+      document.getElementById('cpCurrentPass').value = '';
+      document.getElementById('cpNewPass').value = '';
+      document.getElementById('cpConfirmPass').value = '';
+      overlay.style.display = 'flex';
+      return;
+    }
+
+    overlay = document.createElement('div');
+    overlay.id = 'socnProfileOverlay';
+    overlay.onclick = function(e) {
+      if (e.target === overlay) {
+        overlay.style.display = 'none';
+      }
+    };
+    overlay.innerHTML = `
+      <style>
+        #socnProfileOverlay {
+          position:fixed; inset:0; z-index:99999999;
+          background:rgba(13,27,42,0.85); backdrop-filter:blur(8px);
+          display:flex; align-items:center; justify-content:center;
+          font-family:'Segoe UI',system-ui,sans-serif; padding:16px;
+        }
+        #socnProfileCard {
+          background:#fff; border-radius:20px; width:100%; max-width:460px;
+          box-shadow:0 30px 60px rgba(0,0,0,0.5); overflow:hidden; position:relative;
+        }
+        #socnProfileCard .cp-header {
+          background:#0f172a; color:#fff; padding:20px 24px; position:relative; text-align:center;
+        }
+        #socnProfileCard .cp-body { padding:24px; max-height:80vh; overflow-y:auto; }
+      </style>
+      <div id="socnProfileCard">
+        <div class="cp-header">
+          <button style="position:absolute; top:16px; right:16px; background:transparent; border:none; color:#94a3b8; font-size:1.4rem; cursor:pointer;" onclick="document.getElementById('socnProfileOverlay').style.display='none'">✕</button>
+          <div style="font-size:2rem; margin-bottom:4px;">👤</div>
+          <h5 style="font-weight:800; margin:0; font-size:1.15rem;">แก้ไขข้อมูลส่วนตัว & รหัสผ่าน (Edit Profile)</h5>
+          <div style="font-size:0.78rem; color:#94a3b8; margin-top:3px;">สำหรับบัญชี: <strong style="color:#60a5fa;">${esc(user.email)}</strong> (${esc(user.role)})</div>
+        </div>
+        <div class="cp-body">
+          <form id="socnProfileForm" onsubmit="window.AuthGuard.handleProfileSubmit(event)">
+            
+            <div class="field-group mb-3">
+              <label style="display:block; font-size:0.82rem; font-weight:700; color:#1e293b; margin-bottom:5px;">
+                <i class="fa-solid fa-user me-1 text-primary"></i> ชื่อผู้ใช้งาน (Username / Display Name):
+              </label>
+              <input type="text" id="cpNameField" value="${esc(user.name)}" placeholder="ระบุชื่อผู้ใช้งานใหม่" style="width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:0.92rem; outline:none; box-sizing:border-box; font-weight:700; color:#0f172a;" required>
+              <div style="font-size:0.74rem; color:#64748b; margin-top:3px;">ชื่อนี้จะแสดงบนมุมขวาบนของระบบ และในบันทึก Activity Logs</div>
+            </div>
+
+            <div style="margin:16px 0 12px; border-top:1px dashed #cbd5e1; padding-top:12px;">
+              <span style="font-size:0.8rem; font-weight:700; color:#64748b;"><i class="fa-solid fa-key me-1 text-warning"></i> เปลี่ยนรหัสผ่าน (หากไม่ต้องการเปลี่ยน ให้เว้นว่างไว้):</span>
+            </div>
+
+            <div class="field-group mb-2">
+              <label style="display:block; font-size:0.78rem; font-weight:600; color:#475569; margin-bottom:4px;">รหัสผ่านปัจจุบัน (Current Password):</label>
+              <input type="password" id="cpCurrentPass" placeholder="กรอกรหัสเดิม (จำเป็นเมื่อต้องการเปลี่ยนรหัส)" style="width:100%; padding:9px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box;">
+            </div>
+
+            <div class="field-group mb-2">
+              <label style="display:block; font-size:0.78rem; font-weight:600; color:#475569; margin-bottom:4px;">รหัสผ่านใหม่ (New Password):</label>
+              <input type="password" id="cpNewPass" placeholder="รหัสผ่านใหม่ (เว้นว่างไว้ถ้าไม่เปลี่ยน)" minlength="4" style="width:100%; padding:9px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box;">
+            </div>
+
+            <div class="field-group mb-4">
+              <label style="display:block; font-size:0.78rem; font-weight:600; color:#475569; margin-bottom:4px;">ยืนยันรหัสผ่านใหม่ (Confirm New Password):</label>
+              <input type="password" id="cpConfirmPass" placeholder="กรอกรหัสผ่านใหม่อีกครั้ง" minlength="4" style="width:100%; padding:9px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box;">
+            </div>
+
+            <div style="display:flex; gap:10px;">
+              <button type="button" onclick="document.getElementById('socnProfileOverlay').style.display='none'" style="flex:1; background:#f1f5f9; color:#475569; border:none; padding:12px; border-radius:10px; font-weight:700; cursor:pointer;">ยกเลิก</button>
+              <button type="submit" id="btnSubmitProfile" style="flex:2; background:#0284c7; color:#fff; border:none; padding:12px; border-radius:10px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(2,132,199,0.35);"><i class="fa-solid fa-save me-1"></i> บันทึกข้อมูล</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  }
+
+  function handleProfileSubmit(evt) {
+    if (evt) evt.preventDefault();
+    var user = getStoredUser();
+    if (!user) return;
+
+    var newName = (document.getElementById('cpNameField').value || '').trim();
+    var currentPass = (document.getElementById('cpCurrentPass').value || '').trim();
+    var newPass = (document.getElementById('cpNewPass').value || '').trim();
+    var confirmPass = (document.getElementById('cpConfirmPass').value || '').trim();
+
+    if (!newName) {
+      showSweetAlert('กรอกข้อมูลไม่ครบ', 'กรุณาระบุชื่อผู้ใช้งาน (Username)', 'warning');
+      return;
+    }
+
+    if (newPass || currentPass) {
+      if (!currentPass) {
+        showSweetAlert('ต้องการรหัสผ่านเดิม', 'กรุณากรอกรหัสผ่านปัจจุบันเพื่อยืนยันการตั้งรหัสผ่านใหม่', 'warning');
+        return;
+      }
+      if (newPass !== confirmPass) {
+        showSweetAlert('รหัสผ่านไม่ตรงกัน', 'รหัสผ่านใหม่และการยืนยันรหัสผ่านใหม่ไม่ตรงกัน', 'error');
+        return;
+      }
+      if (newPass.length < 4) {
+        showSweetAlert('รหัสผ่านสั้นเกินไป', 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร', 'warning');
+        return;
+      }
+    }
+
+    var btn = document.getElementById('btnSubmitProfile');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังบันทึก...';
+    }
+
+    fetch('/api/users/update-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user.email,
+        name: newName,
+        currentPass: currentPass,
+        newPass: newPass,
+        confirmPass: confirmPass
+      })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-save me-1"></i> บันทึกข้อมูล';
+      }
+      if (data.success) {
+        user.name = newName;
+        user.picture = `https://ui-avatars.com/api/?name=${encodeURIComponent(newName)}&background=0d1b2a&color=fff`;
+        saveStoredUser(user);
+
+        var ov = document.getElementById('socnProfileOverlay');
+        if (ov) ov.style.display = 'none';
+
+        renderProfileBadge();
+        showSweetAlert('อัปเดตข้อมูลสำเร็จ!', `บันทึกข้อมูลส่วนตัวเรียบร้อยแล้ว<br>ชื่อผู้ใช้ใหม่: <b>"${esc(newName)}"</b>`, 'success');
+      } else {
+        showSweetAlert('อัปเดตข้อมูลไม่สำเร็จ', data.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+      }
+    })
+    .catch(function(err) {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-save me-1"></i> บันทึกข้อมูล';
+      }
+      showSweetAlert('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้: ' + err.message, 'error');
+    });
+  }
+
+  // Backward compatibility aliases
+  function openChangePasswordModal() { openProfileModal(); }
+  function handleChangePasswordSubmit(evt) { handleProfileSubmit(evt); }
+
   /* ─── Profile Badge on Navbar ─── */
   function renderProfileBadge() {
     var user = getStoredUser();
@@ -753,12 +923,19 @@
           </button>
         ` : '';
 
+        var changePassBtn = `
+          <button onclick="window.AuthGuard.openProfileModal()" style="background:#0284c7; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-weight:700; font-size:0.8rem; cursor:pointer; box-shadow:0 2px 6px rgba(2,132,199,0.3);" title="แก้ไขชื่อผู้ใช้งาน (Username) หรือเปลี่ยนรหัสผ่าน">
+            <i class="fa-solid fa-user-pen me-1"></i> แก้ไขโปรไฟล์
+          </button>
+        `;
+
         badge.innerHTML = adminPanelBtn + pendingBadgeBtn +
           '<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.15);">' +
             '<img src="' + user.picture + '" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">' +
             '<span style="font-weight:700;color:#fff;">' + esc(user.name) + '</span>' +
             '<span style="background:' + roleBg + ';color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:12px;text-transform:uppercase;">' + user.role + '</span>' +
           '</div>' +
+          changePassBtn +
           '<button onclick="window.AuthGuard.logout()" style="background:#dc2626;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-weight:700;font-size:.8rem;cursor:pointer;"><i class="fa-solid fa-right-from-bracket me-1"></i> Logout</button>';
       } else {
         badge.innerHTML = `
@@ -867,6 +1044,10 @@
     switchTab: switchTab,
     handleLoginSubmit: handleLoginSubmit,
     handleSignupSubmit: handleSignupSubmit,
+    openProfileModal: openProfileModal,
+    handleProfileSubmit: handleProfileSubmit,
+    openChangePasswordModal: openChangePasswordModal,
+    handleChangePasswordSubmit: handleChangePasswordSubmit,
     openAdminApprovalModal: openAdminApprovalModal,
     renderAdminApprovalTable: renderAdminApprovalTable,
     approveUser: approveUser,
