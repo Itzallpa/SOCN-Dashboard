@@ -35,12 +35,22 @@ def add_header(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     return response
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 DATA_DIR = os.path.join(BASE_DIR, "data")
 os.makedirs(DATA_DIR, exist_ok=True)
+
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+BACKLOG_COMPARE_FOLDER = os.path.join(BASE_DIR, "Backlog Shipment")
+os.makedirs(BACKLOG_COMPARE_FOLDER, exist_ok=True)
 
 LOGS_FILE = os.path.join(DATA_DIR, "activity_logs.json")
 if not os.path.exists(LOGS_FILE) and os.path.exists(os.path.join(BASE_DIR, "activity_logs.json")):
@@ -176,9 +186,116 @@ def build_cutoff_map():
     return cutoff_map
 
 
+SKIP_DIR = os.path.join(BASE_DIR, "Skip")
+_CACHED_HUB_ZONE_MAP = None
+
+def build_hub_zone_map():
+    global _CACHED_HUB_ZONE_MAP
+    if _CACHED_HUB_ZONE_MAP is not None:
+        return _CACHED_HUB_ZONE_MAP
+
+    json_cache = os.path.join(DATA_DIR, "hub_zone_map.json")
+    if os.path.exists(json_cache):
+        try:
+            with open(json_cache, "r", encoding="utf-8") as f:
+                _CACHED_HUB_ZONE_MAP = json.load(f)
+                return _CACHED_HUB_ZONE_MAP
+        except Exception:
+            pass
+
+    hub_map = {}
+    hub_files = [
+        os.path.join(SKIP_DIR, "Copy of [SOCN] Outbound On-time Investigation - Hub.csv"),
+        os.path.join(SOURCE_DIR, "Copy of [SOCN] Outbound On-time Investigation - Hub.csv"),
+        os.path.join(BASE_DIR, "Hub.csv"),
+    ]
+    
+    hub_path = None
+    for p in hub_files:
+        if os.path.exists(p):
+            hub_path = p
+            break
+            
+    if hub_path and os.path.exists(hub_path):
+        try:
+            with open(hub_path, 'r', encoding='utf-8-sig', errors='ignore') as f:
+                reader = csv.reader(f)
+                header = next(reader, None)
+                for row in reader:
+                    if len(row) > 11:
+                        st_id = row[0].strip()
+                        st_name = row[1].strip()
+                        st_short = row[2].strip()
+                        zone = row[11].strip().upper()
+                        
+                        if not zone:
+                            sup = row[5].strip().upper() if len(row) > 5 else ''
+                            sub = row[8].strip().upper() if len(row) > 8 else ''
+                            if 'NORC' in sup or 'NORC' in sub: zone = 'A'
+                            elif 'NERC' in sup or 'NERC' in sub: zone = 'B'
+                            elif 'SORC' in sup or 'SORC' in sub: zone = 'C'
+                            elif 'SOCE' in sup or 'SOCW' in sup or 'SOCE' in sub or 'SOCW' in sub: zone = 'INTERSOC'
+                            elif 'RET' in sup or 'RET' in sub: zone = 'RETURN'
+
+                        if 'INTER' in zone: zone = 'INTERSOC'
+                        elif 'RET' in zone: zone = 'RETURN'
+                        
+                        if zone in ['A', 'B', 'C', 'INTERSOC', 'RETURN']:
+                            if st_name: hub_map[st_name.lower()] = zone
+                            if st_short: hub_map[st_short.lower()] = zone
+                            if st_id: hub_map[st_id.lower()] = zone
+                            if '-' in st_name:
+                                hub_map[st_name.split('-')[0].strip().lower()] = zone
+            try:
+                with open(json_cache, "w", encoding="utf-8") as f:
+                    json.dump(hub_map, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+        except Exception as e:
+            print("Error loading Hub.csv:", e)
+
+    _CACHED_HUB_ZONE_MAP = hub_map
+    return hub_map
+
+def lookup_obd_zone(station_name, hub_map=None):
+    if hub_map is None:
+        hub_map = build_hub_zone_map()
+    if not station_name:
+        return 'A'
+    st = str(station_name).strip()
+    st_lower = st.lower()
+    if st_lower in hub_map:
+        return hub_map[st_lower]
+    if '-' in st_lower:
+        prefix = st_lower.split('-')[0].strip()
+        if prefix in hub_map:
+            return hub_map[prefix]
+    st_upper = st.upper()
+    if 'INTER' in st_upper or 'SOCW' in st_upper or 'SOCE' in st_upper:
+        return 'INTERSOC'
+    if 'RET' in st_upper:
+        return 'RETURN'
+    return 'A'
+
+
+
+def sanitize_user(u):
+    if not u or not isinstance(u, dict):
+        return u
+    clean = dict(u)
+    clean.pop("pass", None)
+    clean.pop("password", None)
+    return clean
+
+def sanitize_users(users):
+    if not isinstance(users, list):
+        return []
+    return [sanitize_user(u) for u in users]
+
+
 @app.route("/api/users", methods=["GET"])
 def get_users_api():
-    return jsonify({"success": True, "users": load_users_db()})
+    return jsonify({"success": True, "users": sanitize_users(load_users_db())})
 
 @app.route("/api/users/signup", methods=["POST"])
 def signup_user_api():
@@ -208,7 +325,7 @@ def signup_user_api():
     save_users_db(users)
 
     log_activity("USER_SIGNUP", f"ลงทะเบียนผู้ใช้งานใหม่: {name} ({email}) - รอ Admin อนุมัติ", user_email=email, user_name=name, user_role="Ground")
-    return jsonify({"success": True, "user": new_user, "users": users})
+    return jsonify({"success": True, "user": sanitize_user(new_user), "users": sanitize_users(users)})
 
 @app.route("/api/users/approve", methods=["POST"])
 def approve_user_api():
@@ -232,7 +349,7 @@ def approve_user_api():
     save_users_db(users)
 
     log_activity("USER_APPROVAL", f"อนุมัติบัญชี {target.get('name')} ({target.get('email')}) เป็นสิทธิ์ {role}")
-    return jsonify({"success": True, "user": target, "users": users})
+    return jsonify({"success": True, "user": sanitize_user(target), "users": sanitize_users(users)})
 
 @app.route("/api/users/role", methods=["POST"])
 def change_role_user_api():
@@ -256,7 +373,7 @@ def change_role_user_api():
     save_users_db(users)
 
     log_activity("USER_ROLE_CHANGE", f"เปลี่ยนสิทธิ์ {target.get('name')} ({target.get('email')}) จาก {old_role} เป็น {role}")
-    return jsonify({"success": True, "user": target, "users": users})
+    return jsonify({"success": True, "user": sanitize_user(target), "users": sanitize_users(users)})
 
 @app.route("/api/users/delete", methods=["POST"])
 def delete_user_api():
@@ -268,7 +385,7 @@ def delete_user_api():
     save_users_db(users)
 
     log_activity("USER_DELETE", f"ลบผู้ใช้งาน ID: {user_id}")
-    return jsonify({"success": True, "users": users})
+    return jsonify({"success": True, "users": sanitize_users(users)})
 
 @app.route("/api/users/login", methods=["POST"])
 def login_user_api():
@@ -293,7 +410,7 @@ def login_user_api():
     session["user_role"] = matched.get("role")
 
     log_activity("USER_LOGIN", f"เข้าสู่ระบบสำเร็จในฐานะ {matched.get('role')}", user_email=matched.get("email"), user_name=matched.get("name"), user_role=matched.get("role"))
-    return jsonify({"success": True, "user": matched})
+    return jsonify({"success": True, "user": sanitize_user(matched)})
 
 
 def read_dataframe(filepath):
@@ -646,15 +763,13 @@ def upload_file():
         # Safely extract raw rows for Skip Process Monitor
         try:
             full_df = read_dataframe(save_path)
-            total_rows = len(full_df)
-            data["totalRows"] = total_rows
             
             # Find matching column names case-insensitively
             target_cols = {
                 'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
                 'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
                 'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
-                'recieve_team': ['recieve_team', 'receive_team', 'obd_zone', 'zone']
+                'obd_zone': ['obd zone', 'obd_zone', 'zone', 'recieve_team', 'receive_team']
             }
             renames = {}
             target_used_raw = set()
@@ -668,7 +783,7 @@ def upload_file():
             
             sub_df = full_df.rename(columns=renames)
             sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
-            needed = ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name', 'recieve_team']
+            needed = ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name']
             for n in needed:
                 if n not in sub_df.columns:
                     sub_df[n] = ''
@@ -678,33 +793,60 @@ def upload_file():
             is_skip_mask = reason_series.str.contains('skip')
             skip_df = sub_df[is_skip_mask].copy()
 
-            skip_count_by_zone = {}
-            if 'recieve_team' in skip_df.columns:
-                for z_val in skip_df['recieve_team'].dropna():
-                    z_clean = str(z_val).strip().upper()
-                    if 'INTER' in z_clean or ('SOC' in z_clean and 'INTER' in z_clean):
-                        mz = 'INTERSOC'
-                    elif 'RET' in z_clean:
-                        mz = 'RETURN'
-                    elif 'A' in z_clean:
-                        mz = 'A'
-                    elif 'B' in z_clean:
-                        mz = 'B'
-                    elif 'C' in z_clean:
-                        mz = 'C'
-                    else:
-                        mz = z_clean
-                    skip_count_by_zone[mz] = skip_count_by_zone.get(mz, 0) + 1
+            total_skip = len(skip_df)
+            machine_count = int(reason_series[is_skip_mask].str.contains('machine').sum())
+            system_count = int(reason_series[is_skip_mask].str.contains('system').sum())
+
+            hub_map = build_hub_zone_map()
+            
+            # Resolve Zone accurately using Hub master lookup
+            resolved_zones = []
+            for _, r in skip_df.iterrows():
+                explicit_zone = str(r.get('obd_zone', '') or '').strip().upper()
+                if explicit_zone in ['A', 'B', 'C', 'INTERSOC', 'RETURN']:
+                    resolved_zones.append(explicit_zone)
+                elif 'INTER' in explicit_zone:
+                    resolved_zones.append('INTERSOC')
+                elif 'RET' in explicit_zone:
+                    resolved_zones.append('RETURN')
+                else:
+                    hub = r.get('dest_station_name', '')
+                    resolved_zones.append(lookup_obd_zone(hub, hub_map))
+            
+            skip_df['zone'] = resolved_zones
+
+            skip_count_by_zone = {'A': 0, 'B': 0, 'C': 0, 'INTERSOC': 0, 'RETURN': 0}
+            for z in resolved_zones:
+                skip_count_by_zone[z] = skip_count_by_zone.get(z, 0) + 1
+
+            raw_export_list = []
+            for _, r in skip_df.iterrows():
+                raw_export_list.append({
+                    'shipment_id': str(r.get('shipment_id', '-')),
+                    'shipmentId': str(r.get('shipment_id', '-')),
+                    'soc_outbound_late_type_2nd_cutoff': str(r.get('soc_outbound_late_type_2nd_cutoff', 'skip_outbound')),
+                    'reason': str(r.get('soc_outbound_late_type_2nd_cutoff', 'skip_outbound')),
+                    'dest_station_name': str(r.get('dest_station_name', '-')),
+                    'hub': str(r.get('dest_station_name', '-')),
+                    'zone': str(r.get('zone', 'A'))
+                })
 
             data["totalRows"] = total_skip
+            data["totalSkipCases"] = total_skip
             data["machineCount"] = machine_count
             data["systemCount"] = system_count
             data["skipCountByZone"] = skip_count_by_zone
-            data["rawRows"] = skip_df[needed].fillna('').to_dict(orient='records')
+            data["rawRows"] = raw_export_list
         except Exception as ex:
-            print("Error processing skip rawRows:", ex)
+            print("Error processing skip rawRows in upload_file:", ex)
+            import traceback
+            traceback.print_exc()
             data["rawRows"] = []
             data["totalRows"] = 0
+            data["totalSkipCases"] = 0
+            data["machineCount"] = 0
+            data["systemCount"] = 0
+            data["skipCountByZone"] = {}
 
         return jsonify(data)
     except Exception as e:
@@ -1213,9 +1355,14 @@ def load_file():
         return jsonify({"success": False, "error": f"ไม่สามารถประมวลผลไฟล์ได้: {str(e)}"}), 200
 
 
+@app.route("/api/hub-zone-map", methods=["GET"])
+def get_hub_zone_map_api():
+    return jsonify({"success": True, "hubMap": build_hub_zone_map()})
+
+
 @app.route("/api/load-skip", methods=["GET"])
 def load_skip_lightweight():
-    """Lightweight skip-only endpoint that skips heavy process_csv for speed."""
+    """Lightweight skip-only endpoint that accurately processes skip cases and zone assignments."""
     filename = request.args.get("filename", "").strip()
     if not filename:
         return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์"}), 400
@@ -1228,13 +1375,12 @@ def load_skip_lightweight():
 
     try:
         full_df = pd.read_csv(target, low_memory=False)
-        total_rows = len(full_df)
 
         target_cols = {
             'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
             'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
             'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
-            'recieve_team': ['recieve_team', 'receive_team', 'obd_zone', 'zone']
+            'obd_zone': ['obd zone', 'obd_zone', 'zone', 'recieve_team', 'receive_team']
         }
         renames = {}
         used = set()
@@ -1248,7 +1394,7 @@ def load_skip_lightweight():
 
         sub_df = full_df.rename(columns=renames)
         sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
-        needed = ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name', 'recieve_team']
+        needed = ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name']
         for n in needed:
             if n not in sub_df.columns:
                 sub_df[n] = ''
@@ -1260,26 +1406,48 @@ def load_skip_lightweight():
         machine_count = int(reason_s[mask].str.contains('machine').sum())
         system_count = int(reason_s[mask].str.contains('system').sum())
 
-        zone_counts = {}
-        if 'recieve_team' in skip_df.columns:
-            for z in skip_df['recieve_team'].dropna():
-                zc = str(z).strip().upper()
-                if 'INTER' in zc: mz = 'INTERSOC'
-                elif 'RET' in zc: mz = 'RETURN'
-                elif 'A' in zc: mz = 'A'
-                elif 'B' in zc: mz = 'B'
-                elif 'C' in zc: mz = 'C'
-                else: mz = zc
-                zone_counts[mz] = zone_counts.get(mz, 0) + 1
+        hub_map = build_hub_zone_map()
+
+        resolved_zones = []
+        for _, r in skip_df.iterrows():
+            explicit_zone = str(r.get('obd_zone', '') or '').strip().upper()
+            if explicit_zone in ['A', 'B', 'C', 'INTERSOC', 'RETURN']:
+                resolved_zones.append(explicit_zone)
+            elif 'INTER' in explicit_zone:
+                resolved_zones.append('INTERSOC')
+            elif 'RET' in explicit_zone:
+                resolved_zones.append('RETURN')
+            else:
+                hub = r.get('dest_station_name', '')
+                resolved_zones.append(lookup_obd_zone(hub, hub_map))
+
+        skip_df['zone'] = resolved_zones
+
+        zone_counts = {'A': 0, 'B': 0, 'C': 0, 'INTERSOC': 0, 'RETURN': 0}
+        for z in resolved_zones:
+            zone_counts[z] = zone_counts.get(z, 0) + 1
+
+        raw_export_list = []
+        for _, r in skip_df.iterrows():
+            raw_export_list.append({
+                'shipment_id': str(r.get('shipment_id', '-')),
+                'shipmentId': str(r.get('shipment_id', '-')),
+                'soc_outbound_late_type_2nd_cutoff': str(r.get('soc_outbound_late_type_2nd_cutoff', 'skip_outbound')),
+                'reason': str(r.get('soc_outbound_late_type_2nd_cutoff', 'skip_outbound')),
+                'dest_station_name': str(r.get('dest_station_name', '-')),
+                'hub': str(r.get('dest_station_name', '-')),
+                'zone': str(r.get('zone', 'A'))
+            })
 
         return jsonify({
             "success": True,
             "filename": filename,
             "totalRows": len(skip_df),
+            "totalSkipCases": len(skip_df),
             "machineCount": machine_count,
             "systemCount": system_count,
             "skipCountByZone": zone_counts,
-            "rawRows": skip_df[needed].head(2500).fillna('').to_dict(orient='records')
+            "rawRows": raw_export_list
         })
     except Exception as e:
         import traceback

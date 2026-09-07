@@ -1,0 +1,219 @@
+const ROSTER_SPREADSHEET_ID = '1vN4L90zXupLEm6UYV-twF22JCDW47IWPMvEwMekehmA';
+const RAW_DATA_SPREADSHEET_ID = '1a7KdFxp5vZrMhRIeBRg2dFC0pJBzZZtmSoTe_2FEgig';
+const VOLUME_SPREADSHEET_ID = '1Z5sAcsGSQBu1A_7crK51a1wnWvSO_NnmXVBrx3te32s';
+
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('SOC Investigation & Skip Process Dashboard')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function getDashboardData(selectedDateColIndex) {
+  try {
+    // 1. Roster Sheet
+    let staffByZone = {};
+    try {
+      const rosterSs = SpreadsheetApp.openById(ROSTER_SPREADSHEET_ID);
+      const rosterSheet = rosterSs.getSheetByName('FTE /Aug') || rosterSs.getSheets()[0];
+      const rosterLastRow = rosterSheet.getLastRow();
+      
+      if (rosterLastRow >= 4) {
+        const rosterValues = rosterSheet.getRange(4, 6, rosterLastRow - 3, 3).getValues();
+        for (let i = 0; i < rosterValues.length; i++) {
+          let name = rosterValues[i][0]; 
+          let zone = rosterValues[i][2]; 
+          if (name && zone) {
+            zone = String(zone).trim().toUpperCase();
+            if (!staffByZone[zone]) staffByZone[zone] = [];
+            staffByZone[zone].push(String(name).trim());
+          }
+        }
+      }
+    } catch (e) {
+      Logger.log("Roster read error: " + e.toString());
+    }
+
+    // 2. Raw Data Sheet
+    let skipCases = [];
+    let skipCountByZone = {};
+    let totalSkipCases = 0;
+    let machineCount = 0;
+    let systemCount = 0;
+
+    try {
+      const rawSs = SpreadsheetApp.openById(RAW_DATA_SPREADSHEET_ID);
+      const rawSheet = rawSs.getSheetByName('Raw') || rawSs.getSheets()[0];
+      
+      // หาบรรทัดสุดท้ายที่มีข้อมูลจริงใน Column A
+      const colAValues = rawSheet.getRange("A:A").getValues();
+      let actualLastRow = 0;
+      for (let i = colAValues.length - 1; i >= 0; i--) {
+        if (colAValues[i][0] !== "" && colAValues[i][0] !== null && colAValues[i][0] !== undefined) {
+          actualLastRow = i + 1;
+          break;
+        }
+      }
+
+      const rawLastCol = rawSheet.getLastColumn();
+
+      if (actualLastRow >= 2) {
+        const headers = rawSheet.getRange(1, 1, 1, rawLastCol).getValues()[0].map(h => h ? String(h).trim().toLowerCase() : '');
+        
+        const shipmentIdx = headers.indexOf('shipment_id');
+        const reasonIdx = headers.indexOf('soc_outbound_late_type_2nd_cutoff');
+        const hubIdx = headers.indexOf('dest_station_name');
+
+        const rawValues = rawSheet.getRange(2, 1, actualLastRow - 1, rawLastCol).getValues();
+
+        for (let i = 0; i < rawValues.length; i++) {
+          let row = rawValues[i];
+          
+          let shipmentId = (shipmentIdx !== -1 && row[shipmentIdx]) ? String(row[shipmentIdx]).trim() : String(row[0] || '-').trim();
+          
+          let rawReason = '';
+          if (reasonIdx !== -1 && row[reasonIdx] !== null && row[reasonIdx] !== undefined) {
+            rawReason = String(row[reasonIdx]).trim().toLowerCase();
+          } else {
+            rawReason = String(row[8] || row[18] || '').trim().toLowerCase();
+          }
+
+          if (rawReason === 'undefined') rawReason = '';
+
+          let hubName = (hubIdx !== -1 && row[hubIdx]) ? String(row[hubIdx]).trim() : String(row[9] || '-').trim();
+          if (hubName === 'undefined') hubName = '-';
+
+          let zone = String(row[19] || row[9] || 'N/A').trim().toUpperCase();
+          if (zone === 'UNDEFINED' || !zone) zone = 'N/A';
+
+          if (rawReason.indexOf('skip') !== -1) {
+            totalSkipCases++;
+
+            if (rawReason.indexOf('machine') !== -1) {
+              machineCount++;
+            } else if (rawReason.indexOf('system') !== -1) {
+              systemCount++;
+            }
+
+            skipCases.push({
+              rowNo: i + 2,
+              shipmentId: shipmentId || '-',
+              reason: rawReason || 'skip_outbound',
+              zone: zone,
+              hub: hubName
+            });
+            
+            if (zone) {
+              skipCountByZone[zone] = (skipCountByZone[zone] || 0) + 1;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      Logger.log("Raw data read error: " + e.toString());
+    }
+
+    // 3. Volume Tracker Sheet
+    let availableDates = [];
+    let socActual = 0;
+    let targetCol = -1;
+
+    try {
+      const volSs = SpreadsheetApp.openById(VOLUME_SPREADSHEET_ID);
+      const volSheet = volSs.getSheetByName('SOC') || volSs.getSheets()[0];
+      const volLastCol = volSheet.getLastColumn();
+
+      if (volLastCol >= 16) { 
+        const row1DisplayValues = volSheet.getRange(1, 1, 1, volLastCol).getDisplayValues()[0];
+        const row10Values = volSheet.getRange(10, 1, 1, volLastCol).getValues()[0];
+
+        for (let c = 15; c < row1DisplayValues.length; c++) {
+          let dateStr = String(row1DisplayValues[c]).trim();
+          if (dateStr !== "" && !dateStr.startsWith('#')) {
+            availableDates.push({ colIndex: c, dateText: dateStr });
+          }
+        }
+
+        targetCol = (selectedDateColIndex !== undefined && selectedDateColIndex !== null && selectedDateColIndex !== "")
+          ? Number(selectedDateColIndex) 
+          : (availableDates.length > 0 ? availableDates[0].colIndex : -1);
+
+        if (targetCol >= 0 && row10Values[targetCol] !== undefined) {
+          let val = Number(row10Values[targetCol]);
+          if (!isNaN(val)) socActual = val;
+        }
+      }
+    } catch (e) {
+      Logger.log("Volume read error: " + e.toString());
+    }
+
+    let skipPercentage = socActual > 0 ? ((totalSkipCases / socActual) * 100).toFixed(2) : "0.00";
+
+    return {
+      staffByZone: staffByZone,
+      skipCases: skipCases,
+      skipCountByZone: skipCountByZone,
+      totalSkipCases: totalSkipCases,
+      machineCount: machineCount,
+      systemCount: systemCount,
+      socActual: socActual,
+      skipPercentage: skipPercentage,
+      availableDates: availableDates,
+      selectedColIndex: targetCol
+    };
+
+  } catch (err) {
+    return { error: err.toString() };
+  }
+}
+
+// Clear ข้อมูลเก่าแบบถอนรากถอนโคน
+function clearRawDataSheet() {
+  try {
+    const rawSs = SpreadsheetApp.openById(RAW_DATA_SPREADSHEET_ID);
+    const rawSheet = rawSs.getSheetByName('Raw') || rawSs.getSheets()[0];
+    
+    const maxRows = rawSheet.getMaxRows();
+    if (maxRows >= 2) {
+      rawSheet.getRange(2, 1, maxRows - 1, 15).clearContent();
+    }
+    
+    SpreadsheetApp.flush();
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+// ทยอยบันทึกต่อท้ายโดยเช็คบรรทัดที่มีข้อมูลจริงเท่านั้น
+function appendCsvChunkToRawSheet(chunkData) {
+  try {
+    if (!chunkData || chunkData.length === 0) {
+      return { success: true, count: 0 };
+    }
+
+    const rawSs = SpreadsheetApp.openById(RAW_DATA_SPREADSHEET_ID);
+    const rawSheet = rawSs.getSheetByName('Raw') || rawSs.getSheets()[0];
+
+    const colAValues = rawSheet.getRange("A:A").getValues();
+    let actualLastRow = 0;
+    for (let i = colAValues.length - 1; i >= 0; i--) {
+      if (colAValues[i][0] !== "" && colAValues[i][0] !== null && colAValues[i][0] !== undefined) {
+        actualLastRow = i + 1;
+        break;
+      }
+    }
+
+    const targetStartRow = Math.max(actualLastRow + 1, 2);
+
+    const numRows = chunkData.length;
+    const numCols = chunkData[0].length;
+
+    rawSheet.getRange(targetStartRow, 1, numRows, numCols).setValues(chunkData);
+
+    SpreadsheetApp.flush();
+    return { success: true, count: numRows };
+
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}

@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <title>SOC Investigation & Skip Process Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <style>
+    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; }
+    .card-metric { border-radius: 12px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    .metric-title { font-size: 0.85rem; color: #6c757d; text-transform: uppercase; font-weight: 600; }
+    .metric-value { font-size: 1.8rem; font-weight: bold; color: #2c3e50; }
+    .metric-subtext { font-size: 0.8rem; margin-top: 4px; }
+    .table-custom { background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .staff-badge { font-size: 0.75rem; background-color: #e9ecef; color: #495057; border-radius: 4px; padding: 2px 6px; margin: 2px; display: inline-block; }
+    .clickable-count { color: #dc3545; font-weight: bold; text-decoration: underline; cursor: pointer; }
+    .clickable-count:hover { color: #a71d2a; }
+
+    /* Target Banner Box Style */
+    .target-banner {
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      color: #ffffff;
+      border-radius: 12px;
+      padding: 16px 24px;
+      box-shadow: 0 4px 12px rgba(30, 60, 114, 0.25);
+    }
+    .scanner-graphic {
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    /* Loading Overlay UI */
+    #loadingOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      transition: opacity 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+  <div class="spinner-border text-primary mb-3" style="width: 3.5rem; height: 3.5rem;" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+  <h5 id="loadingText" class="fw-bold text-secondary">กำลังโหลดข้อมูลระบบ...</h5>
+  <p class="text-muted small">โปรดรอสักครู่ ระบบกำลังประมวลผลข้อมูล</p>
+</div>
+
+<div class="container-fluid">
+  <div id="errorAlert" class="alert alert-danger d-none" role="alert"></div>
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="text-primary m-0 fw-bold">📊 SOC Skip Process & Zone Assignment Monitor</h3>
+    
+    <div class="d-flex align-items-center gap-2">
+      <label class="btn btn-outline-success btn-sm fw-bold m-0" id="uploadBtnLabel">
+        📤 อัปโหลด CSV Raw Data
+        <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleCSVUpload(this)">
+      </label>
+
+      <button class="btn btn-outline-danger btn-sm fw-bold" onclick="openRawModal('ALL')">📄 ดู Raw Data ทั้งหมด</button>
+      
+      <div class="d-flex align-items-center bg-white p-2 rounded shadow-sm border">
+        <label for="dateSelect" class="me-2 fw-bold text-secondary mb-0" style="font-size: 0.85rem;">📅 วันที่ (Row 8):</label>
+        <select id="dateSelect" class="form-select form-select-sm" style="width: auto;" onchange="onDateChange()">
+          <option value="">กำลังโหลด...</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card card-metric p-3 bg-white">
+        <div class="metric-title">TOTAL SKIP CASES</div>
+        <div class="metric-value text-danger" id="totalSkip">...</div>
+        <div class="metric-subtext text-muted">
+          ⚙️ Machine: <b id="machineCount" class="text-dark">0</b> | 💻 System: <b id="systemCount" class="text-dark">0</b>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card card-metric p-3 bg-white">
+        <div class="metric-title">SOCN ACTUAL (ROW 10)</div>
+        <div class="metric-value text-primary" id="actualVol">...</div>
+        <div class="metric-subtext text-muted">อ้างอิงจาก Volume Tracker Sheet</div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card card-metric p-3 bg-white border-start border-4 border-primary" id="targetCardBorder">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="metric-title">% SKIP OUTBOUND VS ACTUAL</div>
+          <span class="badge bg-secondary fw-bold" id="targetBadge">🎯 Overall Target: < 0.80%</span>
+        </div>
+        <div class="metric-value" id="skipPercent">...</div>
+        <div class="metric-subtext d-flex align-items-center gap-1" id="targetStatusText">
+          <span class="text-muted">(Total Skip / SOCN Actual) * 100</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="target-banner d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+          <div class="scanner-graphic">
+            <svg width="68" height="68" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="35" cy="25" r="10" fill="#FFC107"/>
+              <path d="M22 25 C22 18, 48 18, 48 25 Z" fill="#1565C0"/>
+              <path d="M20 52 C20 38, 50 38, 50 52 L48 70 L22 70 Z" fill="#1E88E5"/>
+              <path d="M42 46 L60 40 L62 46 L45 54 Z" fill="#FFA000"/>
+              <rect x="58" y="34" width="8" height="14" rx="2" fill="#333333" transform="rotate(15 58 34)"/>
+              <rect x="54" y="32" width="12" height="6" rx="1" fill="#D32F2F" transform="rotate(15 54 32)"/>
+              <polygon points="64,37 82,50 82,54 62,39" fill="#FF1744" opacity="0.8"/>
+              <line x1="64" y1="38" x2="82" y2="52" stroke="#FF5252" stroke-width="2"/>
+              <rect x="68" y="52" width="24" height="20" rx="2" fill="#D7CCC8" stroke="#8D6E63" stroke-width="1.5"/>
+              <path d="M68 57 L92 57" stroke="#8D6E63" stroke-width="1"/>
+              <rect x="73" y="60" width="2" height="8" fill="#212121"/>
+              <rect x="77" y="60" width="1" height="8" fill="#212121"/>
+              <rect x="80" y="60" width="3" height="8" fill="#212121"/>
+              <rect x="85" y="60" width="1.5" height="8" fill="#212121"/>
+            </svg>
+          </div>
+          <div>
+            <h4 class="m-0 fw-bold text-warning">🎯 OVERALL TARGET < 0.80% (ZONE TARGET < 0.27%)</h4>
+            <p class="m-0 text-light small" style="opacity: 0.9;">
+              คุมเข้มการสแกนพัสดุ โดยแบ่งเป้าหมายราย Zone (A, B, C) ไม่เกิน Zone ละ 0.27% เพื่อให้ภาพรวมไม่เกิน 0.80%
+            </p>
+          </div>
+        </div>
+        <div class="text-end d-none d-md-block">
+          <span class="badge bg-warning text-dark px-3 py-2 fw-bold shadow-sm" style="font-size: 0.9rem;">
+            🔍 Target Breakdown Active
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card p-3 table-custom">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="card-title text-secondary m-0 fw-bold">⚠️ Skip Cases & Staff Breakdown by Zone</h5>
+        </div>
+        <hr class="mt-2 mb-3">
+        <div class="table-responsive">
+          <table class="table table-hover table-bordered align-middle">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 20%;">ZONE</th>
+                <th style="width: 20%;" class="text-center">SKIP COUNT</th>
+                <th style="width: 20%;" class="text-center">% VS ACTUAL VOL</th>
+                <th style="width: 40%;">STAFF ASSIGNED (ROSTER)</th>
+              </tr>
+            </thead>
+            <tbody id="summaryTableBody">
+              <tr>
+                <td colspan="4" class="text-center text-muted p-4">⏳ กำลังโหลดข้อมูล...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="rawDataModal" tabindex="-1" aria-labelledby="rawDataModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white d-flex justify-content-between align-items-center">
+        <h5 class="modal-title fw-bold m-0" id="rawDataModalLabel">📄 รายการ Raw Data</h5>
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-light btn-sm fw-bold text-success shadow-sm" onclick="exportCurrentModalToCSV()">
+            📥 Export Excel (CSV)
+          </button>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="searchRaw" class="form-control mb-3" placeholder="🔍 ค้นหา Shipment ID, Zone, Hub หรือ Reason..." onkeyup="filterRawTable()">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped table-sm text-nowrap" id="rawTable">
+            <thead class="table-dark">
+              <tr>
+                <th>#</th>
+                <th>Shipment ID</th>
+                <th>Skip Reason</th>
+                <th>Zone</th>
+                <th>Hub (Dest Station)</th>
+              </tr>
+            </thead>
+            <tbody id="rawTableBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let globalDashboardData = null;
+  let currentModalZone = 'ALL';
+
+  // --- กำหนดค่า TARGET ---
+  const OVERALL_TARGET_PERCENT = 0.80;                                    // Target รวมภาพรวม
+  const MAIN_ZONES_COUNT = 3;                                             // จำนวน Zone หลัก (A, B, C)
+  const ZONE_TARGET_PERCENT = OVERALL_TARGET_PERCENT / MAIN_ZONES_COUNT; // Target ราย Zone ≈ 0.27%
+
+  window.onload = function() {
+    loadDashboardData(null);
+  };
+
+  function showLoading(msg) {
+    document.getElementById('loadingText').innerText = msg || 'กำลังโหลดข้อมูลระบบ...';
+    document.getElementById('loadingOverlay').style.display = 'flex';
+  }
+
+  function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+  }
+
+  function loadDashboardData(selectedColIndex) {
+    showLoading('กำลังดึงข้อมูลจาก Google Sheets...');
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(function(data) {
+          renderDashboard(data);
+          hideLoading();
+        })
+        .withFailureHandler(function(err) {
+          showError('System Error: ' + err.message);
+          hideLoading();
+        })
+        .getDashboardData(selectedColIndex);
+    } else {
+      hideLoading();
+    }
+  }
+
+  function onDateChange() {
+    let selectedCol = document.getElementById('dateSelect').value;
+    if (selectedCol) {
+      loadDashboardData(selectedCol);
+    }
+  }
+
+  function renderDashboard(data) {
+    if (data.error) {
+      showError('Data Fetch Error: ' + data.error);
+      return;
+    }
+
+    hideError();
+    globalDashboardData = data;
+
+    let dateSelect = document.getElementById('dateSelect');
+    if (data.availableDates && data.availableDates.length > 0) {
+      dateSelect.innerHTML = '';
+      data.availableDates.forEach(function(item) {
+        let opt = document.createElement('option');
+        opt.value = item.colIndex;
+        opt.text = item.dateText;
+        if (item.colIndex == data.selectedColIndex) {
+          opt.selected = true;
+        }
+        dateSelect.appendChild(opt);
+      });
+    } else {
+      dateSelect.innerHTML = '<option value="">ไม่พบข้อมูลวันที่</option>';
+    }
+
+    document.getElementById('totalSkip').innerText = (data.totalSkipCases || 0).toLocaleString() + ' เคส';
+    document.getElementById('machineCount').innerText = (data.machineCount || 0).toLocaleString();
+    document.getElementById('systemCount').innerText = (data.systemCount || 0).toLocaleString();
+    
+    document.getElementById('actualVol').innerText = (data.socActual || 0).toLocaleString();
+    
+    let skipPercentVal = parseFloat(data.skipPercentage || 0);
+    let skipPercentElem = document.getElementById('skipPercent');
+    let targetStatusElem = document.getElementById('targetStatusText');
+    let targetCardBorder = document.getElementById('targetCardBorder');
+    let targetBadge = document.getElementById('targetBadge');
+
+    skipPercentElem.innerText = (data.skipPercentage || '0.00') + ' %';
+
+    if (skipPercentVal <= OVERALL_TARGET_PERCENT) {
+      skipPercentElem.className = 'metric-value text-success';
+      targetCardBorder.className = 'card card-metric p-3 bg-white border-start border-4 border-success';
+      targetBadge.className = 'badge bg-success fw-bold';
+      targetBadge.innerText = '🎯 Overall Target: < 0.80%';
+      targetStatusElem.innerHTML = `<span class="badge bg-success">🟢 Passed</span> <span class="text-muted small">อยู่ในเกณฑ์ภาพรวม (<= 0.80%)</span>`;
+    } else {
+      skipPercentElem.className = 'metric-value text-danger';
+      targetCardBorder.className = 'card card-metric p-3 bg-white border-start border-4 border-danger';
+      targetBadge.className = 'badge bg-danger fw-bold';
+      targetBadge.innerText = '🎯 Overall Target: < 0.80%';
+      targetStatusElem.innerHTML = `<span class="badge bg-danger">🔴 Exceeded</span> <span class="text-muted small">เกินเป้าหมายภาพรวม (> 0.80%)</span>`;
+    }
+
+    renderSummaryTable(data);
+  }
+
+  function renderSummaryTable(data) {
+    let tbody = document.getElementById('summaryTableBody');
+    let skipCountByZone = data.skipCountByZone || {};
+    let staffByZone = data.staffByZone || {};
+    let socActual = data.socActual || 0;
+
+    let targetZones = ['ALL', 'A', 'B', 'C', 'INTERSOC', 'RETURN'];
+    
+    let existingZones = Array.from(new Set([...Object.keys(skipCountByZone), ...Object.keys(staffByZone)]))
+      .filter(zone => zone !== 'MS' && zone !== 'TBS');
+
+    let allZones = Array.from(new Set([...targetZones, ...existingZones]));
+
+    let sumABC = (skipCountByZone['A'] || 0) + (skipCountByZone['B'] || 0) + (skipCountByZone['C'] || 0);
+
+    let allPercentVal = socActual > 0 ? (sumABC / socActual) * 100 : 0;
+
+    let rowsHtml = '';
+    allZones.forEach(function(zone) {
+      let count = 0;
+      let percentVal = 0;
+
+      if (zone === 'ALL') {
+        count = sumABC;
+        percentVal = allPercentVal;
+      } else {
+        count = skipCountByZone[zone] || 0;
+        percentVal = socActual > 0 ? (count / socActual) * 100 : 0;
+      }
+
+      let percentStr = percentVal.toFixed(2);
+      let staffList = staffByZone[zone] || [];
+
+      let staffBadges = staffList.length > 0 
+        ? staffList.map(s => `<span class="staff-badge">👤 ${s}</span>`).join('')
+        : '<span class="text-muted small">ไม่มีเจ้าหน้าที่</span>';
+
+      let targetModalZone = (zone === 'ALL') ? 'ABC' : zone;
+
+      let countDisplay = count > 0 
+        ? `<span class="clickable-count" onclick="openRawModal('${targetModalZone}')" title="คลิกเพื่อดู Raw Data ${zone}">${count.toLocaleString()}</span>`
+        : `<span class="text-muted">0</span>`;
+
+      let rowBg = (zone === 'ALL') ? 'class="table-secondary fw-bold"' : '';
+
+      let isZoneRed = false;
+
+      if (zone === 'ALL') {
+        isZoneRed = allPercentVal > OVERALL_TARGET_PERCENT;
+      } else if (['A', 'B', 'C'].includes(zone)) {
+        if (percentVal > ZONE_TARGET_PERCENT) {
+          isZoneRed = true;
+        }
+      } else {
+        if (percentVal > OVERALL_TARGET_PERCENT) {
+          isZoneRed = true;
+        }
+      }
+
+      let percentColorClass = isZoneRed ? 'text-danger' : 'text-success';
+
+      rowsHtml += `<tr ${rowBg}>
+        <td class="fw-bold text-dark">${zone}</td>
+        <td class="text-center">${countDisplay}</td>
+        <td class="text-center fw-bold ${percentColorClass}">${percentStr}%</td>
+        <td>${staffBadges}</td>
+      </tr>`;
+    });
+
+    tbody.innerHTML = rowsHtml;
+  }
+
+  // --- ระบบอัปโหลดแบบ BATCH / CHUNKING ---
+  function handleCSVUpload(input) {
+    let file = input.files[0];
+    if (!file) return;
+
+    showLoading('กำลังอ่านไฟล์ CSV และจัดเตรียมข้อมูล...');
+
+    const TARGET_HEADERS = [
+      'shipment_id', 'report_date', 'first_soc_received_operator_name',
+      'first_soc_packed_operator_name', 'first_soc_lh_packed_operator_name',
+      'soc_outbound_route_type', 'latest_to_number', 'is_in_sorting_center',
+      'soc_outbound_late_type_2nd_cutoff', 'dest_station_name',
+      'first_soc_intra_handover_packing_operator_name',
+      'first_soc_intra_handover_packed_operator_name',
+      'first_outbound_soc_staging_timestamp', 'recieve_team',
+      'soc_outbound_based_received_2nd_cut_off_timestamp'
+    ];
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        let rows = results.data;
+        if (!rows || rows.length === 0) {
+          hideLoading();
+          alert('ไม่พบข้อมูลในไฟล์ CSV');
+          return;
+        }
+
+        let formattedData = rows.map(row => {
+          return TARGET_HEADERS.map(header => row[header] !== undefined ? row[header] : '');
+        });
+
+        showLoading('กำลังเคลียร์ข้อมูลเก่าใน Sheet...');
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              const CHUNK_SIZE = 2000;
+              uploadCsvChunks(formattedData, 0, CHUNK_SIZE);
+            } else {
+              hideLoading();
+              showError('เกิดข้อผิดพลาดในการเคลียร์ข้อมูล: ' + res.error);
+            }
+          })
+          .withFailureHandler(function(err) {
+            hideLoading();
+            showError('Clear Sheet Fail: ' + err.message);
+          })
+          .clearRawDataSheet();
+      }
+    });
+  }
+
+  function uploadCsvChunks(allData, startIndex, chunkSize) {
+    let totalRows = allData.length;
+    let chunk = allData.slice(startIndex, startIndex + chunkSize);
+    let isLastChunk = (startIndex + chunkSize) >= totalRows;
+    let currentEnd = Math.min(startIndex + chunkSize, totalRows);
+
+    showLoading(`กำลังบันทึกข้อมูล (${currentEnd.toLocaleString()} / ${totalRows.toLocaleString()} รายการ)...`);
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res.success) {
+          if (!isLastChunk) {
+            uploadCsvChunks(allData, startIndex + chunkSize, chunkSize);
+          } else {
+            showLoading('อัปโหลดสำเร็จ! กำลังโหลด Dashboard ใหม่...');
+            document.getElementById('csvFileInput').value = '';
+            loadDashboardData(null);
+          }
+        } else {
+          hideLoading();
+          showError('เกิดข้อผิดพลาดในการบันทึก: ' + res.error);
+        }
+      })
+      .withFailureHandler(function(err) {
+        hideLoading();
+        showError('Upload Fail: ' + err.message);
+      })
+      .appendCsvChunkToRawSheet(chunk);
+  }
+
+  function openRawModal(targetZone) {
+    if (!globalDashboardData || !globalDashboardData.skipCases) return;
+
+    currentModalZone = targetZone || 'ALL';
+    let skipCases = globalDashboardData.skipCases;
+    let modalTitle = document.getElementById('rawDataModalLabel');
+
+    let filteredCases = [];
+
+    if (targetZone === 'ABC') {
+      filteredCases = skipCases.filter(item => ['A', 'B', 'C'].includes(item.zone));
+      modalTitle.innerText = `📄 รายการ Raw Data - Zone A, B, C (ทั้งหมด ${filteredCases.length.toLocaleString()} เคส)`;
+    } else if (targetZone && targetZone !== 'ALL') {
+      filteredCases = skipCases.filter(item => item.zone === targetZone);
+      modalTitle.innerText = `📄 รายการ Raw Data - Zone ${targetZone} (ทั้งหมด ${filteredCases.length.toLocaleString()} เคส)`;
+    } else {
+      filteredCases = skipCases;
+      modalTitle.innerText = `📄 รายการ Raw Data ทั้งหมด (ทั้งหมด ${skipCases.length.toLocaleString()} เคส)`;
+    }
+
+    renderRawModalBody(filteredCases);
+
+    document.getElementById('searchRaw').value = '';
+    let modal = new bootstrap.Modal(document.getElementById('rawDataModal'));
+    modal.show();
+  }
+
+  function renderRawModalBody(skipCases) {
+    let tbody = document.getElementById('rawTableBody');
+    if (!skipCases || skipCases.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted p-3">ไม่พบรายการ Skip Process ใน Zone นี้</td></tr>';
+      return;
+    }
+
+    let html = '';
+    skipCases.forEach(function(item, idx) {
+      let badgeClass = 'bg-danger';
+      if (item.reason === 'skip_process_intersoc_machine') badgeClass = 'bg-warning text-dark';
+      if (item.reason === 'skip_process_intersoc_system') badgeClass = 'bg-info text-dark';
+
+      html += `<tr>
+        <td>${idx + 1}</td>
+        <td class="fw-bold text-primary">${item.shipmentId}</td>
+        <td><span class="badge ${badgeClass}">${item.reason}</span></td>
+        <td><span class="badge bg-secondary">${item.zone}</span></td>
+        <td class="fw-bold text-dark">${item.hub}</td>
+      </tr>`;
+    });
+    tbody.innerHTML = html;
+  }
+
+  function filterRawTable() {
+    let input = document.getElementById("searchRaw").value.toUpperCase();
+    let trs = document.getElementById("rawTableBody").getElementsByTagName("tr");
+
+    for (let i = 0; i < trs.length; i++) {
+      let text = trs[i].innerText.toUpperCase();
+      trs[i].style.display = (input === '' || text.indexOf(input) > -1) ? "" : "none";
+    }
+  }
+
+  function exportCurrentModalToCSV() {
+    let trs = document.getElementById("rawTableBody").getElementsByTagName("tr");
+    if (!trs || trs.length === 0 || trs[0].getElementsByTagName("td").length <= 1) {
+      alert("ไม่มีข้อมูลสำหรับ Export");
+      return;
+    }
+
+    let csvData = [["No", "Shipment ID", "Skip Reason", "Zone", "Hub (Dest Station)"]];
+
+    let rowNum = 1;
+    for (let i = 0; i < trs.length; i++) {
+      if (trs[i].style.display !== "none") {
+        let tds = trs[i].getElementsByTagName("td");
+        if (tds.length >= 5) {
+          let shipmentId = tds[1].innerText.trim();
+          let reason = tds[2].innerText.trim();
+          let zone = tds[3].innerText.trim();
+          let hub = tds[4].innerText.trim();
+
+          csvData.push([rowNum++, shipmentId, reason, zone, hub]);
+        }
+      }
+    }
+
+    if (csvData.length <= 1) {
+      alert("ไม่พบข้อมูลจากการค้นหาเพื่อ Export");
+      return;
+    }
+
+    let csvContent = "\uFEFF";
+    csvData.forEach(rowArray => {
+      let row = rowArray.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",");
+      csvContent += row + "\r\n";
+    });
+
+    let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    let link = document.createElement("a");
+    let url = URL.createObjectURL(blob);
+    let fileName = `RawData_Zone_${currentModalZone}_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", fileName);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  function showError(msg) {
+    let errDiv = document.getElementById('errorAlert');
+    errDiv.innerText = msg;
+    errDiv.classList.remove('d-none');
+  }
+
+  function hideError() {
+    let errDiv = document.getElementById('errorAlert');
+    errDiv.classList.add('d-none');
+  }
+</script>
+
+</body>
+</html>

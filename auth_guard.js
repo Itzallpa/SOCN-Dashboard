@@ -14,24 +14,95 @@
   let warningTimer = null;
   let lastActiveTimestamp = Date.now();
 
-  // Local database initialization with default accounts
+  /* ─── Client-side Security & Anti-Inspection Suite ─── */
+  function initSecurityProtections() {
+    // 1. Check if debug mode is explicitly requested
+    const isDebug = new URLSearchParams(window.location.search).get('debug') === 'true';
+
+    // 2. Block Right-Click Context Menu (Inspect Element prevention)
+    document.addEventListener('contextmenu', function (e) {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        return;
+      }
+      e.preventDefault();
+      return false;
+    }, true);
+
+    // 3. Block Developer Keyboard Shortcuts & Source Code Viewing
+    document.addEventListener('keydown', function (e) {
+      if (isDebug) return;
+      const key = e.key ? e.key.toLowerCase() : '';
+      const ctrlOrMeta = e.ctrlKey || e.metaKey;
+      const isDevKey =
+        e.key === 'F12' ||
+        (ctrlOrMeta && e.shiftKey && ['i', 'j', 'c', 'k', 's'].includes(key)) ||
+        (ctrlOrMeta && ['u', 's', 'p'].includes(key));
+
+      if (isDevKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    }, true);
+
+    // 4. Console Masking & Warning
+    if (!isDebug) {
+      try {
+        const noop = function () {};
+        ['log', 'debug', 'info', 'dir', 'table'].forEach(m => {
+          if (window.console && window.console[m]) {
+            window.console[m] = noop;
+          }
+        });
+      } catch (e) {}
+    }
+
+    // 5. Anti-Debugging / DevTools Detection
+    if (!isDebug) {
+      let devtoolsDetected = false;
+      setInterval(function () {
+        if (devtoolsDetected) return;
+        const start = performance.now();
+        debugger;
+        const duration = performance.now() - start;
+        if (duration > 150) {
+          devtoolsDetected = true;
+          try {
+            document.body.innerHTML = `
+              <div style="position:fixed;inset:0;background:#0d1b2a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif;text-align:center;padding:20px;">
+                <div style="font-size:4rem;margin-bottom:16px;">🛡️</div>
+                <h2 style="color:#ef4444;margin:0 0 10px;">ระบบรักษาความปลอดภัย (Security Alert)</h2>
+                <p style="color:#94a3b8;max-width:520px;line-height:1.6;font-size:0.95rem;">ไม่อนุญาตให้เปิด Developer Tools หรือพยายามตรวจสอบซอร์สโค้ดของระบบ<br>กรุณาปิดหน้าต่าง DevTools แล้วกดปุ่มด้านล่างเพื่อโหลดหน้าเว็บใหม่ครับ</p>
+                <button onclick="location.reload()" style="margin-top:20px;padding:12px 28px;border:none;background:#2563eb;color:#fff;border-radius:10px;font-weight:bold;cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,0.4);">รีเฟรชหน้าเว็บ</button>
+              </div>
+            `;
+          } catch (err) {}
+        }
+      }, 1500);
+    }
+  }
+
+  // Execute security protections immediately
+  initSecurityProtections();
+
+  // Local database initialization
   function getUsersDatabase() {
     try {
       const db = localStorage.getItem('socn_user_db');
       if (db) return JSON.parse(db);
     } catch (e) {}
-    
-    // Default approved accounts
-    const initialDb = [
-      { id: 'u1', name: 'Admin SOC', email: 'admin@spxexpress.com', pass: '1234', role: 'Admin', status: 'approved', createdAt: '2026-09-03 00:00:00' },
-      { id: 'u2', name: 'Ground Operator', email: 'ground@spxexpress.com', pass: '1234', role: 'Ground', status: 'approved', createdAt: '2026-09-03 00:00:00' }
-    ];
-    localStorage.setItem('socn_user_db', JSON.stringify(initialDb));
-    return initialDb;
+    return [];
   }
 
   function saveUsersDatabase(users) {
-    localStorage.setItem('socn_user_db', JSON.stringify(users));
+    if (!Array.isArray(users)) return;
+    const sanitized = users.map(u => {
+      const copy = Object.assign({}, u);
+      delete copy.pass;
+      delete copy.password;
+      return copy;
+    });
+    localStorage.setItem('socn_user_db', JSON.stringify(sanitized));
   }
 
   function getStoredUser() {

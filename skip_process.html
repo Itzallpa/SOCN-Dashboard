@@ -226,6 +226,13 @@
     let skipDataState = null;
     let currentActualVolume = 980457;
     let rawSkipRows = [];
+    let currentRawRows = [];
+    let currentModalZone = 'ALL';
+    let cachedHubMap = null;
+
+    // --- TARGET CONFIGURATION ---
+    const OVERALL_TARGET_PERCENT = 0.80; // 0.80%
+    const ZONE_TARGET_PERCENT = 0.27;    // 0.27% (for A, B, C)
 
     const STAFF_ROSTER = {
       'ALL': ['Chain', 'Rig', 'NULLACK'],
@@ -239,6 +246,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('volumeDateInput').value = today;
+      loadHubZoneMap();
       fetchFileList();
       loadDefaultSkipData();
       loadVolumeHistory();
@@ -265,6 +273,34 @@
           }
         });
       });
+    }
+
+    function loadHubZoneMap() {
+      safeFetchJson('/api/hub-zone-map')
+        .then(res => {
+          if (res.success && res.hubMap) {
+            cachedHubMap = res.hubMap;
+          }
+        })
+        .catch(err => console.warn('Could not load hub map from API, will use fallback:', err));
+    }
+
+    function resolveHubToZone(hubName) {
+      if (!hubName) return 'A';
+      const clean = String(hubName).trim().toLowerCase();
+      if (cachedHubMap && cachedHubMap[clean]) {
+        return cachedHubMap[clean];
+      }
+      if (clean.includes('-')) {
+        const prefix = clean.split('-')[0].trim();
+        if (cachedHubMap && cachedHubMap[prefix]) {
+          return cachedHubMap[prefix];
+        }
+      }
+      const upper = String(hubName).trim().toUpperCase();
+      if (upper.includes('INTER') || upper.includes('SOCW') || upper.includes('SOCE')) return 'INTERSOC';
+      if (upper.includes('RET')) return 'RETURN';
+      return 'A';
     }
 
     function fetchFileList() {
@@ -376,22 +412,64 @@
 
     function parseSkipFileLocally(file) {
       Papa.parse(file, {
+        header: true,
         skipEmptyLines: true,
         complete: (results) => {
-          if (!results || !results.data || results.data.length < 2) {
+          if (!results || !results.data || results.data.length === 0) {
             showSkipStatus(`อัปโหลดล้มเหลว: ไม่พบข้อมูลในไฟล์`, 'error');
             return;
           }
           const rows = results.data;
-          const headers = rows[0];
-          const dataRows = rows.slice(1);
+          let skipCases = [];
+          let machineCount = 0;
+          let systemCount = 0;
+          let zoneCounts = { 'A': 0, 'B': 0, 'C': 0, 'INTERSOC': 0, 'RETURN': 0 };
+
+          rows.forEach((row, idx) => {
+            const shipmentId = String(row.shipment_id || row.tracking_id || row['Shipment ID'] || '-').trim();
+            const reason = String(row.soc_outbound_late_type_2nd_cutoff || row.late_type || row.reason || row.Reason || '').trim().toLowerCase();
+            const hub = String(row.dest_station_name || row.hub_name || row.destination || '-').trim();
+            
+            let zone = '';
+            if (row['OBD ZONE'] || row.obd_zone || row.zone) {
+              zone = String(row['OBD ZONE'] || row.obd_zone || row.zone).trim().toUpperCase();
+            }
+            if (!zone || zone === 'UNDEFINED' || zone === 'N/A') {
+              zone = resolveHubToZone(hub);
+            }
+            if (zone.includes('INTER')) zone = 'INTERSOC';
+            if (zone.includes('RET')) zone = 'RETURN';
+
+            if (reason.includes('skip')) {
+              if (reason.includes('machine')) machineCount++;
+              else if (reason.includes('system')) systemCount++;
+
+              zoneCounts[zone] = (zoneCounts[zone] || 0) + 1;
+
+              skipCases.push({
+                rowNo: idx + 2,
+                shipment_id: shipmentId,
+                shipmentId: shipmentId,
+                reason: reason || 'skip_outbound',
+                soc_outbound_late_type_2nd_cutoff: reason || 'skip_outbound',
+                zone: zone,
+                dest_station_name: hub,
+                hub: hub
+              });
+            }
+          });
+
           const dataObj = {
             success: true,
             filename: file.name,
-            totalRows: dataRows.length,
-            rawRows: dataRows,
-            headers: headers
+            totalRows: skipCases.length,
+            totalSkipCases: skipCases.length,
+            machineCount: machineCount,
+            systemCount: systemCount,
+            skipCountByZone: zoneCounts,
+            rawRows: skipCases
           };
+
           skipDataState = dataObj;
           safeSetLocalStorage('socn_skip_data', dataObj);
           updateSkipUI(dataObj);
@@ -412,7 +490,7 @@
 
       safeFetchJson('/upload', { method: 'POST', body: formData })
         .then(data => {
-          if (data && data.success) {
+          if (data && data.success && data.rawRows && data.rawRows.length > 0) {
             skipDataState = data;
             safeSetLocalStorage('socn_skip_data', data);
             updateSkipUI(data);
@@ -428,7 +506,7 @@
     }
 
     function updateSkipUI(data) {
-      const total = data.totalRows || (data.rawRows ? data.rawRows.length : 9409);
+      const total = data.totalSkipCases !== undefined ? data.totalSkipCases : (data.totalRows !== undefined ? data.totalRows : (data.rawRows ? data.rawRows.length : 0));
       document.getElementById('totalSkipCount').innerText = `${total.toLocaleString()} เคส`;
       document.getElementById('machineCount').innerText = (data.machineCount || 0).toLocaleString();
       document.getElementById('systemCount').innerText = (data.systemCount || 0).toLocaleString();
@@ -436,7 +514,7 @@
       const actual = currentActualVolume || data.actualVol || 980457;
       document.getElementById('actualVolumeVal').innerText = actual.toLocaleString();
       
-      const pctVal = ((total / actual) * 100);
+      const pctVal = actual > 0 ? ((total / actual) * 100) : 0;
       const pctStr = pctVal.toFixed(2);
       document.getElementById('skipPercentVal').innerText = `${pctStr} %`;
 
@@ -445,15 +523,17 @@
       const targetBadge = document.getElementById('targetBadge');
       const targetStatusElem = document.getElementById('targetStatusText');
 
-      if (pctVal <= 0.80) {
+      if (pctVal <= OVERALL_TARGET_PERCENT) {
         skipPercentElem.className = 'metric-value text-success';
         targetCardBorder.className = 'card metric-card p-3 bg-white border-start border-4 border-success';
         targetBadge.className = 'badge bg-success fw-bold';
+        targetBadge.innerText = '🎯 Overall Target: < 0.80%';
         targetStatusElem.innerHTML = '<span class="badge bg-success">🟢 Passed</span> <span class="text-muted small">อยู่ในเกณฑ์ภาพรวม (<= 0.80%)</span>';
       } else {
         skipPercentElem.className = 'metric-value text-danger';
         targetCardBorder.className = 'card metric-card p-3 bg-white border-start border-4 border-danger';
         targetBadge.className = 'badge bg-danger fw-bold';
+        targetBadge.innerText = '🎯 Overall Target: < 0.80%';
         targetStatusElem.innerHTML = '<span class="badge bg-danger">🔴 Exceeded</span> <span class="text-muted small">เกินเป้าหมายภาพรวม (> 0.80%)</span>';
       }
 
@@ -464,39 +544,38 @@
     function renderSummaryTable(total, actual, skipCountByZone) {
       const tbody = document.getElementById('summaryTableBody');
 
-      let counts = {};
+      let counts = { 'A': 0, 'B': 0, 'C': 0, 'INTERSOC': 0, 'RETURN': 0 };
       if (skipCountByZone && Object.keys(skipCountByZone).length > 0) {
-        counts = Object.assign({}, skipCountByZone);
+        Object.assign(counts, skipCountByZone);
       } else if (rawSkipRows && rawSkipRows.length > 0) {
-        counts['A'] = 0; counts['B'] = 0; counts['C'] = 0; counts['INTERSOC'] = 0; counts['RETURN'] = 0;
         rawSkipRows.forEach(r => {
-          const z = (r.recieve_team || r.zone || '').toUpperCase();
-          if (z.includes('A')) counts['A']++;
-          else if (z.includes('B')) counts['B']++;
-          else if (z.includes('C')) counts['C']++;
-          else if (z.includes('INTERSOC')) counts['INTERSOC']++;
-          else if (z.includes('RETURN')) counts['RETURN']++;
-          else counts['A']++;
+          let z = String(r.zone || r.obd_zone || '').toUpperCase();
+          if (!z || z === 'UNDEFINED' || z === 'N/A') {
+            z = resolveHubToZone(r.dest_station_name || r.hub || '');
+          }
+          if (z.includes('INTER')) z = 'INTERSOC';
+          if (z.includes('RET')) z = 'RETURN';
+          counts[z] = (counts[z] || 0) + 1;
         });
       }
 
-      // Ensure fallback proportions if counts are 0
-      const totalCount = total || 9409;
-      if (!counts['A'] && !counts['B'] && !counts['C']) {
-        counts['A'] = Math.round(totalCount * 0.35);
-        counts['B'] = Math.round(totalCount * 0.35);
-        counts['C'] = Math.round(totalCount * 0.20);
-        counts['INTERSOC'] = Math.round(totalCount * 0.09);
-        counts['RETURN'] = totalCount - (counts['A'] + counts['B'] + counts['C'] + counts['INTERSOC']);
-      }
-
-      counts['ALL'] = totalCount;
+      const sumABC = (counts['A'] || 0) + (counts['B'] || 0) + (counts['C'] || 0);
+      const allPercentVal = actual > 0 ? (sumABC / actual) * 100 : 0;
 
       const targetZones = ['ALL', 'A', 'B', 'C', 'INTERSOC', 'RETURN'];
 
       tbody.innerHTML = targetZones.map(zone => {
-        const count = counts[zone] || 0;
-        const pctVal = actual > 0 ? (count / actual) * 100 : 0;
+        let count = 0;
+        let pctVal = 0;
+
+        if (zone === 'ALL') {
+          count = sumABC;
+          pctVal = allPercentVal;
+        } else {
+          count = counts[zone] || 0;
+          pctVal = actual > 0 ? (count / actual) * 100 : 0;
+        }
+
         const pctStr = pctVal.toFixed(2) + '%';
         const staffList = STAFF_ROSTER[zone] || [];
 
@@ -505,14 +584,20 @@
           : '<span class="text-muted small">ไม่มีเจ้าหน้าที่</span>';
 
         const rowBg = zone === 'ALL' ? 'class="table-secondary fw-bold"' : '';
+        const targetModalZone = (zone === 'ALL') ? 'ABC' : zone;
+
         const countDisplay = count > 0 
-          ? `<span class="text-danger fw-bold" style="text-decoration:underline; cursor:pointer;" onclick="openRawModal('${zone}')">${count.toLocaleString()}</span>`
+          ? `<span class="text-danger fw-bold" style="text-decoration:underline; cursor:pointer;" onclick="openRawModal('${targetModalZone}')" title="คลิกดู Raw Data ${zone}">${count.toLocaleString()}</span>`
           : '<span class="text-muted">0</span>';
 
         let isZoneRed = false;
-        if (zone === 'ALL') isZoneRed = pctVal > 0.80;
-        else if (['A', 'B', 'C'].includes(zone)) isZoneRed = pctVal > 0.27;
-        else isZoneRed = pctVal > 0.80;
+        if (zone === 'ALL') {
+          isZoneRed = allPercentVal > OVERALL_TARGET_PERCENT;
+        } else if (['A', 'B', 'C'].includes(zone)) {
+          isZoneRed = pctVal > ZONE_TARGET_PERCENT;
+        } else {
+          isZoneRed = pctVal > OVERALL_TARGET_PERCENT;
+        }
 
         const colorClass = isZoneRed ? 'text-danger fw-bold' : 'text-success fw-bold';
 
@@ -525,38 +610,66 @@
       }).join('');
     }
 
-    function openRawModal(zone) {
+    function openRawModal(targetZone) {
+      currentModalZone = targetZone || 'ALL';
       const modalEl = new bootstrap.Modal(document.getElementById('rawDataModal'));
       modalEl.show();
-      document.getElementById('rawDataModalLabel').innerText = `📄 รายการ Raw Data (Zone: ${zone})`;
-      
+
+      let filtered = [];
+      if (targetZone === 'ABC') {
+        filtered = rawSkipRows.filter(r => ['A', 'B', 'C'].includes(String(r.zone || '').toUpperCase()));
+        document.getElementById('rawDataModalLabel').innerHTML = `<i class="fa-solid fa-file-invoice me-2"></i> รายการ Raw Data - Zone A, B, C (ทั้งหมด ${filtered.length.toLocaleString()} เคส)`;
+      } else if (targetZone && targetZone !== 'ALL') {
+        filtered = rawSkipRows.filter(r => String(r.zone || '').toUpperCase() === targetZone.toUpperCase());
+        document.getElementById('rawDataModalLabel').innerHTML = `<i class="fa-solid fa-file-invoice me-2"></i> รายการ Raw Data - Zone ${targetZone} (ทั้งหมด ${filtered.length.toLocaleString()} เคส)`;
+      } else {
+        filtered = rawSkipRows;
+        document.getElementById('rawDataModalLabel').innerHTML = `<i class="fa-solid fa-file-invoice me-2"></i> รายการ Raw Data ทั้งหมด (ทั้งหมด ${rawSkipRows.length.toLocaleString()} เคส)`;
+      }
+
+      currentRawRows = filtered;
+      renderRawTableBody(filtered);
+      document.getElementById('searchRaw').value = '';
+    }
+
+    function renderRawTableBody(rows) {
       const tbody = document.getElementById('skipRawTableBody');
-      const filtered = rawSkipRows.filter(r => {
-        if (zone === 'ALL' || zone === 'ABC') return true;
-        const z = (r.recieve_team || r.zone || '').toUpperCase();
-        return z.includes(zone.toUpperCase());
-      });
-
-      currentRawRows = filtered.length > 0 ? filtered : rawSkipRows;
-      const pageRows = currentRawRows.slice(0, 100);
-
-      if (pageRows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">ไม่พบข้อมูล Raw Data สำหรับ Zone นี้</td></tr>';
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">ไม่พบข้อมูล Raw Data ในเงื่อนไขนี้</td></tr>';
         return;
       }
 
-      tbody.innerHTML = pageRows.map((r, i) => `
-        <tr>
+      const pageRows = rows.slice(0, 300);
+
+      tbody.innerHTML = pageRows.map((r, i) => {
+        const reason = String(r.reason || r.soc_outbound_late_type_2nd_cutoff || 'skip_outbound');
+        let badgeClass = 'bg-danger';
+        if (reason.includes('machine')) badgeClass = 'bg-warning text-dark';
+        else if (reason.includes('system')) badgeClass = 'bg-info text-dark';
+
+        const shipmentId = r.shipmentId || r.shipment_id || '-';
+        const zone = r.zone || '-';
+        const hub = r.hub || r.dest_station_name || '-';
+
+        return `<tr>
           <td>${i + 1}</td>
-          <td class="fw-bold text-dark">${r.shipment_id || r.tracking_id || '-'}</td>
-          <td><span class="badge bg-danger text-white px-2 py-1">${r.soc_outbound_late_type_2nd_cutoff || r.reason || 'Skip Process'}</span></td>
-          <td><span class="badge bg-secondary">${r.recieve_team || r.zone || zone}</span></td>
-          <td>${r.dest_station_name || r.hub_name || '-'}</td>
-        </tr>
-      `).join('');
+          <td class="fw-bold text-primary">${shipmentId}</td>
+          <td><span class="badge ${badgeClass}">${reason}</span></td>
+          <td><span class="badge bg-secondary">${zone}</span></td>
+          <td class="fw-bold text-dark">${hub}</td>
+        </tr>`;
+      }).join('');
     }
 
-    let currentRawRows = [];
+    function filterRawTable() {
+      const input = document.getElementById("searchRaw").value.toUpperCase();
+      const trs = document.getElementById("skipRawTableBody").getElementsByTagName("tr");
+
+      for (let i = 0; i < trs.length; i++) {
+        const text = trs[i].innerText.toUpperCase();
+        trs[i].style.display = (input === '' || text.indexOf(input) > -1) ? "" : "none";
+      }
+    }
 
     function exportSkipRawCSV() {
       const rowsToExport = currentRawRows && currentRawRows.length > 0 ? currentRawRows : rawSkipRows;
@@ -565,18 +678,23 @@
         return;
       }
 
-      const headers = ['No', 'Shipment_ID', 'Skip_Reason', 'Zone', 'Hub_Destination_Station'];
-      let csvContent = '\uFEFF' + headers.join(',') + '\n';
+      const headers = ['No', 'Shipment ID', 'Skip Reason', 'Zone', 'Hub (Dest Station)'];
+      let csvData = [headers];
 
       rowsToExport.forEach((r, idx) => {
-        const rowData = [
+        csvData.push([
           idx + 1,
-          `"${(r.shipment_id || r.tracking_id || '').replace(/"/g, '""')}"`,
-          `"${(r.soc_outbound_late_type_2nd_cutoff || r.reason || 'Skip Process').replace(/"/g, '""')}"`,
-          `"${(r.recieve_team || r.zone || '').replace(/"/g, '""')}"`,
-          `"${(r.dest_station_name || r.hub_name || '').replace(/"/g, '""')}"`
-        ];
-        csvContent += rowData.join(',') + '\n';
+          r.shipmentId || r.shipment_id || '',
+          r.reason || r.soc_outbound_late_type_2nd_cutoff || 'skip_outbound',
+          r.zone || '',
+          r.hub || r.dest_station_name || ''
+        ]);
+      });
+
+      let csvContent = "\uFEFF";
+      csvData.forEach(rowArray => {
+        let row = rowArray.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",");
+        csvContent += row + "\r\n";
       });
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -584,7 +702,7 @@
       const link = document.createElement('a');
       const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
       link.setAttribute('href', url);
-      link.setAttribute('download', `SKIP_PROCESS_RAW_DATA_EXPORT_${timestamp}.csv`);
+      link.setAttribute('download', `SKIP_RAW_DATA_ZONE_${currentModalZone}_${timestamp}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
