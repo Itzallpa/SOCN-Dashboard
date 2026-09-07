@@ -8,3 +8,11 @@ __pycache__/
 .env
 .idea/
 .vscode/
+
+# User Accounts & Credentials (Keep local, do not sync to Git)
+data/users_db.json
+users_db.json
+
+# Local evidence photos
+หลักฐาน/
+
