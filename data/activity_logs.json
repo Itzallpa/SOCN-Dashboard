@@ -1,5 +1,945 @@
 [
   {
+    "id": "1c3acdab",
+    "timestamp": "2026-09-07 16:22:11",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): SOC-BISOCinvestigateshipment_DownloadTable_20260907_155544.csv -> w36",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "8ee6d706",
+    "timestamp": "2026-09-07 16:21:42",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): SOC-BISOCinvestigateshipment_DownloadTable_20260907_155415.csv -> w36",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "84b4e408",
+    "timestamp": "2026-09-07 16:21:26",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): SOC-BISOCinvestigateshipment_DownloadTable_20260907_154817.csv -> w36",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "1bb8014b",
+    "timestamp": "2026-09-07 16:20:49",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): SOC-BISOCinvestigateshipment_DownloadTable_20260907_154627.csv -> w36",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "c60225bb",
+    "timestamp": "2026-09-07 16:20:13",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): SOC-BISOCinvestigateshipment_DownloadTable_20260907_154224.csv -> w36",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "743fc050",
+    "timestamp": "2026-09-07 16:19:41",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): SOC-BISOCinvestigateshipment_DownloadTable_20260907_153951.csv -> w36",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "13acae4b",
+    "timestamp": "2026-09-07 16:18:58",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOC-BISOCinvestigateshipment_DownloadTable_20260907_153951.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 48173 KB ในหน้า skip_process.html",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "d3de5a65",
+    "timestamp": "2026-09-07 16:18:48",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "FOLDER_DELETE",
+    "details": "🗑️ ลบโฟลเดอร์ข้อมูล: Test Investigate folder",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "d0493241",
+    "timestamp": "2026-09-07 16:18:02",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "FOLDER_DELETE",
+    "details": "🗑️ ลบโฟลเดอร์ข้อมูล: w36",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "2975187d",
+    "timestamp": "2026-09-07 16:08:26",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_ROSTER_UPLOAD",
+    "details": "👷 อัปโหลดและอัปเดต Staff Roster (23 คน) จากไฟล์: staff_roster_OBD_7sep.xlsx",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "b0d5e94f",
+    "timestamp": "2026-09-07 16:08:23",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: staff_roster_OBD_7sep.xlsx (0 รายการ) - อัปโหลดไฟล์ขนาด 11 KB ในหน้า admin.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "0ca40937",
+    "timestamp": "2026-09-07 16:07:47",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_ROSTER_UPLOAD",
+    "details": "👷 อัปโหลดและอัปเดต Staff Roster (23 คน) จากไฟล์: staff_roster_OBD_7sep.csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "d7c874c2",
+    "timestamp": "2026-09-07 16:07:47",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: staff_roster_OBD_7sep.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 2 KB ในหน้า admin.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "d36ec988",
+    "timestamp": "2026-09-07 16:07:40",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "1f080c7f",
+    "timestamp": "2026-09-07 16:07:17",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "STAFF_ROSTER_UPLOAD",
+    "details": "👷 อัปโหลดและอัปเดต Staff Roster (23 คน) จากไฟล์: staff_roster_OBD_7sep.csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "18bdab0f",
+    "timestamp": "2026-09-07 16:06:11",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): SOC-BISOCinvestigateshipment_DownloadTable_20260907_153951.csv -> w36",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "c6b6c39f",
+    "timestamp": "2026-09-07 16:05:35",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOC-BISOCinvestigateshipment_DownloadTable_20260907_153951.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 48173 KB ในหน้า skip_process.html",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "19af24b3",
+    "timestamp": "2026-09-07 16:05:07",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: staff_roster_OBD_7sep.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 2 KB ในหน้า admin.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "652f2e7e",
+    "timestamp": "2026-09-07 16:04:26",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: staff_roster_OBD_7sep.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 2 KB ในหน้า admin.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "0765ee7f",
+    "timestamp": "2026-09-07 16:03:24",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "DATA_EXPORT",
+    "details": "📤 ดาวน์โหลด/ส่งออกข้อมูล: โหลด Template CSV (0 รายการ) - ดาวน์โหลด/ส่งออกข้อมูลจากหน้า admin.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "65e55332",
+    "timestamp": "2026-09-07 16:03:20",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: Survey Holiday OBD (SOCN) - FTE _Sep.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 10 KB ในหน้า admin.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "d5340551",
+    "timestamp": "2026-09-07 16:02:54",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_SAVE",
+    "details": "บันทึกข้อมูลพนักงาน: Air (Zone TBS)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "3e6e57f8",
+    "timestamp": "2026-09-07 16:02:47",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_SAVE",
+    "details": "บันทึกข้อมูลพนักงาน: Tarn (Zone TBS)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "a529f146",
+    "timestamp": "2026-09-07 15:58:42",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "DATA_EXPORT",
+    "details": "📤 ดาวน์โหลด/ส่งออกข้อมูล: Export Modal CSV (0 รายการ) - ดาวน์โหลด/ส่งออกข้อมูลจากหน้า lh_trip.html",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "6972ac17",
+    "timestamp": "2026-09-07 15:58:24",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_SAVE",
+    "details": "บันทึกข้อมูลพนักงาน: Air (Zone A)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "9dbd4157",
+    "timestamp": "2026-09-07 15:58:08",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "93fc3904",
+    "timestamp": "2026-09-07 15:57:58",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "82cba42e",
+    "timestamp": "2026-09-07 15:57:57",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_SAVE",
+    "details": "บันทึกข้อมูลพนักงาน: NULACK (Zone ALL)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "2b636356",
+    "timestamp": "2026-09-07 15:57:14",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_SAVE",
+    "details": "บันทึกข้อมูลพนักงาน: Big (Zone ALL)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "e9083d98",
+    "timestamp": "2026-09-07 15:56:31",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_SAVE",
+    "details": "บันทึกข้อมูลพนักงาน: Chain (Zone ALL)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "2d59890f",
+    "timestamp": "2026-09-07 15:55:59",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010017",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "c782b16e",
+    "timestamp": "2026-09-07 15:55:55",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010018",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "c6b97060",
+    "timestamp": "2026-09-07 15:55:50",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010019",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "6d967766",
+    "timestamp": "2026-09-07 15:55:46",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010020",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "95ea60ef",
+    "timestamp": "2026-09-07 15:55:42",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010021",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "e224a57e",
+    "timestamp": "2026-09-07 15:55:37",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010022",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "28fc0c27",
+    "timestamp": "2026-09-07 15:55:32",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010023",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "8195cc57",
+    "timestamp": "2026-09-07 15:55:26",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010016",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "dd9452f2",
+    "timestamp": "2026-09-07 15:55:20",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010015",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "d056b9c1",
+    "timestamp": "2026-09-07 15:55:16",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010014",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "c555ebc3",
+    "timestamp": "2026-09-07 15:55:11",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010013",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "5eb2580a",
+    "timestamp": "2026-09-07 15:55:06",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010012",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "b71c2842",
+    "timestamp": "2026-09-07 15:55:00",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010011",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "017bd333",
+    "timestamp": "2026-09-07 15:54:54",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010010",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "141affb7",
+    "timestamp": "2026-09-07 15:54:50",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010009",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "78b6f461",
+    "timestamp": "2026-09-07 15:54:44",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010008",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "9b1ab8ad",
+    "timestamp": "2026-09-07 15:54:39",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010007",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "ab9694a5",
+    "timestamp": "2026-09-07 15:54:35",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010006",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "0352f166",
+    "timestamp": "2026-09-07 15:54:30",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010005",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "65ce3a16",
+    "timestamp": "2026-09-07 15:54:24",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: 60010004",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "7a02efaf",
+    "timestamp": "2026-09-07 15:51:47",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_SAVE",
+    "details": "บันทึกข้อมูลพนักงาน: กวางทอง (Zone A)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "916f86c9",
+    "timestamp": "2026-09-07 15:51:24",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "c7340191",
+    "timestamp": "2026-09-07 15:51:17",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "148dc3c8",
+    "timestamp": "2026-09-07 15:51:05",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "STAFF_MEMBER_SAVE",
+    "details": "บันทึกข้อมูลพนักงาน: กาย (Zone A)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "37ed204b",
+    "timestamp": "2026-09-07 15:50:25",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "21617047",
+    "timestamp": "2026-09-07 15:49:49",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "STAFF_ROSTER_UPLOAD",
+    "details": "👷 อัปโหลดและอัปเดต Staff Roster (4 คน) จากไฟล์: roster.csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "5a496958",
+    "timestamp": "2026-09-07 15:49:25",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "7ecc5e87",
+    "timestamp": "2026-09-07 15:49:15",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "STAFF_MEMBER_DELETE",
+    "details": "ลบพนักงานออกจาก Roster: TEST999",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "28e99179",
+    "timestamp": "2026-09-07 15:49:12",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "STAFF_MEMBER_SAVE",
+    "details": "บันทึกข้อมูลพนักงาน: TesterX (Zone B)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "7983ace8",
+    "timestamp": "2026-09-07 15:48:56",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "STAFF_MEMBER_SAVE",
+    "details": "บันทึกข้อมูลพนักงาน: TesterX (Zone B)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "8513e255",
+    "timestamp": "2026-09-07 15:48:33",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "b3065aa6",
+    "timestamp": "2026-09-07 15:45:03",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "USER_DELETE",
+    "details": "ลบผู้ใช้งาน ID: u2",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "cb0a3936",
+    "timestamp": "2026-09-07 15:44:17",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "e0eb9e6e",
+    "timestamp": "2026-09-07 15:43:54",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "95628da9",
+    "timestamp": "2026-09-07 15:33:27",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "57bbe89d",
+    "timestamp": "2026-09-07 15:32:56",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "e4adb285",
+    "timestamp": "2026-09-07 15:31:53",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as men.phuditde@spxexpress.com (Role: Admin)",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "996184be",
+    "timestamp": "2026-09-07 15:31:53",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as men.phuditde@spxexpress.com (Role: Admin)",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "d0172133",
+    "timestamp": "2026-09-07 15:31:52",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "d841bc3c",
+    "timestamp": "2026-09-07 15:31:51",
+    "email": "men.phuditde@spxexpress.com",
+    "name": "Men",
+    "role": "Admin",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "9df3983d",
+    "timestamp": "2026-09-07 15:17:47",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "FOLDER_DELETE",
+    "details": "🗑️ ลบโฟลเดอร์ข้อมูล: MyFastFolder",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "6bda2a61",
+    "timestamp": "2026-09-07 15:17:47",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): file_3.csv -> MyFastFolder",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "a955724a",
+    "timestamp": "2026-09-07 15:17:47",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): file_2.csv -> MyFastFolder",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "faac1dbd",
+    "timestamp": "2026-09-07 15:17:47",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): file_1.csv -> MyFastFolder",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "4cecdf46",
+    "timestamp": "2026-09-07 15:16:30",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): SOC-BISOCinvestigateshipment_DownloadTable_31_AUG.csv -> Test Investigate folder",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "85851193",
+    "timestamp": "2026-09-07 15:13:37",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): SOC-BISOCinvestigateshipment_DownloadTable_30aug.csv -> Test Investigate folder",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "0527cf8c",
+    "timestamp": "2026-09-07 15:13:31",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): SOC-BISOCinvestigateshipment_DownloadTable_20260831_141638.csv -> Test Investigate folder",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "0b36873c",
+    "timestamp": "2026-09-07 15:13:18",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): SOC-BISOCinvestigateshipment_DownloadTable_20260828_204517.csv -> Test Investigate folder",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "01c36279",
+    "timestamp": "2026-09-07 15:12:55",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): SOC-BISOCinvestigateshipment_DownloadTable_20260828_132928.csv -> Test Investigate folder",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "c1308941",
+    "timestamp": "2026-09-07 15:12:42",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): SOC-BISOCinvestigateshipment4sep26.csv -> Test Investigate folder",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "45e0e1af",
+    "timestamp": "2026-09-07 15:12:26",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOC-BISOCinvestigateshipment4sep26.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 21506 KB ในหน้า investigation.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "613ec94b",
+    "timestamp": "2026-09-07 15:10:06",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): SOC-BISOCinvestigateshipment4sep26.csv -> uploads",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "82d1cfcc",
+    "timestamp": "2026-09-07 15:09:48",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOC-BISOCinvestigateshipment4sep26.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 21506 KB ในหน้า investigation.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "45245116",
+    "timestamp": "2026-09-07 15:08:49",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "FILE_DELETE",
+    "details": "🗑️ ลบไฟล์ข้อมูล: test_chunk_skip.csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "417b193e",
+    "timestamp": "2026-09-07 15:08:49",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): test_chunk_skip.csv -> uploads",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "a3a0e34f",
+    "timestamp": "2026-09-07 15:08:40",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "FOLDER_DELETE",
+    "details": "🗑️ ลบโฟลเดอร์ข้อมูล: TestFolderChunk",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "db16b40b",
+    "timestamp": "2026-09-07 15:08:40",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "FILE_DELETE",
+    "details": "🗑️ ลบไฟล์ข้อมูล: test_chunk_single.csv",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "c888ab7f",
+    "timestamp": "2026-09-07 15:08:40",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): test_chunk_f1.csv -> TestFolderChunk",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "80c774f1",
+    "timestamp": "2026-09-07 15:08:40",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): test_chunk_single.csv -> uploads",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "0b70bb4f",
+    "timestamp": "2026-09-07 15:08:08",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): test_chunk_f1.csv -> TestFolderChunk",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "d7aafa9e",
+    "timestamp": "2026-09-07 15:08:08",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): test_chunk_single.csv -> uploads",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "c5b108fc",
+    "timestamp": "2026-09-07 15:07:06",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): test_chunk_single.csv -> uploads",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "2e11884d",
+    "timestamp": "2026-09-07 15:06:58",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): test_chunk_single.csv -> uploads",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "ae5c6fed",
+    "timestamp": "2026-09-07 14:59:46",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "FILE_UPLOAD",
+    "details": "📥 อัปโหลดไฟล์: SOC-BISOCinvestigateshipment4sep26.csv (0 รายการ) - อัปโหลดไฟล์ขนาด 21506 KB ในหน้า investigation.html",
+    "ip": "112.121.130.34"
+  },
+  {
     "id": "f5b57692",
     "timestamp": "2026-09-07 14:54:30",
     "email": "guy.panmanee@spxexpress.com",

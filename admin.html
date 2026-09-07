@@ -82,15 +82,15 @@
         </div>
       </div>
       <div class="col-12 col-sm-6 col-md-3">
-        <div class="stat-card stat-danger">
-          <div class="stat-title"><i class="fa-solid fa-list-check text-danger me-1"></i> กิจกรรมในระบบ (Audit Logs)</div>
-          <div class="stat-value" id="statTotalAuditLogs">0</div>
+        <div class="stat-card stat-success">
+          <div class="stat-title"><i class="fa-solid fa-people-group text-success me-1"></i> เจ้าหน้าที่ใน Roster (Total Staff)</div>
+          <div class="stat-value text-success" id="statTotalStaff">0</div>
         </div>
       </div>
       <div class="col-12 col-sm-6 col-md-3">
-        <div class="stat-card stat-success">
-          <div class="stat-title"><i class="fa-solid fa-shield-halved text-success me-1"></i> สถานะความปลอดภัย</div>
-          <div class="stat-value text-success fs-5">Active Protection</div>
+        <div class="stat-card stat-danger">
+          <div class="stat-title"><i class="fa-solid fa-list-check text-danger me-1"></i> กิจกรรมในระบบ (Audit Logs)</div>
+          <div class="stat-value" id="statTotalAuditLogs">0</div>
         </div>
       </div>
     </div>
@@ -102,6 +102,9 @@
       </li>
       <li class="nav-item">
         <button class="nav-link" id="tab-logs-link" data-bs-toggle="tab" data-bs-target="#tab-logs-pane"><i class="fa-solid fa-history me-2"></i> 2. ประวัติการใช้งาน & กิจกรรม (Audit Logs)</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" id="tab-roster-link" data-bs-toggle="tab" data-bs-target="#tab-roster-pane"><i class="fa-solid fa-users-gear me-2"></i> 3. จัดการ Staff Roster รายโซน (Zone Staff Roster)</button>
       </li>
     </ul>
 
@@ -191,6 +194,93 @@
         </div>
       </div>
 
+      <!-- TAB 3: STAFF ROSTER MANAGEMENT -->
+      <div class="tab-pane fade" id="tab-roster-pane">
+        <div class="card-custom mb-3">
+          <div class="row g-3 align-items-center">
+            <div class="col-lg-7">
+              <h5 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-file-excel text-success me-2"></i> อัปโหลดไฟล์ Staff Roster (Excel / CSV)</h5>
+              <p class="text-muted small mb-2">อัปโหลดไฟล์รายชื่อเจ้าหน้าที่ประจำโซน (.xlsx, .xls, .csv) เพื่ออัปเดตตาราง Roster และระบบ Skip Process Monitor โดยอัตโนมัติ</p>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <input type="file" id="rosterFileInput" class="form-control form-control-sm" accept=".xlsx,.xls,.csv" style="max-width: 320px;">
+                <button class="btn btn-success btn-sm fw-bold px-3" id="btnUploadRoster" onclick="submitRosterUpload()">
+                  <i class="fa-solid fa-cloud-arrow-up me-1"></i> อัปโหลดและประมวลผล
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="downloadRosterTemplate()">
+                  <i class="fa-solid fa-download me-1"></i> โหลด Template CSV
+                </button>
+              </div>
+              <div class="text-muted small mt-2">
+                <i class="fa-solid fa-circle-info text-primary me-1"></i> รองรับหัวตาราง: <code>รหัสพนักงาน</code>, <code>Opsid</code>, <code>ชื่อ</code>, <code>นามสกุล</code>, <code>ชื่อเล่น</code>, <code>Position</code>, <code>Zone (ALL/A/B/C/TBS/MS)</code>
+              </div>
+            </div>
+            <div class="col-lg-5 text-lg-end">
+              <div class="p-3 bg-light rounded-3 border d-inline-block text-start" style="min-width: 280px;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="small fw-bold text-secondary">อัปเดตล่าสุด:</span>
+                  <span class="badge bg-secondary font-monospace" id="rosterLastUpdated">-</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="small fw-bold text-secondary">จำนวนเจ้าหน้าที่ทั้งหมด:</span>
+                  <span class="badge bg-primary fs-7" id="rosterTotalBadge">0 คน</span>
+                </div>
+                <div class="mt-2 pt-2 border-top text-end">
+                  <button class="btn btn-primary btn-sm fw-bold" onclick="openAddStaffModal()">
+                    <i class="fa-solid fa-user-plus me-1"></i> เพิ่มเจ้าหน้าที่รายบุคคล
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-custom">
+          <!-- Zone Filter Pills & Search -->
+          <div class="row g-2 align-items-center mb-3">
+            <div class="col-lg-8">
+              <div class="d-flex gap-1 flex-wrap" id="rosterZoneFilters">
+                <button class="btn btn-sm btn-primary fw-bold active zone-filter-btn" data-zone="ALL_FILTER" onclick="filterRosterZone('ALL_FILTER')">ทั้งหมด (All)</button>
+                <button class="btn btn-sm btn-outline-secondary fw-bold zone-filter-btn" data-zone="ALL" onclick="filterRosterZone('ALL')">Zone ALL (Supervisors)</button>
+                <button class="btn btn-sm btn-outline-secondary fw-bold zone-filter-btn" data-zone="A" onclick="filterRosterZone('A')">Zone A</button>
+                <button class="btn btn-sm btn-outline-secondary fw-bold zone-filter-btn" data-zone="B" onclick="filterRosterZone('B')">Zone B</button>
+                <button class="btn btn-sm btn-outline-secondary fw-bold zone-filter-btn" data-zone="C" onclick="filterRosterZone('C')">Zone C</button>
+                <button class="btn btn-sm btn-outline-secondary fw-bold zone-filter-btn" data-zone="TBS" onclick="filterRosterZone('TBS')">TBS</button>
+                <button class="btn btn-sm btn-outline-secondary fw-bold zone-filter-btn" data-zone="MS" onclick="filterRosterZone('MS')">MS</button>
+                <button class="btn btn-sm btn-outline-secondary fw-bold zone-filter-btn" data-zone="INTERSOC" onclick="filterRosterZone('INTERSOC')">INTERSOC</button>
+                <button class="btn btn-sm btn-outline-secondary fw-bold zone-filter-btn" data-zone="RETURN" onclick="filterRosterZone('RETURN')">RETURN</button>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input type="text" id="rosterSearchInput" class="form-control" placeholder="ค้นหาชื่อ, ชื่อเล่น, รหัส, Opsid หรือตำแหน่ง..." onkeyup="renderRosterTable()">
+              </div>
+            </div>
+          </div>
+
+          <!-- Roster Table -->
+          <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+            <table class="table table-sm table-hover table-bordered align-middle text-nowrap table-custom">
+              <thead style="position: sticky; top: 0; z-index: 10;">
+                <tr>
+                  <th style="width: 50px;">#</th>
+                  <th>รหัสพนักงาน</th>
+                  <th>OPSID</th>
+                  <th>ชื่อ - นามสกุล</th>
+                  <th>ชื่อเล่น (NICKNAME)</th>
+                  <th>ตำแหน่ง (POSITION)</th>
+                  <th>โซน (ZONE)</th>
+                  <th style="width: 140px;" class="text-center">จัดการ (ACTIONS)</th>
+                </tr>
+              </thead>
+              <tbody id="rosterTableBody">
+                <tr><td colspan="8" class="text-center py-4 text-muted">กำลังดึงข้อมูล Staff Roster...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -228,6 +318,69 @@
           <div class="modal-footer py-2">
             <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
             <button type="submit" class="btn btn-primary btn-sm fw-bold">บันทึกเพิ่มสมาชิก</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Adding / Editing Staff Member -->
+  <div class="modal fade" id="staffMemberModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white py-2">
+          <h5 class="modal-title fs-6" id="staffModalTitle"><i class="fa-solid fa-user-gear me-1 text-primary"></i> ข้อมูลเจ้าหน้าที่ Staff Roster</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form onsubmit="handleStaffMemberSubmit(event)">
+          <div class="modal-body">
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label fw-bold small">รหัสพนักงาน (Staff ID):</label>
+                <input type="text" id="staffInputEmpId" class="form-control form-control-sm" placeholder="เช่น 60000000">
+              </div>
+              <div class="col-6">
+                <label class="form-label fw-bold small">Ops ID (ถ้ามี):</label>
+                <input type="text" id="staffInputOpsId" class="form-control form-control-sm" placeholder="เช่น ops_01">
+              </div>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label fw-bold small">ชื่อจริง (First Name):</label>
+                <input type="text" id="staffInputFirstName" class="form-control form-control-sm" placeholder="เช่น สมชาย">
+              </div>
+              <div class="col-6">
+                <label class="form-label fw-bold small">นามสกุล (Last Name):</label>
+                <input type="text" id="staffInputLastName" class="form-control form-control-sm" placeholder="เช่น ใจดี">
+              </div>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label fw-bold small text-danger">ชื่อเล่น (Nickname) *:</label>
+                <input type="text" id="staffInputNickname" class="form-control form-control-sm" placeholder="เช่น Chain, LY, Nut" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label fw-bold small">ตำแหน่ง (Position):</label>
+                <input type="text" id="staffInputPosition" class="form-control form-control-sm" placeholder="เช่น Supervisor, Associate">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold small text-primary">ประจำโซน (Zone) *:</label>
+              <select id="staffInputZone" class="form-select form-select-sm" required>
+                <option value="ALL">Zone ALL (Supervisors / ภาพรวม)</option>
+                <option value="A">Zone A</option>
+                <option value="B">Zone B</option>
+                <option value="C">Zone C</option>
+                <option value="TBS">TBS</option>
+                <option value="MS">MS</option>
+                <option value="INTERSOC">INTERSOC</option>
+                <option value="RETURN">RETURN</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer py-2">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="submit" class="btn btn-primary btn-sm fw-bold"><i class="fa-solid fa-save me-1"></i> บันทึกข้อมูล</button>
           </div>
         </form>
       </div>
@@ -288,6 +441,7 @@
     function refreshAdminData() {
       fetchUsersFromApi();
       fetchAuditLogs();
+      loadStaffRoster();
     }
 
     let cachedUsersList = [];
@@ -621,6 +775,373 @@
     function escapeHtml(str) {
       if (!str) return '';
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ==========================================
+    // ===== STAFF ROSTER MANAGEMENT LOGIC =====
+    // ==========================================
+    let staffRosterData = {
+      updatedAt: '',
+      rosterByZone: {},
+      staffList: []
+    };
+    let selectedRosterZone = 'ALL_FILTER';
+
+    function loadStaffRoster() {
+      fetch('/api/staff-roster')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            staffRosterData = data;
+            const staffCount = data.staffList ? data.staffList.length : 0;
+            const statTotalEl = document.getElementById('statTotalStaff');
+            if (statTotalEl) statTotalEl.innerText = staffCount.toLocaleString();
+
+            const rosterTotalEl = document.getElementById('rosterTotalBadge');
+            if (rosterTotalEl) rosterTotalEl.innerText = `${staffCount.toLocaleString()} คน`;
+
+            const lastUpdatedEl = document.getElementById('rosterLastUpdated');
+            if (lastUpdatedEl) lastUpdatedEl.innerText = data.updatedAt || '-';
+
+            renderRosterTable();
+          }
+        })
+        .catch(err => {
+          console.error('Error loading staff roster:', err);
+          renderRosterTable();
+        });
+    }
+
+    function filterRosterZone(zone) {
+      selectedRosterZone = zone;
+      document.querySelectorAll('.zone-filter-btn').forEach(btn => {
+        if (btn.getAttribute('data-zone') === zone) {
+          btn.classList.remove('btn-outline-secondary');
+          btn.classList.add('btn-primary', 'active');
+        } else {
+          btn.classList.remove('btn-primary', 'active');
+          btn.classList.add('btn-outline-secondary');
+        }
+      });
+      renderRosterTable();
+    }
+
+    function renderRosterTable() {
+      const tbody = document.getElementById('rosterTableBody');
+      if (!tbody) return;
+
+      const search = (document.getElementById('rosterSearchInput') ? document.getElementById('rosterSearchInput').value : '').toLowerCase().trim();
+      const list = staffRosterData.staffList || [];
+
+      const filtered = list.filter(item => {
+        const itemZone = (item.zone || 'ALL').toUpperCase();
+        const matchZone = (selectedRosterZone === 'ALL_FILTER') || (itemZone === selectedRosterZone);
+
+        const matchSearch = !search ||
+          (item.empId || '').toLowerCase().includes(search) ||
+          (item.opsId || '').toLowerCase().includes(search) ||
+          (item.firstName || '').toLowerCase().includes(search) ||
+          (item.lastName || '').toLowerCase().includes(search) ||
+          (item.nickname || '').toLowerCase().includes(search) ||
+          (item.position || '').toLowerCase().includes(search) ||
+          (item.zone || '').toLowerCase().includes(search);
+
+        return matchZone && matchSearch;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">
+          <i class="fa-solid fa-users-slash me-2"></i>ไม่พบข้อมูลเจ้าหน้าที่ในโซนที่เลือก หรือไม่ตรงกับคำค้นหา
+        </td></tr>`;
+        return;
+      }
+
+      const zoneBadgeColors = {
+        'ALL': 'bg-dark text-white',
+        'A': 'bg-primary text-white',
+        'B': 'bg-success text-white',
+        'C': 'bg-warning text-dark',
+        'TBS': 'bg-info text-dark',
+        'MS': 'bg-secondary text-white',
+        'INTERSOC': 'bg-danger text-white',
+        'RETURN': 'bg-dark text-warning'
+      };
+
+      tbody.innerHTML = filtered.map((item, idx) => {
+        const zoneKey = (item.zone || 'ALL').toUpperCase();
+        const badgeClass = zoneBadgeColors[zoneKey] || 'bg-secondary text-white';
+        const fullName = `${item.firstName || ''} ${item.lastName || ''}`.trim() || '-';
+        const empIdSafe = encodeURIComponent(item.empId || '');
+        const nicknameSafe = encodeURIComponent(item.nickname || '');
+
+        return `
+        <tr>
+          <td class="text-center text-muted small">${idx + 1}</td>
+          <td class="font-monospace fw-bold text-dark">${escapeHtml(item.empId || '-')}</td>
+          <td class="font-monospace text-secondary">${escapeHtml(item.opsId || '-')}</td>
+          <td><span class="fw-bold text-dark">${escapeHtml(fullName)}</span></td>
+          <td><span class="badge bg-light text-primary border border-primary px-2 py-1 fs-7 fw-bold"><i class="fa-solid fa-user me-1"></i>${escapeHtml(item.nickname || '-')}</span></td>
+          <td><span class="text-muted small">${escapeHtml(item.position || '-')}</span></td>
+          <td><span class="badge ${badgeClass} px-2 py-1">${escapeHtml(zoneKey)}</span></td>
+          <td class="text-center">
+            <button class="btn btn-outline-primary btn-sm py-0 px-2 me-1" title="แก้ไขข้อมูล" onclick="openEditStaffModal('${empIdSafe}', '${nicknameSafe}')">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+            <button class="btn btn-outline-danger btn-sm py-0 px-2" title="ลบเจ้าหน้าที่" onclick="deleteStaffMember('${empIdSafe}', '${nicknameSafe}')">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function submitRosterUpload() {
+      const fileInput = document.getElementById('rosterFileInput');
+      if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({
+            icon: 'warning',
+            title: 'ยังไม่ได้เลือกไฟล์',
+            text: 'กรุณาเลือกไฟล์ Excel (.xlsx, .xls) หรือ CSV ก่อนกดอัปโหลด',
+            confirmButtonColor: '#2563eb'
+          });
+        } else {
+          alert('กรุณาเลือกไฟล์ Excel (.xlsx, .xls) หรือ CSV ก่อนกดอัปโหลด');
+        }
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const btn = document.getElementById('btnUploadRoster');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังอัปโหลด...';
+      btn.disabled = true;
+
+      fetch('/api/staff-roster/upload', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+
+        if (data.success) {
+          fileInput.value = '';
+          loadStaffRoster();
+          fetchAuditLogs();
+
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              icon: 'success',
+              title: 'อัปเดต Staff Roster สำเร็จ!',
+              text: data.message || 'ข้อมูลรายชื่อพนักงานถูกอัปเดตเข้าสู่ระบบเรียบร้อย',
+              confirmButtonColor: '#10b981'
+            });
+          } else {
+            alert('✅ ' + (data.message || 'อัปเดต Staff Roster สำเร็จ'));
+          }
+        } else {
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              icon: 'error',
+              title: 'ไม่สามารถอัปโหลดได้',
+              text: data.error || 'เกิดข้อผิดพลาดในการประมวลผลไฟล์',
+              confirmButtonColor: '#dc2626'
+            });
+          } else {
+            alert('❌ ' + (data.error || 'เกิดข้อผิดพลาดในการประมวลผลไฟล์'));
+          }
+        }
+      })
+      .catch(err => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        console.error('Upload error:', err);
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({
+            icon: 'error',
+            title: 'เกิดข้อผิดพลาด',
+            text: err.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้',
+            confirmButtonColor: '#dc2626'
+          });
+        } else {
+          alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+        }
+      });
+    }
+
+    function downloadRosterTemplate() {
+      const csvContent = "\uFEFFลำดับ,รหัสพนักงาน,Opsid,ชื่อ,นามสกุล,ชื่อเล่น,Position,Zone\n" +
+        "1,60010001,ops_chain,สายธาร,พิทักษ์ธรรม,Chain,Supervisor,ALL\n" +
+        "2,60010002,ops_big,เอกราช,วงศ์สว่าง,Big,Supervisor,ALL\n" +
+        "3,60010003,ops_kwang,กวางทอง,ใจดี,Kwang,Lead,A\n" +
+        "4,60010004,ops_nut,ณัฐวุฒิ,เจริญพร,Nut,Associate,A\n" +
+        "5,60010005,ops_sky,ภาณุพงศ์,รุ่งเรือง,SKY,Associate,B\n" +
+        "6,60010006,ops_ly,ลลิตา,ศรีสวัสดิ์,LY,Associate,C\n" +
+        "7,60010007,ops_air,ศิริพร,บุญมา,Air,Associate,TBS\n" +
+        "8,60010008,ops_champ,จตุพร,มั่นคง,Champ,Associate,MS\n";
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'staff_roster_template.csv';
+      link.click();
+    }
+
+    function openAddStaffModal() {
+      document.getElementById('staffModalTitle').innerHTML = '<i class="fa-solid fa-user-plus me-1 text-primary"></i> เพิ่มเจ้าหน้าที่ใหม่ใน Staff Roster';
+      document.getElementById('staffInputEmpId').value = '';
+      document.getElementById('staffInputOpsId').value = '';
+      document.getElementById('staffInputFirstName').value = '';
+      document.getElementById('staffInputLastName').value = '';
+      document.getElementById('staffInputNickname').value = '';
+      document.getElementById('staffInputPosition').value = 'Associate';
+      document.getElementById('staffInputZone').value = 'A';
+
+      const modalEl = document.getElementById('staffMemberModal');
+      const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+      m.show();
+    }
+
+    function openEditStaffModal(empIdEnc, nicknameEnc) {
+      const empId = decodeURIComponent(empIdEnc || '');
+      const nickname = decodeURIComponent(nicknameEnc || '');
+
+      const staff = (staffRosterData.staffList || []).find(s => 
+        (empId && s.empId === empId) || (nickname && s.nickname === nickname)
+      );
+
+      if (!staff) {
+        alert('ไม่พบข้อมูลพนักงานที่ต้องการแก้ไข');
+        return;
+      }
+
+      document.getElementById('staffModalTitle').innerHTML = `<i class="fa-solid fa-user-pen me-1 text-warning"></i> แก้ไขข้อมูล: ${escapeHtml(staff.nickname || staff.firstName || 'Staff')}`;
+      document.getElementById('staffInputEmpId').value = staff.empId || '';
+      document.getElementById('staffInputOpsId').value = staff.opsId || '';
+      document.getElementById('staffInputFirstName').value = staff.firstName || '';
+      document.getElementById('staffInputLastName').value = staff.lastName || '';
+      document.getElementById('staffInputNickname').value = staff.nickname || '';
+      document.getElementById('staffInputPosition').value = staff.position || '';
+      document.getElementById('staffInputZone').value = (staff.zone || 'A').toUpperCase();
+
+      const modalEl = document.getElementById('staffMemberModal');
+      const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+      m.show();
+    }
+
+    function handleStaffMemberSubmit(evt) {
+      evt.preventDefault();
+      const payload = {
+        empId: document.getElementById('staffInputEmpId').value.trim(),
+        opsId: document.getElementById('staffInputOpsId').value.trim(),
+        firstName: document.getElementById('staffInputFirstName').value.trim(),
+        lastName: document.getElementById('staffInputLastName').value.trim(),
+        nickname: document.getElementById('staffInputNickname').value.trim(),
+        position: document.getElementById('staffInputPosition').value.trim(),
+        zone: document.getElementById('staffInputZone').value.trim()
+      };
+
+      if (!payload.nickname && !payload.empId) {
+        alert('กรุณาระบุชื่อเล่นหรือรหัสพนักงาน');
+        return;
+      }
+
+      fetch('/api/staff-roster/member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const modalEl = document.getElementById('staffMemberModal');
+          const m = bootstrap.Modal.getInstance(modalEl);
+          if (m) m.hide();
+
+          loadStaffRoster();
+          fetchAuditLogs();
+
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              icon: 'success',
+              title: 'บันทึกสำเร็จ',
+              text: data.message || `บันทึกข้อมูล ${payload.nickname} เรียบร้อยแล้ว`,
+              timer: 2000,
+              showConfirmButton: false
+            });
+          } else {
+            alert('✅ บันทึกสำเร็จ: ' + payload.nickname);
+          }
+        } else {
+          alert('❌ ' + (data.error || 'เกิดข้อผิดพลาดในการบันทึก'));
+        }
+      })
+      .catch(err => {
+        alert('❌ ไม่สามารถบันทึกข้อมูลได้: ' + err.message);
+      });
+    }
+
+    function deleteStaffMember(empIdEnc, nicknameEnc) {
+      const empId = decodeURIComponent(empIdEnc || '');
+      const nickname = decodeURIComponent(nicknameEnc || '');
+
+      const doDelete = () => {
+        fetch('/api/staff-roster/member', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ empId: empId, nickname: nickname })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            loadStaffRoster();
+            fetchAuditLogs();
+            if (typeof Swal !== 'undefined') {
+              Swal.fire({
+                icon: 'success',
+                title: 'ลบสำเร็จ',
+                text: `ลบเจ้าหน้าที่ ${nickname || empId} ออกจากระบบเรียบร้อย`,
+                timer: 2000,
+                showConfirmButton: false
+              });
+            } else {
+              alert('✅ ลบสำเร็จ');
+            }
+          } else {
+            alert('❌ ' + (data.error || 'ไม่สามารถลบได้'));
+          }
+        })
+        .catch(err => {
+          alert('❌ เกิดข้อผิดพลาดในการลบ: ' + err.message);
+        });
+      };
+
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          title: 'ยืนยันการลบเจ้าหน้าที่?',
+          html: `คุณต้องการลบ <b>${escapeHtml(nickname || empId)}</b> ออกจาก Staff Roster ใช่หรือไม่?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc2626',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: '<i class="fa-solid fa-trash me-1"></i> ใช่, ลบเจ้าหน้าที่',
+          cancelButtonText: 'ยกเลิก',
+          background: '#0d1b2a',
+          color: '#ffffff'
+        }).then(res => {
+          if (res.isConfirmed) doDelete();
+        });
+      } else {
+        if (confirm(`คุณต้องการลบ ${nickname || empId} ออกจาก Staff Roster ใช่หรือไม่?`)) {
+          doDelete();
+        }
+      }
     }
   </script>
 </body>

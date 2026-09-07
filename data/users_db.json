@@ -9,15 +9,6 @@
     "createdAt": "2026-09-03 00:00:00"
   },
   {
-    "id": "u2",
-    "name": "Ground Operator",
-    "email": "ground@spxexpress.com",
-    "pass": "1234",
-    "role": "Ground",
-    "status": "approved",
-    "createdAt": "2026-09-03 00:00:00"
-  },
-  {
     "id": "u_1788441071676",
     "name": "Natakorn Panmanee",
     "email": "guy.panmanee@spxexpress.com",
@@ -35,7 +26,7 @@
     "status": "approved",
     "createdAt": "2026-09-04 20:39:06"
   },
-{
+  {
     "id": "u_1788441071676",
     "name": "Men",
     "email": "men.phuditde@spxexpress.com",

@@ -75,12 +75,16 @@
       </div>
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <button class="btn btn-success btn-sm fw-bold" onclick="openGoogleSheetModal()"><i class="fa-solid fa-link me-1"></i> Sync Google Sheet</button>
-        <select class="form-select form-select-sm" id="outboundFileSelect" style="width: auto; max-width: 240px;" onchange="switchOutboundFile(this.value)">
-          <option value="">-- เลือกไฟล์ Outbound --</option>
+        <select class="form-select form-select-sm" id="outboundFileSelect" style="width: auto; max-width: 280px;" onchange="switchOutboundFile(this.value)">
+          <option value="">-- เลือกไฟล์หรือโฟลเดอร์ Outbound --</option>
         </select>
-        <button class="btn btn-outline-danger btn-sm fw-bold" onclick="deleteSelectedOutboundFile()" title="ลบไฟล์ที่เลือกออกจากระบบ">
-          <i class="fa-solid fa-trash me-1"></i> ลบไฟล์ที่เลือก
+        <button class="btn btn-outline-danger btn-sm fw-bold" onclick="deleteSelectedOutboundFile()" title="ลบไฟล์หรือโฟลเดอร์ที่เลือกออกจากระบบ">
+          <i class="fa-solid fa-trash me-1"></i> ลบที่เลือก
         </button>
+        <label class="btn btn-warning btn-sm fw-bold text-dark mb-0 shadow-sm" title="เลือกทั้งโฟลเดอร์เพื่อสรุปข้อมูลรวมทุกไฟล์ในโฟลเดอร์">
+          <i class="fa-solid fa-folder-open me-1"></i> อัปโหลด Folder
+          <input type="file" id="outboundFolderInput" webkitdirectory directory multiple style="display: none;" onchange="handleOutboundFolderUpload(this.files)">
+        </label>
         <label class="btn btn-primary btn-sm fw-bold mb-0">
           <i class="fa-solid fa-upload me-1"></i> อัปโหลด CSV/Excel
           <input type="file" id="outboundFileInput" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleOutboundFileUpload(this.files[0])">
@@ -397,13 +401,31 @@
     function fetchFileList() {
       safeFetchJson('/api/list-files')
         .then(data => {
-          const list = data.files || data.outbound_files || [];
-          if (data.success && list.length > 0) {
-            const selectEl = document.getElementById('outboundFileSelect');
-            if (selectEl) {
-              selectEl.innerHTML = '<option value="">-- เลือกไฟล์ Outbound --</option>' + 
-                list.map(f => `<option value="${f.filename}">📄 ${f.filename}</option>`).join('');
-            }
+          const selectEl = document.getElementById('outboundFileSelect');
+          if (!selectEl) return;
+          let html = '<option value="">-- เลือกไฟล์หรือโฟลเดอร์ Outbound --</option>';
+
+          const folders = data.folders || data.outbound_folders || [];
+          if (folders.length > 0) {
+            html += '<optgroup label="📁 โฟลเดอร์รวม (สรุปข้อมูลทั้ง Folder)">';
+            folders.forEach(f => {
+              html += `<option value="${f.filename}">📁 ทั้งโฟลเดอร์: ${f.folderName} (${f.fileCount} ไฟล์รวมกัน)</option>`;
+            });
+            html += '</optgroup>';
+          }
+
+          const files = data.files || data.outbound_files || [];
+          if (files.length > 0) {
+            html += '<optgroup label="📄 ไฟล์เดี่ยว (Individual Files)">';
+            files.forEach(f => {
+              html += `<option value="${f.filename}">📄 ${f.filename}</option>`;
+            });
+            html += '</optgroup>';
+          }
+
+          selectEl.innerHTML = html;
+          if (outboundDataState && outboundDataState.filename) {
+            selectEl.value = outboundDataState.filename;
           }
         })
         .catch(err => console.error(err));
@@ -426,19 +448,26 @@
 
     function switchOutboundFile(filename) {
       if (!filename) return;
-      showOutboundStatus(`กำลังโหลดไฟล์: "${filename}"...`, 'loading');
+      const isFolder = filename.startsWith('folder:');
+      const displayName = isFolder ? `โฟลเดอร์ "${filename.replace('folder:', '')}"` : `ไฟล์ "${filename}"`;
+      showOutboundStatus(`กำลังโหลดข้อมูล ${displayName}...`, 'loading');
+
       safeFetchJson(`/api/load-file?filename=${encodeURIComponent(filename)}`)
         .then(data => {
           if (data.success) {
             outboundDataState = data;
             safeSetLocalStorage('socn_outbound_data', data);
             updateDashboard(data);
-            showOutboundStatus(`✅ สลับไปใช้ไฟล์ "${filename}" เรียบร้อย`, 'success');
+            if (data.isFolder) {
+              showOutboundStatus(`✅ แสดงผลสรุปข้อมูลรวมของโฟลเดอร์ "${data.folderName}" (รวม ${data.fileCount} ไฟล์) เรียบร้อย`, 'success');
+            } else {
+              showOutboundStatus(`✅ สลับไปใช้ไฟล์ "${filename}" เรียบร้อย`, 'success');
+            }
           } else {
             showOutboundStatus(`เกิดข้อผิดพลาด: ${data.error}`, 'error');
           }
         })
-        .catch(err => showOutboundStatus(`ไม่สามารถโหลดไฟล์ได้: ${err.message}`, 'error'));
+        .catch(err => showOutboundStatus(`ไม่สามารถโหลดได้: ${err.message}`, 'error'));
     }
 
     function deleteSelectedOutboundFile() {
@@ -446,15 +475,18 @@
       const filename = selectEl ? selectEl.value : '';
       if (!filename) {
         if (typeof Swal !== 'undefined') {
-          Swal.fire({ title: 'กรุณาเลือกไฟล์', text: 'กรุณาเลือกไฟล์ที่ต้องการลบในรายการก่อนครับ', icon: 'info', confirmButtonColor: '#2563eb', background: '#0d1b2a', color: '#fff' });
+          Swal.fire({ title: 'กรุณาเลือกรายการ', text: 'กรุณาเลือกไฟล์หรือโฟลเดอร์ที่ต้องการลบในรายการก่อนครับ', icon: 'info', confirmButtonColor: '#2563eb', background: '#0d1b2a', color: '#fff' });
         } else {
-          alert('กรุณาเลือกไฟล์ที่ต้องการลบในรายการก่อนครับ');
+          alert('กรุณาเลือกไฟล์หรือโฟลเดอร์ที่ต้องการลบในรายการก่อนครับ');
         }
         return;
       }
 
+      const isFolder = filename.startsWith('folder:');
+      const itemTitle = isFolder ? `โฟลเดอร์ "${filename.replace('folder:', '')}" (รวมไฟล์ทั้งหมดในโฟลเดอร์)` : `ไฟล์ "${filename}"`;
+
       const runDelete = () => {
-        showOutboundStatus(`กำลังลบไฟล์ "${filename}"...`, 'loading');
+        showOutboundStatus(`กำลังลบ ${itemTitle}...`, 'loading');
         safeFetchJson('/api/delete-file', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -463,9 +495,9 @@
         .then(data => {
           if (data.success) {
             if (typeof Swal !== 'undefined') {
-              Swal.fire({ title: 'ลบไฟล์สำเร็จ!', text: `ลบไฟล์ "${filename}" ออกจากเซิร์ฟเวอร์เรียบร้อยแล้ว`, icon: 'success', confirmButtonColor: '#10b981', background: '#0d1b2a', color: '#fff' });
+              Swal.fire({ title: 'ลบสำเร็จ!', text: `ลบ ${itemTitle} ออกจากเซิร์ฟเวอร์เรียบร้อยแล้ว`, icon: 'success', confirmButtonColor: '#10b981', background: '#0d1b2a', color: '#fff' });
             }
-            showOutboundStatus(`✅ ลบไฟล์ "${filename}" เรียบร้อยแล้ว`, 'success');
+            showOutboundStatus(`✅ ลบ ${itemTitle} เรียบร้อยแล้ว`, 'success');
             outboundDataState = null;
             safeSetLocalStorage('socn_outbound_data', null);
             fetchFileList();
@@ -476,18 +508,18 @@
             showOutboundStatus(`เกิดข้อผิดพลาด: ${data.error}`, 'error');
           }
         })
-        .catch(err => showOutboundStatus(`ไม่สามารถลบไฟล์ได้: ${err.message}`, 'error'));
+        .catch(err => showOutboundStatus(`ไม่สามารถลบได้: ${err.message}`, 'error'));
       };
 
       if (typeof Swal !== 'undefined') {
         Swal.fire({
-          title: '⚠️ ยืนยันการลบไฟล์ถาวร?',
-          html: `คุณต้องการลบไฟล์ <b>"${filename}"</b> ออกจากเซิร์ฟเวอร์ใช่หรือไม่?<br><span style="color:#ef4444; font-size:0.83rem; margin-top:6px; display:inline-block;">คำเตือน: ข้อมูลไฟล์นี้จะถูกลบออกจากดิสก์ทันทีและไม่สามารถกู้คืนได้</span>`,
+          title: '⚠️ ยืนยันการลบถาวร?',
+          html: `คุณต้องการลบ <b>${itemTitle}</b> ออกจากเซิร์ฟเวอร์ใช่หรือไม่?<br><span style="color:#ef4444; font-size:0.83rem; margin-top:6px; display:inline-block;">คำเตือน: ข้อมูลนี้จะถูกลบออกจากดิสก์ทันทีและไม่สามารถกู้คืนได้</span>`,
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#dc2626',
           cancelButtonColor: '#64748b',
-          confirmButtonText: '<i class="fa-solid fa-trash me-1"></i> ใช่, ลบไฟล์ถาวร',
+          confirmButtonText: '<i class="fa-solid fa-trash me-1"></i> ใช่, ลบถาวร',
           cancelButtonText: 'ยกเลิก',
           background: '#0d1b2a',
           color: '#ffffff'
@@ -497,65 +529,144 @@
           }
         });
       } else {
-        if (confirm(`⚠️ คุณต้องการลบไฟล์ "${filename}" ออกจากเซิร์ฟเวอร์ถาวรใช่หรือไม่?`)) {
+        if (confirm(`⚠️ คุณต้องการลบ ${itemTitle} ออกจากเซิร์ฟเวอร์ถาวรใช่หรือไม่?`)) {
           runDelete();
         }
       }
     }
 
-    function parseOutboundFileLocally(file) {
-      Papa.parse(file, {
-        skipEmptyLines: true,
-        complete: (results) => {
-          if (!results || !results.data || results.data.length < 2) {
-            showOutboundStatus(`อัปโหลดล้มเหลว: ไม่พบข้อมูลในไฟล์`, 'error');
-            return;
-          }
-          const rows = results.data;
-          const headers = rows[0];
-          const dataRows = rows.slice(1);
-          const dataObj = {
-            success: true,
-            filename: file.name,
-            totalRows: dataRows.length,
-            outboundRawRows: dataRows,
-            headers: headers
-          };
-          outboundDataState = dataObj;
-          safeSetLocalStorage('socn_outbound_data', dataObj);
-          updateDashboard(dataObj);
-          showOutboundStatus(`✅ บันทึก "${file.name}" เรียบร้อย! (Browser Sync)`, 'success');
-          fetchFileList();
-        },
-        error: (err) => {
-          showOutboundStatus(`อัปโหลดล้มเหลว: ${err.message}`, 'error');
+    async function uploadSingleFileChunks(file, scope = 'outbound', folderName = '', onProgress = null) {
+      const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunks
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      const fn = file.name;
+
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+
+        const formData = new FormData();
+        formData.append('chunk', chunk, fn);
+        formData.append('filename', fn);
+        formData.append('chunk_index', i);
+        formData.append('total_chunks', totalChunks);
+        formData.append('scope', scope);
+        if (folderName) formData.append('folder_name', folderName);
+
+        const res = await safeFetchJson('/api/upload-chunk', { method: 'POST', body: formData });
+        if (!res || !res.success) {
+          throw new Error(res ? res.error : 'Upload chunk failed');
         }
-      });
+
+        if (onProgress) {
+          const percent = Math.round(((i + 1) / totalChunks) * 100);
+          onProgress(percent, i + 1, totalChunks);
+        }
+      }
     }
 
-    function handleOutboundFileUpload(file) {
+    async function handleOutboundFileUpload(file) {
       if (!file) return;
-      showOutboundStatus(`กำลังอัปโหลด "${file.name}"...`, 'loading');
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('scope', 'outbound');
+      showOutboundStatus(`กำลังอัปโหลด "${file.name}" เข้าสู่โฟลเดอร์ uploads (0%)...`, 'loading');
 
-      safeFetchJson('/upload', { method: 'POST', body: formData })
-        .then(data => {
-          if (data && data.success) {
-            outboundDataState = data;
-            safeSetLocalStorage('socn_outbound_data', data);
-            updateDashboard(data);
-            showOutboundStatus(`✅ บันทึก "${file.name}" เรียบร้อย!`, 'success');
-            fetchFileList();
-          } else {
-            parseOutboundFileLocally(file);
-          }
-        })
-        .catch(err => {
-          console.warn('Server upload failed, parsing locally in browser:', err);
-          parseOutboundFileLocally(file);
+      try {
+        await uploadSingleFileChunks(file, 'outbound', '', (pct) => {
+          showOutboundStatus(`กำลังอัปโหลด "${file.name}" เข้าสู่โฟลเดอร์ uploads (${pct}%)...`, 'loading');
         });
+
+        showOutboundStatus(`กำลังประมวลผลไฟล์ "${file.name}"...`, 'loading');
+        const data = await safeFetchJson(`/api/load-file?filename=${encodeURIComponent(file.name)}`);
+        if (data && data.success) {
+          outboundDataState = data;
+          safeSetLocalStorage('socn_outbound_data', data);
+          updateDashboard(data);
+          showOutboundStatus(`✅ บันทึกไฟล์ "${file.name}" เข้าโฟลเดอร์ uploads บนเซิร์ฟเวอร์เรียบร้อย!`, 'success');
+          fetchFileList();
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              title: 'อัปโหลดสำเร็จ!',
+              text: `บันทึกไฟล์ "${file.name}" เข้าโฟลเดอร์ uploads บนเซิร์ฟเวอร์เรียบร้อย`,
+              icon: 'success',
+              confirmButtonColor: '#10b981',
+              background: '#0d1b2a',
+              color: '#fff',
+              timer: 2000,
+              showConfirmButton: false
+            });
+          }
+        } else {
+          showOutboundStatus(`เกิดข้อผิดพลาดในการประมวลผล: ${data.error}`, 'error');
+        }
+      } catch (err) {
+        showOutboundStatus(`อัปโหลดล้มเหลว: ${err.message}`, 'error');
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({ title: 'อัปโหลดล้มเหลว', text: err.message, icon: 'error', confirmButtonColor: '#dc2626', background: '#0d1b2a', color: '#fff' });
+        }
+      }
+    }
+
+    async function handleOutboundFolderUpload(fileList) {
+      if (!fileList || fileList.length === 0) return;
+
+      const validFiles = Array.from(fileList).filter(f => {
+        const n = f.name.toLowerCase();
+        return n.endsWith('.csv') || n.endsWith('.xlsx') || n.endsWith('.xls');
+      });
+
+      if (validFiles.length === 0) {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({ title: 'ไม่พบไฟล์ข้อมูล', text: 'ไม่พบไฟล์ CSV หรือ Excel (.xlsx, .xls) ในโฟลเดอร์ที่เลือก', icon: 'warning', confirmButtonColor: '#2563eb', background: '#0d1b2a', color: '#fff' });
+        } else {
+          alert('ไม่พบไฟล์ CSV หรือ Excel ในโฟลเดอร์ที่เลือก');
+        }
+        return;
+      }
+
+      let folderName = 'Folder_Upload';
+      if (validFiles[0].webkitRelativePath) {
+        folderName = validFiles[0].webkitRelativePath.split('/')[0];
+      } else {
+        folderName = `Folder_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`;
+      }
+
+      showOutboundStatus(`กำลังอัปโหลดโฟลเดอร์ "${folderName}" (${validFiles.length} ไฟล์)...`, 'loading');
+
+      try {
+        for (let fIdx = 0; fIdx < validFiles.length; fIdx++) {
+          const file = validFiles[fIdx];
+          const fileNum = fIdx + 1;
+          await uploadSingleFileChunks(file, 'outbound', folderName, (pct) => {
+            showOutboundStatus(`กำลังอัปโหลดโฟลเดอร์ "${folderName}" - ไฟล์ ${fileNum}/${validFiles.length}: "${file.name}" (${pct}%)...`, 'loading');
+          });
+        }
+
+        showOutboundStatus(`กำลังประมวลผลสรุปข้อมูลรวมของโฟลเดอร์ "${folderName}"...`, 'loading');
+        const data = await safeFetchJson(`/api/load-file?filename=folder:${encodeURIComponent(folderName)}`);
+        if (data && data.success) {
+          outboundDataState = data;
+          safeSetLocalStorage('socn_outbound_data', data);
+          updateDashboard(data);
+          showOutboundStatus(`✅ อัปโหลดและสรุปข้อมูลทั้งโฟลเดอร์ "${folderName}" (รวม ${data.fileCount} ไฟล์) บันทึกลงเซิร์ฟเวอร์เรียบร้อย!`, 'success');
+          fetchFileList();
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              title: '📁 สรุปข้อมูลโฟลเดอร์สำเร็จ!',
+              html: `บันทึกโฟลเดอร์ <b>"${folderName}"</b> ลงเครื่องเรียบร้อย<br>รวมทั้งหมด <b>${data.fileCount} ไฟล์</b><br>ยอดพัสดุล่าช้ารวม: <b class="text-danger">${(data.totalLate || 0).toLocaleString()} ชิ้น</b>`,
+              icon: 'success',
+              confirmButtonColor: '#10b981',
+              background: '#0d1b2a',
+              color: '#fff'
+            });
+          }
+        } else {
+          showOutboundStatus(`เกิดข้อผิดพลาดในการประมวลผลโฟลเดอร์: ${data.error}`, 'error');
+        }
+      } catch (err) {
+        showOutboundStatus(`อัปโหลดโฟลเดอร์ล้มเหลว: ${err.message}`, 'error');
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({ title: 'อัปโหลดโฟลเดอร์ล้มเหลว', text: err.message, icon: 'error', confirmButtonColor: '#dc2626', background: '#0d1b2a', color: '#fff' });
+        }
+      }
     }
 
     function updateDashboard(data) {

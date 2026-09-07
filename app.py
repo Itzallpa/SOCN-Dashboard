@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
+import re
 import json
 import uuid
 import csv
@@ -10,6 +12,13 @@ import pandas as pd
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
+
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 warnings.filterwarnings("ignore")
 
@@ -432,7 +441,10 @@ def read_dataframe(filepath):
 
 def process_csv(filepath):
     df = read_dataframe(filepath)
-    
+    return process_dataframe(df, filename=os.path.basename(filepath))
+
+
+def process_dataframe(df, filename=""):
     # Standardize Column Names
     col_map = {}
     target_used = set()
@@ -503,7 +515,7 @@ def process_csv(filepath):
             "outboundRawRows": []
         }
 
-    # Vectorized timestamp parsing ONLY on late_df (~5,000 rows vs 500,000 rows!)
+    # Vectorized timestamp parsing ONLY on late_df with fast exact format fallback
     ts_cols = [
         "first_soc_outbound_timestamp",
         "soc_outbound_based_received_cut_off_timestamp",
@@ -512,7 +524,12 @@ def process_csv(filepath):
     ]
     for col in ts_cols:
         if col in late_df.columns:
-            late_df[col] = pd.to_datetime(late_df[col], format='mixed', errors="coerce")
+            parsed = pd.to_datetime(late_df[col], format='%Y-%m-%d %H:%M:%S', errors='coerce')
+            if parsed.isna().sum() > 0:
+                parsed2 = pd.to_datetime(late_df[col], format='mixed', errors='coerce')
+                late_df[col] = parsed.fillna(parsed2)
+            else:
+                late_df[col] = parsed
 
     # Calculate delay & D+2 count
     has_cut = late_df["soc_outbound_based_received_2nd_cut_off_timestamp"].notna()
@@ -578,35 +595,30 @@ def process_csv(filepath):
     late_df["dest_station_name_clean"] = late_df["dest_station_name"].apply(clean_name)
     dest_count = int(late_df["dest_station_name_clean"].nunique())
 
-    # Peak time per destination
-    def calc_peak_time(s):
-        t = s.dropna()
-        if t.empty: return "-"
-        hhmm = t.dt.strftime("%H:%M")
-        mode_res = hhmm.mode()
-        return str(mode_res.iloc[0]) if not mode_res.empty else "-"
+    # Fast Vectorized Peak Time
+    if "first_soc_outbound_timestamp" in late_df.columns and pd.api.types.is_datetime64_any_dtype(late_df["first_soc_outbound_timestamp"]):
+        late_df["_hhmm"] = late_df["first_soc_outbound_timestamp"].dt.strftime("%H:%M").fillna("-")
+    else:
+        late_df["_hhmm"] = "-"
+
+    valid_hhmm = late_df[late_df["_hhmm"] != "-"]
+    if not valid_hhmm.empty:
+        st_counts = valid_hhmm.groupby(["dest_station_name_clean", "_hhmm"], observed=True).size().reset_index(name="cnt")
+        idx_max = st_counts.groupby("dest_station_name_clean")["cnt"].idxmax()
+        peak_map = dict(zip(st_counts.loc[idx_max, "dest_station_name_clean"], st_counts.loc[idx_max, "_hhmm"]))
+    else:
+        peak_map = {}
 
     cutoff_map = build_cutoff_map()
-
-    grp = (
-        late_df.groupby("dest_station_name_clean", dropna=False)
-        .agg(
-            late_count=("shipment_id", "count"),
-            peak_time=("first_soc_outbound_timestamp", calc_peak_time)
-        )
-        .reset_index()
-        .sort_values("late_count", ascending=False)
-        .reset_index(drop=True)
-    )
+    grp_counts = late_df["dest_station_name_clean"].value_counts()
 
     ranking_list = []
-    max_count = int(grp["late_count"].max()) if len(grp) > 0 else 1
-    for idx, row in grp.iterrows():
-        cnt = int(row["late_count"])
-        pct = round((cnt / total_late * 100), 1) if total_late > 0 else 0
-        st_name = str(row["dest_station_name_clean"])
-        st_clean = st_name.split(" - ")[0].strip().lower()
-        matched_cutoff = cutoff_map.get(st_clean) or cutoff_map.get(st_name.lower())
+    max_count = int(grp_counts.iloc[0]) if len(grp_counts) > 0 else 1
+    for idx, (st_name, cnt) in enumerate(grp_counts.items()):
+        cnt_int = int(cnt)
+        pct = round((cnt_int / total_late * 100), 1) if total_late > 0 else 0
+        st_clean = str(st_name).split(" - ")[0].strip().lower()
+        matched_cutoff = cutoff_map.get(st_clean) or cutoff_map.get(str(st_name).lower())
 
         target_str = "-"
         if matched_cutoff:
@@ -618,10 +630,10 @@ def process_csv(filepath):
 
         ranking_list.append({
             "rank": idx + 1,
-            "station": st_name,
-            "count": cnt,
+            "station": str(st_name),
+            "count": cnt_int,
             "pct": pct,
-            "peakTime": str(row["peak_time"]),
+            "peakTime": str(peak_map.get(st_name, "-")),
             "cutoffTarget": target_str,
             "cutoffInfo": matched_cutoff
         })
@@ -697,6 +709,240 @@ def process_csv(filepath):
         "lateTypeBreakdown": late_type_counts,
         "routeTypeBreakdown": route_type_counts,
         "outboundRawRows": outbound_raw_rows
+    }
+
+
+def process_folder(folder_path, folder_name=None):
+    if not folder_name:
+        folder_name = os.path.basename(folder_path)
+    
+    files = []
+    if os.path.exists(folder_path):
+        for root, dirs, filenames in os.walk(folder_path):
+            for f in filenames:
+                if f.lower().endswith(('.csv', '.xlsx', '.xls')) and not f.startswith('.'):
+                    files.append(os.path.join(root, f))
+                    
+    if not files:
+        return {
+            "success": False,
+            "error": f"ไม่พบไฟล์ CSV/Excel ในโฟลเดอร์ '{folder_name}'"
+        }
+        
+    dfs = []
+    report_dates = []
+    needed_patterns = ['ontime', 'cutoff', 'outbound', 'station', 'dest', 'late', 'route', 'shipment', 'tracking', 'received', 'pack', 'team', 'zone', 'to_number', 'report_date']
+    
+    for f in sorted(files):
+        try:
+            if f.lower().endswith('.csv'):
+                h = pd.read_csv(f, nrows=0)
+                usecols = [c for c in h.columns if any(p in str(c).lower() for p in needed_patterns)]
+                sub_df = pd.read_csv(f, usecols=usecols if usecols else None, low_memory=False, on_bad_lines='skip')
+            else:
+                sub_df = read_dataframe(f)
+
+            if sub_df is not None and not sub_df.empty:
+                col_map = {}
+                target_used = set()
+                for col in sub_df.columns:
+                    c_clean = str(col).strip().lower()
+                    target = None
+                    if c_clean in ['is_soc_outbound_ontime', 'is_ontime', 'ontime', 'is_soc_outbound_2nd_ontime']:
+                        target = 'is_soc_outbound_ontime'
+                    elif c_clean in ['soc_outbound_based_received_2nd_cut_off_timestamp', 'soc_outbound_based_received_cut_off_timestamp', 'cutoff_timestamp', 'cut_off_2']:
+                        target = 'soc_outbound_based_received_2nd_cut_off_timestamp'
+                    elif c_clean in ['first_soc_outbound_timestamp', 'first_outbound_timestamp', 'outbound_timestamp']:
+                        target = 'first_soc_outbound_timestamp'
+                    elif c_clean in ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination']:
+                        target = 'dest_station_name'
+                    elif c_clean in ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason']:
+                        target = 'soc_outbound_late_type_2nd_cutoff'
+                    elif c_clean in ['soc_outbound_route_type', 'route_type', 'route']:
+                        target = 'soc_outbound_route_type'
+                    elif c_clean in ['shipment_id', 'tracking_id', 'tracking_no', 'waybill']:
+                        target = 'shipment_id'
+                    elif c_clean in ['first_soc_received_timestamp', 'received_timestamp', 'inbound_timestamp']:
+                        target = 'first_soc_received_timestamp'
+                    elif c_clean in ['recieve_team', 'receive_team', 'obd_zone', 'zone']:
+                        target = 'recieve_team'
+                    elif c_clean in ['latest_to_number', 'to_number', 'to_no']:
+                        target = 'latest_to_number'
+                    elif c_clean in ['report_date', 'date']:
+                        target = 'report_date'
+
+                    if target and target not in target_used:
+                        col_map[col] = target
+                        target_used.add(target)
+
+                if col_map:
+                    sub_df = sub_df.rename(columns=col_map)
+                sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
+
+                if 'report_date' in sub_df.columns:
+                    vds = sub_df['report_date'].dropna()
+                    if len(vds) > 0:
+                        report_dates.append(str(vds.iloc[0]))
+
+                for req in ['is_soc_outbound_ontime', 'soc_outbound_late_type_2nd_cutoff', 'shipment_id', 'dest_station_name', 'first_soc_outbound_timestamp', 'soc_outbound_based_received_2nd_cut_off_timestamp']:
+                    if req not in sub_df.columns:
+                        sub_df[req] = ''
+
+                ontime_str = sub_df["is_soc_outbound_ontime"].astype(str).str.strip().str.upper() if 'is_soc_outbound_ontime' in sub_df.columns else pd.Series([''] * len(sub_df))
+                reason_str = sub_df["soc_outbound_late_type_2nd_cutoff"].astype(str).str.strip().str.lower() if 'soc_outbound_late_type_2nd_cutoff' in sub_df.columns else pd.Series([''] * len(sub_df))
+                is_late_mask = ontime_str.isin(["FALSE", "0"]) | (reason_str.notna() & ~reason_str.isin(["", "none", "nan"]))
+                
+                late_sub_df = sub_df[is_late_mask].copy() if is_late_mask.any() else sub_df.head(0).copy()
+                late_sub_df['source_file'] = os.path.basename(f)
+                dfs.append(late_sub_df)
+        except Exception as e:
+            print(f"Error reading file {f} in folder {folder_name}:", e)
+            
+    if not dfs:
+        return {
+            "success": False,
+            "error": f"ไม่สามารถอ่านข้อมูลจากไฟล์ในโฟลเดอร์ '{folder_name}' ได้"
+        }
+        
+    combined_late_df = pd.concat(dfs, ignore_index=True)
+    if 'shipment_id' in combined_late_df.columns:
+        combined_late_df = combined_late_df.drop_duplicates(subset=['shipment_id'])
+        
+    data = process_dataframe(combined_late_df, filename=f"folder:{folder_name}")
+    data["isFolder"] = True
+    data["folderName"] = folder_name
+    data["fileCount"] = len(files)
+    data["fileList"] = [os.path.basename(f) for f in files]
+    data["filename"] = f"folder:{folder_name}"
+    if report_dates:
+        data["reportDate"] = " - ".join(sorted(list(set(report_dates))))
+    data["success"] = True
+    return data
+
+
+def process_folder_skip(folder_path, folder_name=None):
+    if not folder_name:
+        folder_name = os.path.basename(folder_path)
+        
+    files = []
+    if os.path.exists(folder_path):
+        for root, dirs, filenames in os.walk(folder_path):
+            for f in filenames:
+                if f.lower().endswith(('.csv', '.xlsx', '.xls')) and not f.startswith('.'):
+                    files.append(os.path.join(root, f))
+                    
+    if not files:
+        return {"success": False, "error": f"ไม่พบไฟล์ในโฟลเดอร์ '{folder_name}'"}
+        
+    dfs = []
+    needed_patterns = ['shipment', 'tracking', 'waybill', 'late', 'reason', 'station', 'dest', 'hub', 'zone', 'team']
+    
+    for f in sorted(files):
+        try:
+            if f.lower().endswith('.csv'):
+                h = pd.read_csv(f, nrows=0)
+                usecols = [c for c in h.columns if any(p in str(c).lower() for p in needed_patterns)]
+                sub_df = pd.read_csv(f, usecols=usecols if usecols else None, low_memory=False, on_bad_lines='skip')
+            else:
+                sub_df = read_dataframe(f)
+
+            if sub_df is not None and not sub_df.empty:
+                target_cols = {
+                    'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
+                    'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
+                    'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
+                    'obd_zone': ['obd zone', 'obd_zone', 'zone', 'recieve_team', 'receive_team']
+                }
+                renames = {}
+                used = set()
+                for col in sub_df.columns:
+                    c = str(col).strip().lower()
+                    for key, cands in target_cols.items():
+                        if c in cands and key not in used:
+                            renames[col] = key
+                            used.add(key)
+                            break
+
+                sub_df = sub_df.rename(columns=renames)
+                sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
+                
+                for n in ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name', 'obd_zone']:
+                    if n not in sub_df.columns:
+                        sub_df[n] = ''
+
+                reason_s = sub_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
+                skip_mask = reason_s.str.contains('skip')
+                skip_sub = sub_df[skip_mask].copy()
+                skip_sub['source_file'] = os.path.basename(f)
+                dfs.append(skip_sub)
+        except Exception as e:
+            print(f"Error reading skip file {f}:", e)
+            
+    if not dfs:
+        return {"success": False, "error": f"ไม่สามารถอ่านไฟล์ในโฟลเดอร์ '{folder_name}'"}
+        
+    combined_skip = pd.concat(dfs, ignore_index=True)
+    if 'shipment_id' in combined_skip.columns:
+        combined_skip = combined_skip.drop_duplicates(subset=['shipment_id'])
+
+    reason_s = combined_skip['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
+    machine_count = int(reason_s.str.contains('machine').sum())
+    system_count = int(reason_s.str.contains('system').sum())
+
+    hub_map = build_hub_zone_map()
+
+    def resolve_row_zone(ez, hub):
+        ez_s = str(ez or '').strip().upper()
+        if ez_s in ['A', 'B', 'C', 'INTERSOC', 'RETURN']:
+            return ez_s
+        if 'INTER' in ez_s:
+            return 'INTERSOC'
+        if 'RET' in ez_s:
+            return 'RETURN'
+        return lookup_obd_zone(hub, hub_map)
+
+    obd_zones = combined_skip['obd_zone'].fillna('').astype(str).tolist()
+    dest_stations = [str(s).strip() if pd.notna(s) and str(s).strip().lower() != 'nan' and str(s).strip() else '-' for s in combined_skip['dest_station_name'].tolist()]
+    resolved_zones = [resolve_row_zone(z, h) for z, h in zip(obd_zones, dest_stations)]
+
+    combined_skip['zone'] = resolved_zones
+
+    zone_counts = {'A': 0, 'B': 0, 'C': 0, 'INTERSOC': 0, 'RETURN': 0}
+    for z in resolved_zones:
+        zone_counts[z] = zone_counts.get(z, 0) + 1
+
+    shipment_ids = [str(s).strip() if pd.notna(s) and str(s).strip().lower() != 'nan' else '-' for s in combined_skip['shipment_id'].tolist()]
+    reasons = [str(s).strip() if pd.notna(s) and str(s).strip().lower() != 'nan' else 'skip_outbound' for s in combined_skip['soc_outbound_late_type_2nd_cutoff'].tolist()]
+    sources = [str(s).strip() if pd.notna(s) and str(s).strip().lower() != 'nan' else '-' for s in combined_skip['source_file'].tolist()]
+
+    limit_preview = 2500
+    raw_export_list = [
+        {
+            'shipment_id': sid,
+            'shipmentId': sid,
+            'soc_outbound_late_type_2nd_cutoff': rsn,
+            'reason': rsn,
+            'dest_station_name': dst,
+            'hub': dst,
+            'zone': zn,
+            'source_file': src
+        }
+        for sid, rsn, dst, zn, src in zip(shipment_ids[:limit_preview], reasons[:limit_preview], dest_stations[:limit_preview], resolved_zones[:limit_preview], sources[:limit_preview])
+    ]
+
+    return {
+        "success": True,
+        "isFolder": True,
+        "folderName": folder_name,
+        "fileCount": len(files),
+        "fileList": [os.path.basename(f) for f in files],
+        "filename": f"folder:{folder_name}",
+        "totalRows": len(combined_skip),
+        "totalSkipCases": len(combined_skip),
+        "machineCount": machine_count,
+        "systemCount": system_count,
+        "skipCountByZone": zone_counts,
+        "rawRows": raw_export_list
     }
 
 
@@ -852,6 +1098,69 @@ def upload_file():
     except Exception as e:
         import traceback
         traceback.print_exc()
+        return jsonify({"success": False, "error": f"Failed to upload: {str(e)}"}), 500
+
+
+@app.route("/api/upload-chunk", methods=["POST", "OPTIONS"])
+@app.route("/upload-chunk", methods=["POST", "OPTIONS"])
+@app.route("/api/upload-compare-chunk", methods=["POST", "OPTIONS"])
+@app.route("/upload-compare-chunk", methods=["POST", "OPTIONS"])
+def upload_chunk():
+    if request.method == "OPTIONS":
+        return jsonify({"success": True}), 200
+
+    file_chunk = request.files.get("chunk")
+    filename = (request.form.get("filename") or "").strip()
+    chunk_index = int(request.form.get("chunk_index", 0))
+    total_chunks = int(request.form.get("total_chunks", 1))
+    scope = (request.form.get("scope") or "").strip().lower()
+    folder_name = (request.form.get("folder_name") or request.form.get("folderName") or "").strip()
+
+    if not file_chunk or not filename:
+        return jsonify({"success": False, "error": "ไม่พบข้อมูล chunk หรือชื่อไฟล์"}), 400
+
+    filename = os.path.basename(filename)
+    if not filename.lower().endswith((".csv", ".xlsx", ".xls")):
+        return jsonify({"success": False, "error": "กรุณาอัปโหลดไฟล์ประเภท CSV หรือ Excel (.xlsx, .xls) เท่านั้น"}), 400
+
+    fn_lower = filename.lower()
+    if scope in ["compare", "backlog", "ob_bl_compare"] or "backlog" in fn_lower or "compare" in fn_lower:
+        target_dir = BACKLOG_COMPARE_FOLDER
+    elif folder_name:
+        folder_clean = re.sub(r'[\\/:*?"<>|]', '_', folder_name).strip()
+        target_dir = os.path.join(UPLOAD_FOLDER, folder_clean)
+    else:
+        target_dir = UPLOAD_FOLDER
+
+    os.makedirs(target_dir, exist_ok=True)
+    save_path = os.path.join(target_dir, filename)
+
+    try:
+        mode = "wb" if chunk_index == 0 else "ab"
+        with open(save_path, mode) as f:
+            f.write(file_chunk.read())
+
+        if chunk_index == total_chunks - 1:
+            log_activity("UPLOAD_FILE", f"Uploaded file (chunked): {filename} -> {os.path.basename(target_dir)}")
+            return jsonify({
+                "success": True,
+                "completed": True,
+                "filename": filename,
+                "savedPath": save_path,
+                "message": f"บันทึกไฟล์ {filename} เรียบร้อยแล้ว"
+            })
+        else:
+            return jsonify({
+                "success": True,
+                "completed": False,
+                "chunk_index": chunk_index,
+                "total_chunks": total_chunks
+            })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการเขียนไฟล์: {str(e)}"}), 500
+
 
 # ===== GAS PUSH endpoint: GAS ยิง POST มาหาเรา (แก้ปัญหา Workspace restriction) =====
 GAS_PUSH_CACHE = {
@@ -1245,24 +1554,36 @@ def load_ob_late():
 @app.route("/api/list-files", methods=["GET"])
 def list_files():
     file_list = []
+    folder_list = []
     seen = set()
 
-    # Search in uploads folder first
+    # Search in uploads folder
     if os.path.exists(UPLOAD_FOLDER):
-        for f in os.listdir(UPLOAD_FOLDER):
-            if f.endswith(".csv"):
-                p = os.path.join(UPLOAD_FOLDER, f)
+        for item in os.listdir(UPLOAD_FOLDER):
+            item_path = os.path.join(UPLOAD_FOLDER, item)
+            if os.path.isdir(item_path):
+                child_files = [f for f in os.listdir(item_path) if f.lower().endswith(('.csv', '.xlsx', '.xls'))]
+                if child_files:
+                    folder_list.append({
+                        "folderName": item,
+                        "filename": f"folder:{item}",
+                        "displayName": f"📁 ทั้งโฟลเดอร์: {item} ({len(child_files)} ไฟล์)",
+                        "fileCount": len(child_files),
+                        "mtime": os.path.getmtime(item_path),
+                        "files": child_files
+                    })
+            elif item.lower().endswith(('.csv', '.xlsx', '.xls')):
                 file_list.append({
-                    "filename": f,
+                    "filename": item,
                     "location": "uploads",
-                    "mtime": os.path.getmtime(p),
-                    "size": os.path.getsize(p)
+                    "mtime": os.path.getmtime(item_path),
+                    "size": os.path.getsize(item_path)
                 })
-                seen.add(f)
+                seen.add(item)
 
     # Search in root folder
     for f in os.listdir(BASE_DIR):
-        if f.endswith(".csv") and f not in seen:
+        if f.lower().endswith(".csv") and f not in seen:
             p = os.path.join(BASE_DIR, f)
             file_list.append({
                 "filename": f,
@@ -1272,9 +1593,18 @@ def list_files():
             })
             seen.add(f)
 
-    # Sort by modification time (newest first)
+    folder_list.sort(key=lambda x: x["mtime"], reverse=True)
     file_list.sort(key=lambda x: x["mtime"], reverse=True)
-    return jsonify({"success": True, "files": file_list, "outbound_files": file_list, "skip_files": file_list})
+
+    return jsonify({
+        "success": True,
+        "files": file_list,
+        "folders": folder_list,
+        "outbound_files": file_list,
+        "outbound_folders": folder_list,
+        "skip_files": file_list,
+        "skip_folders": folder_list
+    })
 
 
 @app.route("/api/delete-file", methods=["POST"])
@@ -1282,7 +1612,22 @@ def delete_file():
     data = request.get_json() or {}
     filename = (data.get("filename") or "").strip()
     if not filename:
-        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์"}), 400
+        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์หรือโฟลเดอร์"}), 400
+
+    if filename.startswith("folder:"):
+        folder_name = filename.replace("folder:", "").strip()
+        folder_clean = os.path.basename(folder_name)
+        target_dir = os.path.join(UPLOAD_FOLDER, folder_clean)
+        if os.path.exists(target_dir) and os.path.isdir(target_dir):
+            import shutil
+            try:
+                shutil.rmtree(target_dir)
+                log_activity("FOLDER_DELETE", f"🗑️ ลบโฟลเดอร์ข้อมูล: {folder_clean}")
+                return jsonify({"success": True, "filename": filename, "message": f"ลบโฟลเดอร์ {folder_clean} เรียบร้อยแล้ว"})
+            except Exception as e:
+                return jsonify({"success": False, "error": f"ไม่สามารถลบโฟลเดอร์ได้: {str(e)}"}), 500
+        else:
+            return jsonify({"success": False, "error": f"ไม่พบโฟลเดอร์ '{folder_clean}' บนเซิร์ฟเวอร์"}), 404
 
     filename_clean = os.path.basename(filename)
     target_upload = os.path.join(UPLOAD_FOLDER, filename_clean)
@@ -1327,8 +1672,30 @@ FILE_PARSED_CACHE = {}
 @app.route("/api/load-file", methods=["GET"])
 def load_file():
     filename = request.args.get("filename", "").strip()
+    folder_param = request.args.get("folder", "").strip()
+    if folder_param:
+        filename = f"folder:{folder_param}"
+
     if not filename:
-        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์"}), 400
+        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์หรือโฟลเดอร์"}), 400
+
+    if filename.startswith("folder:"):
+        folder_name = filename.replace("folder:", "").strip()
+        folder_path = os.path.join(UPLOAD_FOLDER, os.path.basename(folder_name))
+        if not os.path.exists(folder_path):
+            folder_path = os.path.join(BASE_DIR, os.path.basename(folder_name))
+        if not os.path.exists(folder_path):
+            return jsonify({"success": False, "error": f"ไม่พบโฟลเดอร์ '{folder_name}' บนเซิร์ฟเวอร์"}), 200
+        
+        folder_mtime = os.path.getmtime(folder_path)
+        cache_key = f"folder_ob_{folder_path}_{folder_mtime}"
+        if cache_key in FILE_PARSED_CACHE:
+            return jsonify(FILE_PARSED_CACHE[cache_key])
+            
+        res = process_folder(folder_path, folder_name)
+        if res.get("success"):
+            FILE_PARSED_CACHE[cache_key] = res
+        return jsonify(res)
 
     target = os.path.join(UPLOAD_FOLDER, filename)
     if not os.path.exists(target):
@@ -1364,8 +1731,30 @@ def get_hub_zone_map_api():
 def load_skip_lightweight():
     """Lightweight skip-only endpoint that accurately processes skip cases and zone assignments."""
     filename = request.args.get("filename", "").strip()
+    folder_param = request.args.get("folder", "").strip()
+    if folder_param:
+        filename = f"folder:{folder_param}"
+
     if not filename:
-        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์"}), 400
+        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์หรือโฟลเดอร์"}), 400
+
+    if filename.startswith("folder:"):
+        folder_name = filename.replace("folder:", "").strip()
+        folder_path = os.path.join(UPLOAD_FOLDER, os.path.basename(folder_name))
+        if not os.path.exists(folder_path):
+            folder_path = os.path.join(BASE_DIR, os.path.basename(folder_name))
+        if not os.path.exists(folder_path):
+            return jsonify({"success": False, "error": f"ไม่พบโฟลเดอร์ '{folder_name}' บนเซิร์ฟเวอร์"}), 200
+            
+        folder_mtime = os.path.getmtime(folder_path)
+        cache_key = f"folder_skip_{folder_path}_{folder_mtime}"
+        if cache_key in FILE_PARSED_CACHE:
+            return jsonify(FILE_PARSED_CACHE[cache_key])
+            
+        res = process_folder_skip(folder_path, folder_name)
+        if res.get("success"):
+            FILE_PARSED_CACHE[cache_key] = res
+        return jsonify(res)
 
     target = os.path.join(UPLOAD_FOLDER, filename)
     if not os.path.exists(target):
@@ -1600,11 +1989,18 @@ def volume_history_api():
         date_str = req.get("date")
         actual = req.get("actual")
         is_active = req.get("setActive", False)
+        entry_type = req.get("type", "daily")
+        label = req.get("label") or str(date_str)
         
         if date_str and isinstance(actual, (int, float)) and actual > 0:
             history = data.get("history", [])
             existing_idx = next((i for i, h in enumerate(history) if h.get("date") == date_str), -1)
-            entry = {"date": str(date_str), "actual": int(actual)}
+            entry = {
+                "date": str(date_str),
+                "actual": int(actual),
+                "type": entry_type,
+                "label": str(label)
+            }
             if existing_idx >= 0:
                 history[existing_idx] = entry
             else:
@@ -1637,14 +2033,382 @@ def set_active_volume_api():
     req = request.get_json(silent=True) or {}
     date_str = req.get("date")
     actual = req.get("actual")
+    entry_type = req.get("type", "daily")
+    label = req.get("label") or str(date_str)
     
     if not date_str or not actual:
         data["active"] = None
     else:
-        data["active"] = {"date": str(date_str), "actual": int(actual)}
+        data["active"] = {
+            "date": str(date_str),
+            "actual": int(actual),
+            "type": entry_type,
+            "label": str(label)
+        }
         
     save_volume_data_to_file(data)
     return jsonify({"success": True, "active": data.get("active")})
+
+
+# ===== STAFF ROSTER MANAGEMENT SYSTEM =====
+STAFF_ROSTER_FILE = os.path.join(DATA_DIR, "staff_roster.json")
+
+def load_staff_roster_data():
+    if os.path.exists(STAFF_ROSTER_FILE):
+        try:
+            with open(STAFF_ROSTER_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print("Error loading staff roster file:", e)
+    return {
+        "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "rosterByZone": {
+            "ALL": ["Chain", "Big", "NULACK"],
+            "A": ["Kwang", "Nut", "Mick", "Wave", "Porn"],
+            "B": ["SKY", "Dum", "Korya", "Tang", "Oat"],
+            "C": ["LY", "Tak", "Keng", "Nam", "Earth"],
+            "TBS": ["Air", "Tarn", "Meiji"],
+            "MS": ["Champ", "Tong"],
+            "INTERSOC": [],
+            "RETURN": []
+        },
+        "staffList": []
+    }
+
+def save_staff_roster_data(data):
+    try:
+        data["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(STAFF_ROSTER_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print("Error saving staff roster data:", e)
+        return False
+
+def parse_staff_roster_file(filepath):
+    rows = []
+    if filepath.lower().endswith(('.xlsx', '.xls')):
+        try:
+            df = pd.read_excel(filepath, sheet_name=0, header=None)
+            rows = df.fillna('').astype(str).values.tolist()
+        except Exception as e:
+            print("Error reading excel roster:", e)
+            return None
+    else:
+        # Try multiple encodings for CSV
+        for enc in ['utf-8-sig', 'utf-8', 'cp874', 'tis-620', 'cp1252', 'latin-1']:
+            try:
+                with open(filepath, 'r', encoding=enc, errors='ignore') as f:
+                    content = f.read()
+                    if content:
+                        # Auto detect delimiter
+                        delim = ','
+                        if content.count(';') > content.count(',') and content.count(';') > 5:
+                            delim = ';'
+                        elif content.count('\t') > content.count(',') and content.count('\t') > 5:
+                            delim = '\t'
+                        reader = csv.reader(content.splitlines(), delimiter=delim)
+                        rows = list(reader)
+                        if rows:
+                            break
+            except Exception as e:
+                continue
+
+    if not rows:
+        return None
+
+    # Step 1: Detect if there is a header row
+    header_idx = -1
+    for idx, r in enumerate(rows[:6]):
+        row_str = ' '.join(str(x) for x in r).lower()
+        has_header_word = any(k in row_str for k in ['รหัสพนักงาน', 'รหัส', 'staff id', 'emp id', 'opsid', 'ชื่อเล่น', 'nickname', 'position', 'ตำแหน่ง', 'zone', 'โซน'])
+        has_data_pattern = any(bool(re.search(r'spxth\d+|ops\d+', str(x).lower())) for x in r)
+        if has_header_word and not has_data_pattern:
+            header_idx = idx
+            break
+
+    data_rows = rows[header_idx + 1:] if header_idx >= 0 else rows
+
+    # Step 2: Determine column mapping
+    col_map = {}
+    if header_idx >= 0:
+        header = [str(c).strip().lower() for c in rows[header_idx]]
+        for i, h in enumerate(header):
+            if 'รหัส' in h or 'emp' in h or 'staff' in h:
+                col_map['empId'] = i
+            elif 'ops' in h:
+                col_map['opsId'] = i
+            elif 'ชื่อเล่น' in h or 'nick' in h:
+                col_map['nickname'] = i
+            elif 'นามสกุล' in h or 'last' in h or 'surname' in h:
+                col_map['lastName'] = i
+            elif 'ชื่อ' in h or 'first' in h or 'name' in h:
+                if 'nickname' not in col_map and 'firstName' not in col_map:
+                    col_map['firstName'] = i
+            elif 'position' in h or 'ตำแหน่ง' in h or 'role' in h:
+                col_map['position'] = i
+            elif 'zone' in h or 'โซน' in h:
+                col_map['zone'] = i
+
+    # If no header row or missing critical columns, use smart pattern detection
+    if not col_map or 'nickname' not in col_map or ('empId' not in col_map and 'opsId' not in col_map):
+        sample = [r for r in data_rows if any(str(x).strip() for x in r)][:15]
+        max_cols = max(len(r) for r in sample) if sample else 0
+        detected = {}
+        for c in range(max_cols):
+            vals = [str(r[c]).strip() for r in sample if c < len(r) and str(r[c]).strip() and str(r[c]).strip().lower() != 'nan']
+            if not vals:
+                continue
+
+            # Check for empId (SPXTH... or 6-10 digit numbers)
+            if 'empId' not in detected and all(re.match(r'^(spxth)?\d+$', v, re.I) for v in vals if v):
+                if not all(re.match(r'^\d{1,3}$', v) for v in vals):  # exclude sequence 1, 2, 3
+                    detected['empId'] = c
+                    continue
+
+            # Check for opsId (Ops... or ops_...)
+            if 'opsId' not in detected and all(re.match(r'^ops_?\d+$', v, re.I) for v in vals if v):
+                detected['opsId'] = c
+                continue
+
+            # Check for Zone (A, B, C, ALL, TBS, MS, INTERSOC, RETURN, Supervisor)
+            zone_keywords = {'a', 'b', 'c', 'all', 'tbs', 'ms', 'intersoc', 'return', 'supervisor', 'sup'}
+            if 'zone' not in detected and sum(1 for v in vals if v.lower() in zone_keywords) >= len(vals) * 0.6:
+                detected['zone'] = c
+                continue
+
+            # Check for Position (Supervisor, Agent, Support, SOC, Lead, etc.)
+            pos_keywords = ['supervisor', 'agent', 'support', 'soc', 'lead', 'manager', 'associate', 'act.', 'senior']
+            if 'position' not in detected and any(any(pk in v.lower() for pk in pos_keywords) for v in vals):
+                detected['position'] = c
+                continue
+
+        # Remaining columns mapping for Names
+        remaining_cols = [c for c in range(max_cols) if c not in detected.values()]
+        # Check if first col is just row index (1, 2, 3...)
+        if 0 in remaining_cols:
+            first_vals = [str(r[0]).strip() for r in sample if len(r) > 0 and str(r[0]).strip()]
+            if all(v.isdigit() and len(v) <= 4 for v in first_vals if v):
+                remaining_cols.remove(0)
+
+        thai_cols = []
+        nick_col = None
+        for c in remaining_cols:
+            vals = [str(r[c]).strip() for r in sample if c < len(r) and str(r[c]).strip() and str(r[c]).strip().lower() != 'nan']
+            # English letters / short string -> Nickname
+            if nick_col is None and any(re.search(r'[a-zA-Z]', v) for v in vals):
+                nick_col = c
+            else:
+                thai_cols.append(c)
+
+        if nick_col is not None and 'nickname' not in detected:
+            detected['nickname'] = nick_col
+        if 'firstName' not in detected and len(thai_cols) >= 1:
+            detected['firstName'] = thai_cols[0]
+        if 'lastName' not in detected and len(thai_cols) >= 2:
+            detected['lastName'] = thai_cols[1]
+
+        col_map = detected
+
+    staff_list = []
+    roster_by_zone = {
+        'ALL': [], 'A': [], 'B': [], 'C': [], 'TBS': [], 'MS': [], 'INTERSOC': [], 'RETURN': []
+    }
+
+    for r in data_rows:
+        if not any(str(c).strip() and str(c).strip().lower() != 'nan' for c in r):
+            continue
+        get_val = lambda k: str(r[col_map[k]]).strip() if k in col_map and col_map[k] < len(r) and str(r[col_map[k]]).strip().lower() != 'nan' else ''
+        emp_id = get_val('empId')
+        nick = get_val('nickname') or get_val('firstName')
+        zone_raw = get_val('zone').upper().strip() or 'ALL'
+
+        if not nick and not emp_id:
+            continue
+
+        zone = zone_raw
+        if 'INTER' in zone:
+            zone = 'INTERSOC'
+        elif 'RET' in zone:
+            zone = 'RETURN'
+        elif zone in ['SUPERVISOR', 'SUP', 'HEAD', 'ALL', 'ALL_SOC']:
+            zone = 'ALL'
+
+        pos = get_val('position')
+        if not zone or zone == 'NAN':
+            if 'supervisor' in pos.lower():
+                zone = 'ALL'
+            else:
+                zone = 'A'
+
+        staff_entry = {
+            'empId': emp_id,
+            'opsId': get_val('opsId'),
+            'firstName': get_val('firstName'),
+            'lastName': get_val('lastName'),
+            'nickname': nick,
+            'position': pos,
+            'zone': zone
+        }
+        staff_list.append(staff_entry)
+
+        if zone not in roster_by_zone:
+            roster_by_zone[zone] = []
+        if nick and nick not in roster_by_zone[zone]:
+            roster_by_zone[zone].append(nick)
+
+    return {
+        "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "rosterByZone": roster_by_zone,
+        "staffList": staff_list
+    }
+
+
+@app.route("/api/staff-roster", methods=["GET"])
+def get_staff_roster_api():
+    data = load_staff_roster_data()
+    return jsonify({
+        "success": True,
+        "updatedAt": data.get("updatedAt", ""),
+        "rosterByZone": data.get("rosterByZone", {}),
+        "staffList": data.get("staffList", [])
+    })
+
+
+@app.route("/api/staff-roster/upload", methods=["POST"])
+def upload_staff_roster_api():
+    if "file" not in request.files:
+        return jsonify({"success": False, "error": "ไม่พบไฟล์ที่อัปโหลด"}), 400
+
+    file = request.files["file"]
+    if not file.filename:
+        return jsonify({"success": False, "error": "ไม่ได้เลือกไฟล์"}), 400
+
+    filename = os.path.basename(file.filename)
+    if not filename.lower().endswith(('.xlsx', '.xls', '.csv')):
+        return jsonify({"success": False, "error": "กรุณาอัปโหลดไฟล์ประเภท Excel (.xlsx, .xls) หรือ CSV เท่านั้น"}), 400
+
+    temp_path = os.path.join(UPLOAD_FOLDER, f"temp_roster_{filename}")
+    try:
+        file.save(temp_path)
+        parsed = parse_staff_roster_file(temp_path)
+        if not parsed or not parsed.get("staffList"):
+            return jsonify({"success": False, "error": "ไม่สามารถอ่านโครงสร้างรายชื่อพนักงานจากไฟล์ได้ กรุณาตรวจสอบหัวตาราง"}), 400
+
+        save_staff_roster_data(parsed)
+        log_activity("STAFF_ROSTER_UPLOAD", f"👷 อัปโหลดและอัปเดต Staff Roster ({len(parsed['staffList'])} คน) จากไฟล์: {filename}")
+        
+        try:
+            os.remove(temp_path)
+        except Exception:
+            pass
+
+        return jsonify({
+            "success": True,
+            "message": f"อัปเดต Staff Roster เรียบร้อยแล้ว ({len(parsed['staffList'])} รายการ)",
+            "updatedAt": parsed["updatedAt"],
+            "rosterByZone": parsed["rosterByZone"],
+            "staffList": parsed["staffList"]
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการประมวลผลไฟล์: {str(e)}"}), 500
+
+
+@app.route("/api/staff-roster/member", methods=["POST", "DELETE"])
+def manage_staff_member_api():
+    data = load_staff_roster_data()
+    staff_list = data.get("staffList", [])
+    roster_by_zone = data.get("rosterByZone", {})
+
+    if request.method == "POST":
+        req = request.get_json(silent=True) or {}
+        emp_id = (req.get("empId") or "").strip()
+        nickname = (req.get("nickname") or req.get("firstName") or "").strip()
+        zone = (req.get("zone") or "ALL").strip().upper()
+        ops_id = (req.get("opsId") or "").strip()
+        first_name = (req.get("firstName") or "").strip()
+        last_name = (req.get("lastName") or "").strip()
+        position = (req.get("position") or "").strip()
+
+        if not nickname and not emp_id:
+            return jsonify({"success": False, "error": "กรุณาระบุรหัสพนักงานหรือชื่อเล่น"}), 400
+
+        # Update or Insert
+        existing_idx = -1
+        for idx, s in enumerate(staff_list):
+            if (emp_id and s.get("empId") == emp_id) or (nickname and s.get("nickname") == nickname and s.get("zone") == zone):
+                existing_idx = idx
+                break
+
+        new_entry = {
+            "empId": emp_id,
+            "opsId": ops_id,
+            "firstName": first_name,
+            "lastName": last_name,
+            "nickname": nickname,
+            "position": position,
+            "zone": zone
+        }
+
+        if existing_idx >= 0:
+            staff_list[existing_idx] = new_entry
+        else:
+            staff_list.append(new_entry)
+
+        # Re-sync rosterByZone
+        new_roster_by_zone = {'ALL': [], 'A': [], 'B': [], 'C': [], 'TBS': [], 'MS': [], 'INTERSOC': [], 'RETURN': []}
+        for s in staff_list:
+            z = s.get("zone", "ALL").upper()
+            nk = s.get("nickname")
+            if z not in new_roster_by_zone:
+                new_roster_by_zone[z] = []
+            if nk and nk not in new_roster_by_zone[z]:
+                new_roster_by_zone[z].append(nk)
+
+        data["staffList"] = staff_list
+        data["rosterByZone"] = new_roster_by_zone
+        save_staff_roster_data(data)
+        log_activity("STAFF_MEMBER_SAVE", f"บันทึกข้อมูลพนักงาน: {nickname} (Zone {zone})")
+
+        return jsonify({
+            "success": True,
+            "message": f"บันทึกข้อมูล {nickname} เรียบร้อย",
+            "staffList": staff_list,
+            "rosterByZone": new_roster_by_zone
+        })
+
+    elif request.method == "DELETE":
+        req = request.get_json(silent=True) or {}
+        emp_id = (req.get("empId") or "").strip()
+        nickname = (req.get("nickname") or "").strip()
+
+        if not emp_id and not nickname:
+            return jsonify({"success": False, "error": "ไม่ได้ระบุพนักงานที่ต้องการลบ"}), 400
+
+        staff_list = [s for s in staff_list if not ((emp_id and s.get("empId") == emp_id) or (nickname and s.get("nickname") == nickname))]
+
+        new_roster_by_zone = {'ALL': [], 'A': [], 'B': [], 'C': [], 'TBS': [], 'MS': [], 'INTERSOC': [], 'RETURN': []}
+        for s in staff_list:
+            z = s.get("zone", "ALL").upper()
+            nk = s.get("nickname")
+            if z not in new_roster_by_zone:
+                new_roster_by_zone[z] = []
+            if nk and nk not in new_roster_by_zone[z]:
+                new_roster_by_zone[z].append(nk)
+
+        data["staffList"] = staff_list
+        data["rosterByZone"] = new_roster_by_zone
+        save_staff_roster_data(data)
+        log_activity("STAFF_MEMBER_DELETE", f"ลบพนักงานออกจาก Roster: {emp_id or nickname}")
+
+        return jsonify({
+            "success": True,
+            "message": "ลบพนักงานเรียบร้อย",
+            "staffList": staff_list,
+            "rosterByZone": new_roster_by_zone
+        })
 
 SOURCE_DIR = os.path.join(BASE_DIR, "Source")
 

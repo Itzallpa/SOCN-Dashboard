@@ -1,0 +1,251 @@
+{
+  "updatedAt": "2026-09-07 16:08:26",
+  "rosterByZone": {
+    "ALL": [
+      "Chain",
+      "Big",
+      "NULACK"
+    ],
+    "A": [
+      "Kwang",
+      "Nut",
+      "Mick",
+      "Wave",
+      "Porn"
+    ],
+    "B": [
+      "SKY",
+      "Dum",
+      "Korya",
+      "Tang",
+      "Oat"
+    ],
+    "C": [
+      "LY",
+      "Tak",
+      "Keng",
+      "Nam",
+      "Earth"
+    ],
+    "TBS": [
+      "Air",
+      "Tarn",
+      "Meiji"
+    ],
+    "MS": [
+      "Champ",
+      "Tong"
+    ],
+    "INTERSOC": [],
+    "RETURN": []
+  },
+  "staffList": [
+    {
+      "empId": "SPXTH26070",
+      "opsId": "Ops4020",
+      "firstName": "รวีวงศ์",
+      "lastName": "เกษศิรินทร์เทพ",
+      "nickname": "Chain",
+      "position": "Supervisor, SOC",
+      "zone": "ALL"
+    },
+    {
+      "empId": "SPXTH35766",
+      "opsId": "Ops4018",
+      "firstName": "ชาตรี",
+      "lastName": "อมรธีรเวช",
+      "nickname": "Big",
+      "position": "Supervisor, SOC",
+      "zone": "ALL"
+    },
+    {
+      "empId": "SPXTH31569",
+      "opsId": "Ops4082",
+      "firstName": "ธันยชนก",
+      "lastName": "พรหมอาภรณ์",
+      "nickname": "NULACK",
+      "position": "Act. Supervisor, SOC",
+      "zone": "ALL"
+    },
+    {
+      "empId": "SPXTH75506",
+      "opsId": "Ops17966",
+      "firstName": "กชพร",
+      "lastName": "ปัดถาวะโร",
+      "nickname": "Air",
+      "position": "Agent Support, SOC",
+      "zone": "TBS"
+    },
+    {
+      "empId": "SPXTH63927",
+      "opsId": "Ops6710",
+      "firstName": "มุทิตา",
+      "lastName": "สืบดี",
+      "nickname": "Tarn",
+      "position": "Agent Support, SOC",
+      "zone": "TBS"
+    },
+    {
+      "empId": "SPXTH75511",
+      "opsId": "Ops17971",
+      "firstName": "จิราภรณ์",
+      "lastName": "พูลนุช",
+      "nickname": "Meiji",
+      "position": "Agent Support, SOC",
+      "zone": "TBS"
+    },
+    {
+      "empId": "SPXTH95116",
+      "opsId": "Ops22025",
+      "firstName": "วิทยา",
+      "lastName": "ลมูลน้อย",
+      "nickname": "Champ",
+      "position": "Agent Support, SOC",
+      "zone": "MS"
+    },
+    {
+      "empId": "SPXTH99302",
+      "opsId": "Ops41624",
+      "firstName": "พิพัฒน์",
+      "lastName": "สุริยวงษ์",
+      "nickname": "Tong",
+      "position": "Agent Support, SOC",
+      "zone": "MS"
+    },
+    {
+      "empId": "SPXTH88239",
+      "opsId": "Ops4144",
+      "firstName": "สุภาภรณ์",
+      "lastName": "พรหมรัศมี",
+      "nickname": "Kwang",
+      "position": "Senior Agent, SOC",
+      "zone": "A"
+    },
+    {
+      "empId": "SPXTH85142",
+      "opsId": "Ops26957",
+      "firstName": "พัชนี",
+      "lastName": "อินทจร",
+      "nickname": "Nut",
+      "position": "Senior Agent, SOC",
+      "zone": "A"
+    },
+    {
+      "empId": "SPXTH77462",
+      "opsId": "Ops17988",
+      "firstName": "ภูริภัทร",
+      "lastName": "สนิทพจน์",
+      "nickname": "Mick",
+      "position": "Act.Senior Agent, SOC",
+      "zone": "A"
+    },
+    {
+      "empId": "SPXTH94473",
+      "opsId": "Ops37959",
+      "firstName": "ศิริศักดิ์",
+      "lastName": "นฤธวัลกร",
+      "nickname": "Wave",
+      "position": "Agent Support, SOC",
+      "zone": "A"
+    },
+    {
+      "empId": "SPXTH63919",
+      "opsId": "Ops6702",
+      "firstName": "วราภรณ์",
+      "lastName": "แก้วเกิด",
+      "nickname": "Porn",
+      "position": "Agent Support, SOC",
+      "zone": "A"
+    },
+    {
+      "empId": "SPXTH26289",
+      "opsId": "Ops4023",
+      "firstName": "ปรัศนีย์",
+      "lastName": "ไม้แดง",
+      "nickname": "SKY",
+      "position": "Senior Agent, SOC",
+      "zone": "B"
+    },
+    {
+      "empId": "SPXTH71998",
+      "opsId": "Ops11502",
+      "firstName": "กีรติ",
+      "lastName": "จุทอง",
+      "nickname": "Dum",
+      "position": "Act.Senior Agent, SOC",
+      "zone": "B"
+    },
+    {
+      "empId": "SPXTH97611",
+      "opsId": "Ops52047",
+      "firstName": "รุ่งโรจน์",
+      "lastName": "สรั่งบิน",
+      "nickname": "Korya",
+      "position": "Senior Agent, SOC",
+      "zone": "B"
+    },
+    {
+      "empId": "SPXTH70692",
+      "opsId": "Ops8361",
+      "firstName": "สุพรรษา",
+      "lastName": "ตู้ไธสง",
+      "nickname": "Tang",
+      "position": "Agent Support, SOC",
+      "zone": "B"
+    },
+    {
+      "empId": "SPXTH66440",
+      "opsId": "Ops7303",
+      "firstName": "ฤทธิพร",
+      "lastName": "ถิ่นพุทธทรา",
+      "nickname": "Oat",
+      "position": "Agent Support, SOC",
+      "zone": "B"
+    },
+    {
+      "empId": "SPXTH25163",
+      "opsId": "Ops4012",
+      "firstName": "วิลาศินี",
+      "lastName": "หมื่อแล",
+      "nickname": "LY",
+      "position": "Senior Agent, SOC",
+      "zone": "C"
+    },
+    {
+      "empId": "SPXTH97901",
+      "opsId": "Ops52747",
+      "firstName": "พัชรินทร์",
+      "lastName": "ศรีงาม",
+      "nickname": "Tak",
+      "position": "Senior Agent, SOC",
+      "zone": "C"
+    },
+    {
+      "empId": "SPXTH73819",
+      "opsId": "Ops17947",
+      "firstName": "ไพศาล",
+      "lastName": "บัดจัตุรัส",
+      "nickname": "Keng",
+      "position": "Act.Senior Agent, SOC",
+      "zone": "C"
+    },
+    {
+      "empId": "SPXTH62586",
+      "opsId": "Ops6487",
+      "firstName": "อรพรรณ",
+      "lastName": "เจตนา",
+      "nickname": "Nam",
+      "position": "Act.Senior Agent, SOC",
+      "zone": "C"
+    },
+    {
+      "empId": "SPXTH93871",
+      "opsId": "Ops44545",
+      "firstName": "ธีรภัทร",
+      "lastName": "ใจแสน",
+      "nickname": "Earth",
+      "position": "Agent Support, SOC",
+      "zone": "C"
+    }
+  ]
+}
