@@ -3633,33 +3633,32 @@ def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
                 peak_hours = set(settings.get("peakHours", []))
                 cond = st_cfg.get("triggerCondition", "below_minimum")
                 
-                if "alerted_hashes" not in tracker_data:
-                    tracker_data["alerted_hashes"] = []
+                if "alerted_slots" not in tracker_data:
+                    tracker_data["alerted_slots"] = []
                 if "last_alerted" not in tracker_data:
                     tracker_data["last_alerted"] = {}
                 if date_str not in tracker_data["last_alerted"]:
                     tracker_data["last_alerted"][date_str] = {}
                     
                 current_timestamp = time.time()
-                quiet_hours = {13, 14, 15, 16, 17} # Standby hours: 13:00 - 17:59 -> DO NOT ALERT
+                quiet_hours = {13, 14, 15, 16, 17} # Standby prep hours: 13:00 - 17:59 -> DO NOT ALERT
                 
-                for slot_lbl, act in records.items():
-                    try:
-                        h_val = int(slot_lbl.split(":")[0])
-                    except:
-                        h_val = 0
-                        
-                    # Skip quiet hours (13:00 - 17:00) and unrecorded / zero orders
+                # Order of operational shift hours: 13:00 to 12:00
+                shift_hours = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+                
+                # Identify slots eligible for alert (Strictly 1 alert per hour slot per date)
+                slots_to_alert = []
+                for h_val in shift_hours:
+                    slot_lbl = f"{h_val:02d}:00"
+                    act = records.get(slot_lbl, 0)
+                    
+                    # Skip quiet hours and zero orders
                     if h_val in quiet_hours or act == 0:
                         continue
                         
-                    # Only alert if data actually changed from sheet or is newly entered
-                    prev_act = prev_records.get(slot_lbl)
-                    if prev_act is not None and prev_act == act:
-                        continue
-                        
-                    alert_hash = f"{date_str}_{slot_lbl}_{act}"
-                    if alert_hash in tracker_data["alerted_hashes"]:
+                    slot_key = f"{date_str}_{slot_lbl}"
+                    # STRICT 1-ALERT RULE: If this slot has ALREADY been alerted today, SKIP completely!
+                    if slot_key in tracker_data["alerted_slots"] or slot_lbl in tracker_data["last_alerted"].get(date_str, {}):
                         continue
                         
                     is_peak = slot_lbl in peak_hours
@@ -3672,30 +3671,38 @@ def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
                         is_fail = True
                         
                     if is_fail:
-                        gap = act - slot_target
-                        pct = round((act / slot_target * 100), 1) if slot_target > 0 else 0.0
-                        next_h_label = f"{(h_val+1)%24:02d}:00"
-                        time_range = f"{slot_lbl} - {next_h_label}"
-                        
-                        zd = zone_details.get(slot_lbl, {})
-                        za, zb, zc = zd.get('zoneA', 0), zd.get('zoneB', 0), zd.get('zoneC', 0)
-                        
-                        # Find lowest zone
-                        z_list = [('Zone A', za), ('Zone B', zb), ('Zone C', zc)]
-                        z_list.sort(key=lambda x: x[1])
-                        lowest_zone_name = z_list[0][0]
-                        lowest_str = f"{lowest_zone_name} ({z_list[0][1]:,} ชิ้น)"
-                        
-                        # Look up responsible staff from Staff Roster
-                        roster = load_staff_roster_data()
-                        roster_by_zone = roster.get("rosterByZone", {})
-                        zone_key = lowest_zone_name.replace("Zone ", "").strip()
-                        staff_names = roster_by_zone.get(zone_key, [])
-                        sups = roster_by_zone.get("ALL", ["Chain", "Big"])
-                        staff_str = ", ".join(staff_names) if staff_names else "ไม่ระบุใน Roster"
-                        sups_str = ", ".join(sups) if sups else "Chain, Big"
-                        
-                        msg = f"""🚨 [SOCN ALERT] ยอดปล่อยหลุดเป้าหมายรายชั่วโมง (Hourly Release Under Target)
+                        slots_to_alert.append((slot_lbl, h_val, act, slot_target, is_peak))
+
+                # Send AT MOST ONE alert per sync cycle (the latest failed hour)
+                if slots_to_alert:
+                    # Take the most recent failed slot
+                    slot_lbl, h_val, act, slot_target, is_peak = slots_to_alert[-1]
+                    slot_key = f"{date_str}_{slot_lbl}"
+                    
+                    gap = act - slot_target
+                    pct = round((act / slot_target * 100), 1) if slot_target > 0 else 0.0
+                    next_h_label = f"{(h_val+1)%24:02d}:00"
+                    time_range = f"{slot_lbl} - {next_h_label}"
+                    
+                    zd = zone_details.get(slot_lbl, {})
+                    za, zb, zc = zd.get('zoneA', 0), zd.get('zoneB', 0), zd.get('zoneC', 0)
+                    
+                    # Find lowest zone
+                    z_list = [('Zone A', za), ('Zone B', zb), ('Zone C', zc)]
+                    z_list.sort(key=lambda x: x[1])
+                    lowest_zone_name = z_list[0][0]
+                    lowest_str = f"{lowest_zone_name} ({z_list[0][1]:,} ชิ้น)"
+                    
+                    # Look up responsible staff from Staff Roster
+                    roster = load_staff_roster_data()
+                    roster_by_zone = roster.get("rosterByZone", {})
+                    zone_key = lowest_zone_name.replace("Zone ", "").strip()
+                    staff_names = roster_by_zone.get(zone_key, [])
+                    sups = roster_by_zone.get("ALL", ["Chain", "Big"])
+                    staff_str = ", ".join(staff_names) if staff_names else "ไม่ระบุใน Roster"
+                    sups_str = ", ".join(sups) if sups else "Chain, Big"
+                    
+                    msg = f"""🚨 [SOCN ALERT] ยอดปล่อยหลุดเป้าหมายรายชั่วโมง (Hourly Release Under Target)
 ━━━━━━━━━━━━━━━━━━━━
 📅 วันที่: {date_str}
 ⏰ ช่วงเวลา: {time_range}
@@ -3712,12 +3719,22 @@ def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
 🔴 สถานะ: Under {'Minimum ' if act < target_min else ''}Target
 👉 ตรวจสอบ & แนบหลักฐาน: http://localhost:5000/hourly_tracker.html"""
 
-                        mention_all = (st_cfg.get("mentionType") == "all")
-                        emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
-                        send_seatalk_alert(st_cfg.get("webhookUrl"), msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"))
-                        tracker_data["last_alerted"][date_str][slot_lbl] = current_timestamp
-                        tracker_data["alerted_hashes"].append(alert_hash)
-                        log_activity("SEATALK_AUTO_ALERT", f"🚨 ส่งแจ้งเตือน SeaTalk อัตโนมัติ: {date_str} {slot_lbl} ยอด {act:,} ชิ้น (หลุดเป้า: {lowest_str} | ผู้รับผิดชอบ: {staff_str})")
+                    mention_all = (st_cfg.get("mentionType") == "all")
+                    emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
+                    send_seatalk_alert(st_cfg.get("webhookUrl"), msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"))
+                    
+                    # Mark this slot as permanently alerted for today
+                    tracker_data["last_alerted"][date_str][slot_lbl] = current_timestamp
+                    if slot_key not in tracker_data["alerted_slots"]:
+                        tracker_data["alerted_slots"].append(slot_key)
+                    # Also mark previous un-alerted failed slots in batch so they don't trigger in future cycles
+                    for s_lbl, _, _, _, _ in slots_to_alert:
+                        prev_k = f"{date_str}_{s_lbl}"
+                        tracker_data["last_alerted"][date_str][s_lbl] = current_timestamp
+                        if prev_k not in tracker_data["alerted_slots"]:
+                            tracker_data["alerted_slots"].append(prev_k)
+
+                    log_activity("SEATALK_AUTO_ALERT", f"🚨 ส่งแจ้งเตือน SeaTalk (จำกัด 1 ข้อความ/ชม.): {date_str} {slot_lbl} ยอด {act:,} ชิ้น (หลุดเป้า: {lowest_str} | ผู้รับผิดชอบ: {staff_str})")
 
             save_hourly_tracker_data(tracker_data)
             log_activity("GOOGLE_SHEET_SYNC", f"🔄 ซิงค์ข้อมูล Google Sheet สำเร็จ (วันที่ {date_str}, ยอดรวม {sum(records.values()):,} ชิ้น, 24 ชั่วโมง)")
@@ -4154,12 +4171,13 @@ def save_hourly_tracker_api():
         slot_target = target_peak if is_peak else target_normal
         act = int(actual_val)
         
-        should_alert = False
+        slot_key = f"{date_param}_{hour_slot}"
         cond = st_cfg.get("triggerCondition", "below_minimum")
-        if cond == "below_minimum" and act < target_min:
-            should_alert = True
-        elif cond == "below_target" and act < slot_target:
-            should_alert = True
+        if slot_key not in data.get("alerted_slots", []):
+            if cond == "below_minimum" and act < target_min:
+                should_alert = True
+            elif cond == "below_target" and act < slot_target:
+                should_alert = True
             
         if should_alert:
             gap = act - slot_target
@@ -4179,6 +4197,11 @@ def save_hourly_tracker_api():
             mention_all = (st_cfg.get("mentionType") == "all")
             emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
             send_seatalk_alert(st_cfg.get("webhookUrl"), msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"))
+            
+            if "alerted_slots" not in data:
+                data["alerted_slots"] = []
+            data["alerted_slots"].append(slot_key)
+            save_hourly_tracker_data(data)
 
     return jsonify({"success": True, "message": f"บันทึกยอด {hour_slot} เรียบร้อย"})
 
