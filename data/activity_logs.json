@@ -1,162 +1,82 @@
 [
   {
-    "id": "54f3134f",
-    "timestamp": "2026-09-08 00:33:20",
+    "id": "623eabaa",
+    "timestamp": "2026-09-08 02:19:52",
+    "email": "guy.panmanee@gmail.com",
+    "name": "กาย",
+    "role": "Ground",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "27.130.38.5"
+  },
+  {
+    "id": "ed17af8d",
+    "timestamp": "2026-09-08 02:18:13",
     "email": "guy.panmanee@spxexpress.com",
     "name": "Natakorn Panmanee",
     "role": "Admin",
     "action": "VIEW_ADMIN_DASHBOARD",
     "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "112.121.130.34"
+    "ip": "27.130.38.5"
   },
   {
-    "id": "5700a2c8",
-    "timestamp": "2026-09-08 00:30:52",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "SYSTEM_SETTINGS_UPDATE",
-    "details": "🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: 45000, Min: 40000)",
-    "ip": "112.121.130.34"
-  },
-  {
-    "id": "1baf2cc2",
-    "timestamp": "2026-09-08 00:28:51",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "112.121.130.34"
-  },
-  {
-    "id": "5539bdcc",
-    "timestamp": "2026-09-08 00:21:58",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "GOOGLE_SHEET_SYNC",
-    "details": "🔄 ซิงค์ข้อมูล Google Sheet สำเร็จ (วันที่ 2026-09-07, ยอดรวม 179,230 ชิ้น, 24 ชั่วโมง)",
-    "ip": "112.121.130.34"
-  },
-  {
-    "id": "d3363183",
-    "timestamp": "2026-09-08 00:17:12",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "112.121.130.34"
-  },
-  {
-    "id": "892fba40",
-    "timestamp": "2026-09-08 00:13:31",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "112.121.130.34"
-  },
-  {
-    "id": "6f7399c3",
-    "timestamp": "2026-09-08 00:11:10",
+    "id": "87fa6bf6",
+    "timestamp": "2026-09-08 02:16:21",
     "email": "guy.panmanee@spxexpress.com",
     "name": "Natakorn Panmanee",
     "role": "Admin",
     "action": "LOGIN",
     "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Admin)",
-    "ip": "112.121.130.34"
+    "ip": "27.130.38.5"
   },
   {
-    "id": "6eb18c5e",
-    "timestamp": "2026-09-08 00:11:09",
+    "id": "199ccd0b",
+    "timestamp": "2026-09-08 02:16:21",
     "email": "guy.panmanee@spxexpress.com",
     "name": "Natakorn Panmanee",
     "role": "Admin",
     "action": "USER_LOGIN",
     "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
-    "ip": "112.121.130.34"
+    "ip": "27.130.38.5"
   },
   {
-    "id": "17377fb9",
-    "timestamp": "2026-09-07 23:07:15",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "112.121.130.34"
-  },
-  {
-    "id": "53075214",
-    "timestamp": "2026-09-07 22:57:25",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
+    "id": "eb43e2b3",
+    "timestamp": "2026-09-08 02:15:24",
+    "email": "guy.panmanee@gmail.com",
+    "name": "กาย",
+    "role": "Ground",
     "action": "SYNC_GOOGLE_SHEET",
     "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
-    "ip": "112.121.130.34"
+    "ip": "27.130.38.5"
   },
   {
-    "id": "c9bae2cb",
-    "timestamp": "2026-09-07 22:57:05",
-    "email": "admin@spxexpress.com",
-    "name": "Admin SOC",
-    "role": "Admin",
-    "action": "USER_PROFILE_UPDATE",
-    "details": "อัปเดตโปรไฟล์: Admin SOC -> Admin SOC (admin@spxexpress.com)",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "e6d38665",
-    "timestamp": "2026-09-07 22:53:56",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
+    "id": "50c39abc",
+    "timestamp": "2026-09-08 02:13:54",
+    "email": "guy.panmanee@gmail.com",
+    "name": "กาย",
+    "role": "Ground",
     "action": "SYNC_GOOGLE_SHEET",
     "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
-    "ip": "112.121.130.34"
+    "ip": "27.130.38.5"
   },
   {
-    "id": "33f974d4",
-    "timestamp": "2026-09-07 22:52:54",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
+    "id": "95b59216",
+    "timestamp": "2026-09-08 02:13:36",
+    "email": "guy.panmanee@gmail.com",
+    "name": "กาย",
+    "role": "Ground",
     "action": "LOGIN",
-    "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Admin)",
-    "ip": "112.121.130.34"
+    "details": "Signed in via Google/Gmail as guy.panmanee@gmail.com (Role: Ground)",
+    "ip": "27.130.38.5"
   },
   {
-    "id": "5164fd8f",
-    "timestamp": "2026-09-07 22:52:53",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
+    "id": "87c26560",
+    "timestamp": "2026-09-08 02:13:36",
+    "email": "guy.panmanee@gmail.com",
+    "name": "กาย",
+    "role": "Supervisor",
     "action": "USER_LOGIN",
-    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
-    "ip": "112.121.130.34"
-  },
-  {
-    "id": "dc751744",
-    "timestamp": "2026-09-07 22:52:40",
-    "email": "guest",
-    "name": "Guest",
-    "role": "Ground",
-    "action": "ADMIN_RESET_PASSWORD",
-    "details": "Admin รีเซ็ตรหัสผ่านให้ Admin SOC (admin@spxexpress.com)",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "5575d6d6",
-    "timestamp": "2026-09-07 22:52:32",
-    "email": "guest",
-    "name": "Guest",
-    "role": "Ground",
-    "action": "ADMIN_RESET_PASSWORD",
-    "details": "Admin รีเซ็ตรหัสผ่านให้ Admin SOC (admin@spxexpress.com)",
-    "ip": "127.0.0.1"
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Supervisor",
+    "ip": "27.130.38.5"
   }
 ]

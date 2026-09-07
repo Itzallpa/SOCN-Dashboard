@@ -48,7 +48,6 @@
       <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
       <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🔀 OB Backlog Compare</a>
       <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏱️ Hourly Tracker</a>
-      <a href="admin.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#d0311d; transition:all 0.2s;">🛡️ Admin Dashboard</a>
     </div>
   </nav>
 
@@ -79,38 +78,38 @@
     <!-- Banner Header -->
     <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded-3 shadow-sm border flex-wrap gap-2">
       <div>
-        <h4 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-user-shield text-danger me-2"></i> Executive Admin Dashboard & Audit System</h4>
-        <p class="text-muted small mb-0">ศูนย์ควบคุมผู้ดูแลระบบ: อนุมัติสิทธิ์สมาชิก กำหนด Role (Ground/Admin) และตรวจสอบ Audit Logs ประวัติการเข้าใช้งานทั้งหมด</p>
+        <h4 class="fw-bold mb-1 text-slate-800" id="adminHeaderTitle"><i class="fa-solid fa-user-shield text-danger me-2"></i> Executive Admin Dashboard & Audit System</h4>
+        <p class="text-muted small mb-0" id="adminHeaderSubtitle">ศูนย์ควบคุมผู้ดูแลระบบ: อนุมัติสิทธิ์สมาชิก กำหนด Role (Ground/Admin) และตรวจสอบ Audit Logs ประวัติการเข้าใช้งานทั้งหมด</p>
       </div>
 
       <div class="d-flex gap-2">
         <button class="btn btn-primary btn-sm fw-bold" onclick="openAddUserModal()"><i class="fa-solid fa-user-plus me-1"></i> เพิ่มสมาชิกใหม่</button>
-        <button class="btn btn-success btn-sm fw-bold" onclick="exportAuditLogsCSV()"><i class="fa-solid fa-file-csv me-1"></i> 📥 Export Audit Logs CSV</button>
+        <button class="btn btn-success btn-sm fw-bold" id="btnExportAuditLogs" onclick="exportAuditLogsCSV()"><i class="fa-solid fa-file-csv me-1"></i> 📥 Export Audit Logs CSV</button>
         <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="refreshAdminData()"><i class="fa-solid fa-rotate me-1"></i> รีเฟรชข้อมูล</button>
       </div>
     </div>
 
     <!-- Summary KPI Cards -->
     <div class="row g-3 mb-4">
-      <div class="col-12 col-sm-6 col-md-3">
+      <div class="col-12 col-sm-6 col-md-3" id="statCardUsersCol">
         <div class="stat-card stat-blue">
           <div class="stat-title"><i class="fa-solid fa-users text-primary me-1"></i> สมาชิกทั้งหมด (Total Users)</div>
           <div class="stat-value" id="statTotalUsers">0</div>
         </div>
       </div>
-      <div class="col-12 col-sm-6 col-md-3">
+      <div class="col-12 col-sm-6 col-md-3" id="statCardPendingCol">
         <div class="stat-card stat-warning">
           <div class="stat-title"><i class="fa-solid fa-user-clock text-warning me-1"></i> รออนุมัติ (Pending Approvals)</div>
           <div class="stat-value text-warning" id="statPendingApprovals">0</div>
         </div>
       </div>
-      <div class="col-12 col-sm-6 col-md-3">
+      <div class="col-12 col-sm-6 col-md-3" id="statCardStaffCol">
         <div class="stat-card stat-success">
           <div class="stat-title"><i class="fa-solid fa-people-group text-success me-1"></i> เจ้าหน้าที่ใน Roster (Total Staff)</div>
           <div class="stat-value text-success" id="statTotalStaff">0</div>
         </div>
       </div>
-      <div class="col-12 col-sm-6 col-md-3">
+      <div class="col-12 col-sm-6 col-md-3" id="statCardLogsCol">
         <div class="stat-card stat-danger">
           <div class="stat-title"><i class="fa-solid fa-list-check text-danger me-1"></i> กิจกรรมในระบบ (Audit Logs)</div>
           <div class="stat-value" id="statTotalAuditLogs">0</div>
@@ -120,19 +119,19 @@
 
     <!-- Main Navigation Tabs -->
     <ul class="nav nav-tabs mb-3" id="adminMainTabs" role="tablist">
-      <li class="nav-item">
+      <li class="nav-item" id="navItemUsers">
         <button class="nav-link active" id="tab-users-link" data-bs-toggle="tab" data-bs-target="#tab-users-pane"><i class="fa-solid fa-user-gear me-2"></i> 1. จัดการสมาชิก & อนุมัติสิทธิ์ (User Approvals)</button>
       </li>
-      <li class="nav-item">
+      <li class="nav-item" id="navItemLogs">
         <button class="nav-link" id="tab-logs-link" data-bs-toggle="tab" data-bs-target="#tab-logs-pane"><i class="fa-solid fa-history me-2"></i> 2. ประวัติการใช้งาน & กิจกรรม (Audit Logs)</button>
       </li>
-      <li class="nav-item">
+      <li class="nav-item" id="navItemRoster">
         <button class="nav-link" id="tab-roster-link" data-bs-toggle="tab" data-bs-target="#tab-roster-pane"><i class="fa-solid fa-users-gear me-2"></i> 3. จัดการ Staff Roster รายโซน (Zone Staff Roster)</button>
       </li>
-      <li class="nav-item">
+      <li class="nav-item" id="navItemSettings">
         <button class="nav-link" id="tab-settings-link" data-bs-toggle="tab" data-bs-target="#tab-settings-pane"><i class="fa-solid fa-sliders me-2"></i> 4. ตั้งค่าเป้าหมาย & SeaTalk Alert (Target & Settings)</button>
       </li>
-      <li class="nav-item">
+      <li class="nav-item" id="navItemEvidence">
         <button class="nav-link" id="tab-evidence-link" data-bs-toggle="tab" data-bs-target="#tab-evidence-pane" onclick="fetchAdminEvidence()"><i class="fa-solid fa-camera me-2"></i> 5. คลังรูปภาพหลักฐานตาม Zone (Evidence)</button>
       </li>
     </ul>
@@ -637,6 +636,7 @@
               <label class="form-label fw-bold small">มอบหมาย Role (สิทธิ์การใช้งาน):</label>
               <select id="addUserRole" class="form-select form-select-sm">
                 <option value="Ground">👤 Ground (เจ้าหน้าที่ปฏิบัติการ)</option>
+                <option value="Supervisor">👔 Supervisor (หัวหน้างาน / จัดการสมาชิก)</option>
                 <option value="Admin">🛡️ Admin (ผู้ดูแลระบบ & Audit Logs)</option>
               </select>
             </div>
@@ -715,7 +715,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="auth_guard.js"></script>
+  <script src="auth_guard.js?v=20260908_03"></script>
   <script>
     let allLogs = [];
 
@@ -770,7 +770,7 @@
       const mainWrapper = document.getElementById('adminMainWrapper');
       const deniedBanner = document.getElementById('adminAccessDeniedBanner');
 
-      if (!user || user.role !== 'Admin') {
+      if (!user || (user.role !== 'Admin' && user.role !== 'Supervisor')) {
         if (mainWrapper) mainWrapper.style.display = 'none';
         if (deniedBanner) deniedBanner.style.display = 'block';
         return;
@@ -779,10 +779,50 @@
       if (mainWrapper) mainWrapper.style.display = 'block';
       if (deniedBanner) deniedBanner.style.display = 'none';
 
+      const isSupervisor = user.role === 'Supervisor';
+
+      // Hide admin-only tabs and features if Supervisor
+      const adminOnlyNavIds = ['navItemLogs', 'navItemRoster', 'navItemSettings', 'navItemEvidence'];
+      adminOnlyNavIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = isSupervisor ? 'none' : 'block';
+      });
+
+      const staffCard = document.getElementById('statCardStaffCol');
+      if (staffCard) staffCard.style.display = isSupervisor ? 'none' : 'block';
+
+      const logsCard = document.getElementById('statCardLogsCol');
+      if (logsCard) logsCard.style.display = isSupervisor ? 'none' : 'block';
+
+      const exportBtn = document.getElementById('btnExportAuditLogs');
+      if (exportBtn) exportBtn.style.display = isSupervisor ? 'none' : 'inline-block';
+
+      const titleEl = document.getElementById('adminHeaderTitle');
+      const subTitleEl = document.getElementById('adminHeaderSubtitle');
+      if (isSupervisor) {
+        if (titleEl) titleEl.innerHTML = '<i class="fa-solid fa-users-gear text-warning me-2"></i> ระบบจัดการสมาชิก (User Management & Approvals)';
+        if (subTitleEl) subTitleEl.innerText = 'สิทธิ์สำหรับ Supervisor: เพิ่ม ลบ อนุมัติสิทธิ์ และรีเซ็ตรหัสผ่านสมาชิกในระบบ';
+      } else {
+        if (titleEl) titleEl.innerHTML = '<i class="fa-solid fa-user-shield text-danger me-2"></i> Executive Admin Dashboard & Audit System';
+        if (subTitleEl) subTitleEl.innerText = 'ศูนย์ควบคุมผู้ดูแลระบบ: อนุมัติสิทธิ์สมาชิก กำหนด Role (Ground/Admin) และตรวจสอบ Audit Logs ประวัติการเข้าใช้งานทั้งหมด';
+      }
+
+      // Always activate User tab for supervisor
+      if (isSupervisor) {
+        const userTabBtn = document.getElementById('tab-users-link');
+        if (userTabBtn) {
+          const tab = new bootstrap.Tab(userTabBtn);
+          tab.show();
+        }
+      }
+
       fetchUsersFromApi();
-      fetchAuditLogs();
-      loadStaffRoster();
-      loadSystemSettings();
+
+      if (!isSupervisor) {
+        fetchAuditLogs();
+        loadStaffRoster();
+        loadSystemSettings();
+      }
     }
 
     let cachedUsersList = [];
@@ -813,9 +853,14 @@
         .catch(() => renderUsersTable());
     }
 
-    // Real-time auto polling every 5 seconds
+    // Real-time auto polling
     setInterval(fetchUsersFromApi, 5000);
-    setInterval(fetchAuditLogs, 8000);
+    setInterval(() => {
+      const user = window.AuthGuard ? window.AuthGuard.getUser() : null;
+      if (user && user.role === 'Admin') {
+        fetchAuditLogs();
+      }
+    }, 8000);
 
     function getUsersDb() {
       try {
@@ -858,13 +903,17 @@
 
       tbody.innerHTML = filtered.map(u => {
         const isPending = u.status === 'pending_approval';
+        const roleColor = u.role === 'Admin' ? 'bg-danger' : (u.role === 'Supervisor' ? 'text-white' : 'bg-primary');
+        const roleCustomStyle = u.role === 'Supervisor' ? 'style="background-color:#7c3aed;"' : '';
         const statusBadge = isPending ? 
           '<span class="badge bg-warning text-dark">⏳ รออนุมัติ (Pending)</span>' : 
-          `<span class="badge ${u.role === 'Admin' ? 'bg-danger' : 'bg-primary'}">✅ อนุมัติแล้ว (${u.role})</span>`;
+          `<span class="badge ${roleColor}" ${roleCustomStyle}>✅ อนุมัติแล้ว (${u.role})</span>`;
 
+        const selectColor = u.role === 'Admin' ? 'text-danger border-danger' : (u.role === 'Supervisor' ? 'text-purple border-purple' : 'text-primary border-primary');
         const roleSelect = `
-          <select id="tableRoleSelect_${u.id}" class="form-select form-select-sm d-inline-block w-auto py-1 px-2 fw-bold ${u.role === 'Admin' ? 'text-danger border-danger' : 'text-primary border-primary'}" onchange="changeUserRoleInDashboard('${u.id}', this.value)">
+          <select id="tableRoleSelect_${u.id}" class="form-select form-select-sm d-inline-block w-auto py-1 px-2 fw-bold ${selectColor}" onchange="changeUserRoleInDashboard('${u.id}', this.value)">
             <option value="Ground" ${u.role === 'Ground' ? 'selected' : ''}>👤 Ground</option>
+            <option value="Supervisor" ${u.role === 'Supervisor' ? 'selected' : ''}>👔 Supervisor</option>
             <option value="Admin" ${u.role === 'Admin' ? 'selected' : ''}>🛡️ Admin</option>
           </select>
         `;
@@ -1076,18 +1125,38 @@
       const pass = document.getElementById('addUserPass').value.trim();
       const role = document.getElementById('addUserRole').value;
 
-      const db = getUsersDb();
-      db.push({
-        id: 'u_' + Date.now(),
-        name, email, pass, role,
-        status: 'approved',
-        createdAt: new Date().toLocaleString('th-TH')
+      fetch('/api/users/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, pass, role })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          if (data.users) {
+            cachedUsersList = data.users;
+            localStorage.setItem('socn_user_db', JSON.stringify(data.users));
+          }
+          alert(`✅ เพิ่มสมาชิก ${name} (${role}) สำเร็จ!`);
+          bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
+          renderUsersTable();
+        } else {
+          alert('❌ เกิดข้อผิดพลาด: ' + (data.error || 'ไม่สามารถเพิ่มสมาชิกได้'));
+        }
+      })
+      .catch(() => {
+        const db = getUsersDb();
+        db.push({
+          id: 'u_' + Date.now(),
+          name, email, pass, role,
+          status: 'approved',
+          createdAt: new Date().toLocaleString('th-TH')
+        });
+        saveUsersDb(db);
+        alert(`✅ เพิ่มสมาชิก ${name} (${role}) สำเร็จ! (Local)`);
+        bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
+        renderUsersTable();
       });
-
-      saveUsersDb(db);
-      alert(`✅ เพิ่มสมาชิก ${name} (${role}) สำเร็จ!`);
-      bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
-      renderUsersTable();
     }
 
     function fetchAuditLogs() {

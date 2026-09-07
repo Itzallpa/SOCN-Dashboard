@@ -339,6 +339,37 @@ def signup_user_api():
     log_activity("USER_SIGNUP", f"ลงทะเบียนผู้ใช้งานใหม่: {name} ({email}) - รอ Admin อนุมัติ", user_email=email, user_name=name, user_role="Ground")
     return jsonify({"success": True, "user": sanitize_user(new_user), "users": sanitize_users(users)})
 
+@app.route("/api/users/add", methods=["POST"])
+def direct_add_user_api():
+    data = request.get_json() or {}
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    password = (data.get("pass") or "").strip()
+    role = data.get("role", "Ground")
+
+    if not name or not email or not password:
+        return jsonify({"success": False, "error": "กรุณากรอกข้อมูลให้ครบถ้วน"}), 400
+
+    users = load_users_db()
+    for u in users:
+        if u.get("email", "").lower() == email:
+            return jsonify({"success": False, "error": "อีเมลนี้ถูกลงทะเบียนไว้แล้ว"}), 400
+
+    new_user = {
+        "id": "u_" + str(int(datetime.now().timestamp() * 1000)),
+        "name": name,
+        "email": email,
+        "pass": password,
+        "role": role,
+        "status": "approved",
+        "createdAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    users.append(new_user)
+    save_users_db(users)
+
+    log_activity("USER_DIRECT_ADD", f"เพิ่มสมาชิกใหม่โดยตรง: {name} ({email}) สิทธิ์ {role}")
+    return jsonify({"success": True, "user": sanitize_user(new_user), "users": sanitize_users(users)})
+
 @app.route("/api/users/approve", methods=["POST"])
 def approve_user_api():
     data = request.get_json() or {}
@@ -473,6 +504,9 @@ def reset_user_password_api():
     target["pass"] = new_pass
     target["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     save_users_db(users)
+
+    log_activity("USER_RESET_PASSWORD", f"รีเซ็ตรหัสผ่านสมาชิก: {target.get('name')} ({target.get('email')})")
+    return jsonify({"success": True, "message": "รีเซ็ตรหัสผ่านเรียบร้อยแล้ว", "users": sanitize_users(users)})
 
 @app.route("/api/users/update-profile", methods=["POST"])
 def update_user_profile_api():

@@ -77,6 +77,10 @@
       border-color: #d0311d;
       background: #fef2f2;
     }
+    .role-option.selected.supervisor-selected {
+      border-color: #7c3aed;
+      background: #f5f3ff;
+    }
     .role-title {
       font-weight: 700;
       font-size: 0.9rem;
@@ -149,6 +153,11 @@
           <div class="role-title"><i class="fa-solid fa-user me-1 text-primary"></i> Ground</div>
           <div class="role-sub">เจ้าหน้าที่ปฏิบัติการ</div>
         </div>
+        <div class="role-option" id="roleSupervisorOpt" onclick="selectRole('Supervisor')">
+          <input type="radio" name="userRole" value="Supervisor">
+          <div class="role-title"><i class="fa-solid fa-user-gear me-1" style="color:#7c3aed;"></i> Supervisor</div>
+          <div class="role-sub">หัวหน้างาน & จัดการสมาชิก</div>
+        </div>
         <div class="role-option" id="roleAdminOpt" onclick="selectRole('Admin')">
           <input type="radio" name="userRole" value="Admin">
           <div class="role-title"><i class="fa-solid fa-shield-halved me-1 text-danger"></i> Admin</div>
@@ -195,9 +204,11 @@
 
     function selectRole(role) {
       selectedRole = role;
-      document.querySelectorAll('.role-option').forEach(el => el.classList.remove('selected', 'admin-selected'));
+      document.querySelectorAll('.role-option').forEach(el => el.classList.remove('selected', 'admin-selected', 'supervisor-selected'));
       if (role === 'Ground') {
         document.getElementById('roleGroundOpt').classList.add('selected');
+      } else if (role === 'Supervisor') {
+        document.getElementById('roleSupervisorOpt').classList.add('selected', 'supervisor-selected');
       } else {
         document.getElementById('roleAdminOpt').classList.add('selected', 'admin-selected');
       }

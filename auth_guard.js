@@ -382,11 +382,11 @@
     }
   }
 
-  /* ─── Admin Approval Modal ─── */
+  /* ─── Admin & Supervisor Approval Modal ─── */
   function openAdminApprovalModal() {
     const user = getStoredUser();
-    if (!user || user.role !== 'Admin') {
-      showSweetAlert('🔒 สงวนสิทธิ์ Admin', 'สงวนสิทธิ์สำหรับผู้ใช้งานระดับ Admin เท่านั้น', 'warning');
+    if (!user || (user.role !== 'Admin' && user.role !== 'Supervisor')) {
+      showSweetAlert('🔒 สงวนสิทธิ์จัดการสมาชิก', 'สงวนสิทธิ์สำหรับผู้ใช้งานระดับ Supervisor หรือ Admin เท่านั้น', 'warning');
       return;
     }
 
@@ -408,33 +408,39 @@
           font-family:'Segoe UI',system-ui,sans-serif; padding:16px;
         }
         #socnApprovalCard {
-          background:#fff; border-radius:22px; width:100%; max-width:780px;
-          box-shadow:0 30px 60px rgba(0,0,0,0.5); overflow:hidden; position:relative; max-height:85vh; display:flex; flex-direction:column;
+          background:#fff; border-radius:22px; width:100%; max-width:880px;
+          box-shadow:0 30px 60px rgba(0,0,0,0.5); overflow:hidden; position:relative; max-height:88vh; display:flex; flex-direction:column;
         }
         #socnApprovalCard .auth-header {
           background:#0d1b2a; color:#fff; padding:20px 24px; display:flex; justify-content:space-between; align-items:center;
         }
         #socnApprovalCard .auth-body { padding:20px; overflow-y:auto; flex:1; }
         .table-approval { width:100%; font-size:0.85rem; border-collapse:collapse; }
-        .table-approval th { background:#0f172a; color:#fff; padding:10px 12px; text-align:left; }
+        .table-approval th { background:#0f172a; color:#fff; padding:10px 12px; text-align:left; font-weight:700; }
         .table-approval td { padding:10px 12px; border-bottom:1px solid #e2e8f0; vertical-align:middle; }
-        .status-badge-pending { background:#fef3c7; color:#92400e; padding:3px 8px; border-radius:12px; font-weight:700; font-size:11px; }
-        .status-badge-approved { background:#dcfce7; color:#166534; padding:3px 8px; border-radius:12px; font-weight:700; font-size:11px; }
+        .status-badge-pending { background:#fef3c7; color:#92400e; padding:4px 8px; border-radius:12px; font-weight:700; font-size:11px; }
+        .status-badge-approved { background:#dcfce7; color:#166534; padding:4px 8px; border-radius:12px; font-weight:700; font-size:11px; }
+        .role-tag-admin { background:#fee2e2; color:#dc2626; padding:2px 8px; border-radius:6px; font-weight:800; font-size:11px; }
+        .role-tag-supervisor { background:#ede9fe; color:#7c3aed; padding:2px 8px; border-radius:6px; font-weight:800; font-size:11px; }
+        .role-tag-ground { background:#e0f2fe; color:#0284c7; padding:2px 8px; border-radius:6px; font-weight:800; font-size:11px; }
       </style>
 
       <div id="socnApprovalCard">
         <div class="auth-header">
           <div>
-            <h5 style="font-weight:800; margin:0; font-size:1.15rem;"><i class="fa-solid fa-user-check me-2 text-warning"></i> ระบบอนุมัติสมาชิก & กำหนด Role (Admin Panel)</h5>
-            <div style="font-size:0.78rem; color:#94a3b8; margin-top:2px;">ตรวจสอบคำขอลงทะเบียน เลือก Role และกดอนุมัติสิทธิ์ใช้งาน</div>
+            <h5 style="font-weight:800; margin:0; font-size:1.15rem;"><i class="fa-solid fa-users-gear me-2 text-warning"></i> ระบบจัดการ & อนุมัติสมาชิก (User Management)</h5>
+            <div style="font-size:0.78rem; color:#94a3b8; margin-top:2px;">สิทธิ์สำหรับ Supervisor / Admin: อนุมัติสมาชิกใหม่, เปลี่ยนระดับสิทธิ์, รีเซ็ตรหัสผ่าน, และลบสมาชิก</div>
           </div>
           <button style="background:transparent; border:none; color:#94a3b8; font-size:1.4rem; cursor:pointer;" onclick="document.getElementById('socnAdminApprovalOverlay').style.display='none'">✕</button>
         </div>
 
         <div class="auth-body">
-          <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-            <strong style="font-size:0.9rem; color:#0f172a;">รายชื่อสมาชิกที่ลงทะเบียนในระบบ:</strong>
-            <button onclick="window.AuthGuard.renderAdminApprovalTable()" style="background:#2563eb; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:0.8rem; font-weight:700; cursor:pointer;"><i class="fa-solid fa-rotate me-1"></i> รีเฟรชข้อมูล</button>
+          <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <strong style="font-size:0.9rem; color:#0f172a;" id="approvalCountSummary">รายชื่อสมาชิกในระบบ:</strong>
+            <div style="display:flex; gap:8px;">
+              <button onclick="window.AuthGuard.openDirectAddModal()" style="background:#059669; color:#fff; border:none; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:700; cursor:pointer; box-shadow:0 2px 8px rgba(5,150,105,0.3);"><i class="fa-solid fa-user-plus me-1"></i> เพิ่มสมาชิกใหม่</button>
+              <button onclick="window.AuthGuard.renderAdminApprovalTable()" style="background:#2563eb; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.8rem; font-weight:700; cursor:pointer;"><i class="fa-solid fa-rotate me-1"></i> รีเฟรชข้อมูล</button>
+            </div>
           </div>
 
           <div style="overflow-x:auto;">
@@ -444,12 +450,12 @@
                   <th>ชื่อผู้ใช้ (Username)</th>
                   <th>อีเมล (Email)</th>
                   <th>สถานะ (Status)</th>
-                  <th>เลือก Role</th>
+                  <th>กำหนดสิทธิ์ (Role)</th>
                   <th>จัดการ (Actions)</th>
                 </tr>
               </thead>
               <tbody id="approvalTableBody">
-                <!-- Rendered dynamically -->
+                <tr><td colspan="5" style="text-align:center; padding:20px; color:#94a3b8;"><i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังโหลดข้อมูลสมาชิก...</td></tr>
               </tbody>
             </table>
           </div>
@@ -464,40 +470,69 @@
     const tbody = document.getElementById('approvalTableBody');
     if (!tbody) return;
 
-    const db = getUsersDatabase();
+    fetch('/api/users')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.users) {
+          saveUsersDatabase(data.users);
+          displayUsersInApprovalTable(data.users);
+        } else {
+          displayUsersInApprovalTable(getUsersDatabase());
+        }
+      })
+      .catch(() => {
+        displayUsersInApprovalTable(getUsersDatabase());
+      });
+  }
+
+  function displayUsersInApprovalTable(db) {
+    const tbody = document.getElementById('approvalTableBody');
+    if (!tbody) return;
+
     if (!db || db.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#94a3b8;">ไม่พบรายชื่อผู้ใช้งานในระบบ</td></tr>';
       return;
+    }
+
+    const pendingCount = db.filter(u => u.status === 'pending_approval').length;
+    const summary = document.getElementById('approvalCountSummary');
+    if (summary) {
+      summary.innerHTML = `รายชื่อสมาชิกในระบบ (ทั้งหมด ${db.length} คน | <span style="color:#d97706; font-weight:800;">รออนุมัติ ${pendingCount} คน</span>):`;
     }
 
     tbody.innerHTML = db.map(u => {
       const isPending = u.status === 'pending_approval';
       const statusBadge = isPending ? 
         '<span class="status-badge-pending">⏳ รออนุมัติ (Pending)</span>' : 
-        `<span class="status-badge-approved">✅ อนุมัติแล้ว (${u.role})</span>`;
+        `<span class="status-badge-approved">✅ อนุมัติแล้ว</span>`;
 
-      const roleSelect = isPending ? `
-        <select id="roleSelect_${u.id}" style="padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1; font-size:0.8rem; font-weight:700;">
-          <option value="Ground">👤 Ground</option>
-          <option value="Admin">🛡️ Admin</option>
+      const roleClass = u.role === 'Admin' ? 'role-tag-admin' : (u.role === 'Supervisor' ? 'role-tag-supervisor' : 'role-tag-ground');
+      const roleSelect = `
+        <select id="roleSelect_${u.id}" onchange="window.AuthGuard.changeRole('${u.id}', this.value)" style="padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1; font-size:0.8rem; font-weight:700; color:#1e293b;">
+          <option value="Ground" ${u.role === 'Ground' ? 'selected' : ''}>👤 Ground</option>
+          <option value="Supervisor" ${u.role === 'Supervisor' ? 'selected' : ''}>👔 Supervisor</option>
+          <option value="Admin" ${u.role === 'Admin' ? 'selected' : ''}>🛡️ Admin</option>
         </select>
-      ` : `<span style="font-weight:700; color:#334155;">${u.role}</span>`;
+      `;
 
       const actionBtn = isPending ? `
-        <button onclick="window.AuthGuard.approveUser('${u.id}')" style="background:#059669; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer; margin-right:4px;">
+        <button onclick="window.AuthGuard.approveUser('${u.id}')" style="background:#059669; color:#fff; border:none; padding:5px 12px; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer; margin-right:4px;">
           <i class="fa-solid fa-check me-1"></i> อนุมัติ
         </button>
-        <button onclick="window.AuthGuard.rejectUser('${u.id}')" style="background:#dc2626; color:#fff; border:none; padding:5px 8px; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer;">
-          <i class="fa-solid fa-xmark"></i>
+        <button onclick="window.AuthGuard.rejectUser('${u.id}')" style="background:#dc2626; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer;" title="ปฏิเสธและลบ">
+          <i class="fa-solid fa-trash"></i>
         </button>
       ` : `
-        <button onclick="window.AuthGuard.rejectUser('${u.id}')" style="background:#94a3b8; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:0.75rem; cursor:pointer;">
-          ลบสมาชิก
+        <button onclick="window.AuthGuard.resetUserPassword('${u.id}', '${esc(u.name)}', '${esc(u.email)}')" style="background:#0284c7; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer; margin-right:4px;" title="รีเซ็ตรหัสผ่าน">
+          <i class="fa-solid fa-key me-1"></i> รีเซ็ตรหัส
+        </button>
+        <button onclick="window.AuthGuard.rejectUser('${u.id}')" style="background:#ef4444; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer;">
+          <i class="fa-solid fa-trash me-1"></i> ลบ
         </button>
       `;
 
       return `
-        <tr>
+        <tr style="${isPending ? 'background:#fffbeb;' : ''}">
           <td style="font-weight:700; color:#0f172a;">${esc(u.name)}</td>
           <td style="color:#475569;">${esc(u.email)}</td>
           <td>${statusBadge}</td>
@@ -509,44 +544,302 @@
   }
 
   function approveUser(userId) {
-    const db = getUsersDatabase();
-    const target = db.find(u => u.id === userId);
-    if (!target) return;
-
     const roleSelect = document.getElementById(`roleSelect_${userId}`);
     const chosenRole = roleSelect ? roleSelect.value : 'Ground';
 
-    target.status = 'approved';
-    target.role = chosenRole;
+    fetch('/api/users/approve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: userId, role: chosenRole })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        if (data.users) saveUsersDatabase(data.users);
+        showSweetAlert('อนุมัติสมาชิกสำเร็จ!', `อนุมัติบัญชีเป็นสิทธิ์ <b>${chosenRole}</b> เรียบร้อยแล้ว`, 'success');
+        renderAdminApprovalTable();
+        renderProfileBadge();
+      } else {
+        showSweetAlert('เกิดข้อผิดพลาด', data.error || 'ไม่สามารถอนุมัติได้', 'error');
+      }
+    })
+    .catch(() => {
+      const db = getUsersDatabase();
+      const target = db.find(u => u.id === userId);
+      if (target) {
+        target.status = 'approved';
+        target.role = chosenRole;
+        saveUsersDatabase(db);
+        showSweetAlert('อนุมัติสมาชิกสำเร็จ!', `อนุมัติสมาชิก <b>"${target.name}"</b> เป็นสิทธิ์ <b>${chosenRole}</b> เรียบร้อยแล้ว`, 'success');
+        renderAdminApprovalTable();
+        renderProfileBadge();
+      }
+    });
+  }
 
-    saveUsersDatabase(db);
-    showSweetAlert('อนุมัติสมาชิกสำเร็จ!', `อนุมัติสมาชิก <b>"${target.name}"</b> เป็นสิทธิ์ <b>${chosenRole}</b> เรียบร้อยแล้ว`, 'success');
+  function changeRole(userId, newRole) {
+    const db = getUsersDatabase();
+    const target = db.find(u => u.id === userId);
+    const email = target ? target.email : '';
 
-    renderAdminApprovalTable();
-    renderProfileBadge();
+    fetch('/api/users/role', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: userId, email: email, role: newRole })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        if (data.users) saveUsersDatabase(data.users);
+        const currUser = getStoredUser();
+        if (currUser && (currUser.email === email || currUser.id === userId)) {
+          currUser.role = newRole;
+          saveStoredUser(currUser);
+        }
+        showSweetAlert('เปลี่ยนระดับสิทธิ์สำเร็จ!', `อัปเดตสิทธิ์ของสมาชิกเป็น <b>${newRole}</b> เรียบร้อยแล้ว`, 'success');
+        renderAdminApprovalTable();
+        renderProfileBadge();
+      } else {
+        showSweetAlert('เกิดข้อผิดพลาด', data.error || 'ไม่สามารถเปลี่ยนสิทธิ์ได้', 'error');
+      }
+    })
+    .catch(() => {
+      if (target) {
+        target.role = newRole;
+        saveUsersDatabase(db);
+        renderAdminApprovalTable();
+        renderProfileBadge();
+      }
+    });
+  }
+
+  function resetUserPassword(userId, userName, userEmail) {
+    const doReset = (newPass) => {
+      if (!newPass || newPass.trim().length < 4) {
+        showSweetAlert('รหัสผ่านสั้นเกินไป', 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร', 'warning');
+        return;
+      }
+      fetch('/api/users/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: userId, email: userEmail, newPass: newPass.trim() })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          showSweetAlert('รีเซ็ตรหัสผ่านสำเร็จ!', `ตั้งรหัสผ่านใหม่ให้กับ <b>"${userName}"</b> เป็น <code>${esc(newPass.trim())}</code> เรียบร้อยแล้ว`, 'success');
+          renderAdminApprovalTable();
+        } else {
+          showSweetAlert('ไม่สำเร็จ', data.error || 'รีเซ็ตรหัสผ่านไม่สำเร็จ', 'error');
+        }
+      })
+      .catch(err => {
+        showSweetAlert('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้: ' + err.message, 'error');
+      });
+    };
+
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        title: '🔑 รีเซ็ตรหัสผ่านสมาชิก',
+        html: `กรุณากำหนดรหัสผ่านใหม่ให้กับ <b>"${userName}"</b> (${userEmail}):`,
+        input: 'text',
+        inputPlaceholder: 'กรอกรหัสผ่านใหม่ (เช่น 1234)',
+        inputValue: '1234',
+        showCancelButton: true,
+        confirmButtonColor: '#0284c7',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: '<i class="fa-solid fa-save me-1"></i> บันทึกรหัสผ่านใหม่',
+        cancelButtonText: 'ยกเลิก',
+        background: '#0d1b2a',
+        color: '#ffffff'
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          doReset(result.value);
+        }
+      });
+    } else {
+      const p = prompt(`รีเซ็ตรหัสผ่านใหม่ให้กับ ${userName}:`, '1234');
+      if (p !== null) doReset(p);
+    }
   }
 
   function rejectUser(userId) {
     const db = getUsersDatabase();
-    const targetIndex = db.findIndex(u => u.id === userId);
-    if (targetIndex === -1) return;
+    const target = db.find(u => u.id === userId);
+    const targetName = target ? target.name : 'สมาชิกรายนี้';
+    const targetEmail = target ? target.email : '';
 
     showSweetAlert(
       '⚠️ ยืนยันการลบสมาชิก?',
-      `คุณต้องการลบคำขอ/สมาชิก <b>"${db[targetIndex].name}"</b> ออกจากระบบใช่หรือไม่?`,
+      `คุณต้องการลบคำขอ/สมาชิก <b>"${targetName}"</b> ออกจากระบบใช่หรือไม่?`,
       'warning',
       '<i class="fa-solid fa-trash me-1"></i> ใช่, ลบสมาชิก',
       true,
       'ยกเลิก',
       function (confirmed) {
         if (confirmed) {
-          db.splice(targetIndex, 1);
-          saveUsersDatabase(db);
-          renderAdminApprovalTable();
-          renderProfileBadge();
+          fetch('/api/users/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: userId, email: targetEmail })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              if (data.users) saveUsersDatabase(data.users);
+              showSweetAlert('ลบสมาชิกสำเร็จ', `ลบสมาชิก ${targetName} เรียบร้อยแล้ว`, 'success');
+              renderAdminApprovalTable();
+              renderProfileBadge();
+            }
+          })
+          .catch(() => {
+            const idx = db.findIndex(u => u.id === userId);
+            if (idx !== -1) {
+              db.splice(idx, 1);
+              saveUsersDatabase(db);
+              renderAdminApprovalTable();
+              renderProfileBadge();
+            }
+          });
         }
       }
     );
+  }
+
+  function openDirectAddModal() {
+    let overlay = document.getElementById('socnDirectAddUserOverlay');
+    if (overlay) {
+      document.getElementById('directAddName').value = '';
+      document.getElementById('directAddEmail').value = '';
+      document.getElementById('directAddPass').value = '';
+      document.getElementById('directAddRole').value = 'Ground';
+      overlay.style.display = 'flex';
+      return;
+    }
+
+    overlay = document.createElement('div');
+    overlay.id = 'socnDirectAddUserOverlay';
+    overlay.innerHTML = `
+      <style>
+        #socnDirectAddUserOverlay {
+          position:fixed; inset:0; z-index:999999999;
+          background:rgba(13,27,42,0.88); backdrop-filter:blur(10px);
+          display:flex; align-items:center; justify-content:center;
+          font-family:'Segoe UI',system-ui,sans-serif; padding:16px;
+        }
+        #socnDirectAddCard {
+          background:#fff; border-radius:20px; width:100%; max-width:460px;
+          box-shadow:0 30px 60px rgba(0,0,0,0.5); overflow:hidden; position:relative;
+        }
+        #socnDirectAddCard .modal-top {
+          background:#0f172a; color:#fff; padding:20px 24px; display:flex; justify-content:space-between; align-items:center;
+        }
+        #socnDirectAddCard .modal-body-pad { padding:24px; }
+      </style>
+      <div id="socnDirectAddCard">
+        <div class="modal-top">
+          <div>
+            <h5 style="font-weight:800; margin:0; font-size:1.15rem;"><i class="fa-solid fa-user-plus me-2 text-success"></i> เพิ่มสมาชิกใหม่เข้าระบบ</h5>
+            <div style="font-size:0.78rem; color:#94a3b8; margin-top:3px;">สิทธิ์สำหรับ Supervisor / Admin</div>
+          </div>
+          <button style="background:transparent; border:none; color:#94a3b8; font-size:1.4rem; cursor:pointer;" onclick="document.getElementById('socnDirectAddUserOverlay').style.display='none'">✕</button>
+        </div>
+        <div class="modal-body-pad">
+          <form onsubmit="window.AuthGuard.handleDirectAddSubmit(event)">
+            <div class="field-group mb-3">
+              <label style="display:block; font-size:0.82rem; font-weight:700; color:#1e293b; margin-bottom:5px;">ชื่อผู้ใช้งาน (Username):</label>
+              <input type="text" id="directAddName" placeholder="เช่น Natakorn / Operator A" required style="width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:0.92rem; outline:none; box-sizing:border-box;">
+            </div>
+            <div class="field-group mb-3">
+              <label style="display:block; font-size:0.82rem; font-weight:700; color:#1e293b; margin-bottom:5px;">อีเมล (Google / Gmail):</label>
+              <input type="email" id="directAddEmail" placeholder="your.name@spxexpress.com" required style="width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:0.92rem; outline:none; box-sizing:border-box;">
+            </div>
+            <div class="field-group mb-3">
+              <label style="display:block; font-size:0.82rem; font-weight:700; color:#1e293b; margin-bottom:5px;">กำหนดรหัสผ่าน (Password):</label>
+              <input type="password" id="directAddPass" placeholder="กำหนดรหัสผ่านเพื่อเข้าใช้งาน" required style="width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:0.92rem; outline:none; box-sizing:border-box;">
+            </div>
+            <div class="field-group mb-4">
+              <label style="display:block; font-size:0.82rem; font-weight:700; color:#1e293b; margin-bottom:5px;">มอบหมายระดับสิทธิ์ (Role):</label>
+              <select id="directAddRole" style="width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:0.92rem; outline:none; box-sizing:border-box; font-weight:700; color:#1e293b;">
+                <option value="Ground">👤 Ground (เจ้าหน้าที่ปฏิบัติการ)</option>
+                <option value="Supervisor">👔 Supervisor (หัวหน้างาน / จัดการสมาชิก)</option>
+                <option value="Admin">🛡️ Admin (ผู้ดูแลระบบ & Audit Logs)</option>
+              </select>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button type="button" onclick="document.getElementById('socnDirectAddUserOverlay').style.display='none'" style="flex:1; background:#f1f5f9; color:#475569; border:none; padding:12px; border-radius:10px; font-weight:700; cursor:pointer;">ยกเลิก</button>
+              <button type="submit" id="btnSubmitDirectAdd" style="flex:2; background:#059669; color:#fff; border:none; padding:12px; border-radius:10px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(5,150,105,0.35);"><i class="fa-solid fa-save me-1"></i> บันทึกเพิ่มสมาชิก</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  }
+
+  function handleDirectAddSubmit(evt) {
+    if (evt) evt.preventDefault();
+    const name = (document.getElementById('directAddName').value || '').trim();
+    const email = (document.getElementById('directAddEmail').value || '').trim().toLowerCase();
+    const pass = (document.getElementById('directAddPass').value || '').trim();
+    const role = document.getElementById('directAddRole').value;
+
+    if (!name || !email || !pass) {
+      showSweetAlert('กรอกข้อมูลไม่ครบ', 'กรุณากรอกข้อมูลให้ครบทุกช่อง', 'warning');
+      return;
+    }
+
+    const btn = document.getElementById('btnSubmitDirectAdd');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังบันทึก...';
+    }
+
+    fetch('/api/users/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, pass, role })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-save me-1"></i> บันทึกเพิ่มสมาชิก';
+      }
+      if (data.success) {
+        if (data.users) saveUsersDatabase(data.users);
+        const ov = document.getElementById('socnDirectAddUserOverlay');
+        if (ov) ov.style.display = 'none';
+        showSweetAlert('เพิ่มสมาชิกสำเร็จ!', `เพิ่มสมาชิก <b>"${esc(name)}"</b> ในสิทธิ์ <b>${role}</b> เรียบร้อยแล้ว`, 'success');
+        renderAdminApprovalTable();
+      } else {
+        showSweetAlert('เพิ่มสมาชิกไม่สำเร็จ', data.error || 'เกิดข้อผิดพลาดในการเพิ่มสมาชิก', 'error');
+      }
+    })
+    .catch(err => {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-save me-1"></i> บันทึกเพิ่มสมาชิก';
+      }
+      const db = getUsersDatabase();
+      const existing = db.find(u => u.email.toLowerCase() === email);
+      if (existing) {
+        showSweetAlert('พบข้อมูลซ้ำ', 'อีเมลนี้ถูกลงทะเบียนไว้แล้ว', 'warning');
+        return;
+      }
+      const newUser = {
+        id: 'u_' + Date.now(),
+        name, email, pass, role,
+        status: 'approved',
+        createdAt: new Date().toLocaleString('th-TH')
+      };
+      db.push(newUser);
+      saveUsersDatabase(db);
+      const ov = document.getElementById('socnDirectAddUserOverlay');
+      if (ov) ov.style.display = 'none';
+      showSweetAlert('เพิ่มสมาชิกสำเร็จ!', `เพิ่มสมาชิก <b>"${esc(name)}"</b> ในสิทธิ์ <b>${role}</b> เรียบร้อยแล้ว (Local)`, 'success');
+      renderAdminApprovalTable();
+    });
   }
 
   /* ─── Page Display Lock & Unlock ─── */
@@ -579,7 +872,7 @@
     const currentPath = location.pathname.toLowerCase();
     const pageName = currentPath.split('/').pop() || 'index.html';
     const isPublicPage = pageName === '' || pageName === 'index.html' || pageName === 'login.html';
-    const isAdminOnlyPage = pageName.includes('admin.html') || pageName.includes('audit_logs.html');
+    const isAdminOnlyPage = pageName.includes('admin.html') || pageName.includes('audit_logs.html') || pageName.includes('admin_logs.html');
 
     // Portal Hub (index.html) is public
     if (isPublicPage) {
@@ -594,12 +887,16 @@
       return false;
     }
 
-    // Admin pages require Admin role
+    // Admin pages require Admin or Supervisor role
     if (isAdminOnlyPage) {
-      if (user.role !== 'Admin') {
+      if (user.role !== 'Admin' && user.role !== 'Supervisor') {
         lockPageDisplay();
-        showSweetAlert('🔒 Access Denied', 'หน้านี้สงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น', 'warning');
-        setTimeout(function () { location.href = 'index.html'; }, 1500);
+        showSweetAlert(
+          '🔒 สงวนสิทธิ์ Admin / Supervisor',
+          'หน้านี้สงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) และหัวหน้างาน (Supervisor) เท่านั้น',
+          'warning'
+        );
+        setTimeout(function () { location.href = 'index.html'; }, 2000);
         return false;
       }
     }
@@ -610,12 +907,12 @@
 
   function updateModuleButtonsUI() {
     const u = getStoredUser();
-    const isAdmin = u && u.role === 'Admin';
+    const canAccessAdmin = u && (u.role === 'Admin' || u.role === 'Supervisor');
 
-    // Dynamic Admin Portal Card Visibility: Hide completely for non-admin users
+    // Dynamic Admin Portal Card Visibility: Visible for Admin & Supervisor
     const adminCardCol = document.getElementById('adminPortalCardCol');
     if (adminCardCol) {
-      adminCardCol.style.display = isAdmin ? 'block' : 'none';
+      adminCardCol.style.display = canAccessAdmin ? 'flex' : 'none';
     }
   }
 
@@ -888,7 +1185,30 @@
   function openChangePasswordModal() { openProfileModal(); }
   function handleChangePasswordSubmit(evt) { handleProfileSubmit(evt); }
 
-  /* ─── Profile Badge on Navbar ─── */
+  function toggleProfileDropdown(e) {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    const menu = document.getElementById('socnProfileDropdownMenu');
+    if (!menu) return;
+    const isShown = menu.style.display === 'block';
+    document.querySelectorAll('.socn-profile-dropdown-menu').forEach(el => el.style.display = 'none');
+    if (!isShown) {
+      menu.style.display = 'block';
+    }
+  }
+
+  // Global click listener to close dropdown on click outside
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.socn-profile-dropdown')) {
+      document.querySelectorAll('.socn-profile-dropdown-menu').forEach(function (el) {
+        el.style.display = 'none';
+      });
+    }
+  });
+
+  /* ─── Profile Badge Dropdown on Navbar ─── */
   function renderProfileBadge() {
     var user = getStoredUser();
     var db = getUsersDatabase();
@@ -896,7 +1216,7 @@
 
     var adminTile = document.getElementById('adminPortalCardCol');
     if (adminTile) {
-      if (!user || user.role === 'Admin') {
+      if (user && user.role === 'Admin') {
         adminTile.style.display = 'flex';
       } else {
         adminTile.style.display = 'none';
@@ -908,35 +1228,65 @@
       if (!badge) {
         badge = document.createElement('div');
         badge.className = 'user-profile-badge';
-        badge.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:.85rem;margin-left:auto;';
+        badge.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:.85rem;margin-left:auto;position:relative;';
         nav.appendChild(badge);
       }
 
       if (user) {
-        var roleBg = user.role === 'Admin' ? '#d0311d' : '#2563eb';
-        var adminPanelBtn = user.role === 'Admin' ? '<a href="admin.html" style="color:#ffffff;text-decoration:none;font-weight:700;background:#d0311d;padding:5px 12px;border-radius:8px;box-shadow:0 2px 8px rgba(208,49,29,0.4);font-size:0.82rem;"><i class="fa-solid fa-user-shield me-1"></i> 🛡️ Admin Dashboard</a>' : '';
-        
-        var pendingBadgeBtn = user.role === 'Admin' ? `
-          <button onclick="window.AuthGuard.openAdminApprovalModal()" style="background:#f59e0b; color:#fff; border:none; padding:5px 12px; border-radius:8px; font-weight:700; font-size:0.8rem; cursor:pointer; position:relative; box-shadow:0 2px 8px rgba(245,158,11,0.3);">
-            <i class="fa-solid fa-user-clock me-1"></i> อนุมัติสมาชิก
-            ${pendingCount > 0 ? `<span style="position:absolute; top:-6px; right:-6px; background:#dc2626; color:#fff; font-size:10px; font-weight:800; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; border:2px solid #fff;">${pendingCount}</span>` : ''}
-          </button>
-        ` : '';
+        var roleBg = user.role === 'Admin' ? '#dc2626' : (user.role === 'Supervisor' ? '#7c3aed' : '#2563eb');
+        var isAdmin = user.role === 'Admin';
+        var canManageUsers = user.role === 'Admin' || user.role === 'Supervisor';
 
-        var changePassBtn = `
-          <button onclick="window.AuthGuard.openProfileModal()" style="background:#0284c7; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-weight:700; font-size:0.8rem; cursor:pointer; box-shadow:0 2px 6px rgba(2,132,199,0.3);" title="แก้ไขชื่อผู้ใช้งาน (Username) หรือเปลี่ยนรหัสผ่าน">
-            <i class="fa-solid fa-user-pen me-1"></i> แก้ไขโปรไฟล์
-          </button>
+        badge.innerHTML = `
+          <div class="socn-profile-dropdown" style="position:relative; display:inline-flex; align-items:center;">
+            <button type="button" onclick="window.AuthGuard.toggleProfileDropdown(event)" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); padding:5px 12px; border-radius:24px; color:#fff; display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:0.83rem; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.25);">
+              <img src="${user.picture}" style="width:24px; height:24px; border-radius:50%; object-fit:cover;">
+              <span style="max-width:130px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(user.name)}</span>
+              <span style="background:${roleBg}; color:#fff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; text-transform:uppercase;">${user.role}</span>
+              ${(canManageUsers && pendingCount > 0) ? `<span style="background:#dc2626; color:#fff; font-size:10px; font-weight:800; border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 0 6px #dc2626;" title="${pendingCount} รออนุมัติ">${pendingCount}</span>` : ''}
+              <i class="fa-solid fa-chevron-down ms-1" style="font-size:0.7rem; color:#94a3b8;"></i>
+            </button>
+
+            <div id="socnProfileDropdownMenu" class="socn-profile-dropdown-menu" style="display:none; position:absolute; right:0; top:calc(100% + 8px); background:#0f172a; border:1px solid rgba(255,255,255,0.15); border-radius:14px; box-shadow:0 14px 35px rgba(0,0,0,0.65); min-width:250px; z-index:9999999; overflow:hidden; padding:6px 0; font-family:'Segoe UI',system-ui,sans-serif;">
+              <!-- Profile Info Header -->
+              <div style="padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.02);">
+                <div style="font-weight:800; color:#ffffff; font-size:0.92rem; line-height:1.2;">${esc(user.name)}</div>
+                <div style="color:#94a3b8; font-size:0.75rem; margin-top:3px; word-break:break-all;">${esc(user.email)}</div>
+                <div style="margin-top:6px; display:flex; align-items:center; gap:6px;">
+                  <span style="background:${roleBg}; color:#fff; font-size:10px; font-weight:800; padding:2px 8px; border-radius:10px;">${user.role}</span>
+                  <span style="color:#10b981; font-size:0.72rem; font-weight:700;">● Online</span>
+                </div>
+              </div>
+
+              <!-- Menu Links -->
+              <div style="padding:6px 0;">
+                ${isAdmin ? `
+                  <a href="admin.html" style="display:flex; align-items:center; gap:10px; padding:9px 16px; color:#f87171; text-decoration:none; font-size:0.83rem; font-weight:700; transition:background 0.15s;" onmouseover="this.style.background='rgba(239,68,68,0.12)'" onmouseout="this.style.background='transparent'">
+                    <i class="fa-solid fa-shield-halved text-danger" style="width:16px;"></i> 🛡️ Admin Dashboard
+                  </a>
+                ` : ''}
+
+                ${user.role === 'Supervisor' ? `
+                  <a href="admin.html" style="display:flex; align-items:center; justify-content:space-between; padding:9px 16px; color:#fbbf24; text-decoration:none; font-size:0.83rem; font-weight:700; transition:background 0.15s;" onmouseover="this.style.background='rgba(245,158,11,0.12)'" onmouseout="this.style.background='transparent'">
+                    <span style="display:flex; align-items:center; gap:10px;"><i class="fa-solid fa-users-gear text-warning" style="width:16px;"></i> 👥 จัดการสมาชิก (User Approvals)</span>
+                    ${pendingCount > 0 ? `<span style="background:#dc2626; color:#fff; font-size:10px; font-weight:800; padding:1px 6px; border-radius:10px;">${pendingCount}</span>` : ''}
+                  </a>
+                ` : ''}
+
+                <a href="#" onclick="window.AuthGuard.toggleProfileDropdown(); window.AuthGuard.openProfileModal(); return false;" style="display:flex; align-items:center; gap:10px; padding:9px 16px; color:#60a5fa; text-decoration:none; font-size:0.83rem; font-weight:600; transition:background 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'" onmouseout="this.style.background='transparent'">
+                  <i class="fa-solid fa-user-pen text-primary" style="width:16px;"></i> แก้ไขโปรไฟล์ & รหัสผ่าน
+                </a>
+              </div>
+
+              <!-- Divider & Logout -->
+              <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:4px; margin-top:2px;">
+                <a href="#" onclick="window.AuthGuard.toggleProfileDropdown(); window.AuthGuard.logout(); return false;" style="display:flex; align-items:center; gap:10px; padding:9px 16px; color:#ef4444; text-decoration:none; font-size:0.83rem; font-weight:700; transition:background 0.15s;" onmouseover="this.style.background='rgba(239,68,68,0.15)'" onmouseout="this.style.background='transparent'">
+                  <i class="fa-solid fa-right-from-bracket text-danger" style="width:16px;"></i> ออกจากระบบ (Logout)
+                </a>
+              </div>
+            </div>
+          </div>
         `;
-
-        badge.innerHTML = adminPanelBtn + pendingBadgeBtn +
-          '<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.15);">' +
-            '<img src="' + user.picture + '" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">' +
-            '<span style="font-weight:700;color:#fff;">' + esc(user.name) + '</span>' +
-            '<span style="background:' + roleBg + ';color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:12px;text-transform:uppercase;">' + user.role + '</span>' +
-          '</div>' +
-          changePassBtn +
-          '<button onclick="window.AuthGuard.logout()" style="background:#dc2626;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-weight:700;font-size:.8rem;cursor:pointer;"><i class="fa-solid fa-right-from-bracket me-1"></i> Logout</button>';
       } else {
         badge.innerHTML = `
           <button onclick="window.AuthGuard.showModal('🔑 เข้าสู่ระบบ / ลงทะเบียน')" style="background:#2563eb; color:#fff; border:none; padding:6px 14px; border-radius:8px; font-weight:700; font-size:0.82rem; cursor:pointer; box-shadow:0 2px 6px rgba(37,99,235,0.4);"><i class="fa-solid fa-key me-1"></i> 🔑 เข้าสู่ระบบ / ลงทะเบียน</button>
@@ -960,13 +1310,55 @@
         padding: 0 !important;
       }
 
-      /* Mobile Navigation Bar Auto Wrapping & Overflow Fix */
+      /* Navbar & Portal Status Bar Layout to ensure User Badge & Logout are ALWAYS visible */
+      nav, .top-nav {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+        padding: 8px 18px !important;
+        background: #0d1b2a !important;
+        color: #ffffff !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 1020 !important;
+      }
+
+      .portal-status-bar {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        flex-wrap: wrap !important;
+        gap: 12px !important;
+      }
+
+      .user-profile-badge {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin-left: auto !important;
+        flex-shrink: 0 !important;
+        z-index: 1030 !important;
+        flex-wrap: wrap !important;
+      }
+
+      /* Mobile & Tablet Navigation Auto Wrapping */
+      @media (max-width: 1200px) {
+        nav, .top-nav {
+          padding: 8px 14px !important;
+        }
+        .user-profile-badge {
+          margin-left: auto !important;
+        }
+      }
+
       @media (max-width: 992px) {
         .top-nav, nav {
           padding: 10px 14px !important;
           flex-direction: column !important;
           align-items: flex-start !important;
-          gap: 8px !important;
+          gap: 10px !important;
         }
         .top-nav a.brand-title, nav a {
           font-size: 0.92rem !important;
@@ -1026,7 +1418,7 @@
       const currentPath = location.pathname.toLowerCase();
       const pageName = currentPath.split('/').pop() || 'index.html';
       const isPublicPage = pageName === '' || pageName === 'index.html' || pageName === 'login.html';
-      const isAdminPage = pageName.includes('admin.html') || pageName.includes('audit_logs.html');
+      const isAdminPage = pageName.includes('admin.html') || pageName.includes('audit_logs.html') || pageName.includes('admin_logs.html');
 
       if (!isPublicPage && !user) {
         location.href = 'index.html';
@@ -1044,13 +1436,18 @@
     switchTab: switchTab,
     handleLoginSubmit: handleLoginSubmit,
     handleSignupSubmit: handleSignupSubmit,
+    toggleProfileDropdown: toggleProfileDropdown,
     openProfileModal: openProfileModal,
     handleProfileSubmit: handleProfileSubmit,
     openChangePasswordModal: openChangePasswordModal,
     handleChangePasswordSubmit: handleChangePasswordSubmit,
     openAdminApprovalModal: openAdminApprovalModal,
     renderAdminApprovalTable: renderAdminApprovalTable,
+    openDirectAddModal: openDirectAddModal,
+    handleDirectAddSubmit: handleDirectAddSubmit,
     approveUser: approveUser,
+    changeRole: changeRole,
+    resetUserPassword: resetUserPassword,
     rejectUser: rejectUser,
     extendSession: function () {
       resetIdleTimer();
