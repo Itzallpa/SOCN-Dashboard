@@ -2514,10 +2514,63 @@ def manage_staff_member_api():
             "rosterByZone": new_roster_by_zone
         })
 
-SOURCE_DIR = os.path.join(BASE_DIR, "Source")
+CUSTOM_CUTOFF_FILE = os.path.join(DATA_DIR, "custom_cutoff_schedule.json")
+
+def infer_cutoff_zone(row_data, area_group=""):
+    # 1. Check explicit zone columns from uploaded or row data
+    for k in ["Zone", "zone", "OBD ZONE", "OBD Zone", "obd_zone", "Zone Group", "zone_group"]:
+        if k in row_data and row_data[k] and str(row_data[k]).strip().lower() not in ["", "nan", "none"]:
+            val = str(row_data[k]).strip().upper()
+            if val in ["A", "ZONE A", "ZONE_A"]: return "Zone A"
+            if val in ["B", "ZONE B", "ZONE_B"]: return "Zone B"
+            if val in ["C", "ZONE C", "ZONE_C"]: return "Zone C"
+            if "INTER" in val: return "Zone InterSOC"
+            if "RET" in val: return "Zone Return"
+            if not val.startswith("Zone ") and len(val) <= 4:
+                return f"Zone {val}"
+            return str(row_data[k]).strip()
+    
+    # 2. Look up from Hub Master database (where both GBKK and UPC stations are mapped to OBD Zone)
+    station_name = str(row_data.get("station_name") or row_data.get("LM Station Name") or "").strip()
+    station_id = str(row_data.get("station_id") or row_data.get("LM Station ID") or "").replace(".0", "").strip()
+    
+    hub_map = build_hub_zone_map()
+    resolved_z = None
+    if station_id and station_id.lower() in hub_map:
+        resolved_z = hub_map[station_id.lower()]
+    elif station_name:
+        resolved_z = lookup_obd_zone(station_name, hub_map)
+        
+    if resolved_z:
+        if resolved_z == 'A': return "Zone A"
+        if resolved_z == 'B': return "Zone B"
+        if resolved_z == 'C': return "Zone C"
+        if resolved_z == 'INTERSOC': return "Zone InterSOC"
+        if resolved_z == 'RETURN': return "Zone Return"
+        return f"Zone {resolved_z}"
+
+    return "Zone A"
+
 
 @app.route("/api/cutoff-schedule", methods=["GET"])
 def get_cutoff_schedule_api():
+    # If custom uploaded cutoff file exists, load it
+    if os.path.exists(CUSTOM_CUTOFF_FILE):
+        try:
+            with open(CUSTOM_CUTOFF_FILE, "r", encoding="utf-8") as f:
+                custom_data = json.load(f)
+                if isinstance(custom_data, list) and len(custom_data) > 0:
+                    return jsonify({
+                        "success": True,
+                        "is_custom": True,
+                        "total": len(custom_data),
+                        "data": custom_data,
+                        "updatedAt": datetime.fromtimestamp(os.path.getmtime(CUSTOM_CUTOFF_FILE)).strftime("%Y-%m-%d %H:%M:%S")
+                    })
+        except Exception as e:
+            print("Error loading custom cutoff file:", e)
+
+    # Fallback to source files
     files = [
         ('UPC Milkrun', os.path.join(SOURCE_DIR, 'test  - SOCN_UPC_Milkrun.csv')),
         ('UPC Direct', os.path.join(SOURCE_DIR, 'test  - SOCN_UPC_Direct.csv')),
@@ -2561,6 +2614,7 @@ def get_cutoff_schedule_api():
                     'cut3_arr': str(row.get('Unnamed: 22', '') or '' if pd.notna(row.get('Unnamed: 22')) else ''),
                     'cut3_travel': str(row.get('Unnamed: 23', '') or '' if pd.notna(row.get('Unnamed: 23')) else ''),
                 }
+                entry['zone'] = infer_cutoff_zone(entry, area_type)
                 if 'Sunday Cut' in df.columns:
                     entry['sun_ob'] = str(row.get('Sunday Cut', '') or '' if pd.notna(row.get('Sunday Cut')) else '')
                     entry['sun_arr'] = str(row.get('Unnamed: 25', '') or '' if pd.notna(row.get('Unnamed: 25')) else '')
@@ -2569,7 +2623,141 @@ def get_cutoff_schedule_api():
                 cutoff_list.append(entry)
         except Exception as e:
             print("Error parsing cutoff file", path, e)
-    return jsonify({"success": True, "total": len(cutoff_list), "data": cutoff_list})
+    return jsonify({"success": True, "is_custom": False, "total": len(cutoff_list), "data": cutoff_list})
+
+
+@app.route("/api/cutoff-schedule/upload", methods=["POST"])
+def upload_cutoff_schedule_api():
+    if "file" not in request.files:
+        return jsonify({"success": False, "error": "ไม่พบไฟล์ที่อัปโหลด"}), 400
+    
+    file = request.files["file"]
+    if not file or not file.filename:
+        return jsonify({"success": False, "error": "ชื่อไฟล์ไม่ถูกต้อง"}), 400
+        
+    filename = file.filename.lower()
+    if not (filename.endswith('.xlsx') or filename.endswith('.xls') or filename.endswith('.csv')):
+        return jsonify({"success": False, "error": "รองรับเฉพาะไฟล์ Excel (.xlsx, .xls) หรือ CSV (.csv) เท่านั้น"}), 400
+
+    try:
+        temp_path = os.path.join(UPLOAD_FOLDER, f"cutoff_upload_{int(time.time())}_{file.filename}")
+        file.save(temp_path)
+        
+        parsed_list = []
+        if filename.endswith('.csv'):
+            df = pd.read_csv(temp_path, on_bad_lines='skip')
+            dfs = [("Cutoff Master", df)]
+        else:
+            xl = pd.ExcelFile(temp_path)
+            dfs = []
+            for sheet in xl.sheet_names:
+                dfs.append((sheet, xl.parse(sheet)))
+
+        for sheet_name, df in dfs:
+            if df.empty: continue
+            
+            # Map column names flexibly
+            col_map = {}
+            for col in df.columns:
+                c_clean = str(col).strip().lower().replace("_", " ").replace("-", " ")
+                if any(k in c_clean for k in ["station name", "station_name", "สถานี", "ชื่อสถานี"]):
+                    col_map["station_name"] = col
+                elif any(k in c_clean for k in ["station id", "station_id", "รหัสสถานี", "lm station id"]):
+                    col_map["station_id"] = col
+                elif any(k in c_clean for k in ["zone", "โซน", "obd zone"]):
+                    col_map["zone"] = col
+                elif any(k in c_clean for k in ["area group", "สายงาน", "กลุ่มสายงาน"]):
+                    col_map["area_group"] = col
+                elif any(k in c_clean for k in ["province", "จังหวัด"]):
+                    col_map["province"] = col
+                elif any(k in c_clean for k in ["district", "อำเภอ"]):
+                    col_map["district"] = col
+                elif any(k in c_clean for k in ["cut 0", "cut0", "รอบ 0", "c0"]):
+                    col_map["cut0_ob"] = col
+                elif any(k in c_clean for k in ["cut 1", "cut1", "รอบ 1", "c1"]):
+                    col_map["cut1_ob"] = col
+                elif any(k in c_clean for k in ["cut 2", "cut2", "รอบ 2", "c2"]):
+                    col_map["cut2_ob"] = col
+                elif any(k in c_clean for k in ["cut 3", "cut3", "รอบ 3", "c3"]):
+                    col_map["cut3_ob"] = col
+                elif any(k in c_clean for k in ["sunday", "sun cut", "รอบวันอาทิตย์"]):
+                    col_map["sun_ob"] = col
+                elif any(k in c_clean for k in ["op type", "operation type", "ประเภท"]):
+                    col_map["op_type"] = col
+            
+            # If standard station_name not matched, try finding first string column with 'Station'
+            if "station_name" not in col_map:
+                for col in df.columns:
+                    if "station" in str(col).lower():
+                        col_map["station_name"] = col
+                        break
+
+            for _, row in df.iterrows():
+                st_name = str(row.get(col_map.get("station_name", "LM Station Name"), "") or "").strip()
+                if not st_name or st_name.lower() in ["nan", "none", "lm station name"]:
+                    continue
+
+                area_grp = str(row.get(col_map.get("area_group", "Area Group"), sheet_name) or sheet_name).strip()
+                item_zone = str(row.get(col_map.get("zone", "Zone"), "") or "").strip()
+                if not item_zone or item_zone.lower() in ["nan", "none"]:
+                    item_zone = infer_cutoff_zone(row.to_dict(), area_grp)
+
+                entry = {
+                    "station_name": st_name,
+                    "station_id": str(row.get(col_map.get("station_id", "LM Station ID"), "") or "").replace(".0", "").strip(),
+                    "zone": item_zone,
+                    "area_group": area_grp,
+                    "area": str(row.get("Area", "") or "").strip(),
+                    "province": str(row.get(col_map.get("province", "Province"), "") or "").strip(),
+                    "district": str(row.get(col_map.get("district", "District"), "") or "").strip(),
+                    "op_type": str(row.get(col_map.get("op_type", "Operation Type"), "") or "").strip(),
+                    "cut0_ob": str(row.get(col_map.get("cut0_ob", "Cut 0"), "") or "").strip(),
+                    "cut0_arr": str(row.get("Cut 0 Arrival", "") or "").strip(),
+                    "cut0_travel": str(row.get("Cut 0 Travel", "") or "").strip(),
+                    "cut1_ob": str(row.get(col_map.get("cut1_ob", "Cut 1"), "") or "").strip(),
+                    "cut1_arr": str(row.get("Cut 1 Arrival", "") or "").strip(),
+                    "cut1_rec": str(row.get("Cut 1 Received", "") or "").strip(),
+                    "cut1_travel": str(row.get("Cut 1 Travel", "") or "").strip(),
+                    "cut2_ob": str(row.get(col_map.get("cut2_ob", "Cut 2"), "") or "").strip(),
+                    "cut2_arr": str(row.get("Cut 2 Arrival", "") or "").strip(),
+                    "cut2_rec": str(row.get("Cut 2 Received", "") or "").strip(),
+                    "cut2_travel": str(row.get("Cut 2 Travel", "") or "").strip(),
+                    "cut3_ob": str(row.get(col_map.get("cut3_ob", "Cut 3"), "") or "").strip(),
+                    "cut3_arr": str(row.get("Cut 3 Arrival", "") or "").strip(),
+                    "cut3_travel": str(row.get("Cut 3 Travel", "") or "").strip(),
+                    "sun_ob": str(row.get(col_map.get("sun_ob", "Sunday Cut"), "") or "").strip()
+                }
+                parsed_list.append(entry)
+
+        if not parsed_list:
+            return jsonify({"success": False, "error": "ไม่พบข้อมูลสถานีในไฟล์ที่อัปโหลด กรุณาตรวจสอบหัวตาราง"}), 400
+
+        with open(CUSTOM_CUTOFF_FILE, "w", encoding="utf-8") as f:
+            json.dump(parsed_list, f, ensure_ascii=False, indent=2)
+
+        log_activity("CUTOFF_MASTER_UPLOAD", f"อัปโหลดและอัปเดตไฟล์ Cut-off Master ({len(parsed_list)} สถานี): {file.filename}")
+
+        return jsonify({
+            "success": True,
+            "message": f"อัปโหลดและอัปเดตข้อมูล Cut-off Master สำเร็จ ({len(parsed_list):,} สถานี)",
+            "total": len(parsed_list),
+            "data": parsed_list
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการประมวลผลไฟล์: {str(e)}"}), 500
+
+
+@app.route("/api/cutoff-schedule/reset", methods=["POST"])
+def reset_cutoff_schedule_api():
+    if os.path.exists(CUSTOM_CUTOFF_FILE):
+        try:
+            os.remove(CUSTOM_CUTOFF_FILE)
+            log_activity("CUTOFF_MASTER_RESET", "รีเซ็ตข้อมูล Cut-off Master กลับเป็นค่าเริ่มต้น")
+            return jsonify({"success": True, "message": "รีเซ็ตข้อมูล Cut-off Master กลับเป็นค่าเริ่มต้นเรียบร้อยแล้ว"})
+        except Exception as e:
+            return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ข้อมูลคัสตอมได้: {str(e)}"}), 500
+    return jsonify({"success": True, "message": "ข้อมูลอยู่ในสถานะค่าเริ่มต้นอยู่แล้ว"})
+
 
 def get_active_ttb_sheet(date_str=None):
     dt = None
@@ -3440,6 +3628,7 @@ def load_system_settings():
             "triggerCondition": "below_minimum",
             "mentionType": "specific",
             "mentionEmails": ["guy.panmanee@spxexpress.com"],
+            "ccText": "",
             "autoAlertIntervalMinutes": 60
         },
         "googleSheetSync": {
@@ -3548,6 +3737,7 @@ def test_seatalk_alert_api():
     webhook_type = req.get("webhookType") or "seatalk"
     mention_type = req.get("mentionType") or "specific"
     mention_emails = req.get("mentionEmails") or []
+    cc_text = (req.get("ccText") or "").strip()
     
     if not webhook_url:
         settings = load_system_settings()
@@ -3556,6 +3746,8 @@ def test_seatalk_alert_api():
         webhook_type = st_cfg.get("webhookType", "seatalk")
         mention_type = st_cfg.get("mentionType", "specific")
         mention_emails = st_cfg.get("mentionEmails", [])
+        if not cc_text:
+            cc_text = (st_cfg.get("ccText") or "").strip()
 
     if not webhook_url:
         return jsonify({"success": False, "error": "กรุณาระบุ Webhook URL ก่อนกดทดสอบ"}), 400
@@ -3566,9 +3758,9 @@ def test_seatalk_alert_api():
 ⏰ เวลาทดสอบ: {now_str}
 🎯 เป้าหมายระบบ (Target): 45,000 ชิ้น/ชม.
 ⚠️ เกณฑ์ขั้นต่ำ (Minimum): 40,000 ชิ้น/ชม.
-📡 สถานะการเชื่อมต่อ: ✅ เชื่อมต่อสำเร็จ (Connection Verified)
-━━━━━━━━━━━━━━━━━━━━
-ระบบพร้อมส่งแจ้งเตือนอัตโนมัติเมื่อยอดปล่อยหลุดเป้าหมายรายชั่วโมง"""
+📡 สถานะการเชื่อมต่อ: ✅ เชื่อมต่อสำเร็จ (Connection Verified)"""
+    if cc_text:
+        test_msg += f"\nCC: {cc_text}"
 
     mention_all = (mention_type == "all")
     emails_to_tag = mention_emails if (mention_type == "specific") else []
@@ -3717,27 +3909,32 @@ def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
                 tracker_data["summary_rows"] = {}
             if "last_alerted" not in tracker_data:
                 tracker_data["last_alerted"] = {}
+            if "alerted_hashes" not in tracker_data:
+                tracker_data["alerted_hashes"] = []
+            if "alerted_slots" not in tracker_data:
+                tracker_data["alerted_slots"] = []
                 
-            prev_records = tracker_data["records"].get(date_str, {})
+            prev_records = dict(tracker_data["records"].get(date_str, {}))
+            is_board_data_changed = (prev_records != records)
+            
             tracker_data["records"][date_str] = records
             tracker_data["zone_breakdowns"][date_str] = zone_details
             tracker_data["summary_rows"][date_str] = summary_rows
             tracker_data["lastSyncAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             tracker_data["lastSyncDate"] = date_str
             
-            # Auto-alert evaluation (Skip 13:00 - 17:00, only alert on NEW or CHANGED under-target data)
+            # Auto-alert evaluation:
+            # 1. Skip if board data did NOT change
+            # 2. Skip standby quiet hours 13:00 - 17:00
+            # 3. Strictly 1 alert per hour slot & deduplicate by exact date_slot_actual hash
             st_cfg = settings.get("seatalk", {})
-            if st_cfg.get("enabled") and st_cfg.get("webhookUrl"):
+            if st_cfg.get("enabled") and st_cfg.get("webhookUrl") and is_board_data_changed:
                 target_normal = settings.get("hourlyTarget", 45000)
                 target_min = settings.get("hourlyMinimum", 40000)
                 target_peak = settings.get("peakHourTarget", 50000)
                 peak_hours = set(settings.get("peakHours", []))
                 cond = st_cfg.get("triggerCondition", "below_minimum")
                 
-                if "alerted_slots" not in tracker_data:
-                    tracker_data["alerted_slots"] = []
-                if "last_alerted" not in tracker_data:
-                    tracker_data["last_alerted"] = {}
                 if date_str not in tracker_data["last_alerted"]:
                     tracker_data["last_alerted"][date_str] = {}
                     
@@ -3758,8 +3955,13 @@ def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
                         continue
                         
                     slot_key = f"{date_str}_{slot_lbl}"
-                    # STRICT 1-ALERT RULE: If this slot has ALREADY been alerted today, SKIP completely!
-                    if slot_key in tracker_data["alerted_slots"] or slot_lbl in tracker_data["last_alerted"].get(date_str, {}):
+                    slot_hash = f"{date_str}_{slot_lbl}_{act}"
+                    
+                    # STRICT DEDUPLICATION: If this slot or exact volume hash was already alerted, SKIP!
+                    if (slot_key in tracker_data["alerted_slots"] or 
+                        slot_hash in tracker_data["alerted_hashes"] or 
+                        slot_lbl in tracker_data["last_alerted"].get(date_str, {}) or
+                        prev_records.get(slot_lbl) == act):
                         continue
                         
                     is_peak = slot_lbl in peak_hours
@@ -3779,6 +3981,7 @@ def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
                     # Take the most recent failed slot
                     slot_lbl, h_val, act, slot_target, is_peak = slots_to_alert[-1]
                     slot_key = f"{date_str}_{slot_lbl}"
+                    slot_hash = f"{date_str}_{slot_lbl}_{act}"
                     
                     gap = act - slot_target
                     pct = round((act / slot_target * 100), 1) if slot_target > 0 else 0.0
@@ -3815,25 +4018,32 @@ def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
 📍 ยอดตามโซน: A: {za:,} | B: {zb:,} | C: {zc:,}
 ⚠️ โซนที่หลุดเป้า/ช้าสุด: {lowest_str}
 👤 ผู้รับผิดชอบ {lowest_zone_name} (ใครช้า): {staff_str}
-👔 Supervisor ประจำรอบ: {sups_str}
-━━━━━━━━━━━━━━━━━━━━
-🔴 สถานะ: Under {'Minimum ' if act < target_min else ''}Target
-👉 ตรวจสอบ & แนบหลักฐาน: http://localhost:5000/hourly_tracker.html"""
+👔 Supervisor ประจำรอบ: {sups_str}"""
+
+                    cc_text = (st_cfg.get("ccText") or "").strip()
+                    if cc_text:
+                        msg += f"\nCC: {cc_text}"
 
                     mention_all = (st_cfg.get("mentionType") == "all")
                     emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
                     send_seatalk_alert(st_cfg.get("webhookUrl"), msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"))
                     
-                    # Mark this slot as permanently alerted for today
+                    # Mark this slot and hash as permanently alerted
                     tracker_data["last_alerted"][date_str][slot_lbl] = current_timestamp
                     if slot_key not in tracker_data["alerted_slots"]:
                         tracker_data["alerted_slots"].append(slot_key)
+                    if slot_hash not in tracker_data["alerted_hashes"]:
+                        tracker_data["alerted_hashes"].append(slot_hash)
+                        
                     # Also mark previous un-alerted failed slots in batch so they don't trigger in future cycles
-                    for s_lbl, _, _, _, _ in slots_to_alert:
+                    for s_lbl, _, a_val, _, _ in slots_to_alert:
                         prev_k = f"{date_str}_{s_lbl}"
+                        prev_h = f"{date_str}_{s_lbl}_{a_val}"
                         tracker_data["last_alerted"][date_str][s_lbl] = current_timestamp
                         if prev_k not in tracker_data["alerted_slots"]:
                             tracker_data["alerted_slots"].append(prev_k)
+                        if prev_h not in tracker_data["alerted_hashes"]:
+                            tracker_data["alerted_hashes"].append(prev_h)
 
                     log_activity("SEATALK_AUTO_ALERT", f"🚨 ส่งแจ้งเตือน SeaTalk (จำกัด 1 ข้อความ/ชม.): {date_str} {slot_lbl} ยอด {act:,} ชิ้น (หลุดเป้า: {lowest_str} | ผู้รับผิดชอบ: {staff_str})")
 
@@ -4290,10 +4500,11 @@ def save_hourly_tracker_api():
 🎯 เป้าหมาย (Target): {slot_target:,} ชิ้น
 ⚠️ เกณฑ์ขั้นต่ำ (Minimum): {target_min:,} ชิ้น
 📦 ปล่อยจริง (Actual): {act:,} ชิ้น
-📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)
-━━━━━━━━━━━━━━━━━━━━
-🔴 สถานะ: Under {'Minimum ' if act < target_min else ''}Target
-👉 ตรวจสอบรายละเอียด: http://localhost:5000/hourly_tracker.html"""
+📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)"""
+            
+            cc_text = (st_cfg.get("ccText") or "").strip()
+            if cc_text:
+                msg += f"\nCC: {cc_text}"
             
             mention_all = (st_cfg.get("mentionType") == "all")
             emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
@@ -4335,10 +4546,11 @@ def send_manual_hourly_alert_api():
 🎯 เป้าหมาย (Target): {target:,} ชิ้น
 ⚠️ เกณฑ์ขั้นต่ำ (Minimum): {min_val:,} ชิ้น
 📦 ปล่อยจริง (Actual): {actual:,} ชิ้น
-📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)
-━━━━━━━━━━━━━━━━━━━━
-🔴 สถานะ: หลุดเป้าหมายรายชั่วโมง (Under Target)
-👉 ตรวจสอบรายละเอียด: http://localhost:5000/hourly_tracker.html"""
+📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)"""
+
+    cc_text = (st_cfg.get("ccText") or "").strip()
+    if cc_text:
+        msg += f"\nCC: {cc_text}"
 
     mention_all = (st_cfg.get("mentionType") == "all")
     emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []

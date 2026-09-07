@@ -1,5 +1,95 @@
 [
   {
+    "id": "54f3134f",
+    "timestamp": "2026-09-08 00:33:20",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "5700a2c8",
+    "timestamp": "2026-09-08 00:30:52",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYSTEM_SETTINGS_UPDATE",
+    "details": "🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: 45000, Min: 40000)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "1baf2cc2",
+    "timestamp": "2026-09-08 00:28:51",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "5539bdcc",
+    "timestamp": "2026-09-08 00:21:58",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "GOOGLE_SHEET_SYNC",
+    "details": "🔄 ซิงค์ข้อมูล Google Sheet สำเร็จ (วันที่ 2026-09-07, ยอดรวม 179,230 ชิ้น, 24 ชั่วโมง)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "d3363183",
+    "timestamp": "2026-09-08 00:17:12",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "892fba40",
+    "timestamp": "2026-09-08 00:13:31",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "6f7399c3",
+    "timestamp": "2026-09-08 00:11:10",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "6eb18c5e",
+    "timestamp": "2026-09-08 00:11:09",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "17377fb9",
+    "timestamp": "2026-09-07 23:07:15",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
     "id": "53075214",
     "timestamp": "2026-09-07 22:57:25",
     "email": "guy.panmanee@spxexpress.com",

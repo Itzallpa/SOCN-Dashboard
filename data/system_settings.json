@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-07 21:24:38",
+  "updatedAt": "2026-09-08 00:30:52",
   "hourlyTarget": 45000,
   "hourlyMinimum": 40000,
   "hourlyMinimumPct": 90,
@@ -50,13 +50,11 @@
     "triggerCondition": "below_minimum",
     "mentionType": "specific",
     "mentionEmails": [
-      "guy.panmanee@spxexpress.com",
-      "men.phuditde@spxexpress.com",
-      "tom.disayach@spxexpress.com",
       "chain.kedsirin@spxexpress.com",
       "nulack.promarpo@spxexpress.com",
       "big.amorntee@spxexpress.com"
     ],
+    "ccText": "guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com, tom.disayach@spxexpress.com,cho.jeamwong@spxexpress.com",
     "autoAlertIntervalMinutes": 60
   },
   "googleSheetSync": {

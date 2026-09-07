@@ -3,29 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOC Cutoff Schedule & TTB Master</title>
+  <title>SOC Cutoff Schedule & TTB Master (By Zone & Live Alert)</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     body {
-      background-color: #f4f6f9;
+      background-color: #f1f5f9;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       color: #1e293b;
-      padding-bottom: 50px;
+      padding-bottom: 60px;
     }
     .card-custom {
       background: #ffffff;
-      border-radius: 12px;
-      border: none;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      margin-bottom: 24px;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.04);
+      margin-bottom: 20px;
     }
     .nav-tabs .nav-link {
-      font-weight: 600;
+      font-weight: 700;
       color: #64748b;
       border: none;
       border-bottom: 3px solid transparent;
-      padding: 12px 20px;
+      padding: 12px 22px;
+      font-size: 0.95rem;
     }
     .nav-tabs .nav-link.active {
       color: #2563eb;
@@ -33,24 +34,73 @@
       background: transparent;
     }
     .table-custom {
-      font-size: 0.88rem;
+      font-size: 0.85rem;
     }
     .table-custom th {
       background-color: #0f172a;
       color: #ffffff;
       font-weight: 600;
       vertical-align: middle;
+      padding: 10px 8px;
     }
-    .badge-cutoff {
-      font-size: 0.78rem;
-      padding: 4px 8px;
-      border-radius: 6px;
+    .table-custom td {
+      padding: 8px 8px;
+      vertical-align: middle;
+    }
+    .animate-pulse {
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.02); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .badge-zone-a { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-weight: 800; }
+    .badge-zone-b { background-color: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; font-weight: 800; }
+    .badge-zone-c { background-color: #fefce8; color: #a16207; border: 1px solid #fef08a; font-weight: 800; }
+    .badge-zone-other { background-color: #f8fafc; color: #475569; border: 1px solid #cbd5e1; font-weight: 800; }
+    .row-imminent {
+      background-color: rgba(239, 68, 68, 0.09) !important;
+      border-left: 5px solid #ef4444 !important;
+    }
+    .row-upcoming {
+      background-color: rgba(245, 158, 11, 0.06) !important;
+      border-left: 5px solid #f59e0b !important;
+    }
+    .clock-widget {
+      background: #0f172a;
+      color: #38bdf8;
+      font-family: 'Courier New', Courier, monospace;
+      padding: 6px 14px;
+      border-radius: 10px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+    }
+    .urgent-card {
+      background: #fff;
+      border: 1px solid #fecaca;
+      border-left: 4px solid #ef4444;
+      border-radius: 10px;
+      padding: 10px 14px;
+      transition: all 0.2s;
+    }
+    .urgent-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+    }
+    .warning-card {
+      background: #fff;
+      border: 1px solid #fed7aa;
+      border-left: 4px solid #f97316;
+      border-radius: 10px;
+      padding: 10px 14px;
+      transition: all 0.2s;
     }
   </style>
 </head>
 <body>
 
-  
   <!-- Top Navigation Header -->
   <nav style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:9999;">
     <a href="index.html" style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
@@ -69,27 +119,112 @@
   </nav>
   <script src="auth_guard.js"></script>
 
-
   <div class="container-fluid px-4 py-3">
 
-    <!-- Header Banner -->
-    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded-3 shadow-sm border">
+    <!-- Header Banner with Live Clock & Action Buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-3 rounded-3 shadow-sm border flex-wrap gap-3">
       <div>
-        <h4 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-clock text-warning me-2"></i> SOC Cutoff Schedule & Truck Timetable (TTB) Master</h4>
-        <p class="text-muted small mb-0">ค้นหารอบเวลา Cutoff มาตรฐาน (UPC Direct, Milkrun, GBKK) และตารางรถวิ่ง TTB รายวัน</p>
+        <h4 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-clock text-warning me-2"></i> SOC Cutoff Schedule & Truck Timetable Master</h4>
+        <p class="text-muted small mb-0">ตรวจสอบรอบ Cutoff ตาม OBD Zone จริง (ทั้ง GBKK และ UPC), แจ้งเตือนสถานีที่กำลังจะต้องปล่อยแบบ Real-time, และอัปโหลดไฟล์ตารางได้ตลอดเวลา</p>
       </div>
-      <div>
-        <span class="badge bg-primary px-3 py-2 fs-6" id="totalMasterRecordsBadge"><i class="fa-solid fa-database me-1"></i> Loading Master Data...</span>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="clock-widget d-flex align-items-center gap-2">
+          <i class="fa-solid fa-stopwatch text-warning"></i>
+          <span id="liveClockDisplay">--:--:--</span>
+        </div>
+        <button class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="openUploadCutoffModal()">
+          <i class="fa-solid fa-cloud-arrow-up me-1"></i> 📤 อัปโหลดไฟล์ Cut-off ใหม่
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="exportCutoffDataAsCsv()" title="ดาวน์โหลดข้อมูลเป็นไฟล์ CSV">
+          <i class="fa-solid fa-file-export me-1"></i> ส่งออก CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- SUMMARY KPI CARDS -->
+    <div class="row g-3 mb-3">
+      <!-- Imminent Alert Card (< 30 min) -->
+      <div class="col-md-3">
+        <div class="card-custom p-3 border-danger border-2 bg-white" style="border-left: 6px solid #ef4444 !important;">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <span class="text-danger fw-bold small"><i class="fa-solid fa-fire me-1"></i> 🚨 ต้องปล่อยด่วน (< 30 นาที)</span>
+            <span class="badge bg-danger animate-pulse" id="imminentCountBadge">0 สถานี</span>
+          </div>
+          <div class="h3 fw-bold text-danger mb-1" id="kpiImminentCount">0</div>
+          <div class="text-muted small" id="kpiImminentDetails">ไม่มีสถานีที่ต้องปล่อยใน 30 นาทีนี้</div>
+        </div>
+      </div>
+
+      <!-- Upcoming Card (30-60 min) -->
+      <div class="col-md-3">
+        <div class="card-custom p-3 border-warning border-2 bg-white" style="border-left: 6px solid #f97316 !important;">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <span class="text-warning-emphasis fw-bold small"><i class="fa-solid fa-clock-rotate-left me-1"></i> เตรียมปล่อย (30-60 นาที)</span>
+            <span class="badge bg-warning text-dark" id="upcomingCountBadge">0 สถานี</span>
+          </div>
+          <div class="h3 fw-bold text-warning-emphasis mb-1" id="kpiUpcomingCount">0</div>
+          <div class="text-muted small" id="kpiUpcomingDetails">รอบ Cutoff ใน 1 ชั่วโมงข้างหน้า</div>
+        </div>
+      </div>
+
+      <!-- Total Master Records -->
+      <div class="col-md-3">
+        <div class="card-custom p-3 bg-white" style="border-left: 6px solid #2563eb !important;">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <span class="text-primary fw-bold small"><i class="fa-solid fa-database me-1"></i> สถานีปลายทางทั้งหมด</span>
+            <span class="badge bg-primary" id="masterDataSourceBadge">System Default</span>
+          </div>
+          <div class="h3 fw-bold text-slate-800 mb-1" id="kpiTotalStations">0</div>
+          <div class="text-muted small" id="kpiTotalStationsDetails">โหลดจาก Master Data</div>
+        </div>
+      </div>
+
+      <!-- Zone Distribution Summary -->
+      <div class="col-md-3">
+        <div class="card-custom p-3 bg-white" style="border-left: 6px solid #10b981 !important;">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <span class="text-success fw-bold small"><i class="fa-solid fa-layer-group me-1"></i> กระจายตาม OBD Zone</span>
+            <span class="badge bg-success bg-opacity-10 text-success" id="zoneCountSummaryBadge">3 โซน</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-2 small" id="zoneDistributionContainer">
+            <span><b class="text-primary" id="zoneACount">0</b> (Zone A)</span>
+            <span><b class="text-success" id="zoneBCount">0</b> (Zone B)</span>
+            <span><b class="text-warning" id="zoneCCount">0</b> (Zone C)</span>
+          </div>
+          <div class="text-muted small mt-1" style="font-size:0.75rem;">แต่ละ Zone ประกอบด้วยทั้ง GBKK และ UPC</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🚨 PROMINENT REAL-TIME RELEASE ALERT BOARD -->
+    <div id="urgentAlertSection" class="card-custom p-3 mb-3 border-danger shadow-sm bg-danger bg-opacity-10 d-none">
+      <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+        <div class="fw-bold text-danger fs-6 d-flex align-items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation fa-lg animate-pulse"></i>
+          <span>🚨 สถานีที่กำลังจะต้องปล่อยรอบ Cut-off ทันที (< 30 นาที):</span>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+          <button class="btn btn-sm btn-danger fw-bold shadow-sm" onclick="filterOnlyImminent()">
+            <i class="fa-solid fa-filter me-1"></i> กรองดูในตารางเฉพาะสถานีเหล่านี้
+          </button>
+        </div>
+      </div>
+      <div class="row g-2" id="urgentStationsGrid">
+        <!-- Dynamic Urgent Cards -->
       </div>
     </div>
 
     <!-- Nav Tabs -->
-    <ul class="nav nav-tabs mb-4" id="masterTabs" role="tablist">
+    <ul class="nav nav-tabs mb-3" id="masterTabs" role="tablist">
       <li class="nav-item">
-        <button class="nav-link active" id="cutoff-tab" data-bs-toggle="tab" data-bs-target="#cutoff-pane"><i class="fa-solid fa-list-check me-2"></i> 1. Cutoff Schedule (287 Stations)</button>
+        <button class="nav-link active" id="cutoff-tab" data-bs-toggle="tab" data-bs-target="#cutoff-pane">
+          <i class="fa-solid fa-list-check me-2"></i> 1. ตารางรอบ Cutoff ตาม Zone & สถานี (<span id="tabCutoffCount">0</span> สถานี)
+        </button>
       </li>
       <li class="nav-item">
-        <button class="nav-link" id="ttb-tab" data-bs-toggle="tab" data-bs-target="#ttb-pane"><i class="fa-solid fa-truck-moving me-2"></i> 2. Truck Timetable (TTB Master)</button>
+        <button class="nav-link" id="ttb-tab" data-bs-toggle="tab" data-bs-target="#ttb-pane">
+          <i class="fa-solid fa-truck-moving me-2"></i> 2. ตารางรถวิ่ง TTB Master รายวัน
+        </button>
       </li>
     </ul>
 
@@ -98,43 +233,87 @@
       <!-- TAB 1: CUTOFF SCHEDULE -->
       <div class="tab-pane fade show active" id="cutoff-pane">
         <div class="card-custom p-4">
-          <div class="row g-3 mb-3">
-            <div class="col-md-5">
-              <label class="form-label fw-bold small text-muted">🔍 ค้นหาสถานี / รหัส / จังหวัด / ประเภท</label>
-              <input type="text" class="form-control" id="cutoffSearchInput" placeholder="พิมพ์ชื่อสถานี เช่น 2AYT, NPM, หนองเสือ, ลพบุรี..." onkeyup="filterCutoffTable()">
+          
+          <!-- FILTERS ROW -->
+          <div class="row g-3 mb-3 align-items-center">
+            <!-- Search -->
+            <div class="col-md-4">
+              <label class="form-label fw-bold small text-slate-700 mb-1">🔍 ค้นหาสถานี / รหัส / จังหวัด / ประเภท</label>
+              <input type="text" class="form-control form-control-sm" id="cutoffSearchInput" placeholder="พิมพ์ชื่อสถานี เช่น 2AYT, NPM, ลพบุรี, ชลบุรี..." onkeyup="filterCutoffTable()">
             </div>
+            
+            <!-- Zone Filter (Dynamic from data) -->
             <div class="col-md-3">
-              <label class="form-label fw-bold small text-muted">📍 กรองสายงาน (Area Group)</label>
-              <select class="form-select" id="cutoffAreaSelect" onchange="filterCutoffTable()">
-                <option value="ALL">-- ทุกสายงาน (All Areas) --</option>
-                <option value="UPC Direct">UPC Direct (187 สถานี)</option>
-                <option value="UPC Milkrun">UPC Milkrun (48 สถานี)</option>
-                <option value="GBKK">GBKK (56 สถานี)</option>
+              <label class="form-label fw-bold small text-slate-700 mb-1">🚩 กรองตามโซน (OBD Zone)</label>
+              <select class="form-select form-select-sm fw-bold text-primary" id="cutoffZoneSelect" onchange="filterCutoffTable()">
+                <option value="ALL">-- ทุกโซน (All Zones) --</option>
+                <option value="Zone A">Zone A</option>
+                <option value="Zone B">Zone B</option>
+                <option value="Zone C">Zone C</option>
+                <option value="Zone InterSOC">Zone InterSOC</option>
+                <option value="Zone Return">Zone Return</option>
               </select>
             </div>
-            <div class="col-md-4 d-flex align-items-end justify-content-end">
-              <span class="text-muted small" id="cutoffCountText">แสดงผล 0 จาก 0 สถานี</span>
+
+            <!-- Area Group Filter -->
+            <div class="col-md-3">
+              <label class="form-label fw-bold small text-slate-700 mb-1">📍 กรองสายงาน (Area Group)</label>
+              <select class="form-select form-select-sm" id="cutoffAreaSelect" onchange="filterCutoffTable()">
+                <option value="ALL">-- ทุกสายงาน (All Areas) --</option>
+                <option value="GBKK">GBKK (กทม.และปริมณฑล)</option>
+                <option value="UPC Direct">UPC Direct</option>
+                <option value="UPC Milkrun">UPC Milkrun</option>
+              </select>
+            </div>
+
+            <!-- Quick Alert Filter -->
+            <div class="col-md-2">
+              <label class="form-label fw-bold small text-danger mb-1">⏱️ กรองสถานะเวลา</label>
+              <select class="form-select form-select-sm fw-bold border-danger text-danger" id="cutoffTimeStatusSelect" onchange="filterCutoffTable()">
+                <option value="ALL">-- ทุกสถานะเวลา --</option>
+                <option value="IMMINENT">🔴 เร่งด่วนมาก (< 30 นาที)</option>
+                <option value="UPCOMING">🟡 เตรียมพร้อม (< 60 นาที)</option>
+                <option value="TODAY">🟢 รอบที่ยังมาไม่ถึงวันนี้</option>
+              </select>
             </div>
           </div>
 
+          <!-- Active Filter Badges & Count -->
+          <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom flex-wrap gap-2">
+            <div class="d-flex gap-2 align-items-center flex-wrap" id="quickZoneFilterButtons">
+              <button class="btn btn-outline-primary btn-sm py-0 px-2 fw-bold active" id="btnFilterZoneAll" onclick="setQuickZoneFilter('ALL')">ทั้งหมด</button>
+              <button class="btn btn-outline-primary btn-sm py-0 px-2 fw-bold" id="btnFilterZoneA" onclick="setQuickZoneFilter('Zone A')">Zone A</button>
+              <button class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" id="btnFilterZoneB" onclick="setQuickZoneFilter('Zone B')">Zone B</button>
+              <button class="btn btn-outline-warning btn-sm py-0 px-2 fw-bold" id="btnFilterZoneC" onclick="setQuickZoneFilter('Zone C')">Zone C</button>
+              <button class="btn btn-outline-danger btn-sm py-0 px-2 ms-2 fw-bold" id="btnFilterImminentQuick" onclick="setQuickTimeFilter('IMMINENT')"><i class="fa-solid fa-fire me-1"></i> 🚨 ต้องปล่อยตอนนี้ (< 30 นาที)</button>
+              <button class="btn btn-outline-warning btn-sm py-0 px-2 fw-bold text-dark" id="btnFilterUpcomingQuick" onclick="setQuickTimeFilter('UPCOMING')"><i class="fa-solid fa-clock me-1"></i> ใน 60 นาที</button>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="text-muted small" id="cutoffCountText">แสดงผล 0 จาก 0 สถานี</span>
+              <button class="btn btn-sm btn-link text-decoration-none text-muted p-0" onclick="resetAllFilters()" title="ล้างตัวกรองทั้งหมด">✕ ล้างตัวกรอง</button>
+            </div>
+          </div>
+
+          <!-- TABLE -->
           <div class="table-responsive">
             <table class="table table-hover align-middle table-custom border" id="cutoffTable">
               <thead>
                 <tr>
-                  <th>#</th>
-                  <th>สายงาน</th>
-                  <th>รหัสสถานี</th>
-                  <th>ชื่อสถานีปลายทาง</th>
-                  <th>จังหวัด / อำเภอ</th>
-                  <th>ประเภท</th>
-                  <th>Cut 0 (OB / Arr / Trv)</th>
-                  <th>Cut 1 (OB / Arr / Rec / Trv)</th>
-                  <th>Cut 2 (OB / Arr / Rec / Trv)</th>
-                  <th>Cut 3 (OB / Arr / Trv)</th>
+                  <th style="width: 40px;" class="text-center">#</th>
+                  <th style="width: 85px;" class="text-center">OBD Zone</th>
+                  <th style="width: 110px;">สายงาน (Area)</th>
+                  <th style="width: 90px;" class="text-center">รหัสสถานี</th>
+                  <th style="width: 180px;">ชื่อสถานีปลายทาง</th>
+                  <th style="width: 140px;">จังหวัด / อำเภอ</th>
+                  <th style="width: 110px;">Cut 0 (02:00-04:00)</th>
+                  <th style="width: 110px;">Cut 1 (05:00-07:00)</th>
+                  <th style="width: 110px;">Cut 2 (11:00-14:00)</th>
+                  <th style="width: 110px;">Cut 3 (19:00-21:00)</th>
+                  <th style="width: 170px;" class="text-center bg-dark text-warning"><i class="fa-solid fa-stopwatch me-1"></i> ⏰ รอบถัดไป & นับถอยหลัง</th>
                 </tr>
               </thead>
               <tbody id="cutoffTableBody">
-                <tr><td colspan="10" class="text-center py-4 text-muted">กำลังโหลดข้อมูล Cutoff Master...</td></tr>
+                <tr><td colspan="11" class="text-center py-4 text-muted">กำลังโหลดข้อมูล Cutoff Master...</td></tr>
               </tbody>
             </table>
           </div>
@@ -159,17 +338,17 @@
           <div class="row g-3 mb-3">
             <div class="col-md-4">
               <label class="form-label fw-bold small text-muted">🔍 ค้นหาสายรถ / สถานี / หมายเหตุ</label>
-              <input type="text" class="form-control" id="ttbSearchInput" placeholder="พิมพ์ชื่อสายรถ เช่น AAUTH, 4ล้อ, COT..." onkeyup="filterTTBTable()">
+              <input type="text" class="form-control form-control-sm" id="ttbSearchInput" placeholder="พิมพ์ชื่อสายรถ เช่น AAUTH, 4ล้อ, COT..." onkeyup="filterTTBTable()">
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold small text-muted">🚩 กรอง Zone</label>
-              <select class="form-select" id="ttbZoneSelect" onchange="filterTTBTable()">
+              <select class="form-select form-select-sm" id="ttbZoneSelect" onchange="filterTTBTable()">
                 <option value="ALL">-- ทุก Zone --</option>
-                <option value="CE">CE</option>
-                <option value="CW">CW</option>
-                <option value="NE">NE</option>
-                <option value="N">N</option>
-                <option value="S">S</option>
+                <option value="CE">CE (ภาคกลาง/ตะวันออก)</option>
+                <option value="CW">CW (ภาคกลาง/ตะวันตก)</option>
+                <option value="NE">NE (ภาคอีสาน)</option>
+                <option value="N">N (ภาคเหนือ)</option>
+                <option value="S">S (ภาคใต้)</option>
               </select>
             </div>
             <div class="col-md-5 d-flex align-items-end justify-content-end">
@@ -206,16 +385,79 @@
 
   </div>
 
+  <!-- UPLOAD CUTOFF MASTER MODAL -->
+  <div class="modal fade" id="uploadCutoffModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-header bg-dark text-white border-0 py-3">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i> อัปโหลดไฟล์ Cut-off Master ใหม่</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <p class="text-muted small mb-3">
+            คุณสามารถอัปโหลดไฟล์ Excel (<code>.xlsx</code>, <code>.xls</code>) หรือไฟล์ <code>.csv</code> เพื่ออัปเดตรอบเวลา Cut-off มาตรฐานและผูก Zone ได้ตลอดเวลา
+          </p>
+
+          <form id="uploadCutoffForm" onsubmit="handleUploadCutoffSubmit(event)">
+            <div class="mb-3">
+              <label class="form-label fw-bold small text-slate-800">เลือกไฟล์ Cut-off Master:</label>
+              <input type="file" id="cutoffFileInput" class="form-control" accept=".xlsx, .xls, .csv" required>
+              <div class="form-text text-muted" style="font-size:0.75rem;">
+                รองรับหัวคอลัมน์มาตรฐาน: Station Name, Station ID, Zone / OBD Zone, Area Group, Province, Cut 0, Cut 1, Cut 2, Cut 3
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4">
+              <button type="button" class="btn btn-outline-danger btn-sm" onclick="resetCutoffToDefault()">
+                <i class="fa-solid fa-rotate-left me-1"></i> รีเซ็ตเป็นค่าเริ่มต้น
+              </button>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="submit" id="btnSubmitCutoffUpload" class="btn btn-primary btn-sm fw-bold">
+                  <i class="fa-solid fa-upload me-1"></i> อัปโหลดและบันทึก
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     let globalCutoffData = [];
     let globalTTBData = {};
     let activeTTBDay = 'Wed-Sat TTB';
+    let uploadModalInstance = null;
 
     document.addEventListener('DOMContentLoaded', () => {
+      uploadModalInstance = new bootstrap.Modal(document.getElementById('uploadCutoffModal'));
+      startLiveClock();
       fetchCutoffData();
       fetchTTBData();
+
+      // Recalculate countdown every 10 seconds for real-time accuracy
+      setInterval(() => {
+        if (globalCutoffData.length > 0) {
+          updateCutoffSummaryKPIs(globalCutoffData);
+          filterCutoffTable();
+        }
+      }, 10000);
     });
+
+    function startLiveClock() {
+      const updateClock = () => {
+        const now = new Date();
+        const hrs = String(now.getHours()).padStart(2, '0');
+        const mins = String(now.getMinutes()).padStart(2, '0');
+        const secs = String(now.getSeconds()).padStart(2, '0');
+        const clockEl = document.getElementById('liveClockDisplay');
+        if (clockEl) clockEl.innerText = `${hrs}:${mins}:${secs}`;
+      };
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
 
     function safeFetchJson(url, options) {
       return fetch(url, options).then(res => {
@@ -242,11 +484,199 @@
         .then(data => {
           if (data.success && data.data) {
             globalCutoffData = data.data;
-            document.getElementById('totalMasterRecordsBadge').innerHTML = `<i class="fa-solid fa-check-double me-1"></i> ${data.total} Stations Loaded`;
+            document.getElementById('tabCutoffCount').innerText = data.total.toLocaleString();
+            document.getElementById('kpiTotalStations').innerText = `${data.total.toLocaleString()} สถานี`;
+            
+            if (data.is_custom) {
+              document.getElementById('masterDataSourceBadge').innerText = 'Custom Uploaded';
+              document.getElementById('masterDataSourceBadge').className = 'badge bg-success';
+            } else {
+              document.getElementById('masterDataSourceBadge').innerText = 'System Default';
+              document.getElementById('masterDataSourceBadge').className = 'badge bg-primary';
+            }
+
+            populateDynamicZoneFilters(globalCutoffData);
+            updateCutoffSummaryKPIs(globalCutoffData);
             renderCutoffTable(globalCutoffData);
           }
         })
-        .catch(err => console.error(err));
+        .catch(err => {
+          console.error(err);
+          document.getElementById('cutoffTableBody').innerHTML = `<tr><td colspan="11" class="text-center py-4 text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${err.message}</td></tr>`;
+        });
+    }
+
+    function populateDynamicZoneFilters(list) {
+      const zones = new Set();
+      list.forEach(item => {
+        if (item.zone) zones.add(item.zone);
+      });
+
+      const zoneSelect = document.getElementById('cutoffZoneSelect');
+      const currentVal = zoneSelect.value;
+      
+      const sortedZones = Array.from(zones).sort();
+      let html = '<option value="ALL">-- ทุกโซน (All Zones) --</option>';
+      sortedZones.forEach(z => {
+        html += `<option value="${z}">${z}</option>`;
+      });
+      zoneSelect.innerHTML = html;
+      if (zones.has(currentVal)) {
+        zoneSelect.value = currentVal;
+      }
+    }
+
+    /* ─── Real-time Next Cutoff & Countdown Calculation ─── */
+    function calculateNextCutoff(item) {
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      // Collect valid cut times
+      const cuts = [
+        { name: 'Cut 0', timeStr: item.cut0_ob },
+        { name: 'Cut 1', timeStr: item.cut1_ob },
+        { name: 'Cut 2', timeStr: item.cut2_ob },
+        { name: 'Cut 3', timeStr: item.cut3_ob },
+      ];
+
+      const validCuts = [];
+      cuts.forEach(c => {
+        if (!c.timeStr || c.timeStr === '-' || c.timeStr.toLowerCase() === 'nan') return;
+        const parts = c.timeStr.split(':');
+        if (parts.length >= 2) {
+          const h = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10);
+          if (!isNaN(h) && !isNaN(m)) {
+            const cutMin = h * 60 + m;
+            validCuts.push({
+              name: c.name,
+              timeStr: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+              minutes: cutMin
+            });
+          }
+        }
+      });
+
+      if (validCuts.length === 0) {
+        return { hasCut: false, isImminent: false, isUpcoming: false, diffMinutes: 9999, text: '-', badgeHtml: '<span class="text-muted">-</span>' };
+      }
+
+      validCuts.sort((a, b) => a.minutes - b.minutes);
+
+      let nextCut = null;
+      let diffMin = 9999;
+
+      for (let c of validCuts) {
+        if (c.minutes >= currentMinutes) {
+          nextCut = c;
+          diffMin = c.minutes - currentMinutes;
+          break;
+        }
+      }
+
+      let isTomorrow = false;
+      if (!nextCut) {
+        nextCut = validCuts[0];
+        diffMin = (1440 - currentMinutes) + nextCut.minutes;
+        isTomorrow = true;
+      }
+
+      const isImminent = !isTomorrow && diffMin <= 30;
+      const isUpcoming = !isTomorrow && diffMin > 30 && diffMin <= 60;
+
+      let badgeHtml = '';
+      if (isImminent) {
+        badgeHtml = `<span class="badge bg-danger animate-pulse shadow-sm" title="ต้องปล่อยรอบทันที!"><i class="fa-solid fa-fire me-1"></i> ${nextCut.name} (${nextCut.timeStr}) อีก <b>${diffMin}</b> นาที</span>`;
+      } else if (isUpcoming) {
+        badgeHtml = `<span class="badge bg-warning text-dark shadow-sm" title="เตรียมพร้อมปล่อย"><i class="fa-solid fa-clock me-1"></i> ${nextCut.name} (${nextCut.timeStr}) อีก <b>${diffMin}</b> นาที</span>`;
+      } else if (!isTomorrow) {
+        const hrs = Math.floor(diffMin / 60);
+        const mins = diffMin % 60;
+        const timeText = hrs > 0 ? `${hrs} ชม. ${mins} น.` : `${mins} นาที`;
+        badgeHtml = `<span class="badge bg-success bg-opacity-75 text-white" style="font-size:0.75rem;"><i class="fa-solid fa-check me-1"></i> ${nextCut.name} (${nextCut.timeStr}) อีก ${timeText}</span>`;
+      } else {
+        badgeHtml = `<span class="badge bg-secondary text-white" style="font-size:0.72rem;"><i class="fa-solid fa-arrow-right me-1"></i> พรุ่งนี้ ${nextCut.name} (${nextCut.timeStr})</span>`;
+      }
+
+      return {
+        hasCut: true,
+        nextName: nextCut.name,
+        nextTime: nextCut.timeStr,
+        diffMinutes: diffMin,
+        isImminent: isImminent,
+        isUpcoming: isUpcoming,
+        isTomorrow: isTomorrow,
+        badgeHtml: badgeHtml
+      };
+    }
+
+    function updateCutoffSummaryKPIs(list) {
+      let imminentItems = [];
+      let upcomingCount = 0;
+      let zoneCounts = {};
+
+      list.forEach(item => {
+        const z = item.zone || 'Zone A';
+        zoneCounts[z] = (zoneCounts[z] || 0) + 1;
+
+        const cutInfo = calculateNextCutoff(item);
+        if (cutInfo.isImminent) {
+          imminentItems.push({
+            item: item,
+            cutInfo: cutInfo
+          });
+        } else if (cutInfo.isUpcoming) {
+          upcomingCount++;
+        }
+      });
+
+      // Zone counts
+      document.getElementById('zoneACount').innerText = (zoneCounts['Zone A'] || 0).toLocaleString();
+      document.getElementById('zoneBCount').innerText = (zoneCounts['Zone B'] || 0).toLocaleString();
+      document.getElementById('zoneCCount').innerText = (zoneCounts['Zone C'] || 0).toLocaleString();
+
+      document.getElementById('kpiImminentCount').innerText = imminentItems.length;
+      document.getElementById('imminentCountBadge').innerText = `${imminentItems.length} สถานี`;
+      document.getElementById('kpiUpcomingCount').innerText = upcomingCount;
+      document.getElementById('upcomingCountBadge').innerText = `${upcomingCount} สถานี`;
+
+      // Urgent Alert Section & Grid Cards
+      const urgentSection = document.getElementById('urgentAlertSection');
+      const urgentGrid = document.getElementById('urgentStationsGrid');
+
+      if (imminentItems.length > 0) {
+        urgentSection.classList.remove('d-none');
+        document.getElementById('kpiImminentDetails').innerText = `มี ${imminentItems.length} สถานีต้องปล่อยพัสดุเร่งด่วน!`;
+
+        urgentGrid.innerHTML = imminentItems.map(({ item, cutInfo }) => {
+          const z = item.zone || 'Zone A';
+          let zClass = 'badge-zone-a';
+          if (z === 'Zone B') zClass = 'badge-zone-b';
+          else if (z === 'Zone C') zClass = 'badge-zone-c';
+          else if (z !== 'Zone A') zClass = 'badge-zone-other';
+
+          const areaColor = item.area_group === 'GBKK' ? 'bg-success' : 'bg-primary';
+
+          return `<div class="col-md-4 col-lg-3">
+            <div class="urgent-card shadow-sm">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="badge ${zClass}">${z}</span>
+                <span class="badge ${areaColor} text-white" style="font-size:0.72rem;">${item.area_group || '-'}</span>
+              </div>
+              <div class="fw-bold text-slate-800 text-truncate" title="${item.station_name}">${item.station_name}</div>
+              <div class="small text-muted mb-2 font-monospace">Code: <b>${item.station_id || '-'}</b> (${item.province || ''})</div>
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="badge bg-danger text-white px-2 py-1"><i class="fa-solid fa-stopwatch me-1"></i> ${cutInfo.nextName} (${cutInfo.nextTime})</span>
+                <span class="text-danger fw-bold small animate-pulse">อีก ${cutInfo.diffMinutes} นาที</span>
+              </div>
+            </div>
+          </div>`;
+        }).join('');
+      } else {
+        urgentSection.classList.add('d-none');
+        document.getElementById('kpiImminentDetails').innerText = 'ไม่มีสถานีที่ต้องปล่อยใน 30 นาทีนี้';
+        urgentGrid.innerHTML = '';
+      }
     }
 
     function renderCutoffTable(list) {
@@ -254,7 +684,7 @@
       document.getElementById('cutoffCountText').innerText = `แสดงผล ${list.length.toLocaleString()} จาก ${globalCutoffData.length.toLocaleString()} สถานี`;
       
       if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-muted">ไม่พบข้อมูลที่ค้นหา</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="text-center py-4 text-muted">ไม่พบข้อมูลตรงตามเงื่อนไขที่ค้นหา</td></tr>';
         return;
       }
 
@@ -262,10 +692,9 @@
         const fmtCut = (ob, arr, rec, trv) => {
           if (!ob && !arr && !rec) return '<span class="text-muted">-</span>';
           let parts = [];
-          if (ob) parts.push(`OB: <b>${ob}</b>`);
-          if (arr) parts.push(`Arr: <b>${arr}</b>`);
-          if (rec) parts.push(`Rec: <b>${rec}</b>`);
-          return parts.join(' | ');
+          if (ob) parts.push(`OB: <b class="text-dark">${ob}</b>`);
+          if (arr) parts.push(`Arr: <span class="text-secondary">${arr}</span>`);
+          return parts.join('<br>');
         };
 
         const c0 = fmtCut(item.cut0_ob, item.cut0_arr, '', item.cut0_travel);
@@ -273,37 +702,188 @@
         const c2 = fmtCut(item.cut2_ob, item.cut2_arr, item.cut2_rec, item.cut2_travel);
         const c3 = fmtCut(item.cut3_ob, item.cut3_arr, '', item.cut3_travel);
 
-        const areaBadge = item.area_group === 'UPC Direct' ? 'bg-primary' : (item.area_group === 'UPC Milkrun' ? 'bg-purple' : 'bg-success');
+        const z = item.zone || 'Zone A';
+        let zClass = 'badge-zone-a';
+        if (z === 'Zone B') zClass = 'badge-zone-b';
+        else if (z === 'Zone C') zClass = 'badge-zone-c';
+        else if (z !== 'Zone A') zClass = 'badge-zone-other';
+        const zoneBadge = `<span class="badge ${zClass}">${z}</span>`;
 
-        return `<tr>
-          <td class="text-muted small">${idx + 1}</td>
-          <td><span class="badge ${areaBadge}" style="font-size:0.75rem;">${item.area_group}</span></td>
-          <td class="fw-bold text-primary">${item.station_id || '-'}</td>
-          <td class="fw-bold text-dark">${item.station_name}</td>
-          <td class="small">${item.province || ''} ${item.district ? ' / ' + item.district : ''}</td>
-          <td><span class="badge bg-secondary" style="font-size:0.7rem;">${item.op_type || item.route_type}</span></td>
-          <td class="small">${c0}</td>
-          <td class="small">${c1}</td>
-          <td class="small">${c2}</td>
-          <td class="small">${c3}</td>
+        const areaBadge = item.area_group === 'UPC Direct' ? 'bg-primary' : (item.area_group === 'UPC Milkrun' ? 'bg-secondary' : 'bg-success');
+
+        const cutInfo = calculateNextCutoff(item);
+        let rowClass = '';
+        if (cutInfo.isImminent) rowClass = 'row-imminent';
+        else if (cutInfo.isUpcoming) rowClass = 'row-upcoming';
+
+        return `<tr class="${rowClass}">
+          <td class="text-muted small text-center">${idx + 1}</td>
+          <td class="text-center">${zoneBadge}</td>
+          <td><span class="badge ${areaBadge}" style="font-size:0.75rem;">${item.area_group || '-'}</span></td>
+          <td class="fw-bold text-primary font-monospace text-center">${item.station_id || '-'}</td>
+          <td class="fw-bold text-slate-800">${item.station_name}</td>
+          <td class="small text-slate-600">${item.province || ''} ${item.district ? ' / ' + item.district : ''}</td>
+          <td class="small font-monospace">${c0}</td>
+          <td class="small font-monospace">${c1}</td>
+          <td class="small font-monospace">${c2}</td>
+          <td class="small font-monospace">${c3}</td>
+          <td class="text-center font-monospace">${cutInfo.badgeHtml}</td>
         </tr>`;
       }).join('');
     }
 
     function filterCutoffTable() {
       const query = document.getElementById('cutoffSearchInput').value.toLowerCase().trim();
+      const zone = document.getElementById('cutoffZoneSelect').value;
       const area = document.getElementById('cutoffAreaSelect').value;
+      const timeStatus = document.getElementById('cutoffTimeStatusSelect').value;
 
       const filtered = globalCutoffData.filter(item => {
+        const itemZone = item.zone || 'Zone A';
+        const matchZone = zone === 'ALL' || itemZone === zone;
         const matchArea = area === 'ALL' || item.area_group === area;
-        const textStr = `${item.station_name} ${item.station_id} ${item.province} ${item.district} ${item.op_type}`.toLowerCase();
+
+        const textStr = `${item.station_name} ${item.station_id} ${item.province} ${item.district} ${item.op_type} ${itemZone} ${item.area_group}`.toLowerCase();
         const matchQuery = !query || textStr.includes(query);
-        return matchArea && matchQuery;
+
+        let matchTime = true;
+        if (timeStatus !== 'ALL') {
+          const cutInfo = calculateNextCutoff(item);
+          if (timeStatus === 'IMMINENT') matchTime = cutInfo.isImminent;
+          else if (timeStatus === 'UPCOMING') matchTime = (cutInfo.isImminent || cutInfo.isUpcoming);
+          else if (timeStatus === 'TODAY') matchTime = !cutInfo.isTomorrow;
+        }
+
+        return matchZone && matchArea && matchQuery && matchTime;
       });
 
       renderCutoffTable(filtered);
     }
 
+    function setQuickZoneFilter(zoneVal) {
+      document.getElementById('cutoffZoneSelect').value = zoneVal;
+      document.querySelectorAll('#quickZoneFilterButtons .btn').forEach(b => b.classList.remove('active'));
+      if (zoneVal === 'ALL') document.getElementById('btnFilterZoneAll').classList.add('active');
+      else if (zoneVal === 'Zone A') document.getElementById('btnFilterZoneA').classList.add('active');
+      else if (zoneVal === 'Zone B') document.getElementById('btnFilterZoneB').classList.add('active');
+      else if (zoneVal === 'Zone C') document.getElementById('btnFilterZoneC').classList.add('active');
+      filterCutoffTable();
+    }
+
+    function setQuickTimeFilter(timeVal) {
+      document.getElementById('cutoffTimeStatusSelect').value = timeVal;
+      filterCutoffTable();
+    }
+
+    function filterOnlyImminent() {
+      document.getElementById('cutoffTimeStatusSelect').value = 'IMMINENT';
+      filterCutoffTable();
+    }
+
+    function resetAllFilters() {
+      document.getElementById('cutoffSearchInput').value = '';
+      document.getElementById('cutoffZoneSelect').value = 'ALL';
+      document.getElementById('cutoffAreaSelect').value = 'ALL';
+      document.getElementById('cutoffTimeStatusSelect').value = 'ALL';
+      setQuickZoneFilter('ALL');
+      filterCutoffTable();
+    }
+
+    /* ─── Cutoff Upload & Reset Functions ─── */
+    function openUploadCutoffModal() {
+      uploadModalInstance.show();
+    }
+
+    function handleUploadCutoffSubmit(evt) {
+      evt.preventDefault();
+      const fileInput = document.getElementById('cutoffFileInput');
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert('กรุณาเลือกไฟล์ก่อนกดอัปโหลด');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      const btn = document.getElementById('btnSubmitCutoffUpload');
+      const origText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังประมวลผล...';
+
+      fetch('/api/cutoff-schedule/upload', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+        if (data.success) {
+          uploadModalInstance.hide();
+          fileInput.value = '';
+          alert(`✅ ${data.message}`);
+          fetchCutoffData();
+        } else {
+          alert(`❌ ${data.error || 'เกิดข้อผิดพลาดในการอัปโหลด'}`);
+        }
+      })
+      .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+        alert(`❌ เกิดข้อผิดพลาด: ${err.message}`);
+      });
+    }
+
+    function resetCutoffToDefault() {
+      if (!confirm('ยืนยันการรีเซ็ตข้อมูล Cut-off Master กลับเป็นค่าเริ่มต้นจากระบบ?')) return;
+      fetch('/api/cutoff-schedule/reset', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            uploadModalInstance.hide();
+            alert('✅ รีเซ็ตข้อมูลเรียบร้อยแล้ว');
+            fetchCutoffData();
+          } else {
+            alert('❌ ' + data.error);
+          }
+        })
+        .catch(err => alert('❌ เกิดข้อผิดพลาด: ' + err.message));
+    }
+
+    function exportCutoffDataAsCsv() {
+      if (!globalCutoffData || globalCutoffData.length === 0) {
+        alert('ไม่พบข้อมูลที่จะส่งออก');
+        return;
+      }
+
+      const headers = ['Zone', 'Area Group', 'Station ID', 'Station Name', 'Province', 'District', 'Operation Type', 'Cut 0', 'Cut 1', 'Cut 2', 'Cut 3', 'Sunday Cut'];
+      const rows = globalCutoffData.map(d => [
+        `"${d.zone || 'Zone A'}"`,
+        `"${d.area_group || ''}"`,
+        `"${d.station_id || ''}"`,
+        `"${d.station_name || ''}"`,
+        `"${d.province || ''}"`,
+        `"${d.district || ''}"`,
+        `"${d.op_type || ''}"`,
+        `"${d.cut0_ob || ''}"`,
+        `"${d.cut1_ob || ''}"`,
+        `"${d.cut2_ob || ''}"`,
+        `"${d.cut3_ob || ''}"`,
+        `"${d.sun_ob || ''}"`
+      ]);
+
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SOCN_Cutoff_Master_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    /* ─── TAB 2: TTB SCHEDULE SCRIPT ─── */
     function fetchTTBData() {
       safeFetchJson('/api/ttb-schedule')
         .then(data => {
