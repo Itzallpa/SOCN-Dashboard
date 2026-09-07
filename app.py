@@ -346,9 +346,13 @@ def direct_add_user_api():
     email = (data.get("email") or "").strip().lower()
     password = (data.get("pass") or "").strip()
     role = data.get("role", "Ground")
+    requester_role = session.get("user_role") or data.get("requesterRole") or ""
 
     if not name or not email or not password:
         return jsonify({"success": False, "error": "กรุณากรอกข้อมูลให้ครบถ้วน"}), 400
+
+    if requester_role == "Supervisor" and role == "Admin":
+        return jsonify({"success": False, "error": "Supervisor ไม่มีสิทธิ์แต่งตั้งหรือเพิ่มผู้ใช้ในระดับ Admin"}), 403
 
     users = load_users_db()
     for u in users:
@@ -376,6 +380,10 @@ def approve_user_api():
     user_id = str(data.get("id") or "").strip()
     email = str(data.get("email") or "").strip().lower()
     role = data.get("role", "Ground")
+    requester_role = session.get("user_role") or data.get("requesterRole") or ""
+
+    if requester_role == "Supervisor" and role == "Admin":
+        return jsonify({"success": False, "error": "Supervisor ไม่มีสิทธิ์อนุมัติผู้ใช้ในระดับ Admin"}), 403
 
     users = load_users_db()
     target = None
@@ -386,6 +394,9 @@ def approve_user_api():
 
     if not target:
         return jsonify({"success": False, "error": "ไม่พบสมาชิก"}), 404
+
+    if requester_role == "Supervisor" and target.get("role") == "Admin":
+        return jsonify({"success": False, "error": "Supervisor ไม่สามารถแก้ไขบัญชีระดับ Admin ได้"}), 403
 
     target["status"] = "approved"
     target["role"] = role
@@ -400,6 +411,10 @@ def change_role_user_api():
     user_id = str(data.get("id") or "").strip()
     email = str(data.get("email") or "").strip().lower()
     role = data.get("role", "Ground")
+    requester_role = session.get("user_role") or data.get("requesterRole") or ""
+
+    if requester_role == "Supervisor" and role == "Admin":
+        return jsonify({"success": False, "error": "Supervisor ไม่มีสิทธิ์แต่งตั้งผู้ใช้เป็นระดับ Admin"}), 403
 
     users = load_users_db()
     target = None
@@ -411,6 +426,9 @@ def change_role_user_api():
     if not target:
         return jsonify({"success": False, "error": "ไม่พบสมาชิก"}), 404
 
+    if requester_role == "Supervisor" and target.get("role") == "Admin":
+        return jsonify({"success": False, "error": "Supervisor ไม่สามารถเปลี่ยนระดับสิทธิ์ของ Admin ได้"}), 403
+
     old_role = target.get("role")
     target["role"] = role
     save_users_db(users)
@@ -421,10 +439,17 @@ def change_role_user_api():
 @app.route("/api/users/delete", methods=["POST"])
 def delete_user_api():
     data = request.get_json() or {}
-    user_id = data.get("id")
+    user_id = str(data.get("id") or "").strip()
+    email = str(data.get("email") or "").strip().lower()
+    requester_role = session.get("user_role") or data.get("requesterRole") or ""
 
     users = load_users_db()
-    users = [u for u in users if u.get("id") != user_id]
+    target = next((u for u in users if (user_id and str(u.get("id")) == user_id) or (email and u.get("email", "").lower() == email)), None)
+    
+    if target and requester_role == "Supervisor" and target.get("role") == "Admin":
+        return jsonify({"success": False, "error": "Supervisor ไม่สามารถลบบัญชีระดับ Admin ได้"}), 403
+
+    users = [u for u in users if str(u.get("id")) != user_id and (not email or u.get("email", "").lower() != email)]
     save_users_db(users)
 
     log_activity("USER_DELETE", f"ลบผู้ใช้งาน ID: {user_id}")
@@ -495,11 +520,15 @@ def reset_user_password_api():
     user_id = str(data.get("id") or "").strip()
     email = str(data.get("email") or "").strip().lower()
     new_pass = (data.get("newPass") or "1234").strip()
+    requester_role = session.get("user_role") or data.get("requesterRole") or ""
 
     users = load_users_db()
     target = next((u for u in users if (user_id and str(u.get("id")) == user_id) or (email and u.get("email", "").lower() == email)), None)
     if not target:
         return jsonify({"success": False, "error": "ไม่พบสมาชิก"}), 404
+
+    if requester_role == "Supervisor" and target.get("role") == "Admin":
+        return jsonify({"success": False, "error": "Supervisor ไม่สามารถรีเซ็ตรหัสผ่านของ Admin ได้"}), 403
 
     target["pass"] = new_pass
     target["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

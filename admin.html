@@ -883,6 +883,8 @@
       const tbody = document.getElementById('usersTableBody');
       const search = (document.getElementById('userSearchInput').value || '').toLowerCase().trim();
       const statusFilter = document.getElementById('userStatusFilter').value;
+      const currentUser = window.AuthGuard ? window.AuthGuard.getUser() : null;
+      const isCurrentSupervisor = currentUser && currentUser.role === 'Supervisor';
 
       const pendingCount = db.filter(u => u.status === 'pending_approval').length;
       document.getElementById('statTotalUsers').innerText = db.length.toLocaleString();
@@ -903,28 +905,47 @@
 
       tbody.innerHTML = filtered.map(u => {
         const isPending = u.status === 'pending_approval';
-        const roleColor = u.role === 'Admin' ? 'bg-danger' : (u.role === 'Supervisor' ? 'text-white' : 'bg-primary');
+        const isTargetAdmin = u.role === 'Admin';
+        const roleColor = isTargetAdmin ? 'bg-danger' : (u.role === 'Supervisor' ? 'text-white' : 'bg-primary');
         const roleCustomStyle = u.role === 'Supervisor' ? 'style="background-color:#7c3aed;"' : '';
         const statusBadge = isPending ? 
           '<span class="badge bg-warning text-dark">⏳ รออนุมัติ (Pending)</span>' : 
           `<span class="badge ${roleColor}" ${roleCustomStyle}>✅ อนุมัติแล้ว (${u.role})</span>`;
 
-        const selectColor = u.role === 'Admin' ? 'text-danger border-danger' : (u.role === 'Supervisor' ? 'text-purple border-purple' : 'text-primary border-primary');
-        const roleSelect = `
-          <select id="tableRoleSelect_${u.id}" class="form-select form-select-sm d-inline-block w-auto py-1 px-2 fw-bold ${selectColor}" onchange="changeUserRoleInDashboard('${u.id}', this.value)">
+        // If current user is Supervisor and target is Admin: LOCK completely
+        let roleElement = '';
+        let actionBtns = '';
+
+        if (isCurrentSupervisor && isTargetAdmin) {
+          roleElement = '<span class="badge bg-danger py-1 px-2 fw-bold"><i class="fa-solid fa-shield-halved me-1"></i> 🛡️ Admin</span>';
+          actionBtns = '<span class="badge bg-secondary py-1 px-2" title="Supervisor ไม่สามารถแก้ไขบัญชี Admin ได้"><i class="fa-solid fa-lock me-1"></i> สงวนสิทธิ์</span>';
+        } else {
+          const selectColor = isTargetAdmin ? 'text-danger border-danger' : (u.role === 'Supervisor' ? 'text-purple border-purple' : 'text-primary border-primary');
+          
+          // Role Options: Supervisor can only see Ground and Supervisor. Admin sees all 3.
+          const roleOptions = isCurrentSupervisor ? `
+            <option value="Ground" ${u.role === 'Ground' ? 'selected' : ''}>👤 Ground</option>
+            <option value="Supervisor" ${u.role === 'Supervisor' ? 'selected' : ''}>👔 Supervisor</option>
+          ` : `
             <option value="Ground" ${u.role === 'Ground' ? 'selected' : ''}>👤 Ground</option>
             <option value="Supervisor" ${u.role === 'Supervisor' ? 'selected' : ''}>👔 Supervisor</option>
             <option value="Admin" ${u.role === 'Admin' ? 'selected' : ''}>🛡️ Admin</option>
-          </select>
-        `;
+          `;
 
-        const actionBtns = isPending ? `
-          <button class="btn btn-success btn-sm py-0 px-2 fw-bold" onclick="approveUserInDashboard('${u.id}')"><i class="fa-solid fa-check me-1"></i> อนุมัติ</button>
-          <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteUserInDashboard('${u.id}')"><i class="fa-solid fa-trash"></i></button>
-        ` : `
-          <button class="btn btn-outline-primary btn-sm py-0 px-2 me-1" onclick="resetUserPasswordInDashboard('${u.id}', '${escapeHtml(u.name)}', '${escapeHtml(u.email)}')" title="รีเซ็ตรหัสผ่าน"><i class="fa-solid fa-key me-1"></i> รีเซ็ตรหัส</button>
-          <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="deleteUserInDashboard('${u.id}')">ลบ</button>
-        `;
+          roleElement = `
+            <select id="tableRoleSelect_${u.id}" class="form-select form-select-sm d-inline-block w-auto py-1 px-2 fw-bold ${selectColor}" onchange="changeUserRoleInDashboard('${u.id}', this.value)">
+              ${roleOptions}
+            </select>
+          `;
+
+          actionBtns = isPending ? `
+            <button class="btn btn-success btn-sm py-0 px-2 fw-bold" onclick="approveUserInDashboard('${u.id}')"><i class="fa-solid fa-check me-1"></i> อนุมัติ</button>
+            <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteUserInDashboard('${u.id}')"><i class="fa-solid fa-trash"></i></button>
+          ` : `
+            <button class="btn btn-outline-primary btn-sm py-0 px-2 me-1" onclick="resetUserPasswordInDashboard('${u.id}', '${escapeHtml(u.name)}', '${escapeHtml(u.email)}')" title="รีเซ็ตรหัสผ่าน"><i class="fa-solid fa-key me-1"></i> รีเซ็ตรหัส</button>
+            <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="deleteUserInDashboard('${u.id}')">ลบ</button>
+          `;
+        }
 
         return `
         <tr class="${isPending ? 'table-warning' : ''}">
@@ -932,7 +953,7 @@
           <td class="fw-bold text-dark">${escapeHtml(u.name)}</td>
           <td>${escapeHtml(u.email)}</td>
           <td class="small text-muted">${u.createdAt || '-'}</td>
-          <td>${roleSelect}</td>
+          <td>${roleElement}</td>
           <td>${statusBadge}</td>
           <td>${actionBtns}</td>
         </tr>`;
@@ -940,8 +961,15 @@
     }
 
     function approveUserInDashboard(userId) {
+      const currentUser = window.AuthGuard ? window.AuthGuard.getUser() : null;
+      const isCurrentSupervisor = currentUser && currentUser.role === 'Supervisor';
       const sel = document.getElementById(`tableRoleSelect_${userId}`);
-      const role = sel ? sel.value : 'Ground';
+      let role = sel ? sel.value : 'Ground';
+
+      if (isCurrentSupervisor && role === 'Admin') {
+        alert('❌ Supervisor ไม่สามารถมอบหมายสิทธิ์ Admin ได้');
+        return;
+      }
 
       fetch('/api/users/approve', {
         method: 'POST',
@@ -954,6 +982,8 @@
           saveUsersDb(data.users);
           showToastNotification('✅ อนุมัติสมาชิกสำเร็จ', `อนุมัติบัญชีเป็นสิทธิ์ <b>${role}</b> เรียบร้อยแล้ว`, 'success', 4000);
           renderUsersTable();
+        } else {
+          alert('❌ ' + (data.error || 'อนุมัติไม่สำเร็จ'));
         }
       })
       .catch(() => {
@@ -969,9 +999,24 @@
     }
 
     function changeUserRoleInDashboard(userId, newRole) {
+      const currentUser = window.AuthGuard ? window.AuthGuard.getUser() : null;
+      const isCurrentSupervisor = currentUser && currentUser.role === 'Supervisor';
       const db = getUsersDb();
       const target = db.find(u => u.id === userId);
       const email = target ? target.email : '';
+
+      if (isCurrentSupervisor) {
+        if (target && target.role === 'Admin') {
+          alert('❌ Supervisor ไม่สามารถเปลี่ยนสิทธิ์ของบัญชี Admin ได้');
+          renderUsersTable();
+          return;
+        }
+        if (newRole === 'Admin') {
+          alert('❌ Supervisor ไม่สามารถแต่งตั้งให้เป็น Admin ได้');
+          renderUsersTable();
+          return;
+        }
+      }
 
       fetch('/api/users/role', {
         method: 'POST',
@@ -995,6 +1040,7 @@
           renderUsersTable();
         } else {
           showToastNotification('❌ เกิดข้อผิดพลาด', data.error || 'เกิดข้อผิดพลาดในการเปลี่ยนสิทธิ์', 'danger', 4000);
+          renderUsersTable();
         }
       })
       .catch(() => {
@@ -1007,9 +1053,16 @@
     }
 
     function deleteUserInDashboard(userId) {
+      const currentUser = window.AuthGuard ? window.AuthGuard.getUser() : null;
+      const isCurrentSupervisor = currentUser && currentUser.role === 'Supervisor';
       const db = getUsersDb();
       const target = db.find(u => u.id === userId);
       if (!target) return;
+
+      if (isCurrentSupervisor && target.role === 'Admin') {
+        alert('❌ Supervisor ไม่สามารถลบบัญชีระดับ Admin ได้');
+        return;
+      }
 
       const runDeleteUser = () => {
         fetch('/api/users/delete', {
@@ -1024,6 +1077,8 @@
             saveUsersDb(data.users);
             showToastNotification('✅ ลบสมาชิกสำเร็จ', `ลบสมาชิก ${target.name} เรียบร้อยแล้ว`, 'success', 4000);
             renderUsersTable();
+          } else {
+            alert('❌ ' + (data.error || 'ไม่สามารถลบสมาชิกได้'));
           }
         })
         .catch(() => {
@@ -1061,6 +1116,16 @@
     }
 
     function resetUserPasswordInDashboard(userId, userName, userEmail) {
+      const currentUser = window.AuthGuard ? window.AuthGuard.getUser() : null;
+      const isCurrentSupervisor = currentUser && currentUser.role === 'Supervisor';
+      const db = getUsersDb();
+      const target = db.find(u => u.id === userId);
+
+      if (isCurrentSupervisor && target && target.role === 'Admin') {
+        alert('❌ Supervisor ไม่สามารถรีเซ็ตรหัสผ่านของบัญชี Admin ได้');
+        return;
+      }
+
       const doReset = (newPass) => {
         if (!newPass || newPass.trim().length < 4) {
           alert('❌ รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร');
@@ -1114,6 +1179,23 @@
     }
 
     function openAddUserModal() {
+      const currentUser = window.AuthGuard ? window.AuthGuard.getUser() : null;
+      const isCurrentSupervisor = currentUser && currentUser.role === 'Supervisor';
+      const roleSelect = document.getElementById('addUserRole');
+      if (roleSelect) {
+        if (isCurrentSupervisor) {
+          roleSelect.innerHTML = `
+            <option value="Ground">👤 Ground (เจ้าหน้าที่ปฏิบัติการ)</option>
+            <option value="Supervisor">👔 Supervisor (หัวหน้างาน)</option>
+          `;
+        } else {
+          roleSelect.innerHTML = `
+            <option value="Ground">👤 Ground (เจ้าหน้าที่ปฏิบัติการ)</option>
+            <option value="Supervisor">👔 Supervisor (หัวหน้างาน)</option>
+            <option value="Admin">🛡️ Admin (ผู้ดูแลระบบ & Audit Logs)</option>
+          `;
+        }
+      }
       const m = new bootstrap.Modal(document.getElementById('addUserModal'));
       m.show();
     }

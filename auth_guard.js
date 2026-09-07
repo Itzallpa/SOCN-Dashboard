@@ -494,6 +494,9 @@
       return;
     }
 
+    const currentUser = getStoredUser();
+    const isSupervisor = currentUser && currentUser.role === 'Supervisor';
+
     const pendingCount = db.filter(u => u.status === 'pending_approval').length;
     const summary = document.getElementById('approvalCountSummary');
     if (summary) {
@@ -502,41 +505,56 @@
 
     tbody.innerHTML = db.map(u => {
       const isPending = u.status === 'pending_approval';
+      const isTargetAdmin = u.role === 'Admin';
       const statusBadge = isPending ? 
         '<span class="status-badge-pending">⏳ รออนุมัติ (Pending)</span>' : 
         `<span class="status-badge-approved">✅ อนุมัติแล้ว</span>`;
 
-      const roleClass = u.role === 'Admin' ? 'role-tag-admin' : (u.role === 'Supervisor' ? 'role-tag-supervisor' : 'role-tag-ground');
-      const roleSelect = `
-        <select id="roleSelect_${u.id}" onchange="window.AuthGuard.changeRole('${u.id}', this.value)" style="padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1; font-size:0.8rem; font-weight:700; color:#1e293b;">
+      let roleElement = '';
+      let actionBtn = '';
+
+      if (isSupervisor && isTargetAdmin) {
+        roleElement = '<span class="role-tag-admin"><i class="fa-solid fa-shield-halved me-1"></i> Admin</span>';
+        actionBtn = '<span style="font-size:11px; color:#94a3b8; font-weight:700;"><i class="fa-solid fa-lock me-1"></i> สงวนสิทธิ์</span>';
+      } else {
+        const roleOptions = isSupervisor ? `
+          <option value="Ground" ${u.role === 'Ground' ? 'selected' : ''}>👤 Ground</option>
+          <option value="Supervisor" ${u.role === 'Supervisor' ? 'selected' : ''}>👔 Supervisor</option>
+        ` : `
           <option value="Ground" ${u.role === 'Ground' ? 'selected' : ''}>👤 Ground</option>
           <option value="Supervisor" ${u.role === 'Supervisor' ? 'selected' : ''}>👔 Supervisor</option>
           <option value="Admin" ${u.role === 'Admin' ? 'selected' : ''}>🛡️ Admin</option>
-        </select>
-      `;
+        `;
 
-      const actionBtn = isPending ? `
-        <button onclick="window.AuthGuard.approveUser('${u.id}')" style="background:#059669; color:#fff; border:none; padding:5px 12px; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer; margin-right:4px;">
-          <i class="fa-solid fa-check me-1"></i> อนุมัติ
-        </button>
-        <button onclick="window.AuthGuard.rejectUser('${u.id}')" style="background:#dc2626; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer;" title="ปฏิเสธและลบ">
-          <i class="fa-solid fa-trash"></i>
-        </button>
-      ` : `
-        <button onclick="window.AuthGuard.resetUserPassword('${u.id}', '${esc(u.name)}', '${esc(u.email)}')" style="background:#0284c7; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer; margin-right:4px;" title="รีเซ็ตรหัสผ่าน">
-          <i class="fa-solid fa-key me-1"></i> รีเซ็ตรหัส
-        </button>
-        <button onclick="window.AuthGuard.rejectUser('${u.id}')" style="background:#ef4444; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer;">
-          <i class="fa-solid fa-trash me-1"></i> ลบ
-        </button>
-      `;
+        roleElement = `
+          <select id="roleSelect_${u.id}" onchange="window.AuthGuard.changeRole('${u.id}', this.value)" style="padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1; font-size:0.8rem; font-weight:700; color:#1e293b;">
+            ${roleOptions}
+          </select>
+        `;
+
+        actionBtn = isPending ? `
+          <button onclick="window.AuthGuard.approveUser('${u.id}')" style="background:#059669; color:#fff; border:none; padding:5px 12px; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer; margin-right:4px;">
+            <i class="fa-solid fa-check me-1"></i> อนุมัติ
+          </button>
+          <button onclick="window.AuthGuard.rejectUser('${u.id}')" style="background:#dc2626; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer;" title="ปฏิเสธและลบ">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        ` : `
+          <button onclick="window.AuthGuard.resetUserPassword('${u.id}', '${esc(u.name)}', '${esc(u.email)}')" style="background:#0284c7; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer; margin-right:4px;" title="รีเซ็ตรหัสผ่าน">
+            <i class="fa-solid fa-key me-1"></i> รีเซ็ตรหัส
+          </button>
+          <button onclick="window.AuthGuard.rejectUser('${u.id}')" style="background:#ef4444; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer;">
+            <i class="fa-solid fa-trash me-1"></i> ลบ
+          </button>
+        `;
+      }
 
       return `
         <tr style="${isPending ? 'background:#fffbeb;' : ''}">
           <td style="font-weight:700; color:#0f172a;">${esc(u.name)}</td>
           <td style="color:#475569;">${esc(u.email)}</td>
           <td>${statusBadge}</td>
-          <td>${roleSelect}</td>
+          <td>${roleElement}</td>
           <td>${actionBtn}</td>
         </tr>
       `;
@@ -544,8 +562,15 @@
   }
 
   function approveUser(userId) {
+    const currentUser = getStoredUser();
+    const isSupervisor = currentUser && currentUser.role === 'Supervisor';
     const roleSelect = document.getElementById(`roleSelect_${userId}`);
     const chosenRole = roleSelect ? roleSelect.value : 'Ground';
+
+    if (isSupervisor && chosenRole === 'Admin') {
+      showSweetAlert('ไม่มีสิทธิ์', 'Supervisor ไม่สามารถมอบหมายสิทธิ์ Admin ได้', 'warning');
+      return;
+    }
 
     fetch('/api/users/approve', {
       method: 'POST',
@@ -578,9 +603,24 @@
   }
 
   function changeRole(userId, newRole) {
+    const currentUser = getStoredUser();
+    const isSupervisor = currentUser && currentUser.role === 'Supervisor';
     const db = getUsersDatabase();
     const target = db.find(u => u.id === userId);
     const email = target ? target.email : '';
+
+    if (isSupervisor) {
+      if (target && target.role === 'Admin') {
+        showSweetAlert('ไม่มีสิทธิ์', 'Supervisor ไม่สามารถแก้ไขบัญชีผู้ดูแลระบบ (Admin) ได้', 'warning');
+        renderAdminApprovalTable();
+        return;
+      }
+      if (newRole === 'Admin') {
+        showSweetAlert('ไม่มีสิทธิ์', 'Supervisor ไม่สามารถแต่งตั้งให้เป็น Admin ได้', 'warning');
+        renderAdminApprovalTable();
+        return;
+      }
+    }
 
     fetch('/api/users/role', {
       method: 'POST',
@@ -601,6 +641,7 @@
         renderProfileBadge();
       } else {
         showSweetAlert('เกิดข้อผิดพลาด', data.error || 'ไม่สามารถเปลี่ยนสิทธิ์ได้', 'error');
+        renderAdminApprovalTable();
       }
     })
     .catch(() => {
@@ -614,6 +655,16 @@
   }
 
   function resetUserPassword(userId, userName, userEmail) {
+    const currentUser = getStoredUser();
+    const isSupervisor = currentUser && currentUser.role === 'Supervisor';
+    const db = getUsersDatabase();
+    const target = db.find(u => u.id === userId);
+
+    if (isSupervisor && target && target.role === 'Admin') {
+      showSweetAlert('ไม่มีสิทธิ์', 'Supervisor ไม่สามารถรีเซ็ตรหัสผ่านของบัญชี Admin ได้', 'warning');
+      return;
+    }
+
     const doReset = (newPass) => {
       if (!newPass || newPass.trim().length < 4) {
         showSweetAlert('รหัสผ่านสั้นเกินไป', 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร', 'warning');
@@ -664,10 +715,17 @@
   }
 
   function rejectUser(userId) {
+    const currentUser = getStoredUser();
+    const isSupervisor = currentUser && currentUser.role === 'Supervisor';
     const db = getUsersDatabase();
     const target = db.find(u => u.id === userId);
     const targetName = target ? target.name : 'สมาชิกรายนี้';
     const targetEmail = target ? target.email : '';
+
+    if (isSupervisor && target && target.role === 'Admin') {
+      showSweetAlert('ไม่มีสิทธิ์', 'Supervisor ไม่สามารถลบบัญชีผู้ดูแลระบบ (Admin) ได้', 'warning');
+      return;
+    }
 
     showSweetAlert(
       '⚠️ ยืนยันการลบสมาชิก?',
@@ -707,15 +765,41 @@
   }
 
   function openDirectAddModal() {
+    const currentUser = getStoredUser();
+    const isSupervisor = currentUser && currentUser.role === 'Supervisor';
+
     let overlay = document.getElementById('socnDirectAddUserOverlay');
     if (overlay) {
       document.getElementById('directAddName').value = '';
       document.getElementById('directAddEmail').value = '';
       document.getElementById('directAddPass').value = '';
-      document.getElementById('directAddRole').value = 'Ground';
+      const roleSel = document.getElementById('directAddRole');
+      if (roleSel) {
+        if (isSupervisor) {
+          roleSel.innerHTML = `
+            <option value="Ground">👤 Ground (เจ้าหน้าที่ปฏิบัติการ)</option>
+            <option value="Supervisor">👔 Supervisor (หัวหน้างาน)</option>
+          `;
+        } else {
+          roleSel.innerHTML = `
+            <option value="Ground">👤 Ground (เจ้าหน้าที่ปฏิบัติการ)</option>
+            <option value="Supervisor">👔 Supervisor (หัวหน้างาน)</option>
+            <option value="Admin">🛡️ Admin (ผู้ดูแลระบบ & Audit Logs)</option>
+          `;
+        }
+      }
       overlay.style.display = 'flex';
       return;
     }
+
+    const roleOptions = isSupervisor ? `
+      <option value="Ground">👤 Ground (เจ้าหน้าที่ปฏิบัติการ)</option>
+      <option value="Supervisor">👔 Supervisor (หัวหน้างาน)</option>
+    ` : `
+      <option value="Ground">👤 Ground (เจ้าหน้าที่ปฏิบัติการ)</option>
+      <option value="Supervisor">👔 Supervisor (หัวหน้างาน)</option>
+      <option value="Admin">🛡️ Admin (ผู้ดูแลระบบ & Audit Logs)</option>
+    `;
 
     overlay = document.createElement('div');
     overlay.id = 'socnDirectAddUserOverlay';
@@ -761,9 +845,7 @@
             <div class="field-group mb-4">
               <label style="display:block; font-size:0.82rem; font-weight:700; color:#1e293b; margin-bottom:5px;">มอบหมายระดับสิทธิ์ (Role):</label>
               <select id="directAddRole" style="width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:0.92rem; outline:none; box-sizing:border-box; font-weight:700; color:#1e293b;">
-                <option value="Ground">👤 Ground (เจ้าหน้าที่ปฏิบัติการ)</option>
-                <option value="Supervisor">👔 Supervisor (หัวหน้างาน / จัดการสมาชิก)</option>
-                <option value="Admin">🛡️ Admin (ผู้ดูแลระบบ & Audit Logs)</option>
+                ${roleOptions}
               </select>
             </div>
             <div style="display:flex; gap:10px;">
