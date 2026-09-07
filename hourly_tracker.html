@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⏱️ Productivity Orders ZONE - SOC Operations Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    body { background-color: #f8fafc; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #0f172a; padding-bottom: 50px; }
+    
+    .card-custom { background: #ffffff; border-radius: 14px; border: 1px solid #e2e8f0; box-shadow: 0 4px 14px rgba(0,0,0,0.03); padding: 22px; margin-bottom: 22px; }
+    
+    .stat-card { background: #ffffff; border-radius: 14px; border: 1px solid #e2e8f0; border-left: 5px solid #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.03); padding: 18px 20px; transition: transform 0.2s ease; }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-blue { border-left-color: #2563eb; }
+    .stat-indigo { border-left-color: #6366f1; }
+    .stat-success { border-left-color: #10b981; }
+    .stat-warning { border-left-color: #f59e0b; }
+    .stat-danger { border-left-color: #dc2626; }
+    .stat-title { font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+    .stat-value { font-size: 1.85rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
+
+    /* Google Sheet Style Table */
+    .sheet-table { font-size: 0.84rem; border-collapse: separate; border-spacing: 0; }
+    .sheet-table th { background: #1e293b; color: #ffffff; font-weight: 700; text-align: center; vertical-align: middle; border: 1px solid #334155; padding: 7px 8px; }
+    .sheet-table th.th-truck { background: #0369a1; color: #ffffff; }
+    .sheet-table th.th-order { background: #0f766e; color: #ffffff; }
+    .sheet-table th.th-zone { background: #4338ca; color: #ffffff; }
+    .sheet-table th.th-kpi { background: #334155; color: #ffffff; }
+
+    .sheet-table td { border: 1px solid #e2e8f0; padding: 6px 8px; vertical-align: middle; }
+    .sheet-table tbody tr:hover { background-color: #f8fafc; }
+    
+    .row-summary-total { background-color: #f1f5f9; font-weight: 800; border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; }
+    .row-summary-max { background-color: #fefce8; font-weight: 700; }
+    .row-summary-avg { background-color: #f0fdf4; font-weight: 700; }
+    .row-standby { background-color: #fafafa; color: #94a3b8; }
+
+    .badge-passed { background: #dcfce7; color: #15803d; font-weight: 700; border: 1px solid #86efac; padding: 4px 8px; border-radius: 6px; }
+    .badge-warning-custom { background: #fef3c7; color: #b45309; font-weight: 700; border: 1px solid #fde68a; padding: 4px 8px; border-radius: 6px; }
+    .badge-under { background: #fee2e2; color: #b91c1c; font-weight: 700; border: 1px solid #fca5a5; padding: 4px 8px; border-radius: 6px; }
+    .badge-standby { background: #f1f5f9; color: #64748b; font-weight: 600; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 6px; font-size: 0.76rem; }
+    
+    .badge-peak { background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; font-weight: 700; font-size: 0.72rem; }
+    .badge-normal { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; font-size: 0.72rem; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <nav style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:1020;">
+    <a href="index.html" style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
+      <span style="font-size:1.4rem;">⏱️</span> SOC Operations Portal - Productivity Orders ZONE
+    </a>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠 Portal Hub</a>
+      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚀 Investigation</a>
+      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📦 Skip Monitor</a>
+      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff Master</a>
+      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
+      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
+      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🔀 OB Backlog Compare</a>
+      <a href="hourly_tracker.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">⏱️ Hourly Tracker</a>
+    </div>
+  </nav>
+
+  <div class="container-fluid px-4 py-4" style="max-width: 1720px; margin: 0 auto;">
+
+    <!-- Banner Header Controls -->
+    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded-3 shadow-sm border flex-wrap gap-2">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <h4 class="fw-bold mb-0 text-slate-800"><i class="fa-solid fa-table-cells text-primary me-2"></i> Productivity Orders ZONE (24-Hour Monitor)</h4>
+          <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="fa-solid fa-bolt me-1"></i> Live Auto-Sync Active</span>
+        </div>
+        <p class="text-muted small mb-0">ดึงข้อมูลสดจาก Google Sheet (แท็บ Productivity Orders ZONE) จับยอดปล่อยรายชั่วโมงและแจ้งเตือน SeaTalk อัตโนมัติ (ข้ามช่วง 13:00 - 17:00 น.)</p>
+      </div>
+
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <button class="btn btn-danger btn-sm fw-bold px-3 shadow-sm" onclick="openQuickUploadModal()">
+          <i class="fa-solid fa-camera me-1"></i> 📸 อัปโหลดหลักฐานยอดหลุดเป้า
+        </button>
+        <button class="btn btn-success btn-sm fw-bold px-3 shadow-sm" id="btnSyncGoogleSheet" onclick="syncGoogleSheetData()">
+          <i class="fa-solid fa-cloud-arrow-down me-1"></i> 🔄 ซิงค์สดจาก Google Sheet
+        </button>
+        <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="loadHourlyTrackerData()">
+          <i class="fa-solid fa-rotate me-1"></i> รีเฟรช
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Summary Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-sm-6 col-md-3">
+        <div class="stat-card stat-blue">
+          <div class="stat-title"><i class="fa-solid fa-box-open text-primary me-1"></i> ยอดปล่อยจริงรวม (Total Orders)</div>
+          <div class="stat-value text-primary" id="kpiTotalActual">0</div>
+          <div class="text-muted small mt-1" id="kpiTotalTrucks">รวม 0 เที่ยวรถ</div>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-3">
+        <div class="stat-card stat-indigo">
+          <div class="stat-title"><i class="fa-solid fa-bullseye text-indigo me-1"></i> เป้าหมายรอบทำงาน (Daily Target)</div>
+          <div class="stat-value text-dark" id="kpiTotalTarget">0</div>
+          <div class="text-muted small mt-1" id="kpiAchievementRate">บรรลุเป้า 0.0%</div>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-2">
+        <div class="stat-card stat-success">
+          <div class="stat-title"><i class="fa-solid fa-circle-check text-success me-1"></i> ผ่านเป้า (Passed)</div>
+          <div class="stat-value text-success" id="kpiHoursPassed">0 ชม.</div>
+          <div class="text-muted small mt-1">ยอด $\ge$ Target</div>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-2">
+        <div class="stat-card stat-warning">
+          <div class="stat-title"><i class="fa-solid fa-triangle-exclamation text-warning me-1"></i> เกณฑ์ขั้นต่ำ (Warning)</div>
+          <div class="stat-value text-warning" id="kpiHoursWarning">0 ชม.</div>
+          <div class="text-muted small mt-1">$\ge$ Min แต่ $<$ Target</div>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-2">
+        <div class="stat-card stat-danger">
+          <div class="stat-title"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> หลุดเป้า (Under Target)</div>
+          <div class="stat-value text-danger" id="kpiHoursUnder">0 ชม.</div>
+          <div class="text-muted small mt-1" id="kpiStandbyNote">ไม่นับช่วง 13:00-17:00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Hourly Chart Section -->
+    <div class="card-custom">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+          <h5 class="fw-bold mb-0 text-slate-800"><i class="fa-solid fa-chart-column text-primary me-2"></i> กราฟเปรียบเทียบยอดปล่อยรายชั่วโมง (Hourly Actual vs Target & Minimum)</h5>
+          <p class="text-muted small mb-0">แสดงผล 24 ชั่วโมงตามรอบทำงาน (13:00 - 12:00) เทียบเส้น Target (สีน้ำเงิน) และเส้น Minimum Threshold (สีแดง)</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <span class="small fw-bold"><span class="badge bg-success me-1">■</span> ผ่านเป้า ($\ge$ Target)</span>
+          <span class="small fw-bold"><span class="badge bg-warning text-dark me-1">■</span> เกณฑ์ขั้นต่ำ ($\ge$ Min)</span>
+          <span class="small fw-bold"><span class="badge bg-danger me-1">■</span> หลุดเป้า ($<$ Min)</span>
+          <span class="small fw-bold text-muted"><span class="badge bg-secondary me-1">■</span> Standby (13:00-17:00)</span>
+        </div>
+      </div>
+
+      <div style="height: 350px; position: relative;">
+        <canvas id="hourlyPerformanceChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Shifts Summary Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <div class="card-custom h-100 border-start border-4 border-primary">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0 text-primary"><i class="fa-solid fa-sun text-warning me-2"></i> กะกลางวัน (Day Shift: 08:00 - 20:00 น.)</h6>
+            <span class="badge bg-primary fs-7" id="shift1AchieveBadge">0.0%</span>
+          </div>
+          <p class="text-muted small mb-2" id="shift1DetailText">กำลังคำนวณ...</p>
+          <div class="progress" style="height: 8px;">
+            <div class="progress-bar bg-primary" id="shift1ProgressBar" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="card-custom h-100 border-start border-4 border-indigo">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0 text-indigo"><i class="fa-solid fa-moon text-indigo me-2"></i> กะกลางคืน (Night Shift: 20:00 - 08:00 น.)</h6>
+            <span class="badge bg-indigo fs-7" id="shift2AchieveBadge" style="background:#6366f1;">0.0%</span>
+          </div>
+          <p class="text-muted small mb-2" id="shift2DetailText">กำลังคำนวณ...</p>
+          <div class="progress" style="height: 8px;">
+            <div class="progress-bar bg-indigo" id="shift2ProgressBar" style="width: 0%; background:#6366f1;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed Google Sheet Style Table -->
+    <div class="card-custom">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+          <h5 class="fw-bold mb-0 text-slate-800"><i class="fa-solid fa-table me-2 text-primary"></i> ตารางแจกแจงยอดปล่อยพัสดุ & เที่ยวรถ (Productivity Orders ZONE Master)</h5>
+          <p class="text-muted small mb-0">โครงสร้างตรงตามต้นฉบับ Google Sheet พร้อมสรุป Total, Max/hr, Avg/hr และแยกยอดตามโซน A/B/C</p>
+        </div>
+        <div>
+          <span class="badge bg-secondary font-monospace" id="tableLastUpdated">-</span>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle text-nowrap sheet-table">
+          <thead>
+            <!-- Level 1 Headers -->
+            <tr>
+              <th rowspan="2" style="width: 100px;">ชั่วโมง (Time)</th>
+              <th colspan="5" class="th-truck"><i class="fa-solid fa-truck me-1"></i> All Docks (# Trucks)</th>
+              <th colspan="2" class="th-order"><i class="fa-solid fa-boxes-stacked me-1"></i> ยอดปล่อยพัสดุ (# Orders)</th>
+              <th colspan="3" class="th-zone"><i class="fa-solid fa-layer-group me-1"></i> แยกตามโซน (# Orders by Zone)</th>
+              <th colspan="4" class="th-kpi"><i class="fa-solid fa-bullseye me-1"></i> เป้าหมาย & สถานะ (Target & KPI)</th>
+              <th rowspan="2" class="th-kpi" style="width: 140px; background:#0f172a; color:#f8fafc;"><i class="fa-solid fa-camera me-1"></i> หลักฐานตาม Zone</th>
+            </tr>
+            <!-- Level 2 Headers -->
+            <tr>
+              <th class="th-truck" style="width: 75px;">Total</th>
+              <th class="th-truck" style="width: 55px;">4WH</th>
+              <th class="th-truck" style="width: 55px;">4WJ</th>
+              <th class="th-truck" style="width: 55px;">6WH</th>
+              <th class="th-truck" style="width: 55px;">Semi</th>
+
+              <th class="th-order" style="width: 105px;">Total (ชิ้น)</th>
+              <th class="th-order" style="width: 70px;">Total (%)</th>
+
+              <th class="th-zone" style="width: 90px; background:#fdf2f8; color:#db2777;">Zone A</th>
+              <th class="th-zone" style="width: 90px; background:#f0fdf4; color:#16a34a;">Zone B</th>
+              <th class="th-zone" style="width: 90px; background:#fefce8; color:#ca8a04;">Zone C</th>
+
+              <th class="th-kpi" style="width: 90px;">Target</th>
+              <th class="th-kpi" style="width: 80px;">Min</th>
+              <th class="th-kpi" style="width: 80px;">Gap</th>
+              <th class="th-kpi" style="width: 135px;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="sheetSummaryBody">
+            <!-- Top summary rows (Total, Max/hr, Avg/hr) -->
+          </tbody>
+          <tbody id="sheetHourlyBody">
+            <!-- 24 hourly rows (13:00 to 12:00) -->
+            <tr><td colspan="16" class="text-center py-4 text-muted">กำลังโหลดข้อมูล...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Evidence Upload Modal (2 Slots: OBS & OBD) -->
+  <div class="modal fade" id="uploadEvidenceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-header bg-dark text-white border-0 py-3">
+          <h6 class="modal-title fw-bold" id="uploadModalTitle">
+            <i class="fa-solid fa-camera text-warning me-2"></i> อัปโหลดรูปภาพหลักฐานยอดหลุดเป้า (OBS & OBD)
+          </h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="evidenceUploadForm" onsubmit="handleEvidenceSubmit(event)">
+          <div class="modal-body p-4 bg-light">
+            <input type="hidden" id="eviDateInput" name="date">
+            <input type="hidden" id="eviSlotInput" name="slot">
+
+            <!-- Slot & Time summary box -->
+            <div class="p-3 bg-white border rounded-3 mb-3 shadow-sm">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <span class="text-muted small">ช่วงเวลาที่หลุดเป้า:</span>
+                  <div class="fw-bold text-slate-800 fs-5 font-monospace" id="eviTimeRangeDisplay">--:--</div>
+                </div>
+                <div class="text-end">
+                  <span class="text-muted small">วันที่:</span>
+                  <div class="fw-bold text-primary font-monospace" id="eviDateDisplay">--</div>
+                </div>
+              </div>
+              <div class="mt-2 pt-2 border-top d-flex justify-content-between small text-muted">
+                <span>Zone A: <b id="eviZoneAVol" class="text-dark">-</b></span>
+                <span>Zone B: <b id="eviZoneBVol" class="text-dark">-</b></span>
+                <span>Zone C: <b id="eviZoneCVol" class="text-dark">-</b></span>
+              </div>
+            </div>
+
+            <!-- Zone Selection -->
+            <div class="mb-3">
+              <label class="form-label fw-bold text-dark small mb-1">
+                <i class="fa-solid fa-layer-group text-primary me-1"></i> เลือก Zone ประจำหลักฐาน:
+              </label>
+              <div class="row g-2">
+                <div class="col-4">
+                  <input type="radio" class="btn-check" name="zone" id="zoneA_radio" value="Zone A" checked onchange="updateModalStaffList()">
+                  <label class="btn btn-outline-danger w-100 py-2 fw-bold text-center rounded-3" for="zoneA_radio">
+                    Zone A
+                  </label>
+                </div>
+                <div class="col-4">
+                  <input type="radio" class="btn-check" name="zone" id="zoneB_radio" value="Zone B" onchange="updateModalStaffList()">
+                  <label class="btn btn-outline-success w-100 py-2 fw-bold text-center rounded-3" for="zoneB_radio">
+                    Zone B
+                  </label>
+                </div>
+                <div class="col-4">
+                  <input type="radio" class="btn-check" name="zone" id="zoneC_radio" value="Zone C" onchange="updateModalStaffList()">
+                  <label class="btn btn-outline-warning w-100 py-2 fw-bold text-center rounded-3" for="zoneC_radio">
+                    Zone C
+                  </label>
+                </div>
+              </div>
+              
+              <!-- Responsible Staff Box -->
+              <div class="p-2 mt-2 bg-white border rounded-3 d-flex align-items-center gap-2" id="modalStaffBox">
+                <div class="fs-4 text-primary"><i class="fa-solid fa-id-badge"></i></div>
+                <div class="small">
+                  <span class="text-muted d-block" style="font-size:0.72rem;">👤 ผู้รับผิดชอบประจำโซน (ใครช้า / Responsible Staff):</span>
+                  <b class="text-slate-800" id="modalStaffNames">กำลังโหลด...</b>
+                </div>
+              </div>
+
+              <div class="form-text small text-muted mt-1">
+                📁 รูปภาพจะถูกบันทึกแยกโฟลเดอร์ตามโซน: <b class="text-dark">หลักฐาน\Zone A, Zone B, Zone C</b>
+              </div>
+            </div>
+
+            <!-- 2 Photo Upload Slots: OBS & OBD -->
+            <div class="row g-3 mb-3">
+              <!-- Slot 1: OBS Evidence -->
+              <div class="col-md-6">
+                <div class="p-3 bg-white border border-2 border-primary border-opacity-25 rounded-3 h-100 d-flex flex-column justify-content-between text-center position-relative shadow-sm">
+                  <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
+                    <span class="fw-bold text-primary small">
+                      <i class="fa-solid fa-boxes-stacked me-1"></i> ช่องที่ 1: หลักฐาน OBS
+                    </span>
+                    <span class="badge bg-primary text-white" style="font-size:0.68rem;">OBS (Sort)</span>
+                  </div>
+
+                  <input type="file" id="obsFileInput" name="obs_image" accept="image/*" capture="environment" style="position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none;" onchange="previewSelectedImage('obs')">
+
+                  <label for="obsFileInput" id="obsUploadPlaceholder" class="py-3 w-100 mb-0" style="cursor: pointer; display: block;">
+                    <i class="fa-solid fa-cloud-arrow-up text-primary fs-2 mb-2 d-block"></i>
+                    <div class="fw-bold small text-dark mb-1">แตะเพื่อถ่ายรูป / เลือกภาพ OBS</div>
+                    <div class="text-muted" style="font-size:0.72rem;">Outbound Sort Screenshot / Camera</div>
+                    <span class="btn btn-outline-primary btn-sm mt-3 px-3 fw-bold rounded-pill shadow-sm" style="pointer-events: none;">
+                      <i class="fa-solid fa-camera me-1"></i> แนบหลักฐาน OBS
+                    </span>
+                  </label>
+
+                  <div id="obsPreviewContainer" class="d-none position-relative mt-2">
+                    <img id="obsImagePreview" src="" class="img-fluid rounded-3 shadow-sm border" style="max-height: 180px; object-fit: contain;">
+                    <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 rounded-circle" onclick="resetEvidencePreview('obs')" title="ลบรูป OBS">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    <div class="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-50 translate-middle-x mb-2 px-2 py-1 font-monospace" style="font-size:0.68rem;" id="obsTimestampTag">
+                      OBS Timestamp
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Slot 2: OBD Evidence -->
+              <div class="col-md-6">
+                <div class="p-3 bg-white border border-2 rounded-3 h-100 d-flex flex-column justify-content-between text-center position-relative shadow-sm" style="border-color: rgba(124, 58, 237, 0.25) !important;">
+                  <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
+                    <span class="fw-bold small" style="color: #7c3aed;">
+                      <i class="fa-solid fa-truck-ramp-box me-1"></i> ช่องที่ 2: หลักฐาน OBD
+                    </span>
+                    <span class="badge text-white" style="background-color: #7c3aed; font-size:0.68rem;">OBD (Dock)</span>
+                  </div>
+
+                  <input type="file" id="obdFileInput" name="obd_image" accept="image/*" capture="environment" style="position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none;" onchange="previewSelectedImage('obd')">
+
+                  <label for="obdFileInput" id="obdUploadPlaceholder" class="py-3 w-100 mb-0" style="cursor: pointer; display: block;">
+                    <i class="fa-solid fa-cloud-arrow-up fs-2 mb-2 d-block" style="color: #7c3aed;"></i>
+                    <div class="fw-bold small text-dark mb-1">แตะเพื่อถ่ายรูป / เลือกภาพ OBD</div>
+                    <div class="text-muted" style="font-size:0.72rem;">Outbound Dock Screenshot / Camera</div>
+                    <span class="btn btn-sm mt-3 px-3 fw-bold rounded-pill text-white shadow-sm" style="background-color: #7c3aed; pointer-events: none;">
+                      <i class="fa-solid fa-camera me-1"></i> แนบหลักฐาน OBD
+                    </span>
+                  </label>
+
+                  <div id="obdPreviewContainer" class="d-none position-relative mt-2">
+                    <img id="obdImagePreview" src="" class="img-fluid rounded-3 shadow-sm border" style="max-height: 180px; object-fit: contain;">
+                    <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 rounded-circle" onclick="resetEvidencePreview('obd')" title="ลบรูป OBD">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    <div class="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-50 translate-middle-x mb-2 px-2 py-1 font-monospace" style="font-size:0.68rem;" id="obdTimestampTag">
+                      OBD Timestamp
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reason / Note -->
+            <div class="mb-2">
+              <label class="form-label fw-bold text-dark small mb-1">
+                <i class="fa-solid fa-clipboard-question text-primary me-1"></i> สาเหตุ / รายละเอียดหมายเหตุ (Note):
+              </label>
+              <input type="text" class="form-control form-control-sm rounded-3" id="evidenceNoteInput" name="note" placeholder="เช่น พัสดุเข้าช้า, สายพานติดขัด, รอรถสาย, กำลังคนไม่พอ">
+            </div>
+          </div>
+          <div class="modal-footer bg-white border-0 py-3">
+            <button type="button" class="btn btn-outline-secondary btn-sm px-3 fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="submit" class="btn btn-primary btn-sm px-4 fw-bold shadow-sm" id="btnSubmitEvidence">
+              <i class="fa-solid fa-cloud-arrow-up me-1"></i> ยืนยันบันทึกหลักฐาน OBS / OBD
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Evidence Gallery Viewer Modal -->
+  <div class="modal fade" id="galleryEvidenceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-header bg-dark text-white border-0 py-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fa-solid fa-images text-info fs-5"></i>
+            <div>
+              <h6 class="modal-title fw-bold mb-0" id="galleryModalTitle">คลังรูปภาพหลักฐาน</h6>
+              <span class="text-muted" style="font-size:0.75rem;" id="galleryModalSubtitle">--</span>
+            </div>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 bg-light">
+          <div class="row g-3" id="galleryCardsContainer">
+            <!-- Dynamic Gallery Cards -->
+          </div>
+        </div>
+        <div class="modal-footer bg-white border-0 py-2">
+          <button type="button" class="btn btn-secondary btn-sm px-4 fw-bold" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="auth_guard.js"></script>
+  <script>
+    let hourlyChartInstance = null;
+    let currentHourlyData = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initChart();
+      loadHourlyTrackerData();
+
+      // Auto poll every 30 seconds
+      setInterval(loadHourlyTrackerData, 30000);
+    });
+
+    function initChart() {
+      const ctx = document.getElementById('hourlyPerformanceChart').getContext('2d');
+      // Operational Shift Sequence: 13:00 to 12:00
+      const labels = ['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00', '24:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00'];
+
+      hourlyChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Target (เป้าหมาย)',
+              data: Array(24).fill(45000),
+              type: 'line',
+              borderColor: '#2563eb',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              pointRadius: 0,
+              fill: false,
+              order: 1
+            },
+            {
+              label: 'Minimum (เกณฑ์ขั้นต่ำ)',
+              data: Array(24).fill(40000),
+              type: 'line',
+              borderColor: '#dc2626',
+              borderWidth: 2,
+              borderDash: [3, 3],
+              pointRadius: 0,
+              fill: false,
+              order: 2
+            },
+            {
+              label: 'Actual Released (ยอดปล่อยจริง)',
+              data: Array(24).fill(0),
+              backgroundColor: Array(24).fill('#10b981'),
+              borderRadius: 5,
+              order: 3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top', labels: { font: { weight: 'bold' } } },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const val = context.parsed.y !== null ? context.parsed.y.toLocaleString() : '-';
+                  return `${context.dataset.label}: ${val} ชิ้น`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { weight: 'bold' } } },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) { return (value / 1000) + 'k'; }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function loadHourlyTrackerData() {
+      fetch('/api/hourly-tracker')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            currentHourlyData = data;
+            updateDashboardUI(data);
+          }
+        })
+        .catch(err => console.error('Error loading hourly data:', err));
+    }
+
+    function updateDashboardUI(data) {
+      const sum = data.summary || {};
+      const sumRows = data.summaryRows || {};
+      const totalRow = sumRows['Total'] || {};
+
+      document.getElementById('kpiTotalActual').innerText = (totalRow.actual || sum.totalActual || 0).toLocaleString() + ' ชิ้น';
+      document.getElementById('kpiTotalTrucks').innerText = `รวม ${(totalRow.trucks || 0).toLocaleString()} เที่ยวรถ (4WH: ${totalRow.truck4wh || 0}, 6WH: ${totalRow.truck6wh || 0})`;
+      document.getElementById('kpiTotalTarget').innerText = (sum.totalTarget || 0).toLocaleString() + ' ชิ้น';
+      document.getElementById('kpiAchievementRate').innerText = `บรรลุเป้าหมาย ${sum.overallAchievePct || 0}%`;
+      
+      document.getElementById('kpiHoursPassed').innerText = `${sum.hoursPassed || 0} ชม.`;
+      document.getElementById('kpiHoursWarning').innerText = `${sum.hoursWarning || 0} ชม.`;
+      document.getElementById('kpiHoursUnder').innerText = `${sum.hoursUnder || 0} ชม.`;
+
+      document.getElementById('tableLastUpdated').innerText = data.lastSyncAt ? `ซิงค์ชีตล่าสุด: ${data.lastSyncAt}` : `อัปเดต: ${data.updatedAt || '-'}`;
+
+      // Update Chart (Shift Order: 13:00 to 12:00)
+      if (hourlyChartInstance && data.slots) {
+        const targets = data.slots.map(s => s.target);
+        const minimums = data.slots.map(s => s.minimum);
+        const actuals = data.slots.map(s => s.actual);
+        
+        const barColors = data.slots.map(s => {
+          if (s.isQuiet && s.actual === 0) return '#cbd5e1';
+          if (s.status === 'passed') return '#10b981';
+          if (s.status === 'warning') return '#f59e0b';
+          return '#ef4444';
+        });
+
+        hourlyChartInstance.data.datasets[0].data = targets;
+        hourlyChartInstance.data.datasets[1].data = minimums;
+        hourlyChartInstance.data.datasets[2].data = actuals;
+        hourlyChartInstance.data.datasets[2].backgroundColor = barColors;
+        hourlyChartInstance.update();
+      }
+
+      // Update Shift Performance
+      if (data.slots) {
+        const daySlots = data.slots.filter(s => s.hour >= 8 && s.hour < 20 && !s.isQuiet);
+        const nightSlots = data.slots.filter(s => (s.hour < 8 || s.hour >= 20) && !s.isQuiet);
+
+        const calcShift = (slots) => {
+          const act = slots.reduce((acc, s) => acc + s.actual, 0);
+          const tgt = slots.reduce((acc, s) => acc + s.target, 0);
+          const pct = tgt > 0 ? (act / tgt * 100).toFixed(1) : '0.0';
+          return { act, tgt, pct };
+        };
+
+        const s1 = calcShift(daySlots);
+        const s2 = calcShift(nightSlots);
+
+        document.getElementById('shift1DetailText').innerHTML = `ปล่อยจริง <b>${s1.act.toLocaleString()}</b> / เป้า <b>${s1.tgt.toLocaleString()}</b> ชิ้น`;
+        document.getElementById('shift1AchieveBadge').innerText = `${s1.pct}%`;
+        document.getElementById('shift1ProgressBar').style.width = `${Math.min(s1.pct, 100)}%`;
+
+        document.getElementById('shift2DetailText').innerHTML = `ปล่อยจริง <b>${s2.act.toLocaleString()}</b> / เป้า <b>${s2.tgt.toLocaleString()}</b> ชิ้น`;
+        document.getElementById('shift2AchieveBadge').innerText = `${s2.pct}%`;
+        document.getElementById('shift2ProgressBar').style.width = `${Math.min(s2.pct, 100)}%`;
+      }
+
+      // Render Summary Rows & Hourly Breakdown Table
+      renderSummaryRows(sumRows);
+      renderHourlyTable(data.slots || []);
+    }
+
+    function renderSummaryRows(sumRows) {
+      const tbody = document.getElementById('sheetSummaryBody');
+      if (!tbody) return;
+
+      const total = sumRows['Total'] || {};
+      const maxHr = sumRows['Max/hr'] || {};
+      const avgHr = sumRows['Avg/hr'] || {};
+
+      tbody.innerHTML = `
+        <tr class="row-summary-total">
+          <td class="text-center fw-bold bg-dark text-white">Total</td>
+          <td class="text-center fw-bold">${(total.trucks || 0).toLocaleString()}</td>
+          <td class="text-center text-muted">${(total.truck4wh || 0).toLocaleString()}</td>
+          <td class="text-center text-muted">${(total.truck4wj || 0).toLocaleString()}</td>
+          <td class="text-center text-muted">${(total.truck6wh || 0).toLocaleString()}</td>
+          <td class="text-center text-muted">${(total.truckSemi || 0).toLocaleString()}</td>
+          <td class="text-end fw-bold text-primary">${(total.actual || 0).toLocaleString()}</td>
+          <td class="text-center fw-bold">100.00%</td>
+          <td class="text-end font-monospace" style="color:#db2777;">${(total.zoneA || 0).toLocaleString()}</td>
+          <td class="text-end font-monospace" style="color:#16a34a;">${(total.zoneB || 0).toLocaleString()}</td>
+          <td class="text-end font-monospace" style="color:#ca8a04;">${(total.zoneC || 0).toLocaleString()}</td>
+          <td colspan="4" class="text-center text-muted small bg-light">สรุปยอดรวมประจำรอบ (Daily Total)</td>
+          <td class="text-center text-muted small bg-light">—</td>
+        </tr>
+        <tr class="row-summary-max">
+          <td class="text-center fw-bold text-warning-emphasis">Max/hr</td>
+          <td class="text-center fw-bold">${(maxHr.trucks || 0).toLocaleString()}</td>
+          <td class="text-center text-muted">${(maxHr.truck4wh || 0).toLocaleString()}</td>
+          <td class="text-center text-muted">${(maxHr.truck4wj || 0).toLocaleString()}</td>
+          <td class="text-center text-muted">${(maxHr.truck6wh || 0).toLocaleString()}</td>
+          <td class="text-center text-muted">${(maxHr.truckSemi || 0).toLocaleString()}</td>
+          <td class="text-end fw-bold text-warning-emphasis">${(maxHr.actual || 0).toLocaleString()}</td>
+          <td class="text-center">${maxHr.orderPct || 0}%</td>
+          <td class="text-end font-monospace">${(maxHr.zoneA || 0).toLocaleString()}</td>
+          <td class="text-end font-monospace">${(maxHr.zoneB || 0).toLocaleString()}</td>
+          <td class="text-end font-monospace">${(maxHr.zoneC || 0).toLocaleString()}</td>
+          <td colspan="4" class="text-center text-muted small bg-light">ยอดสูงสุดต่อชั่วโมง (Peak Hour)</td>
+          <td class="text-center text-muted small bg-light">—</td>
+        </tr>
+        <tr class="row-summary-avg">
+          <td class="text-center fw-bold text-success-emphasis">Avg/hr</td>
+          <td class="text-center fw-bold">${(avgHr.trucks || 0).toLocaleString()}</td>
+          <td class="text-center text-muted">${(avgHr.truck4wh || 0).toLocaleString()}</td>
+          <td class="text-center text-muted">${(avgHr.truck4wj || 0).toLocaleString()}</td>
+          <td class="text-center text-muted">${(avgHr.truck6wh || 0).toLocaleString()}</td>
+          <td class="text-center text-muted">${(avgHr.truckSemi || 0).toLocaleString()}</td>
+          <td class="text-end fw-bold text-success-emphasis">${(avgHr.actual || 0).toLocaleString()}</td>
+          <td class="text-center">${avgHr.orderPct || 0}%</td>
+          <td class="text-end font-monospace">${(avgHr.zoneA || 0).toLocaleString()}</td>
+          <td class="text-end font-monospace">${(avgHr.zoneB || 0).toLocaleString()}</td>
+          <td class="text-end font-monospace">${(avgHr.zoneC || 0).toLocaleString()}</td>
+          <td colspan="4" class="text-center text-muted small bg-light">ยอดเฉลี่ยต่อชั่วโมง (Hourly Average)</td>
+          <td class="text-center text-muted small bg-light">—</td>
+        </tr>
+      `;
+    }
+
+    function renderHourlyTable(slots) {
+      const tbody = document.getElementById('sheetHourlyBody');
+      if (!tbody) return;
+
+      if (slots.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="16" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = slots.map(s => {
+        let statusBadge = '';
+        let rowClass = '';
+        let isUnder = false;
+
+        if (s.isQuiet && s.actual === 0) {
+          statusBadge = '<span class="badge badge-standby"><i class="fa-solid fa-bed me-1"></i> Standby (13:00-17:00)</span>';
+          rowClass = 'row-standby';
+        } else if (s.status === 'passed') {
+          statusBadge = '<span class="badge badge-passed"><i class="fa-solid fa-check me-1"></i> ผ่านเป้า (Passed)</span>';
+          rowClass = '';
+        } else if (s.status === 'warning') {
+          statusBadge = '<span class="badge badge-warning-custom"><i class="fa-solid fa-triangle-exclamation me-1"></i> เกณฑ์ขั้นต่ำ</span>';
+          rowClass = 'table-warning bg-opacity-10';
+          isUnder = true;
+        } else {
+          statusBadge = '<span class="badge badge-under"><i class="fa-solid fa-xmark me-1"></i> หลุดเป้า (Under)</span>';
+          rowClass = 'table-danger bg-opacity-10';
+          isUnder = true;
+        }
+
+        const hourLabel = s.hour === 0 ? '24:00 (00:00)' : s.slot;
+        const actualText = s.actual > 0 
+          ? `<span class="fw-bold ${s.status === 'under_target' ? 'text-danger' : (s.status === 'passed' ? 'text-success' : 'text-warning')}">${s.actual.toLocaleString()}</span>`
+          : '<span class="text-muted">0</span>';
+
+        let gapText = '-';
+        if (!s.isQuiet || s.actual > 0) {
+          if (s.gap >= 0) {
+            gapText = `<span class="text-success fw-bold">+${s.gap.toLocaleString()}</span>`;
+          } else {
+            gapText = `<span class="text-danger fw-bold">${s.gap.toLocaleString()}</span>`;
+          }
+        }
+
+        const trucksVal = s.trucks > 0 ? `<b>${s.trucks}</b>` : '<span class="text-muted">0</span>';
+        const truck4wh = s.truck4wh > 0 ? s.truck4wh : '<span class="text-muted">-</span>';
+        const truck4wj = s.truck4wj > 0 ? s.truck4wj : '<span class="text-muted">-</span>';
+        const truck6wh = s.truck6wh > 0 ? s.truck6wh : '<span class="text-muted">-</span>';
+        const truckSemi = s.truckSemi > 0 ? s.truckSemi : '<span class="text-muted">-</span>';
+
+        const orderPctText = s.orderPct > 0 ? `${s.orderPct}%` : '<span class="text-muted">-</span>';
+        
+        // Highlight lowest zone if under
+        const isLowestA = (isUnder && s.lowestZone === 'Zone A' && s.zoneA > 0);
+        const isLowestB = (isUnder && s.lowestZone === 'Zone B' && s.zoneB > 0);
+        const isLowestC = (isUnder && s.lowestZone === 'Zone C' && s.zoneC > 0);
+
+        const zoneA = s.zoneA > 0 ? `<span class="font-monospace fw-bold ${isLowestA ? 'badge bg-danger' : ''}" style="${isLowestA ? '' : 'color:#db2777;'}">${s.zoneA.toLocaleString()}</span>` : '<span class="text-muted">-</span>';
+        const zoneB = s.zoneB > 0 ? `<span class="font-monospace fw-bold ${isLowestB ? 'badge bg-danger' : ''}" style="${isLowestB ? '' : 'color:#16a34a;'}">${s.zoneB.toLocaleString()}</span>` : '<span class="text-muted">-</span>';
+        const zoneC = s.zoneC > 0 ? `<span class="font-monospace fw-bold ${isLowestC ? 'badge bg-danger' : ''}" style="${isLowestC ? '' : 'color:#ca8a04;'}">${s.zoneC.toLocaleString()}</span>` : '<span class="text-muted">-</span>';
+
+        const targetVal = (s.isQuiet && s.actual === 0) ? '<span class="text-muted">-</span>' : s.target.toLocaleString();
+        const minVal = (s.isQuiet && s.actual === 0) ? '<span class="text-muted">-</span>' : s.minimum.toLocaleString();
+
+        // Staff responsible for the slow zone
+        let slowStaffHtml = '';
+        if (isUnder && s.actual > 0 && s.lowestZone !== '-') {
+          const staffNamesStr = (s.slowStaff && s.slowStaff.length > 0) ? s.slowStaff.slice(0, 3).join(', ') : 'ไม่ระบุ';
+          slowStaffHtml = `
+            <div class="mt-1" style="font-size:0.72rem; line-height: 1.2;">
+              <span class="badge bg-danger bg-opacity-90 text-white shadow-sm" title="โซนที่ปล่อยต่ำสุด">
+                <i class="fa-solid fa-triangle-exclamation me-1"></i> ${s.lowestZone} ช้าสุด
+              </span>
+              <div class="text-secondary fw-bold mt-1" style="font-size:0.7rem;" title="เจ้าหน้าที่ผู้รับผิดชอบตาม Staff Roster">
+                <i class="fa-solid fa-user-tag text-primary me-1"></i> ${staffNamesStr}
+              </div>
+            </div>
+          `;
+        }
+
+        // Direct In-Cell Upload / Gallery Action Buttons
+        let directUploadBtnHtml = '';
+        if (s.evidenceCount > 0) {
+          directUploadBtnHtml = `
+            <div class="mt-2 d-flex align-items-center justify-content-center gap-1">
+              <button class="btn btn-sm btn-primary py-1 px-2 fw-bold shadow-sm" style="font-size:0.75rem;" onclick="openEvidenceGallery('${s.slot}', '${s.timeRange}')">
+                <i class="fa-solid fa-images me-1"></i> ดูหลักฐาน (${s.evidenceCount} รูป)
+              </button>
+              <button class="btn btn-sm btn-outline-primary py-1 px-2" style="font-size:0.75rem;" onclick="openUploadModal('${s.slot}', '${s.timeRange}', '${s.lowestZone}', ${s.zoneA}, ${s.zoneB}, ${s.zoneC})" title="เพิ่มรูปภาพ">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+          `;
+        } else if (isUnder && s.actual > 0) {
+          directUploadBtnHtml = `
+            <div class="mt-2">
+              <button class="btn btn-sm btn-danger py-1 px-3 fw-bold shadow-sm" style="font-size:0.78rem; border-radius: 8px;" onclick="openUploadModal('${s.slot}', '${s.timeRange}', '${s.lowestZone}', ${s.zoneA}, ${s.zoneB}, ${s.zoneC})">
+                <i class="fa-solid fa-camera me-1"></i> 📸 อัปโหลดหลักฐาน
+              </button>
+            </div>
+          `;
+        } else if (!s.isQuiet && s.actual > 0) {
+          directUploadBtnHtml = `
+            <div class="mt-1">
+              <button class="btn btn-sm btn-outline-secondary py-0 px-2 text-muted" style="font-size:0.7rem;" onclick="openUploadModal('${s.slot}', '${s.timeRange}', 'Zone A', ${s.zoneA}, ${s.zoneB}, ${s.zoneC})">
+                <i class="fa-solid fa-camera me-1"></i> แนบรูป
+              </button>
+            </div>
+          `;
+        }
+
+        return `
+        <tr class="${rowClass}">
+          <td class="text-center font-monospace fw-bold">${hourLabel}</td>
+          <td class="text-center font-monospace">${trucksVal}</td>
+          <td class="text-center text-muted font-monospace">${truck4wh}</td>
+          <td class="text-center text-muted font-monospace">${truck4wj}</td>
+          <td class="text-center text-muted font-monospace">${truck6wh}</td>
+          <td class="text-center text-muted font-monospace">${truckSemi}</td>
+          <td class="text-end font-monospace">${actualText}</td>
+          <td class="text-center font-monospace text-muted">${orderPctText}</td>
+          <td class="text-end">${zoneA}</td>
+          <td class="text-end">${zoneB}</td>
+          <td class="text-end">${zoneC}</td>
+          <td class="text-end text-secondary font-monospace">${targetVal}</td>
+          <td class="text-end text-muted font-monospace">${minVal}</td>
+          <td class="text-end font-monospace">${gapText}</td>
+          <td class="text-center p-2">${statusBadge}${slowStaffHtml}${directUploadBtnHtml}</td>
+          <td class="text-center">${directUploadBtnHtml || '<span class="text-muted small">-</span>'}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function openQuickUploadModal() {
+      if (!currentHourlyData || !currentHourlyData.slots) return;
+      const underSlots = currentHourlyData.slots.filter(s => s.status === 'under_target' && s.actual > 0);
+      const targetSlot = underSlots.length > 0 ? underSlots[0] : currentHourlyData.slots.find(s => !s.isQuiet) || currentHourlyData.slots[0];
+      if (targetSlot) {
+        openUploadModal(targetSlot.slot, targetSlot.timeRange, targetSlot.lowestZone, targetSlot.zoneA, targetSlot.zoneB, targetSlot.zoneC);
+      }
+    }
+
+    /* ─── Evidence Upload & Gallery Modals ─── */
+    function openUploadModal(slot, timeRange, lowestZone, za = 0, zb = 0, zc = 0) {
+      const dateStr = currentHourlyData?.date || new Date().toISOString().split('T')[0];
+      document.getElementById('eviDateInput').value = dateStr;
+      document.getElementById('eviSlotInput').value = slot;
+
+      document.getElementById('eviDateDisplay').innerText = dateStr;
+      document.getElementById('eviTimeRangeDisplay').innerText = timeRange || slot;
+
+      document.getElementById('eviZoneAVol').innerText = (za || 0).toLocaleString() + ' ชิ้น';
+      document.getElementById('eviZoneBVol').innerText = (zb || 0).toLocaleString() + ' ชิ้น';
+      document.getElementById('eviZoneCVol').innerText = (zc || 0).toLocaleString() + ' ชิ้น';
+
+      // Auto check lowest zone radio if provided
+      if (lowestZone === 'Zone B') {
+        document.getElementById('zoneB_radio').checked = true;
+      } else if (lowestZone === 'Zone C') {
+        document.getElementById('zoneC_radio').checked = true;
+      } else {
+        document.getElementById('zoneA_radio').checked = true;
+      }
+
+      updateModalStaffList();
+
+      resetEvidencePreview();
+      document.getElementById('evidenceNoteInput').value = '';
+
+      const modal = new bootstrap.Modal(document.getElementById('uploadEvidenceModal'));
+      modal.show();
+    }
+
+    function updateModalStaffList() {
+      const selectedZone = document.querySelector('input[name="zone"]:checked')?.value || 'Zone A';
+      const zoneKey = selectedZone.replace('Zone ', '').trim();
+      const roster = currentHourlyData?.rosterByZone || {};
+      const staff = roster[zoneKey] || [];
+      const sups = roster['ALL'] || ['Chain', 'Big'];
+      
+      const staffEl = document.getElementById('modalStaffNames');
+      if (staffEl) {
+        if (staff.length > 0) {
+          staffEl.innerHTML = `<span class="text-primary fw-bold">${staff.join(', ')}</span> <span class="text-muted small ms-1">(Supervisor: ${sups.join(', ')})</span>`;
+        } else {
+          staffEl.innerHTML = `<span class="text-muted">ไม่ระบุในระบบ Roster</span> <span class="text-muted small ms-1">(Supervisor: ${sups.join(', ')})</span>`;
+        }
+      }
+    }
+
+    function previewSelectedImage(type) {
+      const inputId = type === 'obd' ? 'obdFileInput' : 'obsFileInput';
+      const imgId = type === 'obd' ? 'obdImagePreview' : 'obsImagePreview';
+      const placeholderId = type === 'obd' ? 'obdUploadPlaceholder' : 'obsUploadPlaceholder';
+      const previewId = type === 'obd' ? 'obdPreviewContainer' : 'obsPreviewContainer';
+      const stampId = type === 'obd' ? 'obdTimestampTag' : 'obsTimestampTag';
+
+      const input = document.getElementById(inputId);
+      if (input && input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById(imgId).src = e.target.result;
+          document.getElementById(placeholderId).classList.add('d-none');
+          document.getElementById(previewId).classList.remove('d-none');
+
+          const now = new Date();
+          const stamp = now.toLocaleString('th-TH');
+          const typeLabel = type === 'obd' ? 'OBD' : 'OBS';
+          document.getElementById(stampId).innerText = `📸 ${typeLabel} Timestamp: ${stamp}`;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function resetEvidencePreview(type) {
+      if (!type || type === 'obs') {
+        const input = document.getElementById('obsFileInput');
+        if (input) input.value = '';
+        const img = document.getElementById('obsImagePreview');
+        if (img) img.src = '';
+        const ph = document.getElementById('obsUploadPlaceholder');
+        if (ph) ph.classList.remove('d-none');
+        const prev = document.getElementById('obsPreviewContainer');
+        if (prev) prev.classList.add('d-none');
+      }
+      if (!type || type === 'obd') {
+        const input = document.getElementById('obdFileInput');
+        if (input) input.value = '';
+        const img = document.getElementById('obdImagePreview');
+        if (img) img.src = '';
+        const ph = document.getElementById('obdUploadPlaceholder');
+        if (ph) ph.classList.remove('d-none');
+        const prev = document.getElementById('obdPreviewContainer');
+        if (prev) prev.classList.add('d-none');
+      }
+    }
+
+    function handleEvidenceSubmit(e) {
+      e.preventDefault();
+      const obsInput = document.getElementById('obsFileInput');
+      const obdInput = document.getElementById('obdFileInput');
+
+      const hasObs = obsInput && obsInput.files && obsInput.files[0];
+      const hasObd = obdInput && obdInput.files && obdInput.files[0];
+
+      if (!hasObs && !hasObd) {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire('กรุณาเลือกรูปภาพ', 'กรุณาแนบไฟล์รูปภาพหลักฐานอย่างน้อย 1 ช่อง (OBS หรือ OBD) ครับ', 'warning');
+        } else {
+          alert('กรุณาแนบไฟล์รูปภาพหลักฐานอย่างน้อย 1 ช่อง (OBS หรือ OBD) ครับ');
+        }
+        return;
+      }
+
+      const form = document.getElementById('evidenceUploadForm');
+      const formData = new FormData(form);
+
+      const user = window.AuthGuard ? window.AuthGuard.getUser() : null;
+      if (user && user.name) {
+        formData.append('uploadedBy', user.name);
+      }
+
+      const btn = document.getElementById('btnSubmitEvidence');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังอัปโหลด...';
+      btn.disabled = true;
+
+      fetch('/api/hourly-tracker/upload-evidence', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+
+        if (data.success) {
+          bootstrap.Modal.getInstance(document.getElementById('uploadEvidenceModal')).hide();
+          loadHourlyTrackerData();
+          if (typeof Swal !== 'undefined') {
+            const zName = data.evidence?.zone || (Array.isArray(data.evidence) ? data.evidence[0]?.zone : 'Zone');
+            Swal.fire({
+              icon: 'success',
+              title: 'บันทึกรูปภาพหลักฐานสำเร็จ!',
+              html: `จัดเก็บเข้าโฟลเดอร์: <b>หลักฐาน\\${zName}</b> เรียบร้อย`,
+              timer: 2500,
+              showConfirmButton: false
+            });
+          }
+        } else {
+          if (typeof Swal !== 'undefined') {
+            Swal.fire('เกิดข้อผิดพลาด', data.error || 'ไม่สามารถอัปโหลดได้', 'error');
+          } else {
+            alert(data.error);
+          }
+        }
+      })
+      .catch(err => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        console.error('Upload error:', err);
+      });
+    }
+
+    function openEvidenceGallery(slot, timeRange) {
+      const dateStr = currentHourlyData?.date || new Date().toISOString().split('T')[0];
+      document.getElementById('galleryModalTitle').innerText = `คลังรูปภาพหลักฐาน: ${timeRange || slot}`;
+      document.getElementById('galleryModalSubtitle').innerText = `ประจำวันที่ ${dateStr}`;
+
+      fetch(`/api/hourly-tracker/evidence?date=${encodeURIComponent(dateStr)}&slot=${encodeURIComponent(slot)}`)
+        .then(res => res.json())
+        .then(data => {
+          const container = document.getElementById('galleryCardsContainer');
+          if (!data.evidence || data.evidence.length === 0) {
+            container.innerHTML = '<div class="col-12 text-center py-5 text-muted">ไม่พบรูปภาพหลักฐานในช่วงเวลานี้</div>';
+          } else {
+            container.innerHTML = data.evidence.map(item => {
+              const zoneColor = item.zone === 'Zone A' ? 'danger' : (item.zone === 'Zone B' ? 'success' : 'warning');
+              const isObd = (item.type === 'OBD' || (item.filename && item.filename.includes('_OBD_')));
+              const typeBadge = isObd 
+                ? `<span class="badge text-white shadow-sm" style="background-color: #7c3aed;"><i class="fa-solid fa-truck-ramp-box me-1"></i> OBD</span>`
+                : `<span class="badge bg-primary text-white shadow-sm"><i class="fa-solid fa-boxes-stacked me-1"></i> OBS</span>`;
+
+              return `
+                <div class="col-md-6" id="evi_card_${item.id}">
+                  <div class="card border-0 shadow-sm rounded-3 overflow-hidden h-100">
+                    <div class="position-relative bg-dark text-center" style="max-height: 260px; overflow:hidden;">
+                      <a href="${item.fileUrl}" target="_blank" title="คลิกเพื่อดูรูปขนาดเต็ม">
+                        <img src="${item.fileUrl}" class="img-fluid" style="max-height: 260px; object-fit: contain; cursor: zoom-in;">
+                      </a>
+                      <div class="position-absolute top-0 start-0 m-2 d-flex gap-1 align-items-center">
+                        <span class="badge bg-${zoneColor} fw-bold shadow-sm">
+                          <i class="fa-solid fa-layer-group me-1"></i> ${item.zone}
+                        </span>
+                        ${typeBadge}
+                      </div>
+                      <button class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2 py-0 px-2 rounded-2" onclick="deleteEvidenceItem('${item.id}')" title="ลบรูปหลักฐาน">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </div>
+                    <div class="card-body p-3">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold text-dark small"><i class="fa-solid fa-clock me-1 text-primary"></i> ${item.timestamp}</span>
+                        <span class="badge bg-secondary font-monospace" style="font-size:0.7rem;">${item.slot}</span>
+                      </div>
+                      <div class="text-muted small mb-1">
+                        <i class="fa-solid fa-user me-1"></i> ผู้อัปโหลด: <b>${item.uploadedBy || 'Ground User'}</b>
+                      </div>
+                      ${item.note ? `<div class="p-2 bg-light border rounded small mt-2"><b>หมายเหตุ:</b> ${item.note}</div>` : ''}
+                      <div class="mt-2 pt-2 border-top text-muted" style="font-size:0.72rem;">
+                        📁 จัดเก็บที่: <code class="text-dark">${item.filePath}</code>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          }
+
+          const modal = new bootstrap.Modal(document.getElementById('galleryEvidenceModal'));
+          modal.show();
+        })
+        .catch(err => console.error('Error fetching gallery:', err));
+    }
+
+    function deleteEvidenceItem(id) {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          title: 'ยืนยันการลบรูปหลักฐาน?',
+          text: 'รูปภาพและไฟล์ในโฟลเดอร์หลักฐานจะถูกลบถาวร',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'ใช่, ลบรูปนี้',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#dc2626'
+        }).then(result => {
+          if (result.isConfirmed) {
+            executeDelete(id);
+          }
+        });
+      } else {
+        if (confirm('คุณต้องการลบรูปหลักฐานนี้ใช่หรือไม่?')) {
+          executeDelete(id);
+        }
+      }
+
+      function executeDelete(eviId) {
+        fetch(`/api/hourly-tracker/evidence/${eviId}`, { method: 'DELETE' })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              const card = document.getElementById(`evi_card_${eviId}`);
+              if (card) card.remove();
+              loadHourlyTrackerData();
+            }
+          })
+          .catch(err => console.error('Delete error:', err));
+      }
+    }
+
+    function syncGoogleSheetData() {
+      const btn = document.getElementById('btnSyncGoogleSheet');
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังซิงค์...';
+      btn.disabled = true;
+
+      fetch('/api/hourly-tracker/sync-google-sheet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      })
+      .then(res => res.json())
+      .then(data => {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        if (data.success) {
+          loadHourlyTrackerData();
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              icon: 'success',
+              title: 'ซิงค์ข้อมูล Google Sheet สำเร็จ!',
+              html: `ยอดปล่อยรวม 24 ชม.: <b>${(data.data?.totalOrders || 0).toLocaleString()} ชิ้น</b>`,
+              timer: 2500,
+              showConfirmButton: false
+            });
+          }
+        } else {
+          if (typeof Swal !== 'undefined') {
+            Swal.fire('ข้อผิดพลาด', data.error || 'ไม่สามารถซิงค์ได้', 'error');
+          } else {
+            alert(data.error);
+          }
+        }
+      })
+      .catch(err => {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        console.error('Error syncing:', err);
+      });
+    }
+  </script>
+</body>
+</html>

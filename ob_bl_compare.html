@@ -170,6 +170,7 @@
       <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
       <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
       <a href="ob_bl_compare.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">🔀 OB Backlog Compare</a>
+      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏱️ Hourly Tracker</a>
     </div>
   </nav>
 
@@ -192,9 +193,9 @@
 
       <!-- Action Toolbar -->
       <div class="d-flex align-items-center gap-2 flex-wrap">
-        <label class="btn btn-primary btn-sm fw-bold mb-0 shadow-sm" style="cursor:pointer;">
+        <label class="btn btn-primary btn-sm fw-bold mb-0 shadow-sm" style="cursor:pointer; position: relative;">
           <i class="fa-solid fa-cloud-arrow-up me-1"></i> อัปโหลดเข้าโฟลเดอร์ Backlog Shipment
-          <input type="file" id="compareFileInput" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleFileUpload(this.files[0])">
+          <input type="file" id="compareFileInput" accept=".csv,.xlsx,.xls" style="position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none;" onchange="handleFileUpload(this.files[0])">
         </label>
         <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="fetchCompareFileList()" title="รีเฟรชรายชื่อไฟล์">
           <i class="fa-solid fa-arrows-rotate"></i>
@@ -403,11 +404,11 @@
         <p class="text-muted small mb-4">
           กรุณาเลือกไฟล์รายงาน Outbound Backlog 2 รอบเวลาจาก Dropdown ด้านบน หรืออัปโหลดไฟล์รายงานใหม่ (CSV / Excel) เข้าสู่โฟลเดอร์ <code>Backlog Shipment</code> เพื่อเริ่มการวิเคราะห์เปรียบเทียบ
         </p>
-        <div class="dropzone-box" onclick="document.getElementById('compareFileInput').click()">
+        <label for="compareFileInput" class="dropzone-box w-100 d-block" style="cursor: pointer;">
           <i class="fa-solid fa-cloud-arrow-up text-primary mb-2" style="font-size: 2rem;"></i>
           <div class="fw-bold small text-dark">คลิกเพื่ออัปโหลดไฟล์รายงาน Outbound Backlog</div>
           <div class="text-muted" style="font-size: 0.78rem;">รองรับไฟล์ .csv, .xlsx, .xls (บันทึกเข้าโฟลเดอร์ Backlog Shipment อัตโนมัติ)</div>
-        </div>
+        </label>
       </div>
     </div>
 

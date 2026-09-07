@@ -4,6 +4,9 @@ import sys
 import re
 import json
 import uuid
+import time
+import random
+import urllib.parse
 import csv
 import io
 import warnings
@@ -3305,6 +3308,888 @@ def export_activity_logs():
         mimetype="text/csv"
     )
 
+# ===== SYSTEM SETTINGS & SEATALK / HOURLY TRACKER =====
+SYSTEM_SETTINGS_FILE = os.path.join(DATA_DIR, "system_settings.json")
+HOURLY_TRACKER_FILE = os.path.join(DATA_DIR, "hourly_tracker_data.json")
+
+def load_system_settings():
+    if os.path.exists(SYSTEM_SETTINGS_FILE):
+        try:
+            with open(SYSTEM_SETTINGS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print("Error loading system settings:", e)
+    return {
+        "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "hourlyTarget": 45000,
+        "hourlyMinimum": 40000,
+        "hourlyMinimumPct": 90,
+        "peakHourTarget": 50000,
+        "peakHours": ["13:00", "14:00", "15:00", "19:00", "20:00", "21:00"],
+        "overallSkipTargetPct": 0.80,
+        "zoneSkipTargetPct": 0.27,
+        "shifts": {
+            "shift1": { "name": "กะกลางวัน (Day Shift)", "start": "08:00", "end": "20:00" },
+            "shift2": { "name": "กะกลางคืน (Night Shift)", "start": "20:00", "end": "08:00" }
+        },
+        "seatalk": {
+            "enabled": False,
+            "webhookType": "seatalk",
+            "webhookUrl": "",
+            "triggerCondition": "below_minimum",
+            "mentionType": "specific",
+            "mentionEmails": ["guy.panmanee@spxexpress.com"],
+            "autoAlertIntervalMinutes": 60
+        },
+        "googleSheetSync": {
+            "enabled": False,
+            "url": "https://docs.google.com/spreadsheets/d/1b23i0TPw1NHQAoj-D3YeDe4khnXFn_d0MmxfFniuq-k/edit?gid=660104821#gid=660104821",
+            "autoSyncIntervalMinutes": 15
+        }
+    }
+
+def save_system_settings(data):
+    try:
+        data["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(SYSTEM_SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print("Error saving system settings:", e)
+        return False
+
+def load_hourly_tracker_data():
+    if os.path.exists(HOURLY_TRACKER_FILE):
+        try:
+            with open(HOURLY_TRACKER_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print("Error loading hourly tracker data:", e)
+    today = datetime.now().strftime("%Y-%m-%d")
+    return {
+        "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "date": today,
+        "records": { today: {} }
+    }
+
+def save_hourly_tracker_data(data):
+    try:
+        data["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(HOURLY_TRACKER_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print("Error saving hourly tracker data:", e)
+        return False
+
+def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=False, webhook_type="seatalk"):
+    if not webhook_url or not webhook_url.strip():
+        return False, "Webhook URL is not configured"
+    
+    webhook_url = webhook_url.strip()
+    try:
+        if webhook_type == "seatalk":
+            payload = {
+                "tag": "text",
+                "text": {
+                    "content": message
+                }
+            }
+            if mention_all:
+                payload["text"]["mentioned_list"] = ["@all"]
+            elif mention_emails and len(mention_emails) > 0:
+                payload["text"]["mentioned_email_list"] = [e.strip() for e in mention_emails if e and e.strip()]
+        else:
+            # n8n or generic webhook payload
+            payload = {
+                "source": "SOCN_HOURLY_TRACKER",
+                "message": message,
+                "mentionAll": mention_all,
+                "mentionEmails": mention_emails or [],
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+
+        headers = {"Content-Type": "application/json"}
+        res = requests.post(webhook_url, json=payload, headers=headers, timeout=10)
+        if res.status_code in [200, 201, 204]:
+            return True, "Alert sent successfully"
+        else:
+            return False, f"Server returned HTTP {res.status_code}: {res.text[:200]}"
+    except Exception as e:
+        return False, str(e)
+
+
+@app.route("/api/system-settings", methods=["GET", "POST"])
+def manage_system_settings_api():
+    if request.method == "GET":
+        settings = load_system_settings()
+        return jsonify({"success": True, "settings": settings})
+    
+    elif request.method == "POST":
+        req = request.get_json(silent=True) or {}
+        current = load_system_settings()
+        current.update(req)
+        
+        save_system_settings(current)
+        log_activity("SYSTEM_SETTINGS_UPDATE", f"🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: {current.get('hourlyTarget')}, Min: {current.get('hourlyMinimum')})")
+        
+        return jsonify({
+            "success": True,
+            "message": "บันทึกการตั้งค่าเป้าหมายและ Webhook เรียบร้อยแล้ว",
+            "settings": current
+        })
+
+
+@app.route("/api/system-settings/test-seatalk", methods=["POST"])
+def test_seatalk_alert_api():
+    req = request.get_json(silent=True) or {}
+    webhook_url = req.get("webhookUrl") or ""
+    webhook_type = req.get("webhookType") or "seatalk"
+    mention_type = req.get("mentionType") or "specific"
+    mention_emails = req.get("mentionEmails") or []
+    
+    if not webhook_url:
+        settings = load_system_settings()
+        st_cfg = settings.get("seatalk", {})
+        webhook_url = st_cfg.get("webhookUrl", "")
+        webhook_type = st_cfg.get("webhookType", "seatalk")
+        mention_type = st_cfg.get("mentionType", "specific")
+        mention_emails = st_cfg.get("mentionEmails", [])
+
+    if not webhook_url:
+        return jsonify({"success": False, "error": "กรุณาระบุ Webhook URL ก่อนกดทดสอบ"}), 400
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    test_msg = f"""🚨 [SOCN TEST NOTIFICATION] ทดสอบการเชื่อมต่อระบบแจ้งเตือน SeaTalk Webhook
+━━━━━━━━━━━━━━━━━━━━
+⏰ เวลาทดสอบ: {now_str}
+🎯 เป้าหมายระบบ (Target): 45,000 ชิ้น/ชม.
+⚠️ เกณฑ์ขั้นต่ำ (Minimum): 40,000 ชิ้น/ชม.
+📡 สถานะการเชื่อมต่อ: ✅ เชื่อมต่อสำเร็จ (Connection Verified)
+━━━━━━━━━━━━━━━━━━━━
+ระบบพร้อมส่งแจ้งเตือนอัตโนมัติเมื่อยอดปล่อยหลุดเป้าหมายรายชั่วโมง"""
+
+    mention_all = (mention_type == "all")
+    emails_to_tag = mention_emails if (mention_type == "specific") else []
+
+    ok, msg = send_seatalk_alert(webhook_url, test_msg, mention_emails=emails_to_tag, mention_all=mention_all, webhook_type=webhook_type)
+    if ok:
+        log_activity("SEATALK_TEST_ALERT", f"🔔 ทดสอบยิงแจ้งเตือน SeaTalk Webhook สำเร็จ ({webhook_url[:30]}...)")
+        return jsonify({"success": True, "message": "ส่งข้อความทดสอบเข้า SeaTalk เรียบร้อยแล้ว!"})
+    else:
+        return jsonify({"success": False, "error": f"ไม่สามารถส่งข้อความได้: {msg}"}), 400
+
+
+def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
+    import csv, io, re, urllib.request, time
+    from datetime import datetime
+    
+    settings = load_system_settings()
+    if not sheet_url:
+        sheet_url = settings.get("googleSheetSync", {}).get("url", "")
+    
+    if not sheet_url:
+        return False, "ยังไม่ได้กำหนด Google Sheet URL", None
+        
+    try:
+        req = urllib.request.Request(sheet_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            raw_csv = resp.read().decode("utf-8", errors="ignore")
+            
+        reader = list(csv.reader(io.StringIO(raw_csv)))
+        if not reader:
+            return False, "ไม่พบข้อมูลใน Google Sheet", None
+            
+        def clean_num(val):
+            if not val or str(val).strip() in ["-", "", "#REF!", "#ERROR!"]: return 0
+            val_str = str(val).replace(",", "").replace("%", "").strip()
+            try:
+                return int(float(val_str))
+            except:
+                return 0
+
+        def clean_float(val):
+            if not val or str(val).strip() in ["-", "", "#REF!", "#ERROR!"]: return 0.0
+            val_str = str(val).replace(",", "").replace("%", "").strip()
+            try:
+                return round(float(val_str), 2)
+            except:
+                return 0.0
+                
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        for r in reader[:6]:
+            for cell in r:
+                match = re.search(r"(\d{1,2})\s+([A-Za-z]{3})\s+(\d{2,4})", str(cell))
+                if match:
+                    day, mon, yr = match.groups()
+                    try:
+                        full_yr = int(yr) + 2000 if len(yr) == 2 else int(yr)
+                        parsed_d = datetime.strptime(f"{day} {mon} {full_yr}", "%d %b %Y")
+                        date_str = parsed_d.strftime("%Y-%m-%d")
+                    except:
+                        pass
+                    break
+
+        summary_rows = {}
+        for r in reader[:10]:
+            label = r[1].strip() if len(r) > 1 else ""
+            if label in ["Total", "Max/hr", "Avg/hr"]:
+                summary_rows[label] = {
+                    "label": label,
+                    "trucks": clean_num(r[2]),
+                    "truckPct": clean_float(r[3]),
+                    "truck4wh": clean_num(r[4]),
+                    "truck4wj": clean_num(r[5]),
+                    "truck6wh": clean_num(r[6]),
+                    "truckSemi": clean_num(r[7]),
+                    "actual": clean_num(r[8]),
+                    "orderPct": clean_float(r[9]),
+                    "zoneA": clean_num(r[10]),
+                    "zoneB": clean_num(r[11]),
+                    "zoneC": clean_num(r[12]),
+                    "zoneD": clean_num(r[13]) if len(r) > 13 else 0,
+                    "zoneE": clean_num(r[14]) if len(r) > 14 else 0,
+                    "zoneOBC": clean_num(r[15]) if len(r) > 15 else 0
+                }
+                    
+        records = {}
+        zone_details = {}
+        ordered_slots_from_sheet = []
+        
+        for r in reader:
+            if len(r) < 9: continue
+            time_col = r[1].strip()
+            match = re.search(r"^(\d{1,2}):(\d{2})$", time_col)
+            if match:
+                h = int(match.group(1))
+                slot_hour = 0 if h == 24 else h
+                slot_label = f"{slot_hour:02d}:00"
+                
+                total_orders = clean_num(r[8])
+                order_pct = clean_float(r[9]) if len(r) > 9 else 0.0
+                trucks = clean_num(r[2]) if len(r) > 2 else 0
+                truck_pct = clean_float(r[3]) if len(r) > 3 else 0.0
+                truck_4wh = clean_num(r[4]) if len(r) > 4 else 0
+                truck_4wj = clean_num(r[5]) if len(r) > 5 else 0
+                truck_6wh = clean_num(r[6]) if len(r) > 6 else 0
+                truck_semi = clean_num(r[7]) if len(r) > 7 else 0
+                
+                zone_a = clean_num(r[10]) if len(r) > 10 else 0
+                zone_b = clean_num(r[11]) if len(r) > 11 else 0
+                zone_c = clean_num(r[12]) if len(r) > 12 else 0
+                zone_d = clean_num(r[13]) if len(r) > 13 else 0
+                zone_e = clean_num(r[14]) if len(r) > 14 else 0
+                zone_obc = clean_num(r[15]) if len(r) > 15 else 0
+                
+                if slot_label in records and records[slot_label] > 0 and total_orders == 0:
+                    continue
+                    
+                records[slot_label] = total_orders
+                zone_details[slot_label] = {
+                    "originalHourLabel": time_col,
+                    "slotHour": slot_hour,
+                    "trucks": trucks,
+                    "truckPct": truck_pct,
+                    "truck4wh": truck_4wh,
+                    "truck4wj": truck_4wj,
+                    "truck6wh": truck_6wh,
+                    "truckSemi": truck_semi,
+                    "totalOrders": total_orders,
+                    "orderPct": order_pct,
+                    "zoneA": zone_a,
+                    "zoneB": zone_b,
+                    "zoneC": zone_c,
+                    "zoneD": zone_d,
+                    "zoneE": zone_e,
+                    "zoneOBC": zone_obc
+                }
+                if slot_label not in ordered_slots_from_sheet:
+                    ordered_slots_from_sheet.append(slot_label)
+                
+        if auto_save:
+            tracker_data = load_hourly_tracker_data()
+            if "records" not in tracker_data:
+                tracker_data["records"] = {}
+            if "zone_breakdowns" not in tracker_data:
+                tracker_data["zone_breakdowns"] = {}
+            if "summary_rows" not in tracker_data:
+                tracker_data["summary_rows"] = {}
+            if "last_alerted" not in tracker_data:
+                tracker_data["last_alerted"] = {}
+                
+            prev_records = tracker_data["records"].get(date_str, {})
+            tracker_data["records"][date_str] = records
+            tracker_data["zone_breakdowns"][date_str] = zone_details
+            tracker_data["summary_rows"][date_str] = summary_rows
+            tracker_data["lastSyncAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            tracker_data["lastSyncDate"] = date_str
+            
+            # Auto-alert evaluation (Skip 13:00 - 17:00, only alert on NEW or CHANGED under-target data)
+            st_cfg = settings.get("seatalk", {})
+            if st_cfg.get("enabled") and st_cfg.get("webhookUrl"):
+                target_normal = settings.get("hourlyTarget", 45000)
+                target_min = settings.get("hourlyMinimum", 40000)
+                target_peak = settings.get("peakHourTarget", 50000)
+                peak_hours = set(settings.get("peakHours", []))
+                cond = st_cfg.get("triggerCondition", "below_minimum")
+                
+                if "alerted_hashes" not in tracker_data:
+                    tracker_data["alerted_hashes"] = []
+                if "last_alerted" not in tracker_data:
+                    tracker_data["last_alerted"] = {}
+                if date_str not in tracker_data["last_alerted"]:
+                    tracker_data["last_alerted"][date_str] = {}
+                    
+                current_timestamp = time.time()
+                quiet_hours = {13, 14, 15, 16, 17} # Standby hours: 13:00 - 17:59 -> DO NOT ALERT
+                
+                for slot_lbl, act in records.items():
+                    try:
+                        h_val = int(slot_lbl.split(":")[0])
+                    except:
+                        h_val = 0
+                        
+                    # Skip quiet hours (13:00 - 17:00) and unrecorded / zero orders
+                    if h_val in quiet_hours or act == 0:
+                        continue
+                        
+                    # Only alert if data actually changed from sheet or is newly entered
+                    prev_act = prev_records.get(slot_lbl)
+                    if prev_act is not None and prev_act == act:
+                        continue
+                        
+                    alert_hash = f"{date_str}_{slot_lbl}_{act}"
+                    if alert_hash in tracker_data["alerted_hashes"]:
+                        continue
+                        
+                    is_peak = slot_lbl in peak_hours
+                    slot_target = target_peak if is_peak else target_normal
+                    
+                    is_fail = False
+                    if cond == "below_minimum" and act < target_min:
+                        is_fail = True
+                    elif cond == "below_target" and act < slot_target:
+                        is_fail = True
+                        
+                    if is_fail:
+                        gap = act - slot_target
+                        pct = round((act / slot_target * 100), 1) if slot_target > 0 else 0.0
+                        next_h_label = f"{(h_val+1)%24:02d}:00"
+                        time_range = f"{slot_lbl} - {next_h_label}"
+                        
+                        zd = zone_details.get(slot_lbl, {})
+                        za, zb, zc = zd.get('zoneA', 0), zd.get('zoneB', 0), zd.get('zoneC', 0)
+                        
+                        # Find lowest zone
+                        z_list = [('Zone A', za), ('Zone B', zb), ('Zone C', zc)]
+                        z_list.sort(key=lambda x: x[1])
+                        lowest_zone_name = z_list[0][0]
+                        lowest_str = f"{lowest_zone_name} ({z_list[0][1]:,} ชิ้น)"
+                        
+                        # Look up responsible staff from Staff Roster
+                        roster = load_staff_roster_data()
+                        roster_by_zone = roster.get("rosterByZone", {})
+                        zone_key = lowest_zone_name.replace("Zone ", "").strip()
+                        staff_names = roster_by_zone.get(zone_key, [])
+                        sups = roster_by_zone.get("ALL", ["Chain", "Big"])
+                        staff_str = ", ".join(staff_names) if staff_names else "ไม่ระบุใน Roster"
+                        sups_str = ", ".join(sups) if sups else "Chain, Big"
+                        
+                        msg = f"""🚨 [SOCN ALERT] ยอดปล่อยหลุดเป้าหมายรายชั่วโมง (Hourly Release Under Target)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_str}
+⏰ ช่วงเวลา: {time_range}
+🎯 เป้าหมาย (Target): {slot_target:,} ชิ้น
+⚠️ เกณฑ์ขั้นต่ำ (Min): {target_min:,} ชิ้น
+📦 ปล่อยจริง (Actual): {act:,} ชิ้น
+📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)
+🚚 เที่ยวรถ: {zd.get('trucks', 0)} เที่ยว
+📍 ยอดตามโซน: A: {za:,} | B: {zb:,} | C: {zc:,}
+⚠️ โซนที่หลุดเป้า/ช้าสุด: {lowest_str}
+👤 ผู้รับผิดชอบ {lowest_zone_name} (ใครช้า): {staff_str}
+👔 Supervisor ประจำรอบ: {sups_str}
+━━━━━━━━━━━━━━━━━━━━
+🔴 สถานะ: Under {'Minimum ' if act < target_min else ''}Target
+👉 ตรวจสอบ & แนบหลักฐาน: http://localhost:5000/hourly_tracker.html"""
+
+                        mention_all = (st_cfg.get("mentionType") == "all")
+                        emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
+                        send_seatalk_alert(st_cfg.get("webhookUrl"), msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"))
+                        tracker_data["last_alerted"][date_str][slot_lbl] = current_timestamp
+                        tracker_data["alerted_hashes"].append(alert_hash)
+                        log_activity("SEATALK_AUTO_ALERT", f"🚨 ส่งแจ้งเตือน SeaTalk อัตโนมัติ: {date_str} {slot_lbl} ยอด {act:,} ชิ้น (หลุดเป้า: {lowest_str} | ผู้รับผิดชอบ: {staff_str})")
+
+            save_hourly_tracker_data(tracker_data)
+            log_activity("GOOGLE_SHEET_SYNC", f"🔄 ซิงค์ข้อมูล Google Sheet สำเร็จ (วันที่ {date_str}, ยอดรวม {sum(records.values()):,} ชิ้น, 24 ชั่วโมง)")
+            
+        return True, "ซิงค์ข้อมูล Google Sheet สำเร็จ", {
+            "date": date_str,
+            "totalOrders": sum(records.values()),
+            "slotsCount": len(records),
+            "summaryRows": summary_rows,
+            "records": records,
+            "zoneDetails": zone_details
+        }
+    except Exception as e:
+        return False, f"เกิดข้อผิดพลาดในการซิงค์ Google Sheet: {str(e)}", None
+
+
+# Evidence Directory Setup (C:\Users\spxth71637\Desktop\OB Dashboard\หลักฐาน)
+EVIDENCE_BASE_DIR = os.path.join(BASE_DIR, "หลักฐาน")
+EVIDENCE_METADATA_FILE = os.path.join(DATA_DIR, "hourly_evidence.json")
+
+for z in ["Zone A", "Zone B", "Zone C"]:
+    os.makedirs(os.path.join(EVIDENCE_BASE_DIR, z), exist_ok=True)
+
+def load_evidence_metadata():
+    if not os.path.exists(EVIDENCE_METADATA_FILE):
+        return []
+    try:
+        with open(EVIDENCE_METADATA_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_evidence_metadata(data):
+    try:
+        with open(EVIDENCE_METADATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[Evidence Save Error]: {e}")
+
+
+@app.route("/api/hourly-tracker/upload-evidence", methods=["POST"])
+def upload_hourly_evidence_api():
+    # Support both 2-slot upload (obs_image, obd_image) and fallback single 'image'
+    has_obs = "obs_image" in request.files and request.files["obs_image"].filename != ""
+    has_obd = "obd_image" in request.files and request.files["obd_image"].filename != ""
+    has_generic = "image" in request.files and request.files["image"].filename != ""
+
+    if not (has_obs or has_obd or has_generic):
+        return jsonify({"success": False, "error": "กรุณาแนบรูปภาพหลักฐานอย่างน้อย 1 ช่อง (OBS หรือ OBD)"}), 400
+        
+    zone = request.form.get("zone", "Zone A").strip()
+    if zone not in ["Zone A", "Zone B", "Zone C"]:
+        zone = "Zone A"
+        
+    date_str = request.form.get("date", "").strip() or datetime.now().strftime("%Y-%m-%d")
+    slot = request.form.get("slot", "").strip() or "N/A"
+    note = request.form.get("note", "").strip()
+    uploader = request.form.get("uploadedBy", "Ground User").strip()
+    
+    target_dir = os.path.join(EVIDENCE_BASE_DIR, zone)
+    os.makedirs(target_dir, exist_ok=True)
+    
+    now = datetime.now()
+    ts_str = now.strftime("%Y%m%d_%H%M%S")
+    safe_slot = slot.replace(":", "-").replace(" ", "_")
+    safe_zone = zone.replace(" ", "_")
+    
+    time_range = f"{slot} - {(int(slot.split(':')[0])+1)%24:02d}:00" if ":" in slot else slot
+    
+    files_to_save = []
+    if has_obs:
+        files_to_save.append(("OBS", "หลักฐาน OBS", request.files["obs_image"]))
+    if has_obd:
+        files_to_save.append(("OBD", "หลักฐาน OBD", request.files["obd_image"]))
+    if has_generic and not (has_obs or has_obd):
+        doc_type = request.form.get("type", "OBS").upper()
+        if doc_type not in ["OBS", "OBD"]:
+            doc_type = "OBS"
+        files_to_save.append((doc_type, f"หลักฐาน {doc_type}", request.files["image"]))
+        
+    saved_records = []
+    metadata = load_evidence_metadata()
+    
+    for doc_type, doc_title, file in files_to_save:
+        ext = os.path.splitext(file.filename)[1].lower() or ".jpg"
+        if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
+            ext = ".jpg"
+            
+        saved_filename = f"{date_str}_{safe_slot}_{safe_zone}_{doc_type}_{ts_str}{ext}"
+        target_path = os.path.join(target_dir, saved_filename)
+        
+        file.save(target_path)
+        
+        file_id = f"evi_{doc_type.lower()}_{int(time.time())}_{random.randint(100, 999)}"
+        record = {
+            "id": file_id,
+            "type": doc_type,
+            "title": doc_title,
+            "date": date_str,
+            "slot": slot,
+            "timeRange": time_range,
+            "zone": zone,
+            "filename": saved_filename,
+            "originalFilename": file.filename,
+            "filePath": f"หลักฐาน/{zone}/{saved_filename}",
+            "fileUrl": f"/evidence-image/{urllib.parse.quote(zone)}/{saved_filename}",
+            "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
+            "note": note,
+            "uploadedBy": uploader,
+            "sizeBytes": os.path.getsize(target_path)
+        }
+        
+        saved_records.append(record)
+        metadata.insert(0, record)
+        log_activity("EVIDENCE_UPLOAD", f"📸 อัปโหลด{doc_title}: {zone} | {date_str} {slot} ({saved_filename})")
+        time.sleep(0.05) # slight offset for unique timestamp IDs if multiple
+        
+    save_evidence_metadata(metadata)
+    
+    type_names = ", ".join([r["type"] for r in saved_records])
+    return jsonify({
+        "success": True,
+        "message": f"อัปโหลดหลักฐาน [{type_names}] {zone} ช่วงเวลา {slot} สำเร็จ! ({len(saved_records)} ไฟล์)",
+        "evidence": saved_records[0] if len(saved_records) == 1 else saved_records,
+        "records": saved_records
+    })
+
+
+@app.route("/api/hourly-tracker/evidence", methods=["GET"])
+def get_hourly_evidence_api():
+    date_filter = request.args.get("date", "").strip()
+    slot_filter = request.args.get("slot", "").strip()
+    zone_filter = request.args.get("zone", "").strip()
+    
+    all_evidence = load_evidence_metadata()
+    results = []
+    
+    for item in all_evidence:
+        if date_filter and item.get("date") != date_filter:
+            continue
+        if slot_filter and item.get("slot") != slot_filter:
+            continue
+        if zone_filter and item.get("zone") != zone_filter:
+            continue
+        results.append(item)
+        
+    return jsonify({
+        "success": True,
+        "count": len(results),
+        "evidence": results
+    })
+
+
+@app.route("/evidence-image/<zone>/<path:filename>")
+def serve_evidence_image(zone, filename):
+    safe_zone = zone if zone in ["Zone A", "Zone B", "Zone C"] else "Zone A"
+    folder = os.path.join(EVIDENCE_BASE_DIR, safe_zone)
+    return send_from_directory(folder, filename)
+
+
+@app.route("/api/hourly-tracker/evidence/<evidence_id>", methods=["DELETE"])
+def delete_hourly_evidence_api(evidence_id):
+    metadata = load_evidence_metadata()
+    found = None
+    remaining = []
+    
+    for item in metadata:
+        if item.get("id") == evidence_id:
+            found = item
+        else:
+            remaining.append(item)
+            
+    if not found:
+        return jsonify({"success": False, "error": "ไม่พบข้อมูลหลักฐานนี้"}), 404
+        
+    # Delete physical file
+    zone = found.get("zone", "Zone A")
+    filename = found.get("filename", "")
+    full_path = os.path.join(EVIDENCE_BASE_DIR, zone, filename)
+    if os.path.exists(full_path):
+        try:
+            os.remove(full_path)
+        except Exception as e:
+            print(f"Error removing file: {e}")
+            
+    save_evidence_metadata(remaining)
+    log_activity("EVIDENCE_DELETE", f"🗑️ ลบหลักฐาน: {zone} {found.get('date')} {found.get('slot')} ({filename})")
+    
+    return jsonify({"success": True, "message": "ลบไฟล์หลักฐานเรียบร้อย"})
+
+
+@app.route("/api/hourly-tracker/sync-google-sheet", methods=["POST"])
+def sync_hourly_google_sheet_api():
+    req = request.get_json(silent=True) or {}
+    sheet_url = (req.get("url") or "").strip()
+    
+    ok, msg, res_data = sync_productivity_orders_sheet(sheet_url=sheet_url, auto_save=True)
+    if ok:
+        return jsonify({
+            "success": True,
+            "message": msg,
+            "data": res_data
+        })
+    else:
+        return jsonify({"success": False, "error": msg}), 400
+
+
+@app.route("/api/hourly-tracker", methods=["GET"])
+def get_hourly_tracker_api():
+    settings = load_system_settings()
+    hourly_data = load_hourly_tracker_data()
+    evidence_data = load_evidence_metadata()
+    
+    auto_sync = request.args.get("sync") == "1"
+    if auto_sync:
+        ok, msg, _ = sync_productivity_orders_sheet(auto_save=True)
+        if ok:
+            hourly_data = load_hourly_tracker_data()
+            
+    date_param = hourly_data.get("lastSyncDate") or request.args.get("date", "").strip() or datetime.now().strftime("%Y-%m-%d")
+    records_for_date = hourly_data.get("records", {}).get(date_param, {})
+    zones_for_date = hourly_data.get("zone_breakdowns", {}).get(date_param, {})
+    summary_rows_for_date = hourly_data.get("summary_rows", {}).get(date_param, {})
+    
+    target_normal = settings.get("hourlyTarget", 45000)
+    target_min = settings.get("hourlyMinimum", 40000)
+    target_peak = settings.get("peakHourTarget", 50000)
+    peak_hours = set(settings.get("peakHours", ["13:00", "14:00", "15:00", "19:00", "20:00", "21:00"]))
+    
+    # Operational Shift Order from Sheet: 13:00 to 12:00
+    shift_hour_order = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    
+    slots = []
+    total_actual = 0
+    total_target = 0
+    hours_passed = 0
+    hours_warning = 0
+    hours_under = 0
+    hours_standby = 0
+
+    for h in shift_hour_order:
+        slot_label = f"{h:02d}:00"
+        next_label = f"{(h+1)%24:02d}:00"
+        time_range = f"{slot_label} - {next_label}"
+        
+        is_quiet = h in [13, 14, 15, 16, 17] # Standby prep hours
+        is_peak = slot_label in peak_hours
+        slot_target = target_peak if is_peak else target_normal
+        slot_min = target_min
+        
+        shift_name = "กะกลางวัน (Day)" if (8 <= h < 20) else "กะกลางคืน (Night)"
+        
+        actual_val = records_for_date.get(slot_label)
+        has_data = (actual_val is not None)
+        zone_info = zones_for_date.get(slot_label, {})
+        
+        gap = 0
+        achieve_pct = 0.0
+        status = "pending"
+        
+        za = zone_info.get("zoneA", 0)
+        zb = zone_info.get("zoneB", 0)
+        zc = zone_info.get("zoneC", 0)
+        
+        # Calculate lowest active zone
+        lowest_zone = "-"
+        if has_data and int(actual_val) > 0:
+            z_tuples = [("Zone A", za), ("Zone B", zb), ("Zone C", zc)]
+            z_tuples.sort(key=lambda x: x[1])
+            lowest_zone = z_tuples[0][0]
+        
+        if has_data:
+            act = int(actual_val)
+            total_actual += act
+            gap = act - slot_target
+            achieve_pct = round((act / slot_target * 100), 1) if slot_target > 0 else 0.0
+            
+            if is_quiet and act == 0:
+                status = "standby"
+                hours_standby += 1
+            elif act >= slot_target:
+                status = "passed"
+                hours_passed += 1
+                total_target += slot_target
+            elif act >= slot_min:
+                status = "warning"
+                hours_warning += 1
+                total_target += slot_target
+            else:
+                status = "under_target"
+                hours_under += 1
+                total_target += slot_target
+        else:
+            if not is_quiet:
+                total_target += slot_target
+                
+        # Attach evidence for this slot and date
+        slot_evidences = [e for e in evidence_data if e.get("date") == date_param and e.get("slot") == slot_label]
+        
+        # Look up staff for the lowest zone
+        staff_roster = load_staff_roster_data()
+        roster_by_zone = staff_roster.get("rosterByZone", {})
+        zone_key = lowest_zone.replace("Zone ", "").strip()
+        slow_staff = roster_by_zone.get(zone_key, [])
+        supervisors = roster_by_zone.get("ALL", ["Chain", "Big"])
+
+        slots.append({
+            "hour": h,
+            "slot": slot_label,
+            "timeRange": time_range,
+            "shift": shift_name,
+            "isPeak": is_peak,
+            "isQuiet": is_quiet,
+            "target": slot_target,
+            "minimum": slot_min,
+            "actual": int(actual_val) if has_data else 0,
+            "hasData": has_data,
+            "gap": gap,
+            "achievePct": achieve_pct,
+            "status": status,
+            "trucks": zone_info.get("trucks", 0),
+            "truckPct": zone_info.get("truckPct", 0.0),
+            "truck4wh": zone_info.get("truck4wh", 0),
+            "truck4wj": zone_info.get("truck4wj", 0),
+            "truck6wh": zone_info.get("truck6wh", 0),
+            "truckSemi": zone_info.get("truckSemi", 0),
+            "orderPct": zone_info.get("orderPct", 0.0),
+            "zoneA": za,
+            "zoneB": zb,
+            "zoneC": zc,
+            "zoneD": zone_info.get("zoneD", 0),
+            "zoneE": zone_info.get("zoneE", 0),
+            "zoneOBC": zone_info.get("zoneOBC", 0),
+            "lowestZone": lowest_zone,
+            "slowStaff": slow_staff,
+            "supervisors": supervisors,
+            "evidenceCount": len(slot_evidences),
+            "evidenceList": slot_evidences
+        })
+        
+    overall_achieve = round((total_actual / total_target * 100), 1) if total_target > 0 else 0.0
+    
+    staff_roster = load_staff_roster_data()
+    return jsonify({
+        "success": True,
+        "date": date_param,
+        "updatedAt": hourly_data.get("updatedAt", ""),
+        "lastSyncAt": hourly_data.get("lastSyncAt", ""),
+        "settings": settings,
+        "rosterByZone": staff_roster.get("rosterByZone", {}),
+        "summary": {
+            "totalActual": total_actual,
+            "totalTarget": total_target,
+            "overallAchievePct": overall_achieve,
+            "hoursPassed": hours_passed,
+            "hoursWarning": hours_warning,
+            "hoursUnder": hours_under,
+            "hoursStandby": hours_standby,
+            "totalHoursRecorded": hours_passed + hours_warning + hours_under + hours_standby
+        },
+        "summaryRows": summary_rows_for_date,
+        "slots": slots
+    })
+
+
+@app.route("/api/hourly-tracker/save", methods=["POST"])
+def save_hourly_tracker_api():
+    req = request.get_json(silent=True) or {}
+    date_param = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+    hour_slot = req.get("slot") or ""
+    actual_val = req.get("actual")
+    
+    if not hour_slot:
+        return jsonify({"success": False, "error": "ไม่ได้ระบุช่วงเวลา (Hour Slot)"}), 400
+        
+    data = load_hourly_tracker_data()
+    if "records" not in data:
+        data["records"] = {}
+    if date_param not in data["records"]:
+        data["records"][date_param] = {}
+        
+    data["records"][date_param][hour_slot] = int(actual_val) if (actual_val is not None and str(actual_val).strip() != "") else None
+    save_hourly_tracker_data(data)
+    
+    log_activity("HOURLY_ENTRY_SAVE", f"บันทึกยอดปล่อยรายชั่วโมง: {date_param} {hour_slot} = {actual_val:,} ชิ้น" if actual_val is not None else f"ล้างค่ายอดปล่อย: {date_param} {hour_slot}")
+    
+    # Auto Alert evaluation if SeaTalk enabled
+    settings = load_system_settings()
+    st_cfg = settings.get("seatalk", {})
+    if st_cfg.get("enabled") and actual_val is not None and st_cfg.get("webhookUrl"):
+        target_normal = settings.get("hourlyTarget", 45000)
+        target_min = settings.get("hourlyMinimum", 40000)
+        target_peak = settings.get("peakHourTarget", 50000)
+        peak_hours = set(settings.get("peakHours", []))
+        
+        is_peak = hour_slot in peak_hours
+        slot_target = target_peak if is_peak else target_normal
+        act = int(actual_val)
+        
+        should_alert = False
+        cond = st_cfg.get("triggerCondition", "below_minimum")
+        if cond == "below_minimum" and act < target_min:
+            should_alert = True
+        elif cond == "below_target" and act < slot_target:
+            should_alert = True
+            
+        if should_alert:
+            gap = act - slot_target
+            pct = round((act / slot_target * 100), 1) if slot_target > 0 else 0.0
+            msg = f"""🚨 [SOCN ALERT] ยอดปล่อยหลุดเป้าหมายรายชั่วโมง!
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_param}
+⏰ ช่วงเวลา: {hour_slot}
+🎯 เป้าหมาย (Target): {slot_target:,} ชิ้น
+⚠️ เกณฑ์ขั้นต่ำ (Minimum): {target_min:,} ชิ้น
+📦 ปล่อยจริง (Actual): {act:,} ชิ้น
+📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)
+━━━━━━━━━━━━━━━━━━━━
+🔴 สถานะ: Under {'Minimum ' if act < target_min else ''}Target
+👉 ตรวจสอบรายละเอียด: http://localhost:5000/hourly_tracker.html"""
+            
+            mention_all = (st_cfg.get("mentionType") == "all")
+            emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
+            send_seatalk_alert(st_cfg.get("webhookUrl"), msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"))
+
+    return jsonify({"success": True, "message": f"บันทึกยอด {hour_slot} เรียบร้อย"})
+
+
+@app.route("/api/hourly-tracker/send-alert", methods=["POST"])
+def send_manual_hourly_alert_api():
+    req = request.get_json(silent=True) or {}
+    slot_info = req.get("slotInfo") or {}
+    date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+    
+    settings = load_system_settings()
+    st_cfg = settings.get("seatalk", {})
+    webhook_url = st_cfg.get("webhookUrl")
+    if not webhook_url:
+        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL ในระบบ Admin"}), 400
+        
+    hour_slot = slot_info.get("slot", "N/A")
+    time_range = slot_info.get("timeRange", hour_slot)
+    shift_name = slot_info.get("shift", "-")
+    target = slot_info.get("target", 45000)
+    min_val = slot_info.get("minimum", 40000)
+    actual = slot_info.get("actual", 0)
+    gap = slot_info.get("gap", 0)
+    pct = slot_info.get("achievePct", 0)
+    
+    msg = f"""🚨 [SOCN ALERT] ยอดปล่อยหลุดเป้าหมายรายชั่วโมง ({shift_name})
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_str}
+⏰ ช่วงเวลา: {time_range}
+🎯 เป้าหมาย (Target): {target:,} ชิ้น
+⚠️ เกณฑ์ขั้นต่ำ (Minimum): {min_val:,} ชิ้น
+📦 ปล่อยจริง (Actual): {actual:,} ชิ้น
+📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)
+━━━━━━━━━━━━━━━━━━━━
+🔴 สถานะ: หลุดเป้าหมายรายชั่วโมง (Under Target)
+👉 ตรวจสอบรายละเอียด: http://localhost:5000/hourly_tracker.html"""
+
+    mention_all = (st_cfg.get("mentionType") == "all")
+    emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
+    
+    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"))
+    if ok:
+        log_activity("SEATALK_MANUAL_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk รายชั่วโมง: {date_str} {time_range}")
+        return jsonify({"success": True, "message": f"ส่งแจ้งเตือนช่วงเวลา {time_range} เข้า SeaTalk สำเร็จ!"})
+    else:
+        return jsonify({"success": False, "error": f"ส่งแจ้งเตือนไม่สำเร็จ: {err_msg}"}), 400
+
+
 @app.route("/investigation")
 def investigation_page():
     return send_from_directory(BASE_DIR, "investigation.html")
@@ -3317,12 +4202,35 @@ def skip_process_page():
 def cutoff_master_page():
     return send_from_directory(BASE_DIR, "cutoff_master.html")
 
+@app.route("/hourly-tracker")
+def hourly_tracker_page():
+    return send_from_directory(BASE_DIR, "hourly_tracker.html")
+
 @app.route("/<path:filename>")
 def serve_static_files(filename):
     allowed_ext = (".html", ".js", ".css", ".png", ".jpg", ".ico", ".webp", ".svg")
     if any(filename.endswith(ext) for ext in allowed_ext) and os.path.exists(os.path.join(BASE_DIR, filename)):
         return send_from_directory(BASE_DIR, filename)
     return jsonify({"success": False, "error": "File not found"}), 404
+
+def start_hourly_sheet_background_sync():
+    import threading, time
+    def worker():
+        time.sleep(10) # wait for app startup
+        while True:
+            try:
+                settings = load_system_settings()
+                gs_cfg = settings.get("googleSheetSync", {})
+                if gs_cfg.get("enabled") and gs_cfg.get("url"):
+                    sync_productivity_orders_sheet(sheet_url=gs_cfg.get("url"), auto_save=True)
+            except Exception as e:
+                print(f"[Hourly Sheet Background Sync Error]: {e}")
+            time.sleep(300) # Sync every 5 minutes
+
+    t = threading.Thread(target=worker, daemon=True)
+    t.start()
+
+start_hourly_sheet_background_sync()
 
 if __name__ == "__main__":
     print("=" * 60)

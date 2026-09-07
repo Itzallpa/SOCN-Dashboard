@@ -47,10 +47,33 @@
       <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
       <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
       <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🔀 OB Backlog Compare</a>
+      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏱️ Hourly Tracker</a>
       <a href="admin.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#d0311d; transition:all 0.2s;">🛡️ Admin Dashboard</a>
     </div>
   </nav>
 
+  <!-- Access Denied Banner for Non-Admin / Unauthenticated users -->
+  <div id="adminAccessDeniedBanner" style="display: none;">
+    <div class="container py-5 text-center" style="max-width: 600px; margin-top: 50px;">
+      <div class="card border-0 shadow-lg rounded-4 p-5 bg-white">
+        <div class="display-3 text-danger mb-3"><i class="fa-solid fa-lock"></i></div>
+        <h4 class="fw-bold text-slate-800 mb-2">หน้านี้สงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin Only)</h4>
+        <p class="text-muted small mb-4">
+          คุณต้องเข้าสู่ระบบด้วยบัญชีผู้ใช้ระดับ <b>Admin</b> เท่านั้น จึงจะสามารถเข้าถึงและจัดการศูนย์ควบคุมนี้ได้
+        </p>
+        <div class="d-flex justify-content-center gap-2">
+          <a href="index.html" class="btn btn-outline-secondary px-4 fw-bold rounded-3">
+            <i class="fa-solid fa-house me-1"></i> กลับหน้าหลัก Portal Hub
+          </a>
+          <button class="btn btn-primary px-4 fw-bold rounded-3 shadow-sm" onclick="window.AuthGuard.showModal('🔒 กรุณาเข้าสู่ระบบ Admin เพื่อเข้าใช้งาน')">
+            <i class="fa-solid fa-key me-1"></i> เข้าสู่ระบบ Admin
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="adminMainWrapper" style="display: none;">
   <div class="container-fluid px-4 py-4" style="max-width: 1650px; margin: 0 auto;">
 
     <!-- Banner Header -->
@@ -105,6 +128,12 @@
       </li>
       <li class="nav-item">
         <button class="nav-link" id="tab-roster-link" data-bs-toggle="tab" data-bs-target="#tab-roster-pane"><i class="fa-solid fa-users-gear me-2"></i> 3. จัดการ Staff Roster รายโซน (Zone Staff Roster)</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" id="tab-settings-link" data-bs-toggle="tab" data-bs-target="#tab-settings-pane"><i class="fa-solid fa-sliders me-2"></i> 4. ตั้งค่าเป้าหมาย & SeaTalk Alert (Target & Settings)</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" id="tab-evidence-link" data-bs-toggle="tab" data-bs-target="#tab-evidence-pane" onclick="fetchAdminEvidence()"><i class="fa-solid fa-camera me-2"></i> 5. คลังรูปภาพหลักฐานตาม Zone (Evidence)</button>
       </li>
     </ul>
 
@@ -281,7 +310,219 @@
         </div>
       </div>
 
-    </div>
+      <!-- TAB 4: SYSTEM TARGETS & SEATALK ALERT SETTINGS -->
+      <div class="tab-pane fade" id="tab-settings-pane">
+        <form onsubmit="saveSystemSettingsForm(event)">
+          
+          <!-- Section 1: Hourly Release Target & Minimum Thresholds -->
+          <div class="card-custom mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+              <div>
+                <h5 class="fw-bold mb-0 text-slate-800"><i class="fa-solid fa-bullseye text-danger me-2"></i> 1. กำหนดเป้าหมายรายชั่วโมง & เกณฑ์ขั้นต่ำ (Hourly Targets & Minimum Thresholds)</h5>
+                <p class="text-muted small mb-0">ตั้งค่าตัวเลขเป้าหมายและเกณฑ์ขั้นต่ำที่จะใช้ในการจับชั่วโมงหลุดเป้าในหน้า Hourly Tracker และส่งแจ้งเตือน</p>
+              </div>
+              <a href="hourly_tracker.html" class="btn btn-outline-primary btn-sm fw-bold"><i class="fa-solid fa-chart-line me-1"></i> ไปยังหน้า Hourly Tracker</a>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-3">
+                <label class="form-label fw-bold small text-primary">เป้าหมายปกติ (Hourly Target / ชิ้น):</label>
+                <input type="number" id="settingHourlyTarget" class="form-control form-control-sm fw-bold" min="0" step="1" required>
+                <div class="text-muted" style="font-size: 0.76rem;">เป้าหมายชิ้นงานต่อชั่วโมง (เช่น 45,000)</div>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small text-danger">เกณฑ์ขั้นต่ำ (Hourly Minimum Threshold / ชิ้น):</label>
+                <input type="number" id="settingHourlyMinimum" class="form-control form-control-sm fw-bold border-danger text-danger" min="0" step="1" required>
+                <div class="text-muted" style="font-size: 0.76rem;">หากยอดปล่อยต่ำกว่านี้ = หลุดเป้าขั้นต่ำ (Under Target)</div>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small text-warning">เป้าหมายช่วงพีค (Peak Hour Target / ชิ้น):</label>
+                <input type="number" id="settingPeakTarget" class="form-control form-control-sm fw-bold border-warning" min="0" step="1" required>
+                <div class="text-muted" style="font-size: 0.76rem;">เป้าหมายชิ้นงานในชั่วโมงเร่งด่วน (เช่น 50,000)</div>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small text-secondary">เกณฑ์ขั้นต่ำเป็น % (% Minimum of Target):</label>
+                <div class="input-group input-group-sm">
+                  <input type="number" id="settingHourlyMinimumPct" class="form-control fw-bold" min="0" max="100" step="any">
+                  <span class="input-group-text">%</span>
+                </div>
+                <div class="text-muted" style="font-size: 0.76rem;">เช่น 90% ของ Target</div>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-md-6">
+                <label class="form-label fw-bold small">ชั่วโมงพีค / ช่วงเวลาเร่งด่วน (Peak Hours):</label>
+                <input type="text" id="settingPeakHours" class="form-control form-control-sm" placeholder="13:00, 14:00, 15:00, 19:00, 20:00, 21:00">
+                <div class="text-muted" style="font-size: 0.76rem;">ระบุชั่วโมงที่จัดเป็นช่วงพีค คั่นด้วยเครื่องหมายจุลภาค (,)</div>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Skip Target ภาพรวม (%):</label>
+                <div class="input-group input-group-sm">
+                  <input type="number" id="settingOverallSkipTarget" class="form-control fw-bold" step="0.01" min="0" max="100">
+                  <span class="input-group-text">%</span>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Skip Target รายโซน (%):</label>
+                <div class="input-group input-group-sm">
+                  <input type="number" id="settingZoneSkipTarget" class="form-control fw-bold" step="0.01" min="0" max="100">
+                  <span class="input-group-text">%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: SeaTalk / n8n Webhook Notification -->
+          <div class="card-custom mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+              <div>
+                <h5 class="fw-bold mb-0 text-slate-800"><i class="fa-solid fa-paper-plane text-primary me-2"></i> 2. ตั้งค่าระบบแจ้งเตือน SeaTalk / n8n Webhook (Automated Alert)</h5>
+                <p class="text-muted small mb-0">ส่งแจ้งเตือนและแท็กผู้รับผิดชอบเข้ากลุ่ม SeaTalk ทันทีเมื่อมีชั่วโมงที่ยอดปล่อยไม่ถึง Target หรือ Minimum</p>
+              </div>
+              <div class="form-check form-switch fs-5">
+                <input class="form-check-input" type="checkbox" id="settingSeatalkEnabled">
+                <label class="form-check-label fw-bold fs-7 text-primary" for="settingSeatalkEnabled">เปิดใช้งานแจ้งเตือนอัตโนมัติ</label>
+              </div>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">ประเภท Webhook (Integration Type):</label>
+                <select id="settingWebhookType" class="form-select form-select-sm fw-bold">
+                  <option value="seatalk">💬 SeaTalk Bot Webhook (ส่งตรงเข้ากลุ่ม SeaTalk)</option>
+                  <option value="n8n">⚡ n8n / Custom Webhook (ส่งผ่าน n8n Workflow)</option>
+                </select>
+              </div>
+              <div class="col-md-8">
+                <label class="form-label fw-bold small text-primary">Webhook URL:</label>
+                <input type="url" id="settingWebhookUrl" class="form-control form-control-sm font-monospace" placeholder="https://openapi.seatalk.io/webhook/group/xxxx หรือ https://n8n.yourdomain/webhook/xxxx">
+                <div class="text-muted" style="font-size: 0.76rem;">วาง URL Webhook ที่ได้จาก SeaTalk Group Bot หรือ n8n Webhook Node</div>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">เงื่อนไขการส่งแจ้งเตือน (Trigger Condition):</label>
+                <select id="settingAlertCondition" class="form-select form-select-sm">
+                  <option value="below_minimum">🔴 เมื่อยอดต่ำกว่าเกณฑ์ขั้นต่ำ (Actual < Minimum)</option>
+                  <option value="below_target">⚠️ เมื่อยอดต่ำกว่าเป้าหมายปกติ (Actual < Target)</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">รูปแบบการแท็กผู้รับผิดชอบ (Mention Tag):</label>
+                <select id="settingMentionType" class="form-select form-select-sm" onchange="toggleMentionEmailsInput()">
+                  <option value="specific">👤 แท็กรายบุคคลตามอีเมล (Specific Emails)</option>
+                  <option value="all">📢 แท็กทุกคนในกลุ่ม (@all)</option>
+                  <option value="none">🔕 ไม่ต้องแท็ก (No Mention)</option>
+                </select>
+              </div>
+              <div class="col-md-4" id="mentionEmailsContainer">
+                <label class="form-label fw-bold small">อีเมลที่ต้องการให้แท็ก (Tag Emails):</label>
+                <input type="text" id="settingMentionEmails" class="form-control form-control-sm" placeholder="somchai@spxexpress.com, lead@spxexpress.com">
+                <div class="text-muted" style="font-size: 0.76rem;">ระบุอีเมล SPX Express คั่นด้วยเครื่องหมายจุลภาค (,)</div>
+              </div>
+            </div>
+
+            <div class="mt-3 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div>
+                <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="testSeaTalkWebhook()">
+                  <i class="fa-solid fa-bell me-1"></i> 🔔 ทดสอบยิงข้อความเข้า SeaTalk (Test Send Alert)
+                </button>
+                <span class="text-muted small ms-2" id="seatalkTestStatus"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Live Google Sheet Sync URL -->
+          <div class="card-custom mb-3">
+            <h5 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-table text-success me-2"></i> 3. ลิงก์ซิงค์ข้อมูล Google Sheet อัตโนมัติ (Live Google Sheet Sync)</h5>
+            <p class="text-muted small mb-3">กำหนด URL สำหรับให้ระบบเชื่อมต่อไปยัง Google Sheet หรือ Apps Script Web App เพื่อดึงยอดปล่อยรายชั่วโมง</p>
+
+            <div class="row g-3 align-items-center">
+              <div class="col-md-9">
+                <label class="form-label fw-bold small text-secondary">Google Sheet / Apps Script Web App URL:</label>
+                <input type="url" id="settingGoogleSheetUrl" class="form-control form-control-sm font-monospace" placeholder="https://docs.google.com/spreadsheets/d/1b23i0TPw1NHQAoj-D3YeDe4khnXFn_d0MmxfFniuq-k/edit?gid=660104821#gid=660104821">
+              </div>
+              <div class="col-md-3 pt-md-4">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="settingGoogleSheetEnabled">
+                  <label class="form-check-label fw-bold small text-success" for="settingGoogleSheetEnabled">เปิดใช้งาน Live Sync</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Action Buttons -->
+          <div class="d-flex justify-content-end gap-2 mb-4">
+            <button type="button" class="btn btn-outline-secondary btn-sm px-3" onclick="loadSystemSettings()">
+              <i class="fa-solid fa-rotate-left me-1"></i> คืนค่าเดิม
+            </button>
+            <button type="submit" class="btn btn-primary btn-sm fw-bold px-4 shadow-sm" id="btnSaveSystemSettings">
+              <i class="fa-solid fa-floppy-disk me-1"></i> บันทึกการตั้งค่าทั้งหมด (Save All Settings)
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- TAB 5: EVIDENCE ARCHIVE (หลักฐานตาม Zone) -->
+      <div class="tab-pane fade" id="tab-evidence-pane">
+        
+        <!-- Header & Stats -->
+        <div class="card-custom mb-3">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <h5 class="fw-bold mb-1 text-slate-800">
+                <i class="fa-solid fa-camera text-primary me-2"></i> คลังรูปภาพหลักฐานยอดหลุดเป้า (Hourly Evidence Archive)
+              </h5>
+              <p class="text-muted small mb-0">
+                รูปภาพหลักฐานและ Timestamp ที่อัปโหลดโดยเจ้าหน้าที่ จัดเก็บแยกโฟลเดอร์ตาม <code>หลักฐาน\Zone A</code>, <code>หลักฐาน\Zone B</code>, <code>หลักฐาน\Zone C</code>
+              </p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <button class="btn btn-outline-primary btn-sm fw-bold" onclick="fetchAdminEvidence()">
+                <i class="fa-solid fa-rotate me-1"></i> รีเฟรชคลังรูปภาพ
+              </button>
+              <a href="hourly_tracker.html" class="btn btn-primary btn-sm fw-bold">
+                <i class="fa-solid fa-stopwatch me-1"></i> ไปยัง Hourly Tracker
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Bar & Search -->
+        <div class="card-custom mb-3">
+          <div class="row g-2 align-items-center">
+            <div class="col-lg-6">
+              <div class="d-flex gap-1 flex-wrap" id="evidenceZoneFilterBtns">
+                <button class="btn btn-sm btn-primary fw-bold active evi-zone-btn" data-zone="ALL" onclick="filterAdminEvidenceZone('ALL')">ทั้งหมด (All Zones)</button>
+                <button class="btn btn-sm btn-outline-danger fw-bold evi-zone-btn" data-zone="Zone A" onclick="filterAdminEvidenceZone('Zone A')">🔴 Zone A (<span id="countEviZoneA">0</span>)</button>
+                <button class="btn btn-sm btn-outline-success fw-bold evi-zone-btn" data-zone="Zone B" onclick="filterAdminEvidenceZone('Zone B')">🟢 Zone B (<span id="countEviZoneB">0</span>)</button>
+                <button class="btn btn-sm btn-outline-warning fw-bold evi-zone-btn" data-zone="Zone C" onclick="filterAdminEvidenceZone('Zone C')">🟡 Zone C (<span id="countEviZoneC">0</span>)</button>
+              </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white"><i class="fa-solid fa-calendar-day text-muted"></i></span>
+                <input type="date" id="adminEviDateFilter" class="form-control" onchange="renderAdminEvidence()">
+              </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input type="text" id="adminEviSearch" class="form-control" placeholder="ค้นหาช่วงเวลา, ผู้อัปโหลด, หมายเหตุ..." onkeyup="renderAdminEvidence()">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gallery Grid -->
+        <div class="row g-3" id="adminEvidenceGallery">
+          <div class="col-12 text-center py-5 text-muted">กำลังโหลดรูปภาพหลักฐาน...</div>
+        </div>
+
+      </div>
 
   </div>
 
@@ -386,6 +627,7 @@
       </div>
     </div>
   </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="auth_guard.js"></script>
@@ -439,9 +681,23 @@
     }
 
     function refreshAdminData() {
+      const user = window.AuthGuard ? window.AuthGuard.getUser() : null;
+      const mainWrapper = document.getElementById('adminMainWrapper');
+      const deniedBanner = document.getElementById('adminAccessDeniedBanner');
+
+      if (!user || user.role !== 'Admin') {
+        if (mainWrapper) mainWrapper.style.display = 'none';
+        if (deniedBanner) deniedBanner.style.display = 'block';
+        return;
+      }
+
+      if (mainWrapper) mainWrapper.style.display = 'block';
+      if (deniedBanner) deniedBanner.style.display = 'none';
+
       fetchUsersFromApi();
       fetchAuditLogs();
       loadStaffRoster();
+      loadSystemSettings();
     }
 
     let cachedUsersList = [];
@@ -1141,6 +1397,354 @@
         if (confirm(`คุณต้องการลบ ${nickname || empId} ออกจาก Staff Roster ใช่หรือไม่?`)) {
           doDelete();
         }
+      }
+    }
+    // ===============================================
+    // ===== SYSTEM SETTINGS & SEATALK ALERT LOGIC ===
+    // ===============================================
+    let currentSystemSettings = {};
+
+    function loadSystemSettings() {
+      fetch('/api/system-settings')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.settings) {
+            currentSystemSettings = data.settings;
+            populateSystemSettingsUI(data.settings);
+          }
+        })
+        .catch(err => console.error('Error loading system settings:', err));
+    }
+
+    function populateSystemSettingsUI(cfg) {
+      if (!cfg) return;
+      document.getElementById('settingHourlyTarget').value = cfg.hourlyTarget || 45000;
+      document.getElementById('settingHourlyMinimum').value = cfg.hourlyMinimum || 40000;
+      document.getElementById('settingHourlyMinimumPct').value = cfg.hourlyMinimumPct || 90;
+      document.getElementById('settingPeakTarget').value = cfg.peakHourTarget || 50000;
+      document.getElementById('settingPeakHours').value = (cfg.peakHours || []).join(', ');
+      document.getElementById('settingOverallSkipTarget').value = cfg.overallSkipTargetPct || 0.80;
+      document.getElementById('settingZoneSkipTarget').value = cfg.zoneSkipTargetPct || 0.27;
+
+      const st = cfg.seatalk || {};
+      document.getElementById('settingSeatalkEnabled').checked = !!st.enabled;
+      document.getElementById('settingWebhookType').value = st.webhookType || 'seatalk';
+      document.getElementById('settingWebhookUrl').value = st.webhookUrl || '';
+      document.getElementById('settingAlertCondition').value = st.triggerCondition || 'below_minimum';
+      document.getElementById('settingMentionType').value = st.mentionType || 'specific';
+      document.getElementById('settingMentionEmails').value = (st.mentionEmails || []).join(', ');
+      toggleMentionEmailsInput();
+
+      const gs = cfg.googleSheetSync || {};
+      document.getElementById('settingGoogleSheetEnabled').checked = !!gs.enabled;
+      document.getElementById('settingGoogleSheetUrl').value = gs.url || '';
+    }
+
+    function toggleMentionEmailsInput() {
+      const mentionType = document.getElementById('settingMentionType').value;
+      const container = document.getElementById('mentionEmailsContainer');
+      if (container) {
+        if (mentionType === 'specific') {
+          container.style.display = 'block';
+        } else {
+          container.style.display = 'none';
+        }
+      }
+    }
+
+    function saveSystemSettingsForm(evt) {
+      evt.preventDefault();
+      
+      const peakHoursStr = document.getElementById('settingPeakHours').value || '';
+      const peakHoursArr = peakHoursStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+      const mentionEmailsStr = document.getElementById('settingMentionEmails').value || '';
+      const mentionEmailsArr = mentionEmailsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+      const payload = {
+        hourlyTarget: parseInt(document.getElementById('settingHourlyTarget').value, 10) || 45000,
+        hourlyMinimum: parseInt(document.getElementById('settingHourlyMinimum').value, 10) || 40000,
+        hourlyMinimumPct: parseInt(document.getElementById('settingHourlyMinimumPct').value, 10) || 90,
+        peakHourTarget: parseInt(document.getElementById('settingPeakTarget').value, 10) || 50000,
+        peakHours: peakHoursArr,
+        overallSkipTargetPct: parseFloat(document.getElementById('settingOverallSkipTarget').value) || 0.80,
+        zoneSkipTargetPct: parseFloat(document.getElementById('settingZoneSkipTarget').value) || 0.27,
+        seatalk: {
+          enabled: document.getElementById('settingSeatalkEnabled').checked,
+          webhookType: document.getElementById('settingWebhookType').value,
+          webhookUrl: (document.getElementById('settingWebhookUrl').value || '').trim(),
+          triggerCondition: document.getElementById('settingAlertCondition').value,
+          mentionType: document.getElementById('settingMentionType').value,
+          mentionEmails: mentionEmailsArr,
+          autoAlertIntervalMinutes: 60
+        },
+        googleSheetSync: {
+          enabled: document.getElementById('settingGoogleSheetEnabled').checked,
+          url: (document.getElementById('settingGoogleSheetUrl').value || '').trim()
+        }
+      };
+
+      const btn = document.getElementById('btnSaveSystemSettings');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังบันทึก...';
+      btn.disabled = true;
+
+      fetch('/api/system-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        if (data.success) {
+          currentSystemSettings = data.settings;
+          fetchAuditLogs();
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              icon: 'success',
+              title: 'บันทึกการตั้งค่าสำเร็จ!',
+              text: 'การตั้งค่าเป้าหมายและ SeaTalk Webhook ถูกบันทึกและมีผลต่อระบบทันที',
+              confirmButtonColor: '#10b981'
+            });
+          } else {
+            alert('✅ บันทึกการตั้งค่าสำเร็จ!');
+          }
+        } else {
+          alert('❌ ' + (data.error || 'เกิดข้อผิดพลาดในการบันทึก'));
+        }
+      })
+      .catch(err => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+      });
+    }
+
+    function testSeaTalkWebhook() {
+      const webhookUrl = (document.getElementById('settingWebhookUrl').value || '').trim();
+      const webhookType = document.getElementById('settingWebhookType').value;
+      const mentionType = document.getElementById('settingMentionType').value;
+      const mentionEmailsStr = document.getElementById('settingMentionEmails').value || '';
+      const mentionEmails = mentionEmailsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+      if (!webhookUrl) {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({
+            icon: 'warning',
+            title: 'ยังไม่ได้ระบุ Webhook URL',
+            text: 'กรุณาวาง Webhook URL ของ SeaTalk หรือ n8n ในช่องก่อนกดทดสอบครับ',
+            confirmButtonColor: '#2563eb'
+          });
+        } else {
+          alert('กรุณาระบุ Webhook URL ก่อนกดทดสอบ');
+        }
+        return;
+      }
+
+      const statusEl = document.getElementById('seatalkTestStatus');
+      if (statusEl) statusEl.innerHTML = '<span class="text-primary"><i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังส่งข้อความทดสอบ...</span>';
+
+      fetch('/api/system-settings/test-seatalk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          webhookUrl,
+          webhookType,
+          mentionType,
+          mentionEmails
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          if (statusEl) statusEl.innerHTML = '<span class="text-success fw-bold"><i class="fa-solid fa-check me-1"></i> ส่งข้อความสำเร็จ! ตรวจสอบใน SeaTalk ได้เลย</span>';
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              icon: 'success',
+              title: 'ส่งข้อความทดสอบสำเร็จ!',
+              text: 'ข้อความทดสอบถูกส่งเข้า SeaTalk Group เรียบร้อยแล้ว',
+              confirmButtonColor: '#10b981'
+            });
+          } else {
+            alert('✅ ' + data.message);
+          }
+          fetchAuditLogs();
+        } else {
+          if (statusEl) statusEl.innerHTML = `<span class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i> ${escapeHtml(data.error)}</span>`;
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              icon: 'error',
+              title: 'ไม่สามารถส่งข้อความได้',
+              text: data.error,
+              confirmButtonColor: '#dc2626'
+            });
+          } else {
+            alert('❌ ' + data.error);
+          }
+        }
+      })
+      .catch(err => {
+        if (statusEl) statusEl.innerHTML = `<span class="text-danger fw-bold">เกิดข้อผิดพลาด: ${escapeHtml(err.message)}</span>`;
+        alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+      });
+    }
+
+    /* ─── Evidence Archive (TAB 5) ─── */
+    let adminEvidenceList = [];
+    let selectedAdminEviZone = 'ALL';
+
+    function fetchAdminEvidence() {
+      const container = document.getElementById('adminEvidenceGallery');
+      if (container) container.innerHTML = '<div class="col-12 text-center py-5 text-muted"><i class="fa-solid fa-spinner fa-spin me-2"></i> กำลังโหลดรูปภาพหลักฐาน...</div>';
+
+      fetch('/api/hourly-tracker/evidence')
+        .then(res => res.json())
+        .then(data => {
+          adminEvidenceList = data.evidence || [];
+          updateEvidenceZoneCounts();
+          renderAdminEvidence();
+        })
+        .catch(err => {
+          console.error('Error fetching evidence:', err);
+          if (container) container.innerHTML = '<div class="col-12 text-center py-5 text-danger">เกิดข้อผิดพลาดในการโหลดรูปภาพ</div>';
+        });
+    }
+
+    function updateEvidenceZoneCounts() {
+      const countA = adminEvidenceList.filter(e => e.zone === 'Zone A').length;
+      const countB = adminEvidenceList.filter(e => e.zone === 'Zone B').length;
+      const countC = adminEvidenceList.filter(e => e.zone === 'Zone C').length;
+
+      const elA = document.getElementById('countEviZoneA');
+      const elB = document.getElementById('countEviZoneB');
+      const elC = document.getElementById('countEviZoneC');
+      if (elA) elA.innerText = countA;
+      if (elB) elB.innerText = countB;
+      if (elC) elC.innerText = countC;
+    }
+
+    function filterAdminEvidenceZone(zone) {
+      selectedAdminEviZone = zone;
+      document.querySelectorAll('.evi-zone-btn').forEach(btn => {
+        if (btn.getAttribute('data-zone') === zone) {
+          btn.className = 'btn btn-sm btn-primary fw-bold active evi-zone-btn';
+        } else {
+          const z = btn.getAttribute('data-zone');
+          const outlineClass = z === 'Zone A' ? 'btn-outline-danger' : (z === 'Zone B' ? 'btn-outline-success' : (z === 'Zone C' ? 'btn-outline-warning' : 'btn-outline-secondary'));
+          btn.className = `btn btn-sm ${outlineClass} fw-bold evi-zone-btn`;
+        }
+      });
+      renderAdminEvidence();
+    }
+
+    function renderAdminEvidence() {
+      const container = document.getElementById('adminEvidenceGallery');
+      if (!container) return;
+
+      const dateVal = (document.getElementById('adminEviDateFilter')?.value || '').trim();
+      const searchVal = (document.getElementById('adminEviSearch')?.value || '').toLowerCase().trim();
+
+      const filtered = adminEvidenceList.filter(item => {
+        if (selectedAdminEviZone !== 'ALL' && item.zone !== selectedAdminEviZone) return false;
+        if (dateVal && item.date !== dateVal) return false;
+        if (searchVal) {
+          const q = searchVal;
+          const match = (item.slot || '').toLowerCase().includes(q) ||
+                        (item.zone || '').toLowerCase().includes(q) ||
+                        (item.uploadedBy || '').toLowerCase().includes(q) ||
+                        (item.note || '').toLowerCase().includes(q) ||
+                        (item.date || '').toLowerCase().includes(q);
+          if (!match) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="col-12 text-center py-5 text-muted"><i class="fa-solid fa-folder-open fs-2 mb-2 d-block text-secondary"></i> ไม่พบรูปภาพหลักฐานตามเงื่อนไขที่เลือก</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => {
+        const zoneColor = item.zone === 'Zone A' ? 'danger' : (item.zone === 'Zone B' ? 'success' : 'warning');
+        const isObd = (item.type === 'OBD' || (item.filename && item.filename.includes('_OBD_')));
+        const typeBadge = isObd 
+          ? `<span class="badge text-white shadow-sm" style="background-color: #7c3aed;"><i class="fa-solid fa-truck-ramp-box me-1"></i> OBD</span>`
+          : `<span class="badge bg-primary text-white shadow-sm"><i class="fa-solid fa-boxes-stacked me-1"></i> OBS</span>`;
+
+        return `
+          <div class="col-xl-3 col-lg-4 col-md-6" id="admin_evi_card_${item.id}">
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden h-100 bg-white">
+              <div class="position-relative bg-dark text-center" style="height: 200px; overflow:hidden;">
+                <a href="${item.fileUrl}" target="_blank" title="คลิกดูรูปภาพขนาดเต็ม">
+                  <img src="${item.fileUrl}" class="w-100 h-100" style="object-fit: cover; cursor: pointer;">
+                </a>
+                <div class="position-absolute top-0 start-0 m-2 d-flex gap-1 align-items-center">
+                  <span class="badge bg-${zoneColor} fw-bold shadow-sm">
+                    <i class="fa-solid fa-layer-group me-1"></i> ${item.zone}
+                  </span>
+                  ${typeBadge}
+                </div>
+                <button class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2 py-0 px-2 rounded-2 shadow-sm" onclick="deleteAdminEvidence('${item.id}')" title="ลบรูปหลักฐานนี้">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+              <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="fw-bold text-dark small"><i class="fa-solid fa-calendar me-1 text-primary"></i> ${item.date}</span>
+                  <span class="badge bg-secondary font-monospace">${item.slot}</span>
+                </div>
+                <div class="text-muted small mb-1">
+                  <i class="fa-solid fa-clock me-1 text-secondary"></i> Timestamp: <b>${item.timestamp}</b>
+                </div>
+                <div class="text-muted small mb-1">
+                  <i class="fa-solid fa-user me-1 text-secondary"></i> อัปโหลดโดย: <b>${item.uploadedBy || 'Ground User'}</b>
+                </div>
+                ${item.note ? `<div class="p-2 bg-light border rounded small mt-2"><b>หมายเหตุ:</b> ${escapeHtml(item.note)}</div>` : ''}
+                <div class="mt-2 pt-2 border-top text-muted" style="font-size:0.7rem; word-break: break-all;">
+                  📁 <code>${item.filePath}</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function deleteAdminEvidence(id) {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          title: 'ยืนยันลบรูปหลักฐานนี้?',
+          text: 'ไฟล์จะถูกลบออกจากโฟลเดอร์หลักฐานอย่างถาวร',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'ใช่, ลบรูปภาพ',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#dc2626'
+        }).then(res => {
+          if (res.isConfirmed) {
+            execAdminDelete(id);
+          }
+        });
+      } else {
+        if (confirm('คุณต้องการลบรูปหลักฐานนี้ใช่หรือไม่?')) {
+          execAdminDelete(id);
+        }
+      }
+
+      function execAdminDelete(eviId) {
+        fetch(`/api/hourly-tracker/evidence/${eviId}`, { method: 'DELETE' })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              const card = document.getElementById(`admin_evi_card_${eviId}`);
+              if (card) card.remove();
+              adminEvidenceList = adminEvidenceList.filter(e => e.id !== eviId);
+              updateEvidenceZoneCounts();
+            }
+          })
+          .catch(err => console.error('Delete error:', err));
       }
     }
   </script>

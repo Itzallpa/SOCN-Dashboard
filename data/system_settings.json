@@ -1,0 +1,49 @@
+{
+  "updatedAt": "2026-09-07 18:21:49",
+  "hourlyTarget": 45000,
+  "hourlyMinimum": 40000,
+  "hourlyMinimumPct": 90,
+  "peakHourTarget": 50000,
+  "peakHours": [
+    "13:00",
+    "14:00",
+    "15:00",
+    "19:00",
+    "20:00",
+    "21:00"
+  ],
+  "overallSkipTargetPct": 0.8,
+  "zoneSkipTargetPct": 0.27,
+  "shifts": {
+    "shift1": {
+      "name": "กะกลางวัน (Day Shift)",
+      "start": "08:00",
+      "end": "20:00"
+    },
+    "shift2": {
+      "name": "กะกลางคืน (Night Shift)",
+      "start": "20:00",
+      "end": "08:00"
+    }
+  },
+  "seatalk": {
+    "enabled": true,
+    "webhookType": "seatalk",
+    "webhookUrl": "https://openapi.seatalk.io/webhook/group/ISfK_B7MQeODPJHWrtQpqA",
+    "triggerCondition": "below_minimum",
+    "mentionType": "specific",
+    "mentionEmails": [
+      "guy.panmanee@spxexpress.com",
+      "men.phuditde@spxexpress.com",
+      "tom.disayach@spxexpress.com",
+      "chain.kedsirin@spxexpress.com",
+      "nulack.promarpo@spxexpress.com",
+      "big.amorntee@spxexpress.com"
+    ],
+    "autoAlertIntervalMinutes": 60
+  },
+  "googleSheetSync": {
+    "enabled": true,
+    "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRz_aGomDisEonO0T5FJT00nOxpeUa9iUDYwfmBrd0USzMCwXN5qIkJnvvh424woD3KqWYEmUaglPDG/pub?output=csv"
+  }
+}

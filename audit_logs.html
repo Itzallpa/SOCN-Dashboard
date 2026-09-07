@@ -33,10 +33,33 @@
       <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
       <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
       <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🔀 OB Backlog Compare</a>
+      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏱️ Hourly Tracker</a>
       <a href="audit_logs.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#d0311d; transition:all 0.2s;">🛡️ Audit Logs</a>
     </div>
   </nav>
 
+  <!-- Access Denied Banner for Non-Admin / Unauthenticated users -->
+  <div id="adminAccessDeniedBanner" style="display: none;">
+    <div class="container py-5 text-center" style="max-width: 600px; margin-top: 50px;">
+      <div class="card border-0 shadow-lg rounded-4 p-5 bg-white">
+        <div class="display-3 text-danger mb-3"><i class="fa-solid fa-lock"></i></div>
+        <h4 class="fw-bold text-slate-800 mb-2">หน้านี้สงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin Only)</h4>
+        <p class="text-muted small mb-4">
+          คุณต้องเข้าสู่ระบบด้วยบัญชีผู้ใช้ระดับ <b>Admin</b> เท่านั้น จึงจะสามารถดูประวัติการเข้าใช้งานและ Audit Logs ได้
+        </p>
+        <div class="d-flex justify-content-center gap-2">
+          <a href="index.html" class="btn btn-outline-secondary px-4 fw-bold rounded-3">
+            <i class="fa-solid fa-house me-1"></i> กลับหน้าหลัก Portal Hub
+          </a>
+          <button class="btn btn-primary px-4 fw-bold rounded-3 shadow-sm" onclick="window.AuthGuard.showModal('🔒 กรุณาเข้าสู่ระบบ Admin เพื่อเข้าใช้งาน')">
+            <i class="fa-solid fa-key me-1"></i> เข้าสู่ระบบ Admin
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="adminMainWrapper" style="display: none;">
   <div class="container-fluid px-4 py-4" style="max-width: 1600px; margin: 0 auto;">
 
     <!-- Header Banner -->
@@ -105,6 +128,7 @@
     </div>
 
   </div>
+  </div>
 
   <script src="auth_guard.js"></script>
   <script>
@@ -115,6 +139,19 @@
     });
 
     function loadAuditLogs() {
+      const user = window.AuthGuard ? window.AuthGuard.getUser() : null;
+      const mainWrapper = document.getElementById('adminMainWrapper');
+      const deniedBanner = document.getElementById('adminAccessDeniedBanner');
+
+      if (!user || user.role !== 'Admin') {
+        if (mainWrapper) mainWrapper.style.display = 'none';
+        if (deniedBanner) deniedBanner.style.display = 'block';
+        return;
+      }
+
+      if (mainWrapper) mainWrapper.style.display = 'block';
+      if (deniedBanner) deniedBanner.style.display = 'none';
+
       const tbody = document.getElementById('logsTableBody');
       tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin me-2"></i> กำลังดึงข้อมูลประวัติการใช้งาน...</td></tr>';
 

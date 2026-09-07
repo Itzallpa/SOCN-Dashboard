@@ -2,464 +2,381 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOC Operations Portal - Control Center</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SOC Operations Portal - App Launcher</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     :root {
-      --bg-body: #f8fafc;
-      --card-bg: #ffffff;
-      --border-color: #e2e8f0;
-      --text-main: #0f172a;
-      --text-muted: #64748b;
-      --brand-blue: #2563eb;
-      --brand-purple: #7c3aed;
-      --brand-dark: #0f172a;
-      --brand-red: #ee4d2d;
+      --bg-gradient: radial-gradient(circle at 50% 25%, #1e293b 0%, #0f172a 60%, #020617 100%);
+      --app-tile-size: clamp(68px, 11vw, 98px);
+      --app-tile-radius: clamp(18px, 3vw, 26px);
+      --app-tile-font: clamp(1.7rem, 4vw, 2.5rem);
+      --app-label-font: clamp(0.78rem, 1.3vw, 0.92rem);
+      --app-sublabel-font: clamp(0.68rem, 1vw, 0.74rem);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      width: 100%;
+      background: #090d16;
+      background: var(--bg-gradient);
+      color: #ffffff;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      overflow-x: hidden;
+      user-select: none;
     }
 
     body {
-      background-color: var(--bg-body);
-      color: var(--text-main);
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      min-height: 100vh;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     }
 
-    /* Enterprise Navigation Header */
-    .top-nav {
-      background: #0d1b2a;
-      color: #ffffff;
-      padding: 12px 28px;
+    /* Minimal Top Status Bar */
+    .portal-status-bar {
+      padding: clamp(10px, 2vh, 18px) clamp(16px, 3vw, 36px);
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-      position: sticky;
-      top: 0;
-      z-index: 1020;
+      align-items: center;
+      width: 100%;
+      flex-shrink: 0;
     }
-    .top-nav a.brand-title {
-      color: #ffffff;
-      font-size: 1.15rem;
-      font-weight: 800;
-      text-decoration: none;
+    .portal-brand {
       display: flex;
       align-items: center;
       gap: 10px;
-    }
-    .nav-btn {
-      color: #cbd5e1;
-      text-decoration: none;
-      padding: 6px 14px;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 0.88rem;
-      background: rgba(255,255,255,0.08);
-      transition: all 0.2s ease;
-    }
-    .nav-btn:hover, .nav-btn.active {
-      color: #ffffff;
-      background: #2563eb;
-    }
-
-    /* Clean Hero Banner */
-    .hero-banner {
-      background: #ffffff;
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 36px 40px;
-      margin-top: 24px;
-      margin-bottom: 28px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-    }
-    .hero-title {
-      font-size: 2.1rem;
       font-weight: 800;
-      color: #0f172a;
-      letter-spacing: -0.5px;
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: #ffffff;
+      text-decoration: none;
+      letter-spacing: -0.3px;
     }
-    .hero-subtitle {
-      font-size: 0.98rem;
-      color: var(--text-muted);
-      max-width: 780px;
-      margin-top: 8px;
+    .portal-brand-badge {
+      background: rgba(37, 99, 235, 0.2);
+      border: 1px solid rgba(37, 99, 235, 0.4);
+      color: #60a5fa;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    /* Operational Stats Bar */
-    .stat-pill {
-      background: #f1f5f9;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 10px 16px;
+    .portal-live-clock {
+      font-family: system-ui, -apple-system, monospace;
+      font-size: clamp(0.85rem, 1.5vw, 1rem);
+      font-weight: 600;
+      color: #94a3b8;
       display: flex;
       align-items: center;
-      gap: 12px;
-    }
-    .stat-number {
-      font-size: 1.25rem;
-      font-weight: 800;
-      color: #0f172a;
-    }
-    .stat-label {
-      font-size: 0.78rem;
-      color: #64748b;
-      font-weight: 600;
-      text-transform: uppercase;
+      gap: 8px;
     }
 
-    /* Professional Module Cards */
-    .module-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 28px 24px;
-      height: 100%;
+    /* Main Apps Portal Container */
+    .portal-container {
+      max-width: 1000px;
+      width: 100%;
+      margin: 0 auto;
+      padding: clamp(10px, 2vh, 24px) clamp(12px, 3vw, 24px);
+      flex-grow: 1;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      position: relative;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
-    .module-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-      border-color: #cbd5e1;
-    }
-
-    .card-icon-box {
-      width: 54px;
-      height: 54px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
       justify-content: center;
-      font-size: 1.6rem;
-      margin-bottom: 20px;
-    }
-    .icon-red { background: #fee2e2; color: var(--brand-red); }
-    .icon-blue { background: #dbeafe; color: var(--brand-blue); }
-    .icon-purple { background: #f3e8ff; color: var(--brand-purple); }
-    .icon-dark { background: #f1f5f9; color: var(--brand-dark); }
-
-    .card-heading {
-      font-size: 1.25rem;
-      font-weight: 800;
-      color: var(--text-main);
-      margin-bottom: 10px;
-    }
-    .card-desc {
-      color: var(--text-muted);
-      font-size: 0.92rem;
-      line-height: 1.5;
-      margin-bottom: 20px;
+      align-items: center;
     }
 
-    .tag-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      background: #f1f5f9;
-      border-radius: 8px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: #475569;
-      margin-right: 6px;
-      margin-bottom: 6px;
-    }
-
-    .btn-launch {
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 0.92rem;
+    .portal-header-title {
       text-align: center;
+      margin-bottom: clamp(16px, 3.5vh, 36px);
+    }
+    .portal-header-title h1 {
+      font-size: clamp(1.4rem, 3.2vw, 2.2rem);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+    .portal-header-title p {
+      color: #94a3b8;
+      font-size: clamp(0.8rem, 1.4vw, 0.95rem);
+      margin: 0;
+    }
+
+    /* Modern Portal App Grid (4 cols on Desktop/Tablet, 2/3 on Mobile) */
+    .apps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: clamp(14px, 2.5vh, 32px) clamp(10px, 2.5vw, 28px);
+      width: 100%;
+      max-width: 880px;
+      justify-items: center;
+      align-items: start;
+    }
+
+    /* App Launcher Item */
+    .app-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       text-decoration: none;
+      color: #ffffff;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      cursor: pointer;
+      width: 100%;
+      max-width: 160px;
+    }
+    .app-item:hover {
+      transform: translateY(-6px) scale(1.04);
+      color: #ffffff;
+    }
+    .app-item:active {
+      transform: scale(0.95);
+    }
+
+    /* Squircle App Icon Tile */
+    .app-icon-tile {
+      width: var(--app-tile-size);
+      height: var(--app-tile-size);
+      border-radius: var(--app-tile-radius);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      transition: all 0.2s;
-      border: none;
+      font-size: var(--app-tile-font);
+      color: #ffffff;
+      box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+      margin-bottom: clamp(6px, 1.2vh, 12px);
+      position: relative;
+      transition: all 0.25s ease;
+      flex-shrink: 0;
     }
-    .btn-red { background: var(--brand-red); color: white; }
-    .btn-red:hover { background: #d0311d; color: white; }
-    .btn-blue { background: var(--brand-blue); color: white; }
-    .btn-blue:hover { background: #1d4ed8; color: white; }
-    .btn-purple { background: var(--brand-purple); color: white; }
-    .btn-purple:hover { background: #6d28d9; color: white; }
-    .btn-dark { background: var(--brand-dark); color: white; }
-    .btn-dark:hover { background: #1e293b; color: white; }
-
-    /* Universal Mobile & Flexible Screen Media Queries */
-    @media (max-width: 992px) {
-      .top-nav { padding: 10px 16px; flex-wrap: wrap; gap: 10px; }
-      .hero-card { padding: 24px 20px !important; }
-      .hero-title { font-size: 1.5rem !important; }
-      .hero-stats-box { flex-direction: column; width: 100%; width: 100% !important; }
-      .stat-pill { width: 100% !important; }
+    .app-item:hover .app-icon-tile {
+      box-shadow: 0 16px 30px -4px rgba(0, 0, 0, 0.75), 0 0 20px rgba(255, 255, 255, 0.18), inset 0 1px 2px rgba(255, 255, 255, 0.5);
     }
 
-    @media (max-width: 576px) {
-      .top-nav { padding: 8px 12px; }
-      .brand-title { font-size: 0.95rem !important; }
-      .hero-title { font-size: 1.25rem !important; }
-      .card-heading { font-size: 1.1rem !important; }
-      .module-card { padding: 20px 16px !important; border-radius: 14px !important; }
-      .btn-launch { padding: 10px 14px !important; font-size: 0.85rem !important; }
-      .tag-badge { font-size: 0.72rem !important; padding: 3px 8px !important; }
+    /* Vibrant Gradients (Portal App Themes) */
+    .tile-lh-trip { background: linear-gradient(145deg, #ff5722 0%, #d0311d 100%); }
+    .tile-ob-bl { background: linear-gradient(145deg, #ff7a45 0%, #ea580c 100%); }
+    .tile-investigation { background: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 100%); }
+    .tile-skip { background: linear-gradient(145deg, #8b5cf6 0%, #6d28d9 100%); }
+    .tile-cutoff { background: linear-gradient(145deg, #475569 0%, #1e293b 100%); }
+    .tile-compare { background: linear-gradient(145deg, #0284c7 0%, #0369a1 100%); }
+    .tile-hourly { background: linear-gradient(145deg, #10b981 0%, #047857 100%); }
+    .tile-admin { background: linear-gradient(145deg, #e11d48 0%, #9f1239 100%); }
+
+    /* App Labels */
+    .app-label {
+      font-size: var(--app-label-font);
+      font-weight: 700;
+      text-align: center;
+      color: #f1f5f9;
+      letter-spacing: -0.2px;
+      line-height: 1.2;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    .app-sublabel {
+      font-size: var(--app-sublabel-font);
+      color: #94a3b8;
+      margin-top: 2px;
+      font-weight: 500;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
     }
 
-    /* Footer */
-    .footer-bar {
-      margin-top: auto;
-      padding: 24px 0;
-      border-top: 1px solid var(--border-color);
-      color: var(--text-muted);
-      font-size: 0.85rem;
+    /* Bottom Page Indicator Dots */
+    .portal-dots {
+      display: flex;
+      gap: 6px;
+      margin-top: clamp(12px, 3vh, 32px);
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .portal-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      transition: all 0.3s;
+    }
+    .portal-dot.active {
+      width: 18px;
+      border-radius: 10px;
+      background: #ffffff;
+    }
+
+    /* Device Responsive Breakpoints */
+    /* Tablet & Medium Screen (480px - 768px) */
+    @media (max-width: 768px) {
+      .apps-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px 12px;
+      }
+      .app-sublabel { display: none; } /* keep compact on small screens */
+    }
+
+    /* Small Mobile Phones (< 480px) */
+    @media (max-width: 480px) {
+      .apps-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px 10px;
+      }
+      .portal-header-title { margin-bottom: 16px; }
+      .app-sublabel { display: none; }
+    }
+
+    /* Extra Small / Foldables (< 360px) */
+    @media (max-width: 360px) {
+      .apps-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px 10px;
+      }
+    }
+
+    /* Low Height Screens (Mobile Landscape / Small Laptops) */
+    @media (max-height: 580px) {
+      .portal-status-bar { padding: 6px 16px; }
+      .portal-header-title { margin-bottom: 8px; }
+      .portal-header-title h1 { font-size: 1.2rem; }
+      .portal-header-title p { display: none; }
+      .app-sublabel { display: none; }
+      .apps-grid { gap: 10px 14px; }
+      .portal-dots { margin-top: 8px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Top Navigation Header -->
-  <nav class="top-nav">
-    <a href="index.html" class="brand-title">
-      <span style="font-size:1.4rem;">📦</span> SOC Operations Portal
+  <!-- Minimal Portal Top Bar -->
+  <header class="portal-status-bar">
+    <a href="index.html" class="portal-brand">
+      <span style="font-size:1.35rem;">📦</span>
+      <span>SOC Operations</span>
+      <span class="portal-brand-badge">Control Center</span>
     </a>
-    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-      <a href="index.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">🏠 Portal Hub</a>
-      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚀 Investigation</a>
-      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📦 Skip Monitor</a>
-      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff Master</a>
-      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
-      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
-      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🔀 OB Backlog Compare</a>
+    <div class="portal-live-clock">
+      <i class="fa-solid fa-wifi text-success" style="font-size:0.8rem;"></i>
+      <span id="portalClock">--:-- --</span>
     </div>
-  </nav>
+  </header>
+
+  <!-- Main App Launcher Center -->
+  <main class="portal-container">
+
+    <div class="portal-header-title">
+      <h1>Operational Apps</h1>
+      <p>เลือกโมดูลระบบงานคัดแยกและวิเคราะห์พัสดุ</p>
+    </div>
+
+    <!-- Clean Modern App Launcher Grid -->
+    <div class="apps-grid">
+
+      <!-- 1. LH Trip & OB Late -->
+      <a href="lh_trip.html" class="app-item">
+        <div class="app-icon-tile tile-lh-trip">
+          <i class="fa-solid fa-truck-ramp-box"></i>
+        </div>
+        <div class="app-label">LH Trip & Late</div>
+        <div class="app-sublabel">วิเคราะห์เที่ยวรถสาย</div>
+      </a>
+
+      <!-- 2. OB Backlog (OB BL) -->
+      <a href="ob_bl.html" class="app-item">
+        <div class="app-icon-tile tile-ob-bl">
+          <i class="fa-solid fa-boxes-stacked"></i>
+        </div>
+        <div class="app-label">OB Backlog</div>
+        <div class="app-sublabel">ติดตามพัสดุตกค้าง</div>
+      </a>
+
+      <!-- 3. Outbound Investigation -->
+      <a href="investigation.html" class="app-item">
+        <div class="app-icon-tile tile-investigation">
+          <i class="fa-solid fa-rocket"></i>
+        </div>
+        <div class="app-label">Investigation</div>
+        <div class="app-sublabel">ตรวจสอบ Cutoff 2</div>
+      </a>
+
+      <!-- 4. Skip Process Monitor -->
+      <a href="skip_process.html" class="app-item">
+        <div class="app-icon-tile tile-skip">
+          <i class="fa-solid fa-box-open"></i>
+        </div>
+        <div class="app-label">Skip Monitor</div>
+        <div class="app-sublabel">พัสดุข้ามขั้นตอน</div>
+      </a>
+
+      <!-- 5. Cutoff & TTB Master -->
+      <a href="cutoff_master.html" class="app-item">
+        <div class="app-icon-tile tile-cutoff">
+          <i class="fa-solid fa-clock"></i>
+        </div>
+        <div class="app-label">Cutoff Master</div>
+        <div class="app-sublabel">ตารางเวลารถ & TTB</div>
+      </a>
+
+      <!-- 6. OB Backlog Compare -->
+      <a href="ob_bl_compare.html" class="app-item">
+        <div class="app-icon-tile tile-compare">
+          <i class="fa-solid fa-code-compare"></i>
+        </div>
+        <div class="app-label">OB BL Compare</div>
+        <div class="app-sublabel">เทียบพัสดุค้างซ้ำ</div>
+      </a>
+
+      <!-- 7. Productivity Orders ZONE (Hourly Tracker) -->
+      <a href="hourly_tracker.html" class="app-item">
+        <div class="app-icon-tile tile-hourly">
+          <i class="fa-solid fa-stopwatch-20"></i>
+        </div>
+        <div class="app-label">Hourly Tracker</div>
+        <div class="app-sublabel">ยอดปล่อยรายชั่วโมง</div>
+      </a>
+
+      <!-- 8. Admin Control Panel (Visible for Admin) -->
+      <a href="admin.html" class="app-item" id="adminPortalCardCol" style="display: none;">
+        <div class="app-icon-tile tile-admin">
+          <i class="fa-solid fa-user-shield"></i>
+        </div>
+        <div class="app-label">Admin Panel</div>
+        <div class="app-sublabel">จัดการสิทธิ์ & Logs</div>
+      </a>
+
+    </div>
+
+    <!-- Portal Dots Indicator -->
+    <div class="portal-dots">
+      <div class="portal-dot active"></div>
+      <div class="portal-dot"></div>
+    </div>
+
+  </main>
+
   <script src="auth_guard.js"></script>
-
-  <div class="container-fluid px-4 max-w-7xl" style="max-width: 1440px;">
-
-    <!-- Enterprise Hero Banner -->
-    <div class="hero-banner">
-      <div class="row align-items-center g-4">
-        <div class="col-lg-8">
-          <div class="d-inline-flex align-items-center gap-2 px-3 py-1 bg-success bg-opacity-10 text-success rounded-pill small fw-bold mb-3 border border-success border-opacity-25">
-            <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true" style="width:8px; height:8px;"></span>
-            System Operational • Active Production Environment
-          </div>
-          <h1 class="hero-title">SOC Operations Control Center</h1>
-          <p class="hero-subtitle">
-            ศูนย์รวมระบบปฏิบัติการคัดแยกพัสดุ ตรวจสอบเคสสายงาน Outbound รอบที่ 2, ติดตามเคสพัสดุข้ามขั้นตอน (Skip Process), ค้นหาข้อมูลรอบเวลา Cutoff / TTB และวิเคราะห์ข้อมูลเที่ยวรถ LH Trip & OB Late
-          </p>
-        </div>
-        <div class="col-lg-4">
-          <div class="d-flex flex-column gap-2">
-            <div class="stat-pill">
-              <i class="fa-solid fa-truck-fast text-primary fs-4"></i>
-              <div>
-                <div class="stat-number">1,305 เที่ยวรถ</div>
-                <div class="stat-label">LH Trip & Outbound Live Records</div>
-              </div>
-            </div>
-            <div class="stat-pill">
-              <i class="fa-solid fa-layer-group text-danger fs-4"></i>
-              <div>
-                <div class="stat-number">5 โมดูลหลัก</div>
-                <div class="stat-label">Investigation & Admin Suites</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Operational Modules Grid (5 Cards) -->
-    <div class="row g-4 mb-5">
-
-      <!-- Module 1: LH Trip & OB Late Portal -->
-      <div class="col-lg-4 col-md-6">
-        <div class="module-card" style="border-top: 4px solid #ee4d2d;">
-          <div>
-            <div class="card-icon-box icon-red">
-              <i class="fa-solid fa-truck-ramp-box"></i>
-            </div>
-            <h3 class="card-heading">LH Trip & OB Late</h3>
-            <p class="card-desc">
-              ระบบวิเคราะห์ข้อมูล LH Trip 1,305 รายการ สรุป Pie Charts 5 แบบ, จัดอันดับ Top 50 Hubs สายสูงสุด และส่งออกไฟล์ Excel/CSV ครบถ้วน
-            </p>
-            <div class="mb-4">
-              <span class="tag-badge"><i class="fa-solid fa-check text-danger me-1"></i> 5 Pie & Bar Charts</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-danger me-1"></i> Top 50 Late Hubs</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-danger me-1"></i> Export Excel + Charts</span>
-            </div>
-          </div>
-          <a href="lh_trip.html" class="btn-launch btn-red">
-            เข้าใช้งาน LH Trip Portal <i class="fa-solid fa-arrow-right"></i>
-          </a>
-        </div>
-      </div>
-
-      <!-- Module 1.5: OB Backlog (OB BL) -->
-      <div class="col-lg-4 col-md-6">
-        <div class="module-card">
-          <div>
-            <div class="card-icon-box" style="background:#fff1eb; color:#ee4d2d;">
-              <i class="fa-solid fa-boxes-stacked"></i>
-            </div>
-            <h3 class="card-heading">OB Backlog (OB BL)</h3>
-            <p class="card-desc">
-              ระบบติดตามพัสดุค้าง OB Backlog วิเคราะห์ Pivot Action Flag × Team, Station ค้าง Linehaul-Packed และ Pivot ตามชั่วโมง (Hour Bucket)
-            </p>
-            <div class="mb-4">
-              <span class="tag-badge"><i class="fa-solid fa-check text-warning me-1"></i> Live Google Sync</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-warning me-1"></i> Team Pivot Matrix</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-warning me-1"></i> Hour Bucket Pivot</span>
-            </div>
-          </div>
-          <a href="ob_bl.html" class="btn-launch" style="background:linear-gradient(135deg, #ee4d2d, #ff7a45); color:#fff;">
-            เข้าใช้งาน OB BL Dashboard <i class="fa-solid fa-arrow-right"></i>
-          </a>
-        </div>
-      </div>
-
-      <!-- Module 2: Investigation -->
-      <div class="col-lg-4 col-md-6">
-        <div class="module-card">
-          <div>
-            <div class="card-icon-box icon-blue">
-              <i class="fa-solid fa-rocket"></i>
-            </div>
-            <h3 class="card-heading">Outbound Investigation</h3>
-            <p class="card-desc">
-              ระบบตรวจสอบเคสพัสดุขาออกล่าช้าประจำรอบ Cutoff ที่ 2 สรุปเคสสายพัสดุหลุดเป้าหมาย จัดอันดับสถานีปลายทางที่ได้รับผลกระทบ
-            </p>
-            <div class="mb-4">
-              <span class="tag-badge"><i class="fa-solid fa-check text-primary me-1"></i> Late Shipments</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-primary me-1"></i> Target Cutoff</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-primary me-1"></i> FTE Workload</span>
-            </div>
-          </div>
-          <a href="investigation.html" class="btn-launch btn-blue">
-            เข้าใช้งาน Investigation <i class="fa-solid fa-arrow-right"></i>
-          </a>
-        </div>
-      </div>
-
-      <!-- Module 3: Skip Process Monitor -->
-      <div class="col-lg-4 col-md-6">
-        <div class="module-card">
-          <div>
-            <div class="card-icon-box icon-purple">
-              <i class="fa-solid fa-box-open"></i>
-            </div>
-            <h3 class="card-heading">Skip Process Monitor</h3>
-            <p class="card-desc">
-              ระบบติดตามเคสพัสดุข้ามขั้นตอน (Skip Process Cases), บันทึกตัวเลข SOCN Actual Volume รายวันย้อนหลัง และคำนวณ % อัตราส่วน Skip
-            </p>
-            <div class="mb-4">
-              <span class="tag-badge"><i class="fa-solid fa-check text-purple me-1"></i> % Skip vs Vol</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-purple me-1"></i> Staff Zone Roster</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-purple me-1"></i> Manual Volume Entry</span>
-            </div>
-          </div>
-          <a href="skip_process.html" class="btn-launch btn-purple">
-            เข้าใช้งาน Skip Monitor <i class="fa-solid fa-arrow-right"></i>
-          </a>
-        </div>
-      </div>
-
-      <!-- Module 4: Cutoff & TTB Master -->
-      <div class="col-lg-4 col-md-6">
-        <div class="module-card">
-          <div>
-            <div class="card-icon-box icon-dark">
-              <i class="fa-solid fa-clock"></i>
-            </div>
-            <h3 class="card-heading">Cutoff & TTB Master</h3>
-            <p class="card-desc">
-              ระบบค้นหาข้อมูลรอบเวลา Cutoff มาตรฐานของสถานีปลายทาง 287 สถานี พร้อมตารางเวลารถวิ่ง TTB รายวัน ตรวจจับวันในสัปดาห์ให้อัตโนมัติ
-            </p>
-            <div class="mb-4">
-              <span class="tag-badge"><i class="fa-solid fa-check text-dark me-1"></i> 287 Station Schedule</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-dark me-1"></i> Daily TTB Timetable</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-dark me-1"></i> Auto Day Detection</span>
-            </div>
-          </div>
-          <a href="cutoff_master.html" class="btn-launch btn-dark">
-            ค้นหา Cutoff & TTB <i class="fa-solid fa-arrow-right"></i>
-          </a>
-        </div>
-      </div>
-
-      <!-- Module 4.5: OB Backlog Compare -->
-      <div class="col-lg-4 col-md-6">
-        <div class="module-card">
-          <div>
-            <div class="card-icon-box" style="background:#eff6ff; color:#2563eb;">
-              <i class="fa-solid fa-code-compare"></i>
-            </div>
-            <h3 class="card-heading">OB Backlog Compare</h3>
-            <p class="card-desc">
-              ระบบเปรียบเทียบหาพัสดุค้างซ้ำข้ามรอบ (Detecting Stuck Backlog Across Snapshots) คำนวณ % Stuck Rate และส่งออก CSV รายการพัสดุตกค้างซ้ำ
-            </p>
-            <div class="mb-4">
-              <span class="tag-badge"><i class="fa-solid fa-check text-primary me-1"></i> Snapshot Comparison</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-primary me-1"></i> Duplicate Detection</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-primary me-1"></i> Export Duplicate CSV</span>
-            </div>
-          </div>
-          <a href="ob_bl_compare.html" class="btn-launch" style="background:linear-gradient(135deg, #2563eb, #3b82f6); color:#fff;">
-            เข้าใช้งาน OB BL Compare <i class="fa-solid fa-arrow-right"></i>
-          </a>
-        </div>
-      </div>
-
-      <!-- Module 5: Admin Control Panel & Audit Logs (ADMIN PORTAL CARD - HIDDEN FOR GROUND USERS) -->
-      <div class="col-lg-6 col-md-6" id="adminPortalCardCol" style="display: none;">
-        <div class="module-card" style="border-top: 4px solid #d0311d; background: linear-gradient(180deg, #ffffff 0%, #fff5f5 100%);">
-          <div>
-            <div class="card-icon-box" style="background:#fee2e2; color:#d0311d;">
-              <i class="fa-solid fa-user-shield"></i>
-            </div>
-            <h3 class="card-heading">Admin Management & Audit Logs</h3>
-            <p class="card-desc">
-              ศูนย์ควบคุมผู้ดูแลระบบ: อนุมัติสิทธิ์ผู้ลงทะเบียนใหม่ มอบหมาย Role (Ground/Admin) และตรวจสอบ Audit Logs ประวัติกิจกรรมในระบบทั้งหมด
-            </p>
-            <div class="mb-4">
-              <span class="tag-badge"><i class="fa-solid fa-check text-danger me-1"></i> User Approvals</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-danger me-1"></i> Role Assignment</span>
-              <span class="tag-badge"><i class="fa-solid fa-check text-danger me-1"></i> Activity Audit Logs</span>
-            </div>
-          </div>
-          <a href="admin.html" class="btn-launch" style="background:#d0311d; color:#fff;">
-            เข้าใช้งาน Admin Portal <i class="fa-solid fa-arrow-right"></i>
-          </a>
-        </div>
-      </div>
-
-    </div>
-
-  </div>
-
-  <!-- Footer -->
-  <footer class="footer-bar">
-    <div class="container-fluid px-4 text-center" style="max-width: 1440px;">
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div>
-          <b>SOC Operations Portal</b> • Internal Enterprise Management System v2.5
-        </div>
-        <div>
-          <span class="me-3"><i class="fa-solid fa-shield-halved me-1 text-success"></i> Data Protection Active</span>
-          <span>© 2026 SPX Express SOC Team</span>
-        </div>
-      </div>
-    </div>
-  </footer>
-
+  <script>
+    // Live Clock for Portal Status Bar
+    function updatePortalClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const clockEl = document.getElementById('portalClock');
+      if (clockEl) clockEl.innerText = timeStr;
+    }
+    updatePortalClock();
+    setInterval(updatePortalClock, 1000);
+  </script>
 </body>
 </html>

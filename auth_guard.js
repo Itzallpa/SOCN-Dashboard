@@ -14,72 +14,9 @@
   let warningTimer = null;
   let lastActiveTimestamp = Date.now();
 
-  /* ─── Client-side Security & Anti-Inspection Suite ─── */
+  /* ─── Client-side Security Suite (Passive) ─── */
   function initSecurityProtections() {
-    // 1. Check if debug mode is explicitly requested
-    const isDebug = new URLSearchParams(window.location.search).get('debug') === 'true';
-
-    // 2. Block Right-Click Context Menu (Inspect Element prevention)
-    document.addEventListener('contextmenu', function (e) {
-      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
-        return;
-      }
-      e.preventDefault();
-      return false;
-    }, true);
-
-    // 3. Block Developer Keyboard Shortcuts & Source Code Viewing
-    document.addEventListener('keydown', function (e) {
-      if (isDebug) return;
-      const key = e.key ? e.key.toLowerCase() : '';
-      const ctrlOrMeta = e.ctrlKey || e.metaKey;
-      const isDevKey =
-        e.key === 'F12' ||
-        (ctrlOrMeta && e.shiftKey && ['i', 'j', 'c', 'k', 's'].includes(key)) ||
-        (ctrlOrMeta && ['u', 's', 'p'].includes(key));
-
-      if (isDevKey) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
-    }, true);
-
-    // 4. Console Masking & Warning
-    if (!isDebug) {
-      try {
-        const noop = function () {};
-        ['log', 'debug', 'info', 'dir', 'table'].forEach(m => {
-          if (window.console && window.console[m]) {
-            window.console[m] = noop;
-          }
-        });
-      } catch (e) {}
-    }
-
-    // 5. Anti-Debugging / DevTools Detection
-    if (!isDebug) {
-      let devtoolsDetected = false;
-      setInterval(function () {
-        if (devtoolsDetected) return;
-        const start = performance.now();
-        debugger;
-        const duration = performance.now() - start;
-        if (duration > 150) {
-          devtoolsDetected = true;
-          try {
-            document.body.innerHTML = `
-              <div style="position:fixed;inset:0;background:#0d1b2a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif;text-align:center;padding:20px;">
-                <div style="font-size:4rem;margin-bottom:16px;">🛡️</div>
-                <h2 style="color:#ef4444;margin:0 0 10px;">ระบบรักษาความปลอดภัย (Security Alert)</h2>
-                <p style="color:#94a3b8;max-width:520px;line-height:1.6;font-size:0.95rem;">ไม่อนุญาตให้เปิด Developer Tools หรือพยายามตรวจสอบซอร์สโค้ดของระบบ<br>กรุณาปิดหน้าต่าง DevTools แล้วกดปุ่มด้านล่างเพื่อโหลดหน้าเว็บใหม่ครับ</p>
-                <button onclick="location.reload()" style="margin-top:20px;padding:12px 28px;border:none;background:#2563eb;color:#fff;border-radius:10px;font-weight:bold;cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,0.4);">รีเฟรชหน้าเว็บ</button>
-              </div>
-            `;
-          } catch (err) {}
-        }
-      }, 1500);
-    }
+    // Keep passive console protection if needed
   }
 
   // Execute security protections immediately
@@ -124,7 +61,10 @@
   }
 
   /* ─── Login & Sign Up Modal ─── */
-  function showAuthModal(customTitle) {
+  function showAuthModal(customTitle, isMandatory = false) {
+    const isAdminPage = location.pathname.includes('admin.html') || location.pathname.includes('audit_logs.html');
+    const mandatory = isMandatory || isAdminPage;
+
     let overlay = document.getElementById('socnAuthOverlay');
     if (overlay) {
       overlay.style.display = 'flex';
@@ -133,11 +73,16 @@
 
     overlay = document.createElement('div');
     overlay.id = 'socnAuthOverlay';
+    overlay.onclick = function(e) {
+      if (e.target === overlay) {
+        window.AuthGuard.closeModal();
+      }
+    };
     overlay.innerHTML = `
       <style>
         #socnAuthOverlay {
           position:fixed; inset:0; z-index:99900;
-          background:rgba(13,27,42,0.85); backdrop-filter:blur(8px);
+          background:rgba(13,27,42,0.88); backdrop-filter:blur(10px);
           display:flex; align-items:center; justify-content:center;
           font-family:'Segoe UI',system-ui,sans-serif; padding:16px;
         }
@@ -183,7 +128,7 @@
 
       <div id="socnAuthCard">
         <div class="auth-header">
-          <button class="close-modal-btn" onclick="document.getElementById('socnAuthOverlay').style.display='none'">✕</button>
+          <button class="close-modal-btn" onclick="window.AuthGuard.closeModal()" title="${mandatory ? 'กลับหน้าหลัก Portal Hub' : 'ปิดหน้าต่าง'}">✕</button>
           <div style="font-size:2.2rem; margin-bottom:4px;">🔒</div>
           <h4 style="font-weight:800; margin:0; font-size:1.2rem;">${customTitle || 'SOC Operations Portal'}</h4>
           <p style="font-size:0.78rem; color:#94a3b8; margin:4px 0 0;">เข้าสู่ระบบหรือสร้างบัญชีใหม่เพื่อรอ Admin อนุมัติ</p>
@@ -227,6 +172,14 @@
             </div>
             <button type="submit" class="auth-submit-btn" style="background:#059669;">ส่งคำขอลงทะเบียน (Submit Sign-Up)</button>
           </form>
+
+          ${mandatory ? `
+            <div class="text-center mt-3 pt-2 border-top">
+              <a href="index.html" class="text-secondary text-decoration-none fw-bold" style="font-size:0.8rem;">
+                <i class="fa-solid fa-arrow-left me-1"></i> กลับสู่หน้าหลัก Portal Hub (index.html)
+              </a>
+            </div>
+          ` : ''}
 
           <div style="font-size:0.72rem; color:#94a3b8; text-align:center; margin-top:16px;">
             💾 ฐานข้อมูลบันทึกปลอดภัยใน LocalStorage
@@ -410,9 +363,23 @@
     const ov = document.getElementById('socnAuthOverlay');
     if (ov) ov.style.display = 'none';
 
+    unlockPageDisplay();
     renderProfileBadge();
     updateModuleButtonsUI();
     resetIdleTimer();
+
+    const currentPath = location.pathname.toLowerCase();
+    const pageName = currentPath.split('/').pop() || 'index.html';
+    const isAdminPage = pageName.includes('admin.html') || pageName.includes('audit_logs.html');
+
+    if (isAdminPage) {
+      if (user.role === 'Admin') {
+        location.reload();
+      } else {
+        showSweetAlert('🔒 Access Denied', 'หน้านี้สงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น บัญชีของคุณไม่ใช่ Admin', 'warning');
+        setTimeout(function () { location.href = 'index.html'; }, 1500);
+      }
+    }
   }
 
   /* ─── Admin Approval Modal ─── */
@@ -582,78 +549,74 @@
     );
   }
 
-  /* ─── Click Guard & Page Interaction Lock (Admin-Only Dashboard Access) ─── */
-  function lockPageInteractions() {
-    const user = getStoredUser();
-    const isModulePage = location.pathname.includes('.html') && !location.pathname.includes('index.html');
+  /* ─── Page Display Lock & Unlock ─── */
+  function lockPageDisplay() {
+    let style = document.getElementById('socnLockPageStyle');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'socnLockPageStyle';
+      style.innerHTML = `
+        body > *:not(#socnAuthOverlay):not(#socnAdminApprovalOverlay):not(.swal2-container):not(nav):not(.top-nav):not(.modal):not(.modal-backdrop) {
+          filter: blur(12px) grayscale(60%) !important;
+          pointer-events: none !important;
+          user-select: none !important;
+          opacity: 0.25 !important;
+          transition: all 0.3s ease !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
 
-    // If visiting any module page directly
-    if (isModulePage) {
-      if (!user) {
-        showAuthModal('🔒 กรุณาล็อกอินเพื่อใช้งาน');
-        return;
-      } else if (user.role !== 'Admin') {
-        showSweetAlert('🔒 Access Denied', 'สงวนสิทธิ์เฉพาะผู้ใช้งานระดับ Admin เท่านั้นที่มีสิทธิ์เข้าสู่ Dashboard', 'warning');
-        location.href = 'index.html';
-        return;
+  function unlockPageDisplay() {
+    const style = document.getElementById('socnLockPageStyle');
+    if (style) style.remove();
+  }
+
+  /* ─── Page Access Guard (Enforced on All Dashboard Modules) ─── */
+  function checkPagePermissions() {
+    const user = getStoredUser();
+    const currentPath = location.pathname.toLowerCase();
+    const pageName = currentPath.split('/').pop() || 'index.html';
+    const isPublicPage = pageName === '' || pageName === 'index.html' || pageName === 'login.html';
+    const isAdminOnlyPage = pageName.includes('admin.html') || pageName.includes('audit_logs.html');
+
+    // Portal Hub (index.html) is public
+    if (isPublicPage) {
+      unlockPageDisplay();
+      return true;
+    }
+
+    // All dashboard modules require authentication
+    if (!user) {
+      lockPageDisplay();
+      showAuthModal('🔒 กรุณาเข้าสู่ระบบเพื่อเข้าใช้งานระบบนี้', true);
+      return false;
+    }
+
+    // Admin pages require Admin role
+    if (isAdminOnlyPage) {
+      if (user.role !== 'Admin') {
+        lockPageDisplay();
+        showSweetAlert('🔒 Access Denied', 'หน้านี้สงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น', 'warning');
+        setTimeout(function () { location.href = 'index.html'; }, 1500);
+        return false;
       }
     }
 
-    // Attach click interceptor to interactive module cards and enter buttons
-    document.querySelectorAll('.module-card, a.btn, button.btn-module, .btn-primary, .btn-danger, .btn-secondary, .btn-dark').forEach(el => {
-      // Exclude auth & admin modal triggers
-      if (el.getAttribute('onclick') && (el.getAttribute('onclick').includes('AuthGuard') || el.getAttribute('onclick').includes('showModal'))) return;
-      if (el.classList.contains('close-modal-btn')) return;
-
-      el.addEventListener('click', function (e) {
-        const u = getStoredUser();
-        if (!u) {
-          e.preventDefault();
-          e.stopPropagation();
-          showAuthModal('🔒 กรุณาเข้าสู่ระบบเพื่อใช้งานโมดูลนี้');
-          return false;
-        } else if (u.role !== 'Admin') {
-          e.preventDefault();
-          e.stopPropagation();
-          showSweetAlert('🔒 Access Denied', 'บัญชีสิทธิ์ Ground ไม่ได้รับอนุญาตให้เข้าใช้งาน Dashboard (สงวนสิทธิ์เฉพาะ Admin เท่านั้น)', 'warning');
-          return false;
-        }
-      }, true);
-    });
-
-    updateModuleButtonsUI();
+    unlockPageDisplay();
+    return true;
   }
 
   function updateModuleButtonsUI() {
     const u = getStoredUser();
     const isAdmin = u && u.role === 'Admin';
 
-    // Dynamic Admin Portal Card Visibility: Hide completely for Ground role users & guests
+    // Dynamic Admin Portal Card Visibility: Hide completely for non-admin users
     const adminCardCol = document.getElementById('adminPortalCardCol');
     if (adminCardCol) {
       adminCardCol.style.display = isAdmin ? 'block' : 'none';
     }
-
-    // Dynamic Module Count Badge Update
-    document.querySelectorAll('.stat-number').forEach(el => {
-      if (el.innerText.includes('โมดูลหลัก')) {
-        el.innerText = isAdmin ? '5 โมดูลหลัก' : '4 โมดูลหลัก';
-      }
-    });
-
-    document.querySelectorAll('.module-card').forEach(card => {
-      const btn = card.querySelector('a.btn, button.btn, .btn');
-      if (!btn) return;
-
-      if (!isAdmin) {
-        btn.style.opacity = '0.75';
-        if (!btn.dataset.origText) btn.dataset.origText = btn.innerHTML;
-        btn.innerHTML = `<i class="fa-solid fa-lock me-1"></i> 🔒 เฉพาะ Admin (Admin Only)`;
-      } else {
-        btn.style.opacity = '1';
-        if (btn.dataset.origText) btn.innerHTML = btn.dataset.origText;
-      }
-    });
   }
 
   /* ─── Idle Timeout ─── */
@@ -761,7 +724,16 @@
     var db = getUsersDatabase();
     var pendingCount = db.filter(u => u.status === 'pending_approval').length;
 
-    document.querySelectorAll('.top-nav, nav').forEach(function (nav) {
+    var adminTile = document.getElementById('adminPortalCardCol');
+    if (adminTile) {
+      if (!user || user.role === 'Admin') {
+        adminTile.style.display = 'flex';
+      } else {
+        adminTile.style.display = 'none';
+      }
+    }
+
+    document.querySelectorAll('.top-nav, nav, .portal-status-bar').forEach(function (nav) {
       var badge = nav.querySelector('.user-profile-badge');
       if (!badge) {
         badge = document.createElement('div');
@@ -854,17 +826,9 @@
   function initAuthSystem() {
     injectResponsiveMobileStyles();
     getUsersDatabase(); // Initialize local database
-    var user = getStoredUser();
-
-    // Role guard: audit_logs.html is Admin-only
-    if (user && user.role !== 'Admin' && (location.pathname.indexOf('audit_logs') !== -1)) {
-      alert('⚠️ Access Denied: Audit Logs สงวนสิทธิ์เฉพาะ Admin เท่านั้น');
-      location.href = 'index.html';
-      return;
-    }
-
+    checkPagePermissions();
     renderProfileBadge();
-    lockPageInteractions();
+    updateModuleButtonsUI();
     setupActivityListeners();
   }
 
@@ -880,6 +844,26 @@
     saveUser: saveStoredUser,
     logout: function () { doAutoLogout('ผู้ใช้งานกด Logout'); },
     showModal: showAuthModal,
+    closeModal: function () {
+      const user = getStoredUser();
+      const currentPath = location.pathname.toLowerCase();
+      const pageName = currentPath.split('/').pop() || 'index.html';
+      const isPublicPage = pageName === '' || pageName === 'index.html' || pageName === 'login.html';
+      const isAdminPage = pageName.includes('admin.html') || pageName.includes('audit_logs.html');
+
+      if (!isPublicPage && !user) {
+        location.href = 'index.html';
+        return;
+      }
+
+      if (isAdminPage && (!user || user.role !== 'Admin')) {
+        location.href = 'index.html';
+        return;
+      }
+
+      const overlay = document.getElementById('socnAuthOverlay');
+      if (overlay) overlay.style.display = 'none';
+    },
     switchTab: switchTab,
     handleLoginSubmit: handleLoginSubmit,
     handleSignupSubmit: handleSignupSubmit,
