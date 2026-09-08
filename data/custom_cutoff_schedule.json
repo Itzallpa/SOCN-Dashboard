@@ -24,8 +24,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "On-time"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABKEN-B - บางเขน",
@@ -1116,8 +1116,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "LHแจ้งไม่ใช้รถรอบนี้",
-    "late_type": "LH Late"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ACOCH - โชคชัย",
@@ -1928,8 +1928,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "On-time"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABANA - บ้านนา",
@@ -2628,8 +2628,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "On-time"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABKEN-C - บางเขน",
@@ -3384,8 +3384,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "On-time"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABKEN-B - บางเขน",
@@ -5204,8 +5204,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "On-time"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABAMO - บ้านหมอ",
@@ -6268,8 +6268,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "On-time"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABANA - บ้านนา",
@@ -8396,8 +8396,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "On-time"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABKEN-A - บางเขน",
@@ -9348,8 +9348,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "On-time"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABAMI - บ้านหมี่",
@@ -11560,8 +11560,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "On-time"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABLEN - บางเลน",
@@ -14052,8 +14052,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "On-time"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABCAI - บางไทร",
@@ -16348,8 +16348,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "On-time"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABBAN - บางบาล",
@@ -18756,8 +18756,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "LH Late"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABLEN - บางเลน",
@@ -19680,8 +19680,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "On-time"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABAMI - บ้านหมี่",
@@ -23460,8 +23460,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "On-time"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABKEN-C - บางเขน",
@@ -24720,8 +24720,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "On-time"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABKEN-A - บางเขน",
@@ -28388,8 +28388,8 @@
     "driver_name": "#N/A",
     "new_trip": "",
     "remark_lh": "",
-    "remark_ob": "",
-    "late_type": "On-time"
+    "remark_ob": "ทดสอบแก้ไขผ่าน Dashboard",
+    "late_type": "Ontime"
   },
   {
     "station_name": "ABBAN - บางบาล",

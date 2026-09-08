@@ -469,20 +469,22 @@
             <table class="table table-hover align-middle table-custom border" id="ttbLiveTable">
               <thead>
                 <tr>
-                  <th style="width: 40px;" class="text-center">#</th>
-                  <th style="width: 140px;">LH Trip</th>
-                  <th style="width: 180px;">สถานีปลายทาง (Destination)</th>
-                  <th style="width: 85px;" class="text-center">OB Zone</th>
-                  <th style="width: 90px;" class="text-center">Cutoff</th>
-                  <th style="width: 130px;">เวลา Standby/Depart</th>
-                  <th style="width: 130px;">ทะเบียน / คนขับ</th>
-                  <th style="width: 110px;">Dock / ประเภท</th>
-                  <th style="width: 120px;">สถานะ Arrival</th>
-                  <th style="width: 160px;">New Trip / Remark LH</th>
+                  <th style="width: 35px;" class="text-center">#</th>
+                  <th style="width: 130px;">LH Trip</th>
+                  <th style="width: 170px;">สถานีปลายทาง (Destination)</th>
+                  <th style="width: 80px;" class="text-center">OB Zone</th>
+                  <th style="width: 80px;" class="text-center">Cutoff</th>
+                  <th style="width: 120px;">Standby/Depart</th>
+                  <th style="width: 120px;">ทะเบียน / คนขับ</th>
+                  <th style="width: 100px;">Dock / สาย</th>
+                  <th style="width: 125px;" class="text-center">สถานะ Arrival (Z)</th>
+                  <th style="width: 140px;">Remark OB (AA)</th>
+                  <th style="width: 140px;">New Trip / สลับรถ (W)</th>
+                  <th style="width: 80px;" class="text-center">แก้ไข</th>
                 </tr>
               </thead>
               <tbody id="ttbLiveTableBody">
-                <tr><td colspan="10" class="text-center py-4 text-muted">กำลังโหลดข้อมูล TTB Registration...</td></tr>
+                <tr><td colspan="12" class="text-center py-4 text-muted">กำลังโหลดข้อมูล TTB Registration...</td></tr>
               </tbody>
             </table>
           </div>
@@ -493,30 +495,151 @@
 
   </div>
 
+  <!-- EDIT TTB ROW MODAL -->
+  <div class="modal fade" id="editTTBRowModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-header bg-dark text-white border-0 py-3">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square text-warning me-2"></i> แก้ไขข้อมูลเที่ยวรถ (เขียนลง Google Sheet)</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="p-3 bg-light rounded-3 border mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+              <div>
+                <span class="text-muted small">LH Trip:</span>
+                <span class="fw-bold font-monospace text-primary fs-5 ms-1" id="editModalLhTrip">-</span>
+              </div>
+              <div id="editModalZoneBadge"></div>
+            </div>
+            <div class="fw-bold text-dark fs-6" id="editModalDestination">-</div>
+            <div class="text-muted small mt-1">
+              <span>Standby: <b id="editModalStandby">-</b></span> | 
+              <span>Depart: <b id="editModalDepart">-</b></span> | 
+              <span>Cutoff: <b id="editModalCutoff" class="text-warning bg-dark px-1 rounded font-monospace">-</b></span> | 
+              <span>Row ใน Sheet: <b id="editModalRowIndex" class="text-secondary">-</b></span>
+            </div>
+          </div>
+
+          <form id="editTTBRowForm" onsubmit="submitTTBRowEdit(event)">
+            <input type="hidden" id="editRowIndexInput">
+            <input type="hidden" id="editLhTripInput">
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold small text-slate-800">
+                  <i class="fa-solid fa-traffic-light text-primary me-1"></i> สถานะ Arrival (Column Z):
+                </label>
+                <select class="form-select fw-bold" id="editArrivalStatusSelect" onchange="handleEditArrivalChange()">
+                  <option value="Ontime">🟢 Ontime (ตรงเวลา)</option>
+                  <option value="Late">🔴 Late (ล่าช้า)</option>
+                  <option value="เลื่อนเวลาปล่อยรถ">🟡 เลื่อนเวลาปล่อยรถ</option>
+                  <option value="ไม่ใช้รถ">⚪ ไม่ใช้รถ</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold small text-slate-800">
+                  <i class="fa-solid fa-clock-rotate-left text-secondary me-1"></i> Late Type (Column AB):
+                </label>
+                <input type="text" id="editLateTypeInput" class="form-control bg-light" placeholder="On-time / LH Late" readonly>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold small text-slate-800">
+                <i class="fa-solid fa-comment-dots text-danger me-1"></i> หมายเหตุ OB (Column AA - Remark OB):
+              </label>
+              <input type="text" id="editRemarkObInput" class="form-control" placeholder="ระบุเหตุผล เช่น รอคัดแยก, สลับรถ, LHแจ้งไม่ใช้รถรอบนี้...">
+              
+              <!-- Quick Reason Chips -->
+              <div class="d-flex gap-1 flex-wrap mt-2">
+                <span class="badge bg-light text-dark border pointer-chip" onclick="setQuickRemark('LHแจ้งไม่ใช้รถรอบนี้')">LHแจ้งไม่ใช้รถรอบนี้</span>
+                <span class="badge bg-light text-dark border pointer-chip" onclick="setQuickRemark('รอคัดแยก')">รอคัดแยก</span>
+                <span class="badge bg-light text-dark border pointer-chip" onclick="setQuickRemark('สลับรถ')">สลับรถ</span>
+                <span class="badge bg-light text-dark border pointer-chip" onclick="setQuickRemark('รอพาเลท')">รอพาเลท</span>
+                <span class="badge bg-light text-dark border pointer-chip" onclick="setQuickRemark('รถเข้าช้า')">รถเข้าช้า</span>
+                <span class="badge bg-light text-dark border pointer-chip" onclick="setQuickRemark('รอพัสดุตกค้าง')">รอพัสดุตกค้าง</span>
+                <span class="badge bg-light text-dark border pointer-chip" onclick="setQuickRemark('พัสดุล้น')">พัสดุล้น</span>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold small text-slate-800">
+                  <i class="fa-solid fa-shuffle text-warning me-1"></i> ทริปใหม่ / สลับรถ (Column W - New trip):
+                </label>
+                <input type="text" id="editNewTripInput" class="form-control font-monospace" placeholder="เช่น LT0Q9929...">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold small text-slate-800">
+                  <i class="fa-solid fa-tag text-info me-1"></i> Remark LH (Column X):
+                </label>
+                <input type="text" id="editRemarkLhInput" class="form-control" placeholder="ข้อความจาก LH...">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label fw-bold small text-slate-800">Dock (Column T):</label>
+                <input type="text" id="editDockInput" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold small text-slate-800">ทะเบียน (Column D):</label>
+                <input type="text" id="editPlateInput" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold small text-slate-800">ชื่อคนขับ (Column C):</label>
+                <input type="text" id="editDriverNameInput" class="form-control form-control-sm">
+              </div>
+            </div>
+
+            <div id="editRowStatusAlert" class="mb-3 small d-none"></div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+              <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+              <button type="submit" id="btnSubmitRowEdit" class="btn btn-primary btn-sm fw-bold px-4 shadow-sm">
+                <i class="fa-solid fa-cloud-arrow-up me-1"></i> 💾 บันทึกและเขียนลง Google Sheet
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- GOOGLE SHEET TTB CONFIG MODAL -->
   <div class="modal fade" id="ttbConfigModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
         <div class="modal-header bg-dark text-white border-0 py-3">
-          <h5 class="modal-title fw-bold"><i class="fa-solid fa-satellite-dish text-success me-2"></i> ตั้งค่าการเชื่อมต่อ Google Sheet "TTB - Registration"</h5>
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-satellite-dish text-success me-2"></i> ตั้งค่าการเชื่อมต่อ Google Sheet & Google Apps Script</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body p-4">
           <div class="alert alert-info border-0 rounded-3 small mb-4">
-            <div class="fw-bold mb-1"><i class="fa-solid fa-lightbulb me-1"></i> วิธีนำ URL มาวาง (ทำเพียงครั้งเดียว):</div>
+            <div class="fw-bold mb-1"><i class="fa-solid fa-lightbulb me-1"></i> วิธีเชื่อมต่อสองทาง (อ่านสด + เขียนกลับ Sheet จริง):</div>
             <ol class="ps-3 mb-0">
-              <li>เปิด Google Sheet <b>"TTB - Registration"</b> ของบริษัท</li>
+              <li>เปิด Google Sheet <b>"[OG] TimetableFullSocn"</b> ของบริษัท</li>
               <li>ไปที่เมนู <b>ส่วนขยาย (Extensions)</b> > <b>Apps Script</b></li>
               <li>วางโค้ดจากไฟล์ <code>scripts/google_apps_script_ttb.js</code> แล้วกดบันทึก</li>
-              <li>กด <b>การทำให้ใช้งานได้ (Deploy)</b> > <b>การทำให้ใช้งานได้รายการใหม่ (New deployment)</b> > เลือกประเภท <b>เว็บแอป (Web app)</b></li>
-              <li>คัดลอก <b>Web App URL</b> (ที่ขึ้นต้นด้วย <code>https://script.google.com/macros/s/.../exec</code>) มาวางในช่องด้านล่าง</li>
+              <li>กด <b>การทำให้ใช้งานได้ (Deploy)</b> > <b>การทำให้ใช้งานได้รายการใหม่ (New deployment)</b> > เลือกประเภท <b>เว็บแอป (Web app)</b>
+                (Execute as: <b>ฉัน/Me</b>, Who has access: <b>ทุกคน/Anyone</b>)
+              </li>
+              <li>คัดลอก <b>Web App URL</b> (ขึ้นต้นด้วย <code>https://script.google.com/macros/s/.../exec</code>) มาวางในช่องด้านล่าง</li>
             </ol>
           </div>
 
           <form id="ttbConfigForm" onsubmit="saveTTBConfig(event)">
             <div class="mb-3">
-              <label class="form-label fw-bold small text-slate-800">Google Apps Script Web App URL:</label>
-              <input type="url" id="ttbWebAppUrlInput" class="form-control font-monospace text-primary" placeholder="https://script.google.com/macros/s/.../exec" required>
+              <label class="form-label fw-bold small text-slate-800">1. Google Sheet Read URL (Published CSV URL):</label>
+              <input type="url" id="ttbWebAppUrlInput" class="form-control font-monospace text-primary" placeholder="https://docs.google.com/spreadsheets/d/e/2PACX-.../pub?output=csv" required>
+              <div class="form-text text-muted" style="font-size:0.72rem;">ใช้สำหรับดึงข้อมูลสด 1,148 แถวความเร็วสูง</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold small text-slate-800">2. Google Apps Script Web App URL (สำหรับเขียนกลับ Google Sheet):</label>
+              <input type="url" id="ttbAppsScriptUrlInput" class="form-control font-monospace text-success" placeholder="https://script.google.com/macros/s/.../exec">
+              <div class="form-text text-muted" style="font-size:0.72rem;">เมื่อแก้ Arrival (Z), Remark OB (AA), หรือสลับรถในหน้าเว็บ ระบบจะยิงไปเขียนลง Sheet จริงทันที</div>
             </div>
 
             <div class="row g-2 mb-3">
@@ -1415,10 +1538,18 @@
         else if (zoneStr.includes('B')) zoneBadge = '<span class="badge bg-success shadow-sm">Zone B</span>';
         else if (zoneStr.includes('C')) zoneBadge = '<span class="badge bg-warning text-dark shadow-sm">Zone C</span>';
 
-        const isLate = (r.arrivalStatus || '').toLowerCase().includes('late') || (r.lateType || '').toLowerCase().includes('late');
-        const arrivalBadge = isLate 
-          ? `<span class="badge bg-danger"><i class="fa-solid fa-circle-exclamation me-1"></i> ${escapeHtml(r.arrivalStatus || r.lateType || 'Late')}</span>`
-          : `<span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> ${escapeHtml(r.arrivalStatus || 'On-time')}</span>`;
+        const rawArr = (r.arrivalStatus || '').trim();
+        const isLate = rawArr.toLowerCase().includes('late') || (r.lateType || '').toLowerCase().includes('late');
+        let arrivalBadge = '';
+        if (rawArr === 'เลื่อนเวลาปล่อยรถ') {
+          arrivalBadge = `<span class="badge bg-warning text-dark pointer-chip" onclick="openEditTTBRowModal(${r.rowIndex}, '${escapeHtml(r.lhTrip)}')"><i class="fa-solid fa-clock me-1"></i> เลื่อนปล่อย</span>`;
+        } else if (rawArr === 'ไม่ใช้รถ') {
+          arrivalBadge = `<span class="badge bg-secondary pointer-chip" onclick="openEditTTBRowModal(${r.rowIndex}, '${escapeHtml(r.lhTrip)}')"><i class="fa-solid fa-ban me-1"></i> ไม่ใช้รถ</span>`;
+        } else if (isLate) {
+          arrivalBadge = `<span class="badge bg-danger pointer-chip" onclick="openEditTTBRowModal(${r.rowIndex}, '${escapeHtml(r.lhTrip)}')"><i class="fa-solid fa-circle-exclamation me-1"></i> ${escapeHtml(rawArr || r.lateType || 'Late')}</span>`;
+        } else {
+          arrivalBadge = `<span class="badge bg-success pointer-chip" onclick="openEditTTBRowModal(${r.rowIndex}, '${escapeHtml(r.lhTrip)}')"><i class="fa-solid fa-circle-check me-1"></i> ${escapeHtml(rawArr || 'Ontime')}</span>`;
+        }
 
         const hasChange = r.newTrip || r.remarkLh;
         const changeBadge = hasChange 
@@ -1429,6 +1560,9 @@
           : '<span class="text-muted small">-</span>';
 
         const cutoffBadge = r.cutoff ? `<span class="badge bg-dark font-monospace text-warning px-2 py-1">${r.cutoff}</span>` : '-';
+        const remarkObDisplay = r.remarkOb 
+          ? `<span class="badge bg-light text-danger border border-danger small text-wrap text-start pointer-chip" onclick="openEditTTBRowModal(${r.rowIndex}, '${escapeHtml(r.lhTrip)}')"><i class="fa-solid fa-comment-dots me-1"></i> ${escapeHtml(r.remarkOb)}</span>`
+          : `<span class="text-muted small" style="cursor:pointer;" onclick="openEditTTBRowModal(${r.rowIndex}, '${escapeHtml(r.lhTrip)}')"><i class="fa-regular fa-pen-to-square text-secondary"></i> -</span>`;
 
         return `
           <tr class="${hasChange ? 'table-warning bg-opacity-25' : ''}">
@@ -1447,16 +1581,168 @@
             </td>
             <td class="small">
               <div><b>${escapeHtml(r.dock || '-')}</b></div>
-              <div class="text-muted" style="font-size:0.75rem;">${escapeHtml(r.wheels || r.truckTypeReq || '')} (${escapeHtml(r.route || '')})</div>
+              <div class="text-muted" style="font-size:0.75rem;">${escapeHtml(r.route || r.subcon || '')}</div>
             </td>
-            <td>
-              ${arrivalBadge}
-              ${r.remarkOb ? `<div class="text-muted mt-1" style="font-size:0.75rem;">${escapeHtml(r.remarkOb)}</div>` : ''}
-            </td>
+            <td class="text-center">${arrivalBadge}</td>
+            <td>${remarkObDisplay}</td>
             <td>${changeBadge}</td>
+            <td class="text-center">
+              <button class="btn btn-outline-primary btn-sm py-0 px-2 fw-bold" title="แก้ไขและเขียนลง Sheet" onclick="openEditTTBRowModal(${r.rowIndex}, '${escapeHtml(r.lhTrip)}')">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+            </td>
           </tr>
         `;
       }).join('');
+    }
+
+    /* ─── EDIT TTB ROW & WRITEBACK FUNCTIONS ─── */
+    let editTTBRowModalInstance = null;
+
+    function openEditTTBRowModal(rowIndex, lhTrip) {
+      if (!editTTBRowModalInstance) {
+        editTTBRowModalInstance = new bootstrap.Modal(document.getElementById('editTTBRowModal'));
+      }
+
+      const rows = globalTTBLiveData.rows || [];
+      const row = rows.find(r => (lhTrip && r.lhTrip === lhTrip) || (rowIndex && r.rowIndex === rowIndex));
+      if (!row) {
+        alert('ไม่พบข้อมูลแถวที่ต้องการแก้ไข');
+        return;
+      }
+
+      document.getElementById('editRowIndexInput').value = row.rowIndex || rowIndex || '';
+      document.getElementById('editLhTripInput').value = row.lhTrip || lhTrip || '';
+
+      document.getElementById('editModalLhTrip').innerText = row.lhTrip || '-';
+      document.getElementById('editModalDestination').innerText = row.destination || '-';
+      document.getElementById('editModalStandby').innerText = row.standbyTime || '-';
+      document.getElementById('editModalDepart').innerText = row.departureTime || '-';
+      document.getElementById('editModalCutoff').innerText = row.cutoff || '-';
+      document.getElementById('editModalRowIndex').innerText = row.rowIndex || '-';
+
+      const z = (row.obZone || '').toUpperCase();
+      let zHtml = '<span class="badge bg-secondary">-</span>';
+      if (z.includes('A')) zHtml = '<span class="badge bg-danger">Zone A</span>';
+      else if (z.includes('B')) zHtml = '<span class="badge bg-success">Zone B</span>';
+      else if (z.includes('C')) zHtml = '<span class="badge bg-warning text-dark">Zone C</span>';
+      document.getElementById('editModalZoneBadge').innerHTML = zHtml;
+
+      document.getElementById('editArrivalStatusSelect').value = row.arrivalStatus || 'Ontime';
+      document.getElementById('editRemarkObInput').value = row.remarkOb || '';
+      document.getElementById('editNewTripInput').value = row.newTrip || '';
+      document.getElementById('editRemarkLhInput').value = row.remarkLh || '';
+      document.getElementById('editDockInput').value = row.dock || '';
+      document.getElementById('editPlateInput').value = row.plate || '';
+      document.getElementById('editDriverNameInput').value = row.driverName || '';
+
+      handleEditArrivalChange();
+      const alertEl = document.getElementById('editRowStatusAlert');
+      if (alertEl) alertEl.className = 'mb-3 small d-none';
+
+      editTTBRowModalInstance.show();
+    }
+
+    function handleEditArrivalChange() {
+      const arr = document.getElementById('editArrivalStatusSelect').value;
+      const lateTypeInput = document.getElementById('editLateTypeInput');
+      if (arr === 'Ontime' || arr === 'เลื่อนเวลาปล่อยรถ' || arr === 'ไม่ใช้รถ') {
+        lateTypeInput.value = 'On-time';
+      } else if (arr === 'Late') {
+        lateTypeInput.value = 'LH Late';
+      } else {
+        lateTypeInput.value = '';
+      }
+    }
+
+    function setQuickRemark(txt) {
+      document.getElementById('editRemarkObInput').value = txt;
+    }
+
+    function submitTTBRowEdit(evt) {
+      evt.preventDefault();
+      const rowIndex = parseInt(document.getElementById('editRowIndexInput').value, 10);
+      const lhTrip = document.getElementById('editLhTripInput').value.trim();
+
+      const updates = {
+        arrivalStatus: document.getElementById('editArrivalStatusSelect').value,
+        remarkOb: document.getElementById('editRemarkObInput').value.trim(),
+        newTrip: document.getElementById('editNewTripInput').value.trim(),
+        remarkLh: document.getElementById('editRemarkLhInput').value.trim(),
+        dock: document.getElementById('editDockInput').value.trim(),
+        plate: document.getElementById('editPlateInput').value.trim(),
+        driverName: document.getElementById('editDriverNameInput').value.trim(),
+        lateType: document.getElementById('editLateTypeInput').value.trim()
+      };
+
+      const btn = document.getElementById('btnSubmitRowEdit');
+      const origText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังบันทึกและส่งข้อมูล...';
+
+      fetch('/api/ttb-registration/update-row', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rowIndex, lhTrip, updates })
+      })
+      .then(res => res.json())
+      .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+        if (data.success) {
+          // Update in local array
+          if (globalTTBLiveData && globalTTBLiveData.rows) {
+            const r = globalTTBLiveData.rows.find(x => x.lhTrip === lhTrip || x.rowIndex === rowIndex);
+            if (r) {
+              Object.assign(r, updates);
+            }
+            renderTTBLiveTable();
+          }
+          if (editTTBRowModalInstance) editTTBRowModalInstance.hide();
+          
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              icon: 'success',
+              title: 'บันทึกสำเร็จ!',
+              text: data.message,
+              timer: 2000,
+              showConfirmButton: false
+            });
+          } else {
+            alert('✅ ' + data.message);
+          }
+          fetchCutoffData(); // Refresh cutoffs
+        } else {
+          alert('❌ ' + (data.error || 'ไม่สามารถบันทึกได้'));
+        }
+      })
+      .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+        alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+      });
+    }
+
+    function loadTTBConfig() {
+      fetch('/api/ttb-registration/config')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.config) {
+            const cfg = data.config;
+            const urlInput = document.getElementById('ttbWebAppUrlInput');
+            if (urlInput) urlInput.value = cfg.url || '';
+
+            const appsScriptInput = document.getElementById('ttbAppsScriptUrlInput');
+            if (appsScriptInput) appsScriptInput.value = cfg.appsScriptUrl || '';
+
+            const autoCheck = document.getElementById('ttbAutoSyncCheck');
+            if (autoCheck) autoCheck.checked = cfg.autoSync !== false;
+
+            const intSelect = document.getElementById('ttbSyncIntervalSelect');
+            if (intSelect && cfg.intervalMinutes) intSelect.value = String(cfg.intervalMinutes);
+          }
+        })
+        .catch(err => console.error('Error loading TTB config:', err));
     }
 
     function openTTBConfigModal() {
@@ -1472,13 +1758,14 @@
     function saveTTBConfig(evt) {
       evt.preventDefault();
       const url = document.getElementById('ttbWebAppUrlInput').value.trim();
+      const appsScriptUrl = document.getElementById('ttbAppsScriptUrlInput')?.value.trim() || '';
       const autoSync = document.getElementById('ttbAutoSyncCheck').checked;
       const intervalMinutes = parseInt(document.getElementById('ttbSyncIntervalSelect').value, 10);
 
       fetch('/api/ttb-registration/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, autoSync, intervalMinutes })
+        body: JSON.stringify({ url, appsScriptUrl, autoSync, intervalMinutes })
       })
       .then(res => res.json())
       .then(data => {

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-08 15:23:42",
+  "updatedAt": "2026-09-08 15:29:25",
   "sourceSheet": "TTB - Registration",
   "total": 1148,
   "stats": {
@@ -37,7 +37,7 @@
       "warningAlert": "",
       "obZone": "A",
       "arrivalStatus": "Ontime",
-      "remarkOb": "",
+      "remarkOb": "ทดสอบแก้ไขผ่าน Dashboard",
       "lateType": "On-time",
       "cutoff": "9:00",
       "dockedTime": "#N/A",

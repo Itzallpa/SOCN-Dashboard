@@ -2836,21 +2836,28 @@ def ttb_registration_config_api():
     if request.method == "POST":
         data = request.get_json() or {}
         url = (data.get("url") or "").strip()
+        apps_script_url = (data.get("appsScriptUrl") or "").strip()
+        write_target_url = (data.get("writeTargetUrl") or "").strip()
         auto_sync = bool(data.get("autoSync", True))
         interval = int(data.get("intervalMinutes", 10))
         
+        current_cfg = settings.get("ttbSync", {})
         settings["ttbSync"] = {
-            "url": url,
+            "url": url or current_cfg.get("url", ""),
+            "appsScriptUrl": apps_script_url or current_cfg.get("appsScriptUrl", ""),
+            "writeTargetUrl": write_target_url or current_cfg.get("writeTargetUrl", "https://docs.google.com/spreadsheets/d/1fcW2_deyDFDN9Dp9JfOv1NOinS1de6KMDcNZp2EOL9w/edit?gid=719250654#gid=719250654"),
             "autoSync": auto_sync,
             "intervalMinutes": interval,
             "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         save_system_settings(settings)
-        log_activity("TTB_SYNC_CONFIG", f"ตั้งค่า Google Apps Script Web App URL สำหรับ TTB Sync: {url[:30]}...")
+        log_activity("TTB_SYNC_CONFIG", f"ตั้งค่าการเชื่อมต่อ TTB Google Sheet: Read URL={url[:30]}..., Apps Script={apps_script_url[:30]}...")
         return jsonify({"success": True, "message": "บันทึกการตั้งค่า TTB Google Sheet Sync เรียบร้อยแล้ว", "config": settings["ttbSync"]})
 
     return jsonify({"success": True, "config": settings.get("ttbSync", {
         "url": "",
+        "appsScriptUrl": "",
+        "writeTargetUrl": "https://docs.google.com/spreadsheets/d/1fcW2_deyDFDN9Dp9JfOv1NOinS1de6KMDcNZp2EOL9w/edit?gid=719250654#gid=719250654",
         "autoSync": True,
         "intervalMinutes": 10,
         "updatedAt": ""
@@ -3130,27 +3137,99 @@ def get_ttb_registration_live_api():
     data = load_ttb_registration_live()
     return jsonify({"success": True, "data": data})
 
+@app.route("/api/ttb-registration/update-row", methods=["POST"])
+def update_ttb_registration_row_api():
+    import requests
+    req = request.get_json() or {}
+    lh_trip = req.get("lhTrip", "").strip()
+    row_idx = req.get("rowIndex")
+    updates = req.get("updates", {})
+    
+    if not lh_trip and not row_idx:
+        return jsonify({"success": False, "error": "กรุณาระบุ LH Trip หรือ Row Index ของแถวที่ต้องการแก้ไข"}), 400
+
+    # 1. Update in local Live JSON Cache
+    live_data = load_ttb_registration_live()
+    rows = live_data.get("rows", [])
+    found_row = None
+    for r in rows:
+        if (lh_trip and r.get("lhTrip") == lh_trip) or (row_idx and r.get("rowIndex") == row_idx):
+            for k, v in updates.items():
+                r[k] = v
+            found_row = r
+            break
+            
+    if found_row:
+        # Re-save live data
+        live_data["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        save_ttb_registration_live(live_data)
+        
+        # Also update Cutoff Master schedule if arrivalStatus / remark / cutoff / newTrip changed
+        try:
+            if os.path.exists(CUSTOM_CUTOFF_FILE):
+                with open(CUSTOM_CUTOFF_FILE, "r", encoding="utf-8") as f:
+                    cutoffs = json.load(f)
+                for c in cutoffs:
+                    if c.get("lh_trip") == lh_trip or (found_row.get("destination") and c.get("station_name") == found_row.get("destination")):
+                        if "arrivalStatus" in updates: c["late_type"] = updates["arrivalStatus"]
+                        if "remarkOb" in updates: c["remark_ob"] = updates["remarkOb"]
+                        if "newTrip" in updates: c["new_trip"] = updates["newTrip"]
+                        if "remarkLh" in updates: c["remark_lh"] = updates["remarkLh"]
+                        if "dock" in updates: c["dock"] = updates["dock"]
+                        if "plate" in updates: c["plate"] = updates["plate"]
+                with open(CUSTOM_CUTOFF_FILE, "w", encoding="utf-8") as f:
+                    json.dump(cutoffs, f, ensure_ascii=False, indent=2)
+        except Exception as cutoff_err:
+            print("Warning updating custom cutoff file:", cutoff_err)
+
+    # 2. Write-back to Google Sheet via Apps Script Web App URL
+    settings = load_system_settings()
+    ttb_cfg = settings.get("ttbSync", {})
+    apps_script_url = ttb_cfg.get("appsScriptUrl") or ttb_cfg.get("writeUrl") or ""
+    
+    # Check if main URL is a Web App URL (script.google.com)
+    main_url = ttb_cfg.get("url", "")
+    if "script.google.com" in main_url and not apps_script_url:
+        apps_script_url = main_url
+
+    sheet_write_status = "SAVED_LOCALLY"
+    sheet_msg = "บันทึกลงในระบบเรียบร้อยแล้ว"
+    
+    if apps_script_url and "script.google.com" in apps_script_url:
+        try:
+            payload = {
+                "action": "UPDATE_ROW",
+                "lhTrip": lh_trip,
+                "rowIndex": row_idx,
+                "updates": updates
+            }
+            gs_resp = requests.post(apps_script_url, json=payload, timeout=15)
+            if gs_resp.status_code == 200:
+                sheet_res = gs_resp.json()
+                if sheet_res.get("success"):
+                    sheet_write_status = "SYNCED_TO_SHEET"
+                    sheet_msg = f"บันทึกและส่งข้อมูลไปเขียนลง Google Sheet สำเร็จ (แถวที่ {sheet_res.get('rowIndex', row_idx)})"
+                else:
+                    sheet_msg = f"บันทึกในระบบแล้ว แต่ Google Sheet แจ้งเตือน: {sheet_res.get('error')}"
+            else:
+                sheet_msg = f"บันทึกในระบบแล้ว (Google Apps Script ตอบกลับรหัส {gs_resp.status_code})"
+        except Exception as push_err:
+            sheet_msg = f"บันทึกในระบบแล้ว (ไม่สามารถส่งไป Google Sheet ได้ชั่วคราว: {str(push_err)})"
+
+    log_activity("TTB_ROW_UPDATE", f"✏️ อัปเดตข้อมูลทริป {lh_trip or row_idx}: Arrival={updates.get('arrivalStatus', '-')}, Remark={updates.get('remarkOb', '-')}")
+    
+    return jsonify({
+        "success": True,
+        "message": sheet_msg,
+        "writeStatus": sheet_write_status,
+        "row": found_row
+    })
+
 @app.route("/api/ttb-registration/push", methods=["POST"])
 def push_ttb_registration_update_api():
-    import requests
-    data = request.get_json() or {}
-    settings = load_system_settings()
-    url = settings.get("ttbSync", {}).get("url", "")
-    
-    if not url:
-        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า Google Apps Script URL ในระบบ"}), 400
+    return update_ttb_registration_row_api()
 
-    try:
-        resp = requests.post(url, json=data, timeout=25, allow_redirects=True)
-        if resp.status_code != 200:
-            return jsonify({"success": False, "error": f"Google Sheets ตอบกลับด้วย HTTP Code {resp.status_code}"}), 502
-            
-        res_json = resp.json()
-        log_activity("TTB_SHEET_PUSH", f"📤 เขียนข้อมูลอัปเดตกลับไปยัง Google Sheet: {data.get('lhTrip', '')} (Row {data.get('rowIndex', '-')})")
-        return jsonify(res_json)
-    except Exception as e:
-        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการส่งข้อมูลไป Google Sheets: {str(e)}"}), 500
-
+def get_active_ttb_sheet(date_str):
     dt = None
     if date_str:
         try:
@@ -3158,7 +3237,7 @@ def push_ttb_registration_update_api():
         except Exception:
             dt = None
     if dt is None or pd.isna(dt):
-        dt = datetime.datetime.now()
+        dt = datetime.now()
     
     w = dt.weekday()
     if w == 6:
