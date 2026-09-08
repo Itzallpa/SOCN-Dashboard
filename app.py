@@ -2886,19 +2886,31 @@ def process_and_save_ttb_rows(raw_rows, source_sheet_name="TTB - Registration"):
         if r.get("newTrip") or r.get("remarkLh"):
             new_trips_count += 1
 
-        # Extract clean station name (e.g., 'AAYUT - พระนครศรีอยุธยา' -> 'AAYUT')
-        st_code = dest.split("-")[0].strip() if "-" in dest else dest
+        # Extract clean station code and province (e.g., 'ABKEN-B - บางเขน' -> code: 'ABKEN-B', prov: 'บางเขน')
+        parts = [p.strip() for p in dest.split("-") if p.strip()]
+        if len(parts) >= 3 and len(parts[1]) <= 2:
+            st_code = f"{parts[0]}-{parts[1]}"
+            prov = parts[-1]
+        elif len(parts) >= 2:
+            st_code = parts[0]
+            prov = parts[-1]
+        else:
+            st_code = dest
+            prov = ""
         
         cutoff_time = str(r.get("cutoff") or "").strip()
+        driver_id_val = str(r.get("driverId") or "").replace(".0", "").strip()
+        if not driver_id_val or driver_id_val.upper() in ["#N/A", "NAN", "NONE"]:
+            driver_id_val = st_code
         
         cutoff_entry = {
             "station_name": dest,
             "station_code": st_code,
-            "station_id": str(r.get("driverId") or "").replace(".0", "").strip(),
+            "station_id": driver_id_val,
             "zone": zone,
             "area_group": "TTB Registration",
             "area": str(r.get("route") or "").strip(),
-            "province": dest.split("-")[1].strip() if "-" in dest else "",
+            "province": prov,
             "district": "",
             "op_type": str(r.get("vehicleType") or r.get("truckTypeReq") or "").strip(),
             "dock": str(r.get("dock") or "").strip(),
@@ -2995,7 +3007,8 @@ def ttb_registration_sync_api():
         if resp.status_code != 200:
             return jsonify({"success": False, "requiresClientFetch": True, "url": url, "error": f"Google Sheets ตอบกลับด้วย HTTP Code {resp.status_code}"}), 502
             
-        raw_text = resp.text.strip()
+        resp.encoding = "utf-8"
+        raw_text = resp.content.decode("utf-8", errors="replace").strip()
         
         # Detect Google Login Redirect / Permission error
         if "accounts.google.com" in resp.url or "Sign in - Google Accounts" in raw_text or "ServiceLogin" in resp.url:
