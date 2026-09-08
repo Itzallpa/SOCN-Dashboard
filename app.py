@@ -3023,30 +3023,30 @@ def ttb_registration_sync_api():
                 if any("lh" in c for c in row_cells) or any("destination" in c for c in row_cells):
                     header_row_idx = r_idx
                     for c_i, c_val in enumerate(row_cells):
-                        if "driver id" in c_val or "รหัสคนขับ" in c_val: col_map["driverId"] = c_i
-                        elif "ชื่อพนักงาน" in c_val or "driver name" in c_val: col_map["driverName"] = c_i
-                        elif "ทะเบียน" in c_val or "plate" in c_val: col_map["plate"] = c_i
-                        elif "ประเภทรถ" in c_val or "truck type" in c_val: col_map["vehicleType"] = c_i
-                        elif "status" in c_val: col_map["status"] = c_i
-                        elif "assign" in c_val: col_map["assignStatus"] = c_i
-                        elif "lh trip" in c_val or "lh_trip" in c_val or "lh" == c_val: col_map["lhTrip"] = c_i
-                        elif "standby" in c_val: col_map["standbyTime"] = c_i
-                        elif "loading" in c_val: col_map["loadingTime"] = c_i
-                        elif "departure" in c_val or "depart" in c_val: col_map["departureTime"] = c_i
-                        elif "destination" in c_val or "ปลายทาง" in c_val or "สถานี" in c_val: col_map["destination"] = c_i
-                        elif "dock" in c_val: col_map["dock"] = c_i
-                        elif "subcon" in c_val: col_map["subcon"] = c_i
-                        elif "สาย" in c_val or "route" in c_val: col_map["route"] = c_i
-                        elif "new trip" in c_val or "new_trip" in c_val: col_map["newTrip"] = c_i
-                        elif "เตือน" in c_val or "alert" in c_val: col_map["warningAlert"] = c_i
-                        elif "remark lh" in c_val: col_map["remarkLh"] = c_i
-                        elif "ob zone" in c_val or "zone" in c_val: col_map["obZone"] = c_i
-                        elif "arrival" in c_val: col_map["arrivalStatus"] = c_i
-                        elif "remark ob" in c_val: col_map["remarkOb"] = c_i
-                        elif "late type" in c_val: col_map["lateType"] = c_i
-                        elif "cot" in c_val: col_map["cot"] = c_i
-                        elif "cutoff" in c_val: col_map["cutoff"] = c_i
-                        elif "booked" in c_val: col_map["bookedTime"] = c_i
+                        if c_val in ["driver id", "รหัสคนขับ"]: col_map.setdefault("driverId", c_i)
+                        elif any(x in c_val for x in ["ชื่อพนักงาน", "driver name", "ชื่อ พนักงาน"]): col_map.setdefault("driverName", c_i)
+                        elif c_val in ["ทะเบียน", "plate"]: col_map.setdefault("plate", c_i)
+                        elif c_val in ["ประเภทรถ", "truck type"]: col_map.setdefault("vehicleType", c_i)
+                        elif c_val == "status": col_map.setdefault("status", c_i)
+                        elif "assign" in c_val: col_map.setdefault("assignStatus", c_i)
+                        elif c_val in ["lh trips", "lh trip", "lh_trip", "lh"]: col_map.setdefault("lhTrip", c_i)
+                        elif c_val in ["standby time", "standby"]: col_map.setdefault("standbyTime", c_i)
+                        elif c_val in ["loding time", "loading time", "loading"]: col_map.setdefault("loadingTime", c_i)
+                        elif c_val in ["departure time", "depart time", "departure", "depart"] and "plan" not in c_val: col_map.setdefault("departureTime", c_i)
+                        elif c_val in ["destination", "ปลายทาง", "สถานี"]: col_map.setdefault("destination", c_i)
+                        elif c_val in ["dock", "ช่องจอด"] and "docked" not in c_val: col_map.setdefault("dock", c_i)
+                        elif c_val in ["subcon", "sub contractor"]: col_map.setdefault("subcon", c_i)
+                        elif c_val in ["สาย", "route"]: col_map.setdefault("route", c_i)
+                        elif c_val in ["new trip", "new_trip"]: col_map.setdefault("newTrip", c_i)
+                        elif c_val in ["เตือน", "alert"]: col_map.setdefault("warningAlert", c_i)
+                        elif c_val in ["remark lh", "ว.สลับรถ"] or "สลับรถ" in c_val: col_map.setdefault("remarkLh", c_i)
+                        elif c_val in ["ob zone", "obzone", "zone"]: col_map.setdefault("obZone", c_i)
+                        elif c_val in ["arrival on-time/late", "arrival status", "arrival"] or "on-time/late" in c_val: col_map.setdefault("arrivalStatus", c_i)
+                        elif c_val in ["remark ob", "remark_ob"]: col_map.setdefault("remarkOb", c_i)
+                        elif c_val in ["late type", "late_type"]: col_map.setdefault("lateType", c_i)
+                        elif c_val == "cot": col_map.setdefault("cot", c_i)
+                        elif c_val in ["cutoff", "cut-off", "cut off"] and "2" not in c_val: col_map.setdefault("cutoff", c_i)
+                        elif c_val in ["booked time", "booked"]: col_map.setdefault("bookedTime", c_i)
                     break
 
             start_idx = header_row_idx + 1
@@ -3056,38 +3056,40 @@ def ttb_registration_sync_api():
                 
                 get_c = lambda k, default_idx: str(r[col_map.get(k, default_idx)] if len(r) > col_map.get(k, default_idx) else "").strip()
                 
-                lh_trip = get_c("lhTrip", 11)
-                dest = get_c("destination", 15)
+                lh_trip = get_c("lhTrip", 10)
+                dest = get_c("destination", 16)
                 if not lh_trip and not dest: continue
 
                 raw_rows.append({
                     "rowIndex": i + 1,
-                    "driverId": get_c("driverId", 0),
-                    "driverName": get_c("driverName", 1),
-                    "plate": get_c("plate", 2),
-                    "vehicleType": get_c("vehicleType", 3),
-                    "status": get_c("status", 4),
-                    "assignStatus": get_c("assignStatus", 5),
+                    "driverId": get_c("driverId", 1),
+                    "driverName": get_c("driverName", 2),
+                    "plate": get_c("plate", 3),
+                    "vehicleType": get_c("vehicleType", 4),
+                    "status": get_c("status", 8),
+                    "assignStatus": get_c("assignStatus", 9),
                     "lhTrip": lh_trip,
-                    "standbyTime": get_c("standbyTime", 12),
-                    "loadingTime": get_c("loadingTime", 13),
-                    "departureTime": get_c("departureTime", 14),
+                    "standbyTime": get_c("standbyTime", 13),
+                    "loadingTime": get_c("loadingTime", 14),
+                    "departureTime": get_c("departureTime", 15),
                     "destination": dest,
-                    "truckTypeReq": get_c("truckTypeReq", 16),
+                    "truckTypeReq": get_c("truckTypeReq", 17),
                     "wheels": get_c("wheels", 17),
-                    "dock": get_c("dock", 18),
-                    "subcon": get_c("subcon", 19),
+                    "dock": get_c("dock", 19),
+                    "subcon": get_c("subcon", 20),
                     "route": get_c("route", 20),
-                    "newTrip": get_c("newTrip", 21),
-                    "warningAlert": get_c("warningAlert", 22),
+                    "cot": get_c("cot", 21),
+                    "newTrip": get_c("newTrip", 22),
                     "remarkLh": get_c("remarkLh", 23),
+                    "warningAlert": get_c("warningAlert", 23),
                     "obZone": get_c("obZone", 24),
                     "arrivalStatus": get_c("arrivalStatus", 25),
                     "remarkOb": get_c("remarkOb", 26),
                     "lateType": get_c("lateType", 27),
-                    "cot": get_c("cot", 28),
                     "cutoff": get_c("cutoff", 29),
-                    "bookedTime": get_c("bookedTime", 30)
+                    "dockedTime": get_c("dockedTime", 30),
+                    "planDeparture": get_c("planDeparture", 31),
+                    "completeTime": get_c("completeTime", 33)
                 })
         else:
             try:

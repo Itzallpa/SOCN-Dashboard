@@ -1600,29 +1600,29 @@
         if (row.some(c => c.includes('lh')) || row.some(c => c.includes('destination')) || row.some(c => c.includes('cutoff'))) {
           headerIdx = i;
           row.forEach((val, cIdx) => {
-            if (val.includes('driver id') || val.includes('รหัสคนขับ')) colMap.driverId = cIdx;
-            else if (val.includes('ชื่อพนักงาน') || val.includes('driver name')) colMap.driverName = cIdx;
-            else if (val.includes('ทะเบียน') || val.includes('plate')) colMap.plate = cIdx;
-            else if (val.includes('ประเภทรถ') || val.includes('truck type')) colMap.vehicleType = cIdx;
-            else if (val.includes('status')) colMap.status = cIdx;
-            else if (val.includes('assign')) colMap.assignStatus = cIdx;
-            else if (val.includes('lh trip') || val === 'lh') colMap.lhTrip = cIdx;
-            else if (val.includes('standby')) colMap.standbyTime = cIdx;
-            else if (val.includes('loading')) colMap.loadingTime = cIdx;
-            else if (val.includes('departure') || val.includes('depart')) colMap.departureTime = cIdx;
-            else if (val.includes('destination') || val.includes('สถานี') || val.includes('ปลายทาง')) colMap.destination = cIdx;
-            else if (val.includes('dock')) colMap.dock = cIdx;
-            else if (val.includes('subcon')) colMap.subcon = cIdx;
-            else if (val.includes('สาย') || val.includes('route')) colMap.route = cIdx;
-            else if (val.includes('new trip') || val.includes('new_trip')) colMap.newTrip = cIdx;
-            else if (val.includes('เตือน') || val.includes('alert')) colMap.warningAlert = cIdx;
-            else if (val.includes('remark lh')) colMap.remarkLh = cIdx;
-            else if (val.includes('ob zone') || val.includes('zone')) colMap.obZone = cIdx;
-            else if (val.includes('arrival')) colMap.arrivalStatus = cIdx;
-            else if (val.includes('remark ob')) colMap.remarkOb = cIdx;
-            else if (val.includes('late type')) colMap.lateType = cIdx;
-            else if (val.includes('cot')) colMap.cot = cIdx;
-            else if (val.includes('cutoff')) colMap.cutoff = cIdx;
+            if (val === 'driver id' || val.includes('รหัสคนขับ')) { if (colMap.driverId === undefined) colMap.driverId = cIdx; }
+            else if (val.includes('ชื่อพนักงาน') || val.includes('driver name') || val.includes('ชื่อ พนักงาน')) { if (colMap.driverName === undefined) colMap.driverName = cIdx; }
+            else if (val === 'ทะเบียน' || val === 'plate') { if (colMap.plate === undefined) colMap.plate = cIdx; }
+            else if (val === 'ประเภทรถ' || val === 'truck type') { if (colMap.vehicleType === undefined) colMap.vehicleType = cIdx; }
+            else if (val === 'status') { if (colMap.status === undefined) colMap.status = cIdx; }
+            else if (val.includes('assign')) { if (colMap.assignStatus === undefined) colMap.assignStatus = cIdx; }
+            else if (val.includes('lh trips') || val.includes('lh trip') || val === 'lh') { if (colMap.lhTrip === undefined) colMap.lhTrip = cIdx; }
+            else if (val.includes('standby time') || val === 'standby') { if (colMap.standbyTime === undefined) colMap.standbyTime = cIdx; }
+            else if (val.includes('loding time') || val.includes('loading time') || val === 'loading') { if (colMap.loadingTime === undefined) colMap.loadingTime = cIdx; }
+            else if ((val.includes('departure time') || val.includes('depart time') || val === 'departure') && !val.includes('plan')) { if (colMap.departureTime === undefined) colMap.departureTime = cIdx; }
+            else if (val.includes('destination') || val.includes('สถานี') || val.includes('ปลายทาง')) { if (colMap.destination === undefined) colMap.destination = cIdx; }
+            else if ((val.includes('dock') || val.includes('ช่องจอด')) && !val.includes('docked')) { if (colMap.dock === undefined) colMap.dock = cIdx; }
+            else if (val.includes('subcon') || val.includes('sub contractor')) { if (colMap.subcon === undefined) colMap.subcon = cIdx; }
+            else if (val.includes('สาย') || val.includes('route')) { if (colMap.route === undefined) colMap.route = cIdx; }
+            else if (val.includes('new trip') || val.includes('new_trip')) { if (colMap.newTrip === undefined) colMap.newTrip = cIdx; }
+            else if (val.includes('เตือน') || val.includes('alert')) { if (colMap.warningAlert === undefined) colMap.warningAlert = cIdx; }
+            else if (val.includes('remark lh') || val.includes('สลับรถ')) { if (colMap.remarkLh === undefined) colMap.remarkLh = cIdx; }
+            else if (val.includes('ob zone') || val === 'zone') { if (colMap.obZone === undefined) colMap.obZone = cIdx; }
+            else if (val.includes('arrival on-time/late') || val.includes('arrival') || val.includes('on-time/late')) { if (colMap.arrivalStatus === undefined) colMap.arrivalStatus = cIdx; }
+            else if (val.includes('remark ob')) { if (colMap.remarkOb === undefined) colMap.remarkOb = cIdx; }
+            else if (val.includes('late type')) { if (colMap.lateType === undefined) colMap.lateType = cIdx; }
+            else if (val === 'cot') { if (colMap.cot === undefined) colMap.cot = cIdx; }
+            else if ((val.includes('cutoff') || val.includes('cut-off')) && !val.includes('2')) { if (colMap.cutoff === undefined) colMap.cutoff = cIdx; }
           });
           break;
         }
@@ -1641,8 +1641,8 @@
           return idx < r.length ? String(r[idx] || '').trim() : '';
         };
 
-        const lhTrip = getV('lhTrip', 11);
-        const dest = getV('destination', 15);
+        const lhTrip = getV('lhTrip', 10);
+        const dest = getV('destination', 16);
         if (!lhTrip && !dest) continue;
 
         const zone = getV('obZone', 24);
@@ -1652,30 +1652,30 @@
 
         parsedPasteRows.push({
           rowIndex: i + 1,
-          driverId: getV('driverId', 0),
-          driverName: getV('driverName', 1),
-          plate: getV('plate', 2),
-          vehicleType: getV('vehicleType', 3),
-          status: getV('status', 4),
-          assignStatus: getV('assignStatus', 5),
+          driverId: getV('driverId', 1),
+          driverName: getV('driverName', 2),
+          plate: getV('plate', 3),
+          vehicleType: getV('vehicleType', 4),
+          status: getV('status', 8),
+          assignStatus: getV('assignStatus', 9),
           lhTrip: lhTrip,
-          standbyTime: getV('standbyTime', 12),
-          loadingTime: getV('loadingTime', 13),
-          departureTime: getV('departureTime', 14),
+          standbyTime: getV('standbyTime', 13),
+          loadingTime: getV('loadingTime', 14),
+          departureTime: getV('departureTime', 15),
           destination: dest,
-          truckTypeReq: getV('truckTypeReq', 16),
+          truckTypeReq: getV('truckTypeReq', 17),
           wheels: getV('wheels', 17),
-          dock: getV('dock', 18),
-          subcon: getV('subcon', 19),
+          dock: getV('dock', 19),
+          subcon: getV('subcon', 20),
           route: getV('route', 20),
-          newTrip: getV('newTrip', 21),
-          warningAlert: getV('warningAlert', 22),
+          cot: getV('cot', 21),
+          newTrip: getV('newTrip', 22),
           remarkLh: getV('remarkLh', 23),
+          warningAlert: getV('warningAlert', 23),
           obZone: zone,
           arrivalStatus: getV('arrivalStatus', 25),
           remarkOb: getV('remarkOb', 26),
           lateType: getV('lateType', 27),
-          cot: getV('cot', 28),
           cutoff: getV('cutoff', 29)
         });
       }
