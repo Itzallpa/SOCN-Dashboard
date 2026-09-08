@@ -2858,7 +2858,7 @@ def ttb_registration_config_api():
 
 @app.route("/api/ttb-registration/sync", methods=["GET", "POST"])
 def ttb_registration_sync_api():
-    import requests
+    import requests, csv, io
     settings = load_system_settings()
     ttb_cfg = settings.get("ttbSync", {})
     
@@ -2870,19 +2870,90 @@ def ttb_registration_sync_api():
         url = ttb_cfg.get("url", "")
         
     if not url:
-        return jsonify({"success": False, "error": "ยังไม่ได้ระบุ Google Apps Script Web App URL กรุณาตั้งค่าในระบบก่อน"}), 400
+        return jsonify({"success": False, "error": "ยังไม่ได้ระบุ Google Apps Script Web App URL หรือ Google Sheet CSV URL กรุณาตั้งค่าในระบบก่อน"}), 400
 
     try:
-        resp = requests.get(url, timeout=25, allow_redirects=True)
+        # Check if URL is standard Google Sheet URL -> convert to CSV export if so
+        is_sheet_csv = "output=csv" in url or "export?format=csv" in url or "gviz/tq" in url
+        if "docs.google.com/spreadsheets/d/" in url and not is_sheet_csv:
+            # Auto-convert standard spreadsheet URL to CSV export URL
+            sheet_id_match = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", url)
+            gid_match = re.search(r"[#&?]gid=([0-9]+)", url)
+            if sheet_id_match:
+                s_id = sheet_id_match.group(1)
+                gid = gid_match.group(1) if gid_match else "0"
+                url = f"https://docs.google.com/spreadsheets/d/{s_id}/export?format=csv&gid={gid}"
+                is_sheet_csv = True
+
+        resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=25, allow_redirects=True)
         if resp.status_code != 200:
             return jsonify({"success": False, "error": f"Google Sheets ตอบกลับด้วย HTTP Code {resp.status_code}"}), 502
             
-        data = resp.json()
-        if not data.get("success") or "rows" not in data:
-            return jsonify({"success": False, "error": data.get("error") or "โครงสร้างข้อมูลจาก Google Sheets ไม่ถูกต้อง"}), 502
-
-        raw_rows = data.get("rows", [])
+        raw_text = resp.text.strip()
         
+        # Detect Google Login Redirect / Permission error
+        if "accounts.google.com" in resp.url or "Sign in - Google Accounts" in raw_text or "ServiceLogin" in resp.url:
+            return jsonify({
+                "success": False,
+                "error": "ติดสิทธิ์การเข้าถึง (Google Login Required): กรุณาไปที่ Google Sheet > Extensions > Apps Script > กด Deploy (การทำให้ใช้งานได้) > Manage deployments > กดรูปดินสอแก้ไข และเปลี่ยน 'ผู้ที่มีสิทธิ์เข้าถึง (Who has access)' เป็น 'ทุกคน (Anyone)' ครับ"
+            }), 403
+
+        raw_rows = []
+        source_sheet_name = "TTB - Registration"
+
+        if is_sheet_csv or not raw_text.startswith("{"):
+            # Parse as CSV
+            csv_reader = list(csv.reader(io.StringIO(raw_text)))
+            if len(csv_reader) < 3:
+                return jsonify({"success": False, "error": "ไม่พบข้อมูลแถวใน Google Sheet CSV"}), 400
+                
+            for i in range(2, len(csv_reader)):
+                r = csv_reader[i]
+                if len(r) < 16: continue
+                lh_trip = str(r[11] if len(r) > 11 else "").strip()
+                dest = str(r[15] if len(r) > 15 else "").strip()
+                if not lh_trip and not dest: continue
+
+                raw_rows.append({
+                    "rowIndex": i + 1,
+                    "driverId": str(r[0] if len(r) > 0 else "").strip(),
+                    "driverName": str(r[1] if len(r) > 1 else "").strip(),
+                    "plate": str(r[2] if len(r) > 2 else "").strip(),
+                    "vehicleType": str(r[3] if len(r) > 3 else "").strip(),
+                    "status": str(r[4] if len(r) > 4 else "").strip(),
+                    "assignStatus": str(r[5] if len(r) > 5 else "").strip(),
+                    "lhTrip": lh_trip,
+                    "standbyTime": str(r[12] if len(r) > 12 else "").strip(),
+                    "loadingTime": str(r[13] if len(r) > 13 else "").strip(),
+                    "departureTime": str(r[14] if len(r) > 14 else "").strip(),
+                    "destination": dest,
+                    "truckTypeReq": str(r[16] if len(r) > 16 else "").strip(),
+                    "wheels": str(r[17] if len(r) > 17 else "").strip(),
+                    "dock": str(r[18] if len(r) > 18 else "").strip(),
+                    "subcon": str(r[19] if len(r) > 19 else "").strip(),
+                    "route": str(r[20] if len(r) > 20 else "").strip(),
+                    "newTrip": str(r[21] if len(r) > 21 else "").strip(),
+                    "warningAlert": str(r[22] if len(r) > 22 else "").strip(),
+                    "remarkLh": str(r[23] if len(r) > 23 else "").strip(),
+                    "obZone": str(r[24] if len(r) > 24 else "").strip(),
+                    "arrivalStatus": str(r[25] if len(r) > 25 else "").strip(),
+                    "remarkOb": str(r[26] if len(r) > 26 else "").strip(),
+                    "lateType": str(r[27] if len(r) > 27 else "").strip(),
+                    "cot": str(r[28] if len(r) > 28 else "").strip(),
+                    "cutoff": str(r[29] if len(r) > 29 else "").strip(),
+                    "bookedTime": str(r[30] if len(r) > 30 else "").strip()
+                })
+        else:
+            try:
+                data = json.loads(raw_text)
+            except Exception as json_err:
+                return jsonify({"success": False, "error": f"ข้อมูลที่ได้รับไม่ใช่ JSON หรือ CSV ที่ถูกต้อง: {str(json_err)}"}), 502
+
+            if not data.get("success") or "rows" not in data:
+                return jsonify({"success": False, "error": data.get("error") or "โครงสร้างข้อมูลจาก Google Sheets ไม่ถูกต้อง"}), 502
+            raw_rows = data.get("rows", [])
+            source_sheet_name = data.get("sheetName", "TTB - Registration")
+
         # 1. Update Cutoff Master table (custom_cutoff_schedule.json) automatically from this sheet
         cutoff_master_entries = []
         zone_a_count = 0
