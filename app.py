@@ -3012,44 +3012,82 @@ def ttb_registration_sync_api():
         if is_sheet_csv or not raw_text.startswith("{"):
             # Parse as CSV
             csv_reader = list(csv.reader(io.StringIO(raw_text)))
-            if len(csv_reader) < 3:
+            if len(csv_reader) < 2:
                 return jsonify({"success": False, "error": "ไม่พบข้อมูลแถวใน Google Sheet CSV"}), 400
                 
-            for i in range(2, len(csv_reader)):
+            # Find header row dynamically (look for 'LH Trips' or 'Destination' or 'Cutoff')
+            header_row_idx = 1 # Default row 2
+            col_map = {}
+            for r_idx in range(min(5, len(csv_reader))):
+                row_cells = [str(c).strip().lower() for c in csv_reader[r_idx]]
+                if any("lh" in c for c in row_cells) or any("destination" in c for c in row_cells):
+                    header_row_idx = r_idx
+                    for c_i, c_val in enumerate(row_cells):
+                        if "driver id" in c_val or "รหัสคนขับ" in c_val: col_map["driverId"] = c_i
+                        elif "ชื่อพนักงาน" in c_val or "driver name" in c_val: col_map["driverName"] = c_i
+                        elif "ทะเบียน" in c_val or "plate" in c_val: col_map["plate"] = c_i
+                        elif "ประเภทรถ" in c_val or "truck type" in c_val: col_map["vehicleType"] = c_i
+                        elif "status" in c_val: col_map["status"] = c_i
+                        elif "assign" in c_val: col_map["assignStatus"] = c_i
+                        elif "lh trip" in c_val or "lh_trip" in c_val or "lh" == c_val: col_map["lhTrip"] = c_i
+                        elif "standby" in c_val: col_map["standbyTime"] = c_i
+                        elif "loading" in c_val: col_map["loadingTime"] = c_i
+                        elif "departure" in c_val or "depart" in c_val: col_map["departureTime"] = c_i
+                        elif "destination" in c_val or "ปลายทาง" in c_val or "สถานี" in c_val: col_map["destination"] = c_i
+                        elif "dock" in c_val: col_map["dock"] = c_i
+                        elif "subcon" in c_val: col_map["subcon"] = c_i
+                        elif "สาย" in c_val or "route" in c_val: col_map["route"] = c_i
+                        elif "new trip" in c_val or "new_trip" in c_val: col_map["newTrip"] = c_i
+                        elif "เตือน" in c_val or "alert" in c_val: col_map["warningAlert"] = c_i
+                        elif "remark lh" in c_val: col_map["remarkLh"] = c_i
+                        elif "ob zone" in c_val or "zone" in c_val: col_map["obZone"] = c_i
+                        elif "arrival" in c_val: col_map["arrivalStatus"] = c_i
+                        elif "remark ob" in c_val: col_map["remarkOb"] = c_i
+                        elif "late type" in c_val: col_map["lateType"] = c_i
+                        elif "cot" in c_val: col_map["cot"] = c_i
+                        elif "cutoff" in c_val: col_map["cutoff"] = c_i
+                        elif "booked" in c_val: col_map["bookedTime"] = c_i
+                    break
+
+            start_idx = header_row_idx + 1
+            for i in range(start_idx, len(csv_reader)):
                 r = csv_reader[i]
-                if len(r) < 16: continue
-                lh_trip = str(r[11] if len(r) > 11 else "").strip()
-                dest = str(r[15] if len(r) > 15 else "").strip()
+                if not r or len(r) < 3: continue
+                
+                get_c = lambda k, default_idx: str(r[col_map.get(k, default_idx)] if len(r) > col_map.get(k, default_idx) else "").strip()
+                
+                lh_trip = get_c("lhTrip", 11)
+                dest = get_c("destination", 15)
                 if not lh_trip and not dest: continue
 
                 raw_rows.append({
                     "rowIndex": i + 1,
-                    "driverId": str(r[0] if len(r) > 0 else "").strip(),
-                    "driverName": str(r[1] if len(r) > 1 else "").strip(),
-                    "plate": str(r[2] if len(r) > 2 else "").strip(),
-                    "vehicleType": str(r[3] if len(r) > 3 else "").strip(),
-                    "status": str(r[4] if len(r) > 4 else "").strip(),
-                    "assignStatus": str(r[5] if len(r) > 5 else "").strip(),
+                    "driverId": get_c("driverId", 0),
+                    "driverName": get_c("driverName", 1),
+                    "plate": get_c("plate", 2),
+                    "vehicleType": get_c("vehicleType", 3),
+                    "status": get_c("status", 4),
+                    "assignStatus": get_c("assignStatus", 5),
                     "lhTrip": lh_trip,
-                    "standbyTime": str(r[12] if len(r) > 12 else "").strip(),
-                    "loadingTime": str(r[13] if len(r) > 13 else "").strip(),
-                    "departureTime": str(r[14] if len(r) > 14 else "").strip(),
+                    "standbyTime": get_c("standbyTime", 12),
+                    "loadingTime": get_c("loadingTime", 13),
+                    "departureTime": get_c("departureTime", 14),
                     "destination": dest,
-                    "truckTypeReq": str(r[16] if len(r) > 16 else "").strip(),
-                    "wheels": str(r[17] if len(r) > 17 else "").strip(),
-                    "dock": str(r[18] if len(r) > 18 else "").strip(),
-                    "subcon": str(r[19] if len(r) > 19 else "").strip(),
-                    "route": str(r[20] if len(r) > 20 else "").strip(),
-                    "newTrip": str(r[21] if len(r) > 21 else "").strip(),
-                    "warningAlert": str(r[22] if len(r) > 22 else "").strip(),
-                    "remarkLh": str(r[23] if len(r) > 23 else "").strip(),
-                    "obZone": str(r[24] if len(r) > 24 else "").strip(),
-                    "arrivalStatus": str(r[25] if len(r) > 25 else "").strip(),
-                    "remarkOb": str(r[26] if len(r) > 26 else "").strip(),
-                    "lateType": str(r[27] if len(r) > 27 else "").strip(),
-                    "cot": str(r[28] if len(r) > 28 else "").strip(),
-                    "cutoff": str(r[29] if len(r) > 29 else "").strip(),
-                    "bookedTime": str(r[30] if len(r) > 30 else "").strip()
+                    "truckTypeReq": get_c("truckTypeReq", 16),
+                    "wheels": get_c("wheels", 17),
+                    "dock": get_c("dock", 18),
+                    "subcon": get_c("subcon", 19),
+                    "route": get_c("route", 20),
+                    "newTrip": get_c("newTrip", 21),
+                    "warningAlert": get_c("warningAlert", 22),
+                    "remarkLh": get_c("remarkLh", 23),
+                    "obZone": get_c("obZone", 24),
+                    "arrivalStatus": get_c("arrivalStatus", 25),
+                    "remarkOb": get_c("remarkOb", 26),
+                    "lateType": get_c("lateType", 27),
+                    "cot": get_c("cot", 28),
+                    "cutoff": get_c("cutoff", 29),
+                    "bookedTime": get_c("bookedTime", 30)
                 })
         else:
             try:
