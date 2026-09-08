@@ -2810,19 +2810,204 @@ def upload_cutoff_schedule_api():
         return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการประมวลผลไฟล์: {str(e)}"}), 500
 
 
-@app.route("/api/cutoff-schedule/reset", methods=["POST"])
-def reset_cutoff_schedule_api():
-    if os.path.exists(CUSTOM_CUTOFF_FILE):
+TTB_REGISTRATION_FILE = os.path.join(DATA_DIR, "ttb_registration_live.json")
+
+def load_ttb_registration_live():
+    if os.path.exists(TTB_REGISTRATION_FILE):
         try:
-            os.remove(CUSTOM_CUTOFF_FILE)
-            log_activity("CUTOFF_MASTER_RESET", "รีเซ็ตข้อมูล Cut-off Master กลับเป็นค่าเริ่มต้น")
-            return jsonify({"success": True, "message": "รีเซ็ตข้อมูล Cut-off Master กลับเป็นค่าเริ่มต้นเรียบร้อยแล้ว"})
+            with open(TTB_REGISTRATION_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
         except Exception as e:
-            return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ข้อมูลคัสตอมได้: {str(e)}"}), 500
-    return jsonify({"success": True, "message": "ข้อมูลอยู่ในสถานะค่าเริ่มต้นอยู่แล้ว"})
+            print("Error loading TTB live registration file:", e)
+    return {"updatedAt": "", "total": 0, "rows": []}
 
+def save_ttb_registration_live(data):
+    try:
+        with open(TTB_REGISTRATION_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print("Error saving TTB live registration file:", e)
+        return False
 
-def get_active_ttb_sheet(date_str=None):
+@app.route("/api/ttb-registration/config", methods=["GET", "POST"])
+def ttb_registration_config_api():
+    settings = load_system_settings()
+    if request.method == "POST":
+        data = request.get_json() or {}
+        url = (data.get("url") or "").strip()
+        auto_sync = bool(data.get("autoSync", True))
+        interval = int(data.get("intervalMinutes", 10))
+        
+        settings["ttbSync"] = {
+            "url": url,
+            "autoSync": auto_sync,
+            "intervalMinutes": interval,
+            "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        save_system_settings(settings)
+        log_activity("TTB_SYNC_CONFIG", f"ตั้งค่า Google Apps Script Web App URL สำหรับ TTB Sync: {url[:30]}...")
+        return jsonify({"success": True, "message": "บันทึกการตั้งค่า TTB Google Sheet Sync เรียบร้อยแล้ว", "config": settings["ttbSync"]})
+
+    return jsonify({"success": True, "config": settings.get("ttbSync", {
+        "url": "",
+        "autoSync": True,
+        "intervalMinutes": 10,
+        "updatedAt": ""
+    })})
+
+@app.route("/api/ttb-registration/sync", methods=["GET", "POST"])
+def ttb_registration_sync_api():
+    import requests
+    settings = load_system_settings()
+    ttb_cfg = settings.get("ttbSync", {})
+    
+    # Priority: Request body/param URL > Saved Settings URL
+    url = request.args.get("url") or ""
+    if not url and request.is_json:
+        url = (request.get_json() or {}).get("url", "")
+    if not url:
+        url = ttb_cfg.get("url", "")
+        
+    if not url:
+        return jsonify({"success": False, "error": "ยังไม่ได้ระบุ Google Apps Script Web App URL กรุณาตั้งค่าในระบบก่อน"}), 400
+
+    try:
+        resp = requests.get(url, timeout=25, allow_redirects=True)
+        if resp.status_code != 200:
+            return jsonify({"success": False, "error": f"Google Sheets ตอบกลับด้วย HTTP Code {resp.status_code}"}), 502
+            
+        data = resp.json()
+        if not data.get("success") or "rows" not in data:
+            return jsonify({"success": False, "error": data.get("error") or "โครงสร้างข้อมูลจาก Google Sheets ไม่ถูกต้อง"}), 502
+
+        raw_rows = data.get("rows", [])
+        
+        # 1. Update Cutoff Master table (custom_cutoff_schedule.json) automatically from this sheet
+        cutoff_master_entries = []
+        zone_a_count = 0
+        zone_b_count = 0
+        zone_c_count = 0
+        on_time_count = 0
+        late_count = 0
+        new_trips_count = 0
+
+        for r in raw_rows:
+            dest = str(r.get("destination") or "").strip()
+            if not dest or dest.lower() in ["nan", "none", "#n/a"]:
+                continue
+                
+            zone = str(r.get("obZone") or "").strip().upper()
+            if not zone.startswith("ZONE"):
+                if zone in ["A", "B", "C"]: zone = f"Zone {zone}"
+                elif not zone: zone = infer_cutoff_zone({"station_name": dest}, "TTB")
+                
+            if "Zone A" in zone: zone_a_count += 1
+            elif "Zone B" in zone: zone_b_count += 1
+            elif "Zone C" in zone: zone_c_count += 1
+
+            arr_status = str(r.get("arrivalStatus") or "").strip().lower()
+            if "late" in arr_status: late_count += 1
+            elif "on-time" in arr_status or "on time" in arr_status: on_time_count += 1
+
+            if r.get("newTrip") or r.get("remarkLh"):
+                new_trips_count += 1
+
+            # Extract clean station name (e.g., 'AAYUT - พระนครศรีอยุธยา' -> 'AAYUT')
+            st_code = dest.split("-")[0].strip() if "-" in dest else dest
+            
+            cutoff_time = str(r.get("cutoff") or "").strip()
+            
+            cutoff_entry = {
+                "station_name": dest,
+                "station_code": st_code,
+                "station_id": str(r.get("driverId") or "").replace(".0", "").strip(),
+                "zone": zone,
+                "area_group": "TTB Registration",
+                "area": str(r.get("route") or "").strip(),
+                "province": dest.split("-")[1].strip() if "-" in dest else "",
+                "district": "",
+                "op_type": str(r.get("vehicleType") or r.get("truckTypeReq") or "").strip(),
+                "dock": str(r.get("dock") or "").strip(),
+                "subcon": str(r.get("subcon") or "").strip(),
+                "lh_trip": str(r.get("lhTrip") or "").strip(),
+                "standby_time": str(r.get("standbyTime") or "").strip(),
+                "loading_time": str(r.get("loadingTime") or "").strip(),
+                "depart_time": str(r.get("departureTime") or "").strip(),
+                "cut0_ob": cutoff_time if cutoff_time else "-",
+                "cut1_ob": cutoff_time if cutoff_time else "-",
+                "cut2_ob": "-",
+                "cut3_ob": "-",
+                "sun_ob": "-",
+                "plate": str(r.get("plate") or "").strip(),
+                "driver_name": str(r.get("driverName") or "").strip(),
+                "new_trip": str(r.get("newTrip") or "").strip(),
+                "remark_lh": str(r.get("remarkLh") or "").strip(),
+                "remark_ob": str(r.get("remarkOb") or "").strip(),
+                "late_type": str(r.get("lateType") or "").strip()
+            }
+            cutoff_master_entries.append(cutoff_entry)
+
+        # Save to custom_cutoff_schedule.json for Cutoff Master page
+        if cutoff_master_entries:
+            with open(CUSTOM_CUTOFF_FILE, "w", encoding="utf-8") as f:
+                json.dump(cutoff_master_entries, f, ensure_ascii=False, indent=2)
+
+        # Save to ttb_registration_live.json for full live details
+        live_data = {
+            "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "sourceSheet": data.get("sheetName", "TTB - Registration"),
+            "total": len(raw_rows),
+            "stats": {
+                "totalTrips": len(raw_rows),
+                "totalStations": len(cutoff_master_entries),
+                "zoneA": zone_a_count,
+                "zoneB": zone_b_count,
+                "zoneC": zone_c_count,
+                "onTime": on_time_count,
+                "late": late_count,
+                "newTripsOrRemarks": new_trips_count
+            },
+            "rows": raw_rows
+        }
+        save_ttb_registration_live(live_data)
+        
+        log_activity("TTB_SHEET_SYNC", f"🔄 ซิงค์ข้อมูล TTB Registration สำเร็จ ({len(raw_rows):,} คัน, {len(cutoff_master_entries)} สถานี)")
+        
+        return jsonify({
+            "success": True,
+            "message": f"ซิงค์ข้อมูลจาก Google Sheets สำเร็จเรียบร้อยแล้ว ({len(raw_rows):,} แถว, อัปเดต {len(cutoff_master_entries)} สถานี)",
+            "data": live_data
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการเชื่อมต่อ Google Sheets: {str(e)}"}), 500
+
+@app.route("/api/ttb-registration/live", methods=["GET"])
+def get_ttb_registration_live_api():
+    data = load_ttb_registration_live()
+    return jsonify({"success": True, "data": data})
+
+@app.route("/api/ttb-registration/push", methods=["POST"])
+def push_ttb_registration_update_api():
+    import requests
+    data = request.get_json() or {}
+    settings = load_system_settings()
+    url = settings.get("ttbSync", {}).get("url", "")
+    
+    if not url:
+        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า Google Apps Script URL ในระบบ"}), 400
+
+    try:
+        resp = requests.post(url, json=data, timeout=25, allow_redirects=True)
+        if resp.status_code != 200:
+            return jsonify({"success": False, "error": f"Google Sheets ตอบกลับด้วย HTTP Code {resp.status_code}"}), 502
+            
+        res_json = resp.json()
+        log_activity("TTB_SHEET_PUSH", f"📤 เขียนข้อมูลอัปเดตกลับไปยัง Google Sheet: {data.get('lhTrip', '')} (Row {data.get('rowIndex', '-')})")
+        return jsonify(res_json)
+    except Exception as e:
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการส่งข้อมูลไป Google Sheets: {str(e)}"}), 500
+
     dt = None
     if date_str:
         try:
