@@ -1173,6 +1173,22 @@
       if (btn) btn.disabled = true;
       if (icon) icon.className = 'fa-solid fa-rotate fa-spin me-1';
 
+      const performClientSideFetch = (targetUrl) => {
+        return fetch(targetUrl, { credentials: 'include' })
+          .then(res => res.json())
+          .then(gData => {
+            if (gData && gData.success && Array.isArray(gData.rows)) {
+              return safeFetchJson('/api/ttb-registration/save-client-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(gData)
+              });
+            } else {
+              throw new Error(gData.error || 'โครงสร้างข้อมูลจาก Google Sheets ไม่ถูกต้อง');
+            }
+          });
+      };
+
       safeFetchJson('/api/ttb-registration/sync', { method: 'POST' })
         .then(res => {
           if (res.success && res.data) {
@@ -1193,6 +1209,44 @@
           }
         })
         .catch(err => {
+          // Check if fallback URL is available or try client side
+          const cfgUrl = document.getElementById('ttbWebAppUrlInput')?.value?.trim();
+          if (cfgUrl) {
+            // Attempt client-side browser fetch with user's spxexpress.com login session
+            return performClientSideFetch(cfgUrl)
+              .then(savedRes => {
+                if (savedRes.success && savedRes.data) {
+                  globalTTBLiveData = savedRes.data;
+                  updateTTBSyncUI(savedRes.data);
+                  fetchCutoffData();
+                  renderTTBLiveTable();
+                  if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                      icon: 'success',
+                      title: 'ซิงค์ข้อมูลสำเร็จ (Browser Session)!',
+                      text: savedRes.message,
+                      confirmButtonColor: '#10b981'
+                    });
+                  } else {
+                    alert('✅ ' + savedRes.message);
+                  }
+                }
+              })
+              .catch(clientErr => {
+                console.error(clientErr);
+                if (typeof Swal !== 'undefined') {
+                  Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่สามารถซิงค์ข้อมูลได้',
+                    html: `${clientErr.message || err.message}<br><br><button class="btn btn-sm btn-primary" onclick="openTTBConfigModal(); Swal.close();">⚙️ ตรวจสอบการตั้งค่า Web App URL</button>`,
+                    confirmButtonColor: '#dc2626'
+                  });
+                } else {
+                  alert('❌ ' + (clientErr.message || err.message));
+                }
+              });
+          }
+
           console.error(err);
           if (typeof Swal !== 'undefined') {
             Swal.fire({
@@ -1388,26 +1442,42 @@
         resEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังทดสอบเชื่อมต่อไปยัง Google Sheets...';
       }
 
-      fetch(`/api/ttb-registration/sync?url=${encodeURIComponent(url)}`)
+      // Try browser direct fetch first (takes advantage of active spxexpress.com Google login)
+      fetch(url, { credentials: 'include' })
         .then(res => res.json())
         .then(data => {
-          if (data.success) {
+          if (data && data.success) {
             if (resEl) {
               resEl.className = 'mb-3 small text-success p-2 bg-success bg-opacity-10 border border-success rounded fw-bold';
-              resEl.innerHTML = `<i class="fa-solid fa-check me-1"></i> เชื่อมต่อสำเร็จ! ดึงข้อมูลได้ ${data.data?.total || 0} แถว (ชีท: ${data.data?.sourceSheet || 'OK'})`;
+              resEl.innerHTML = `<i class="fa-solid fa-check me-1"></i> เชื่อมต่อสำเร็จผ่าน Browser! ดึงข้อมูลได้ ${data.rows?.length || 0} แถว (ชีท: ${data.sheetName || 'OK'})`;
             }
           } else {
-            if (resEl) {
-              resEl.className = 'mb-3 small text-danger p-2 bg-danger bg-opacity-10 border border-danger rounded fw-bold';
-              resEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> เชื่อมต่อไม่สำเร็จ: ${escapeHtml(data.error)}`;
-            }
+            throw new Error(data.error || 'โครงสร้างข้อมูลไม่ถูกต้อง');
           }
         })
-        .catch(err => {
-          if (resEl) {
-            resEl.className = 'mb-3 small text-danger p-2 bg-danger bg-opacity-10 border border-danger rounded fw-bold';
-            resEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> เกิดข้อผิดพลาด: ${escapeHtml(err.message)}`;
-          }
+        .catch(() => {
+          // Fallback to backend test
+          fetch(`/api/ttb-registration/sync?url=${encodeURIComponent(url)}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                if (resEl) {
+                  resEl.className = 'mb-3 small text-success p-2 bg-success bg-opacity-10 border border-success rounded fw-bold';
+                  resEl.innerHTML = `<i class="fa-solid fa-check me-1"></i> เชื่อมต่อสำเร็จ! ดึงข้อมูลได้ ${data.data?.total || 0} แถว (ชีท: ${data.data?.sourceSheet || 'OK'})`;
+                }
+              } else {
+                if (resEl) {
+                  resEl.className = 'mb-3 small text-danger p-2 bg-danger bg-opacity-10 border border-danger rounded fw-bold';
+                  resEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> เชื่อมต่อไม่สำเร็จ: ${escapeHtml(data.error)}`;
+                }
+              }
+            })
+            .catch(err => {
+              if (resEl) {
+                resEl.className = 'mb-3 small text-danger p-2 bg-danger bg-opacity-10 border border-danger rounded fw-bold';
+                resEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> เกิดข้อผิดพลาด: ${escapeHtml(err.message)}`;
+              }
+            });
         });
     }
 
