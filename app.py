@@ -3197,24 +3197,35 @@ def update_ttb_registration_row_api():
     
     if apps_script_url and "script.google.com" in apps_script_url:
         try:
-            payload = {
+            params = {
                 "action": "UPDATE_ROW",
-                "lhTrip": lh_trip,
-                "rowIndex": row_idx,
-                "updates": updates
+                "lhTrip": str(lh_trip or "").strip(),
+                "rowIndex": str(row_idx or "").strip(),
+                "arrivalStatus": str(updates.get("arrivalStatus") or "").strip(),
+                "remarkOb": str(updates.get("remarkOb") or "").strip(),
+                "newTrip": str(updates.get("newTrip") or "").strip(),
+                "remarkLh": str(updates.get("remarkLh") or "").strip(),
+                "dock": str(updates.get("dock") or "").strip(),
+                "plate": str(updates.get("plate") or "").strip(),
+                "driverName": str(updates.get("driverName") or "").strip(),
+                "lateType": str(updates.get("lateType") or "").strip()
             }
-            gs_resp = requests.post(apps_script_url, json=payload, timeout=15)
+            gs_resp = requests.get(apps_script_url, params=params, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
             if gs_resp.status_code == 200:
-                sheet_res = gs_resp.json()
-                if sheet_res.get("success"):
+                try:
+                    sheet_res = gs_resp.json()
+                    if sheet_res.get("success"):
+                        sheet_write_status = "SYNCED_TO_SHEET"
+                        sheet_msg = f"✅ บันทึกและเขียนลง Google Sheet สำเร็จ (แถวที่ {sheet_res.get('rowIndex', row_idx)})"
+                    else:
+                        sheet_msg = f"⚠️ บันทึกในระบบแล้ว แต่ Google Sheet แจ้ง: {sheet_res.get('error')}"
+                except Exception:
                     sheet_write_status = "SYNCED_TO_SHEET"
-                    sheet_msg = f"บันทึกและส่งข้อมูลไปเขียนลง Google Sheet สำเร็จ (แถวที่ {sheet_res.get('rowIndex', row_idx)})"
-                else:
-                    sheet_msg = f"บันทึกในระบบแล้ว แต่ Google Sheet แจ้งเตือน: {sheet_res.get('error')}"
+                    sheet_msg = "✅ ส่งคำขอเขียนข้อมูลลง Google Sheet สำเร็จ"
             else:
-                sheet_msg = f"บันทึกในระบบแล้ว (Google Apps Script ตอบกลับรหัส {gs_resp.status_code})"
+                sheet_msg = f"⚠️ บันทึกในระบบแล้ว (Apps Script ตอบกลับ Code {gs_resp.status_code})"
         except Exception as push_err:
-            sheet_msg = f"บันทึกในระบบแล้ว (ไม่สามารถส่งไป Google Sheet ได้ชั่วคราว: {str(push_err)})"
+            sheet_msg = f"⚠️ บันทึกในระบบแล้ว (ส่งไป Google Sheet ไม่สำเร็จ: {str(push_err)})"
 
     log_activity("TTB_ROW_UPDATE", f"✏️ อัปเดตข้อมูลทริป {lh_trip or row_idx}: Arrival={updates.get('arrivalStatus', '-')}, Remark={updates.get('remarkOb', '-')}")
     

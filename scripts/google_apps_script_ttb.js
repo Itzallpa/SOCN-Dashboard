@@ -28,18 +28,62 @@ function getTargetSheet() {
 }
 
 // ----------------------------------------------------------------------------
-// GET REQUEST: ส่งข้อมูลทริปทั้งหมดกลับไปให้ Dashboard
+// GET REQUEST: รองรับทั้งดึงข้อมูลสด (Read) และอัปเดตข้อมูล (Write ผ่าน GET)
 // ----------------------------------------------------------------------------
 function doGet(e) {
   try {
+    var p = (e && e.parameter) ? e.parameter : {};
+    var action = p.action || "GET_ALL";
+    
     var sheet = getTargetSheet();
-    var data = sheet.getDataRange().getValues();
+    var dataRange = sheet.getDataRange();
+    var data = dataRange.getValues();
+    
+    // CASE 1: อัปเดตข้อมูลผ่าน GET Parameters (แก้ปัญหา CORS และ Redirect 302 ได้ 100%)
+    if (action === "UPDATE_ROW") {
+      var rowIndex = p.rowIndex ? parseInt(p.rowIndex, 10) : null;
+      var lhTrip = p.lhTrip ? String(p.lhTrip).trim() : "";
+      
+      // ถ้าไม่ได้ส่ง rowIndex หรือส่งมาไม่ตรง ให้ค้นหาจาก LH Trip (Col K = Index 10)
+      if (lhTrip) {
+        for (var i = 2; i < data.length; i++) {
+          if (String(data[i][10] || "").trim() === lhTrip) {
+            rowIndex = i + 1;
+            break;
+          }
+        }
+      }
+      
+      if (!rowIndex || rowIndex < 3 || rowIndex > data.length) {
+        return jsonResponse({ success: false, error: "ไม่พบแถวที่ตรงกับ LH Trip: " + lhTrip + " หรือ rowIndex ไม่ถูกต้อง" });
+      }
+      
+      var updates = {};
+      if (p.arrivalStatus !== undefined) updates.arrivalStatus = p.arrivalStatus;
+      if (p.remarkOb !== undefined) updates.remarkOb = p.remarkOb;
+      if (p.newTrip !== undefined) updates.newTrip = p.newTrip;
+      if (p.remarkLh !== undefined) updates.remarkLh = p.remarkLh;
+      if (p.plate !== undefined) updates.plate = p.plate;
+      if (p.driverName !== undefined) updates.driverName = p.driverName;
+      if (p.dock !== undefined) updates.dock = p.dock;
+      if (p.lateType !== undefined) updates.lateType = p.lateType;
+      
+      applyRowUpdates(sheet, rowIndex, updates);
+      
+      return jsonResponse({
+        success: true,
+        message: "อัปเดตข้อมูลลง Google Sheet แถวที่ " + rowIndex + " (" + lhTrip + ") สำเร็จเรียบร้อยแล้ว",
+        rowIndex: rowIndex,
+        lhTrip: lhTrip,
+        updates: updates
+      });
+    }
+    
+    // CASE 2: ดึงข้อมูลทริปทั้งหมด (READ)
     if (!data || data.length < 3) {
       return jsonResponse({ success: false, error: "ไม่พบข้อมูลใน Sheet หรือตารางว่างเปล่า" });
     }
     
-    // แถวที่ 2 (Index 1) คือ Header คอลัมน์
-    // แถวที่ 3 (Index 2) เป็นต้นไปคือข้อมูล
     var rows = [];
     var startRowIdx = 2; // Row 3
     
@@ -91,11 +135,11 @@ function doGet(e) {
 }
 
 // ----------------------------------------------------------------------------
-// POST REQUEST: รับค่าแก้ไขจาก SOC Dashboard ไปเขียนลง Sheet จริง
+// POST REQUEST: รับค่าแก้ไขแบบ POST JSON
 // ----------------------------------------------------------------------------
 function doPost(e) {
   try {
-    var contents = e.postData.contents;
+    var contents = e.postData ? e.postData.contents : "{}";
     var payload = JSON.parse(contents);
     var action = payload.action || "UPDATE_ROW";
     
@@ -105,14 +149,14 @@ function doPost(e) {
     
     // 1. UPDATE SINGLE ROW (แก้ไข 1 รายการ)
     if (action === "UPDATE_ROW") {
-      var rowIndex = payload.rowIndex;
-      var lhTrip = payload.lhTrip;
+      var rowIndex = payload.rowIndex ? parseInt(payload.rowIndex, 10) : null;
+      var lhTrip = payload.lhTrip ? String(payload.lhTrip).trim() : "";
       var updates = payload.updates || {};
       
       // ถ้าไม่ได้ส่ง rowIndex มา ให้ค้นหาจาก LH Trip (Col K = Index 10)
-      if (!rowIndex && lhTrip) {
+      if (lhTrip) {
         for (var i = 2; i < data.length; i++) {
-          if (String(data[i][10] || "").trim() === String(lhTrip).trim()) {
+          if (String(data[i][10] || "").trim() === lhTrip) {
             rowIndex = i + 1;
             break;
           }
@@ -141,7 +185,6 @@ function doPost(e) {
         return jsonResponse({ success: false, error: "ไม่มีรายการที่ส่งมาอัปเดต" });
       }
       
-      // สร้าง Lookup Map ของ LH Trip -> RowIndex
       var lhMap = {};
       for (var i = 2; i < data.length; i++) {
         var kTrip = String(data[i][10] || "").trim();
@@ -177,7 +220,7 @@ function doPost(e) {
 // ----------------------------------------------------------------------------
 function applyRowUpdates(sheet, rowIndex, updates) {
   // Col Z (Col 26): Arrival On-time/Late (Ontime, Late, เลื่อนเวลาปล่อยรถ, ไม่ใช้รถ)
-  if (updates.arrivalStatus !== undefined) {
+  if (updates.arrivalStatus !== undefined && updates.arrivalStatus !== "") {
     sheet.getRange(rowIndex, 26).setValue(updates.arrivalStatus);
   }
   

@@ -1680,6 +1680,25 @@
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังบันทึกและส่งข้อมูล...';
 
+      // Direct browser write-back to ensure corporate Google session authorization
+      const appsScriptUrl = document.getElementById('ttbAppsScriptUrlInput')?.value?.trim();
+      if (appsScriptUrl && appsScriptUrl.includes('script.google.com')) {
+        const p = new URLSearchParams({
+          action: 'UPDATE_ROW',
+          lhTrip: lhTrip || '',
+          rowIndex: String(rowIndex || ''),
+          arrivalStatus: updates.arrivalStatus || '',
+          remarkOb: updates.remarkOb || '',
+          newTrip: updates.newTrip || '',
+          remarkLh: updates.remarkLh || '',
+          dock: updates.dock || '',
+          plate: updates.plate || '',
+          driverName: updates.driverName || '',
+          lateType: updates.lateType || ''
+        });
+        fetch(`${appsScriptUrl}?${p.toString()}`, { mode: 'no-cors' }).catch(e => console.warn('Direct browser write:', e));
+      }
+
       fetch('/api/ttb-registration/update-row', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
