@@ -664,10 +664,15 @@
 
             <div id="ttbTestResult" class="mb-3 small d-none"></div>
 
-            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-              <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="testTTBConnection()">
-                <i class="fa-solid fa-plug me-1"></i> ทดสอบการเชื่อมต่อ (Test)
-              </button>
+            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top flex-wrap gap-2">
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="testTTBConnection()">
+                  <i class="fa-solid fa-plug me-1"></i> ทดสอบอ่านข้อมูล (Test Read)
+                </button>
+                <button type="button" class="btn btn-outline-success btn-sm fw-bold" onclick="testTTBWriteback()">
+                  <i class="fa-solid fa-pen-to-square me-1"></i> ทดสอบเขียนลง Sheet (Test Write)
+                </button>
+              </div>
               <div class="d-flex gap-2">
                 <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
                 <button type="submit" class="btn btn-success btn-sm fw-bold shadow-sm">
@@ -1801,9 +1806,11 @@
 
     function testTTBConnection() {
       const url = document.getElementById('ttbWebAppUrlInput').value.trim();
+      const appsScriptUrl = document.getElementById('ttbAppsScriptUrlInput')?.value.trim() || '';
       const resEl = document.getElementById('ttbTestResult');
-      if (!url) {
-        alert('กรุณาระบุ Web App URL ก่อนกดทดสอบ');
+      
+      if (!url && !appsScriptUrl) {
+        alert('กรุณาระบุ URL ก่อนกดทดสอบ');
         return;
       }
 
@@ -1812,14 +1819,16 @@
         resEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังทดสอบเชื่อมต่อไปยัง Google Sheets...';
       }
 
-      // Try browser direct fetch first (takes advantage of active spxexpress.com Google login)
-      fetch(url, { credentials: 'include' })
+      const testTarget = appsScriptUrl || url;
+
+      // Try browser direct fetch
+      fetch(testTarget + (testTarget.includes('?') ? '&' : '?') + 'action=GET_ALL', { credentials: 'include' })
         .then(res => res.json())
         .then(data => {
           if (data && data.success) {
             if (resEl) {
               resEl.className = 'mb-3 small text-success p-2 bg-success bg-opacity-10 border border-success rounded fw-bold';
-              resEl.innerHTML = `<i class="fa-solid fa-check me-1"></i> เชื่อมต่อสำเร็จผ่าน Browser! ดึงข้อมูลได้ ${data.rows?.length || 0} แถว (ชีท: ${data.sheetName || 'OK'})`;
+              resEl.innerHTML = `<i class="fa-solid fa-check me-1"></i> เชื่อมต่อสำเร็จ! ดึงข้อมูลได้ ${data.rows?.length || data.total || 0} แถว (ชีท: ${data.sheetName || 'OK'})`;
             }
           } else {
             throw new Error(data.error || 'โครงสร้างข้อมูลไม่ถูกต้อง');
@@ -1848,6 +1857,50 @@
                 resEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> เกิดข้อผิดพลาด: ${escapeHtml(err.message)}`;
               }
             });
+        });
+    }
+
+    function testTTBWriteback() {
+      const appsScriptUrl = document.getElementById('ttbAppsScriptUrlInput')?.value.trim() || '';
+      const resEl = document.getElementById('ttbTestResult');
+      if (!appsScriptUrl) {
+        alert('กรุณาระบุ Google Apps Script Web App URL ก่อนกดทดสอบเขียนข้อมูล');
+        return;
+      }
+
+      if (resEl) {
+        resEl.className = 'mb-3 small text-primary p-2 bg-light border rounded';
+        resEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังทดสอบส่งคำสั่งเขียนข้อมูลไปยัง Google Sheet...';
+      }
+
+      const rows = globalTTBLiveData.rows || [];
+      const sampleTrip = rows.length > 0 ? rows[0].lhTrip : 'LT0Q98291RUV1';
+      const sampleRow = rows.length > 0 ? rows[0].rowIndex : 3;
+
+      const p = new URLSearchParams({
+        action: 'UPDATE_ROW',
+        lhTrip: sampleTrip,
+        rowIndex: String(sampleRow),
+        remarkOb: 'ทดสอบเชื่อมต่อ ' + new Date().toLocaleTimeString()
+      });
+
+      fetch(appsScriptUrl + '?' + p.toString())
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.success) {
+            if (resEl) {
+              resEl.className = 'mb-3 small text-success p-2 bg-success bg-opacity-10 border border-success rounded fw-bold';
+              resEl.innerHTML = `<i class="fa-solid fa-circle-check me-1"></i> ${data.message || 'ทดสอบเขียนข้อมูลลง Sheet สำเร็จเรียบร้อย!'}`;
+            }
+          } else {
+            throw new Error(data.error || 'Google Apps Script ตอบกลับผิดพลาด');
+          }
+        })
+        .catch(err => {
+          if (resEl) {
+            resEl.className = 'mb-3 small text-danger p-2 bg-danger bg-opacity-10 border border-danger rounded fw-bold';
+            resEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> ทดสอบเขียนไม่สำเร็จ: ${escapeHtml(err.message)}`;
+          }
         });
     }
 
