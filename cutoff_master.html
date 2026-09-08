@@ -132,14 +132,17 @@
           <i class="fa-solid fa-stopwatch text-warning"></i>
           <span id="liveClockDisplay">--:--:--</span>
         </div>
+        <button class="btn btn-warning btn-sm fw-bold shadow-sm text-dark" onclick="openPasteTTBModal()" title="คัดลอกตารางจาก Google Sheet (Ctrl+C) แล้วมากดวางได้ทันที">
+          <i class="fa-solid fa-paste me-1"></i> 📋 วางข้อมูลจาก Sheet (Copy-Paste)
+        </button>
         <button class="btn btn-success btn-sm fw-bold shadow-sm" id="btnSyncGoogleSheet" onclick="syncFromGoogleSheet()">
-          <i class="fa-solid fa-rotate me-1" id="iconSyncSpinner"></i> 🔄 Sync จาก Google Sheet
+          <i class="fa-solid fa-rotate me-1" id="iconSyncSpinner"></i> 🔄 Sync ลิงก์ Sheet
         </button>
         <button class="btn btn-outline-dark btn-sm fw-bold" onclick="openTTBConfigModal()" title="ตั้งค่าการเชื่อมต่อ Google Sheet Web App">
-          <i class="fa-solid fa-gear me-1"></i> ตั้งค่า Sheet Sync
+          <i class="fa-solid fa-gear me-1"></i> ตั้งค่า Sheet
         </button>
         <button class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="openUploadCutoffModal()">
-          <i class="fa-solid fa-cloud-arrow-up me-1"></i> 📤 อัปโหลดไฟล์ Cut-off
+          <i class="fa-solid fa-cloud-arrow-up me-1"></i> 📤 อัปโหลดไฟล์ Excel
         </button>
         <button class="btn btn-outline-secondary btn-sm" onclick="exportCutoffDataAsCsv()" title="ดาวน์โหลดข้อมูลเป็นไฟล์ CSV">
           <i class="fa-solid fa-file-export me-1"></i> ส่งออก CSV
@@ -550,6 +553,67 @@
               </div>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASTE FROM CLIPBOARD TTB MODAL -->
+  <div class="modal fade" id="pasteTTBModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-header bg-dark text-white border-0 py-3">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-paste text-warning me-2"></i> วางข้อมูลจาก Google Sheet "TTB - Registration" (Copy-Paste)</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="alert alert-warning border-0 rounded-3 small mb-3">
+            <div class="fw-bold mb-1"><i class="fa-solid fa-bolt me-1"></i> สะดวกสุดๆ ไม่ต้องพึ่งพาสิทธิ์หรือ API:</div>
+            <div>1. ใน Google Sheet ให้กด <b>Ctrl + A</b> (หรือคลุมเลือกตารางทั้งหมด) แล้วกด <b>Ctrl + C</b> (Copy)</div>
+            <div>2. นำมากด <b>Ctrl + V</b> วางในกล่องด้านล่างนี้ ระบบจะแยกคอลัมน์ LH Trip, สถานี, Cutoff, Zone, และรถเปลี่ยนคันให้อัตโนมัติทันที!</div>
+          </div>
+
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="form-label fw-bold small text-slate-800 mb-0">กล่องวางข้อมูลตาราง (Paste Table Data Here):</label>
+              <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="pasteFromClipboardAuto()">
+                <i class="fa-solid fa-clipboard me-1"></i> ดึงจากคลิปบอร์ดทันที (Paste Clipboard)
+              </button>
+            </div>
+            <textarea id="pasteTTBTextarea" class="form-control font-monospace" rows="6" placeholder="กด Ctrl+V ที่นี่เพื่อวางข้อมูลตารางจาก Google Sheet..." oninput="handlePasteInput()"></textarea>
+          </div>
+
+          <div id="pastePreviewSection" class="d-none">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="fw-bold text-success small" id="pasteDetectedCount"><i class="fa-solid fa-check-circle me-1"></i> ตรวจพบ 0 เที่ยวรถ</span>
+              <span class="text-muted small" id="pasteZoneSummary">Zone A: 0 | Zone B: 0 | Zone C: 0</span>
+            </div>
+            <div class="table-responsive border rounded" style="max-height: 250px; overflow-y: auto;">
+              <table class="table table-sm table-hover align-middle mb-0" style="font-size:0.8rem;">
+                <thead class="table-dark sticky-top">
+                  <tr>
+                    <th>#</th>
+                    <th>LH Trip</th>
+                    <th>Destination (สถานี)</th>
+                    <th>OB Zone</th>
+                    <th>Cutoff</th>
+                    <th>ทะเบียน</th>
+                    <th>คนขับ</th>
+                    <th>New Trip / Remark</th>
+                  </tr>
+                </thead>
+                <tbody id="pastePreviewTableBody">
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" id="btnConfirmPasteSave" class="btn btn-success btn-sm fw-bold px-4 shadow-sm" onclick="savePastedTTBData()" disabled>
+              <i class="fa-solid fa-save me-1"></i> 💾 บันทึกและอัปเดต Master ทันที
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1479,6 +1543,207 @@
               }
             });
         });
+    }
+
+    /* ─── CLIPBOARD COPY-PASTE TTB SCRIPT ─── */
+    let pasteTTBModalInstance = null;
+    let parsedPasteRows = [];
+
+    function openPasteTTBModal() {
+      if (!pasteTTBModalInstance) {
+        pasteTTBModalInstance = new bootstrap.Modal(document.getElementById('pasteTTBModal'));
+      }
+      document.getElementById('pasteTTBTextarea').value = '';
+      document.getElementById('pastePreviewSection').className = 'd-none';
+      document.getElementById('btnConfirmPasteSave').disabled = true;
+      parsedPasteRows = [];
+      pasteTTBModalInstance.show();
+    }
+
+    function pasteFromClipboardAuto() {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard.readText()
+          .then(text => {
+            if (text) {
+              document.getElementById('pasteTTBTextarea').value = text;
+              handlePasteInput();
+            } else {
+              alert('คลิปบอร์ดว่างเปล่า กรุณากด Ctrl+C ที่ตาราง Google Sheet ก่อน');
+            }
+          })
+          .catch(err => {
+            alert('ไม่สามารถเข้าถึงคลิปบอร์ดอัตโนมัติได้: กรุณากดคลิกในกล่องข้อความแล้วกด Ctrl + V ครับ');
+          });
+      } else {
+        alert('กรุณากดคลิกในกล่องข้อความแล้วกด Ctrl + V');
+      }
+    }
+
+    function handlePasteInput() {
+      const raw = document.getElementById('pasteTTBTextarea').value;
+      if (!raw || !raw.trim()) {
+        document.getElementById('pastePreviewSection').className = 'd-none';
+        document.getElementById('btnConfirmPasteSave').disabled = true;
+        parsedPasteRows = [];
+        return;
+      }
+
+      // Split lines (handles \r\n and \n)
+      const lines = raw.trim().split(/\r?\n/).map(l => l.split('\t'));
+      if (lines.length === 0) return;
+
+      // Find header index
+      let headerIdx = -1;
+      const colMap = {};
+      for (let i = 0; i < Math.min(5, lines.length); i++) {
+        const row = lines[i].map(c => String(c || '').trim().toLowerCase());
+        if (row.some(c => c.includes('lh')) || row.some(c => c.includes('destination')) || row.some(c => c.includes('cutoff'))) {
+          headerIdx = i;
+          row.forEach((val, cIdx) => {
+            if (val.includes('driver id') || val.includes('รหัสคนขับ')) colMap.driverId = cIdx;
+            else if (val.includes('ชื่อพนักงาน') || val.includes('driver name')) colMap.driverName = cIdx;
+            else if (val.includes('ทะเบียน') || val.includes('plate')) colMap.plate = cIdx;
+            else if (val.includes('ประเภทรถ') || val.includes('truck type')) colMap.vehicleType = cIdx;
+            else if (val.includes('status')) colMap.status = cIdx;
+            else if (val.includes('assign')) colMap.assignStatus = cIdx;
+            else if (val.includes('lh trip') || val === 'lh') colMap.lhTrip = cIdx;
+            else if (val.includes('standby')) colMap.standbyTime = cIdx;
+            else if (val.includes('loading')) colMap.loadingTime = cIdx;
+            else if (val.includes('departure') || val.includes('depart')) colMap.departureTime = cIdx;
+            else if (val.includes('destination') || val.includes('สถานี') || val.includes('ปลายทาง')) colMap.destination = cIdx;
+            else if (val.includes('dock')) colMap.dock = cIdx;
+            else if (val.includes('subcon')) colMap.subcon = cIdx;
+            else if (val.includes('สาย') || val.includes('route')) colMap.route = cIdx;
+            else if (val.includes('new trip') || val.includes('new_trip')) colMap.newTrip = cIdx;
+            else if (val.includes('เตือน') || val.includes('alert')) colMap.warningAlert = cIdx;
+            else if (val.includes('remark lh')) colMap.remarkLh = cIdx;
+            else if (val.includes('ob zone') || val.includes('zone')) colMap.obZone = cIdx;
+            else if (val.includes('arrival')) colMap.arrivalStatus = cIdx;
+            else if (val.includes('remark ob')) colMap.remarkOb = cIdx;
+            else if (val.includes('late type')) colMap.lateType = cIdx;
+            else if (val.includes('cot')) colMap.cot = cIdx;
+            else if (val.includes('cutoff')) colMap.cutoff = cIdx;
+          });
+          break;
+        }
+      }
+
+      const startIdx = headerIdx !== -1 ? headerIdx + 1 : 0;
+      parsedPasteRows = [];
+      let zA = 0, zB = 0, zC = 0;
+
+      for (let i = startIdx; i < lines.length; i++) {
+        const r = lines[i];
+        if (!r || r.length < 3) continue;
+
+        const getV = (key, defaultIdx) => {
+          const idx = colMap[key] !== undefined ? colMap[key] : defaultIdx;
+          return idx < r.length ? String(r[idx] || '').trim() : '';
+        };
+
+        const lhTrip = getV('lhTrip', 11);
+        const dest = getV('destination', 15);
+        if (!lhTrip && !dest) continue;
+
+        const zone = getV('obZone', 24);
+        if (zone.includes('A') || zone === 'Zone A') zA++;
+        else if (zone.includes('B') || zone === 'Zone B') zB++;
+        else if (zone.includes('C') || zone === 'Zone C') zC++;
+
+        parsedPasteRows.push({
+          rowIndex: i + 1,
+          driverId: getV('driverId', 0),
+          driverName: getV('driverName', 1),
+          plate: getV('plate', 2),
+          vehicleType: getV('vehicleType', 3),
+          status: getV('status', 4),
+          assignStatus: getV('assignStatus', 5),
+          lhTrip: lhTrip,
+          standbyTime: getV('standbyTime', 12),
+          loadingTime: getV('loadingTime', 13),
+          departureTime: getV('departureTime', 14),
+          destination: dest,
+          truckTypeReq: getV('truckTypeReq', 16),
+          wheels: getV('wheels', 17),
+          dock: getV('dock', 18),
+          subcon: getV('subcon', 19),
+          route: getV('route', 20),
+          newTrip: getV('newTrip', 21),
+          warningAlert: getV('warningAlert', 22),
+          remarkLh: getV('remarkLh', 23),
+          obZone: zone,
+          arrivalStatus: getV('arrivalStatus', 25),
+          remarkOb: getV('remarkOb', 26),
+          lateType: getV('lateType', 27),
+          cot: getV('cot', 28),
+          cutoff: getV('cutoff', 29)
+        });
+      }
+
+      if (parsedPasteRows.length > 0) {
+        document.getElementById('pastePreviewSection').className = 'mt-3';
+        document.getElementById('pasteDetectedCount').innerHTML = `<i class="fa-solid fa-circle-check text-success me-1"></i> ตรวจพบข้อมูลถูกต้อง <b>${parsedPasteRows.length.toLocaleString()}</b> เที่ยวรถ`;
+        document.getElementById('pasteZoneSummary').innerText = `Zone A: ${zA} | Zone B: ${zB} | Zone C: ${zC}`;
+        document.getElementById('btnConfirmPasteSave').disabled = false;
+
+        const tbody = document.getElementById('pastePreviewTableBody');
+        tbody.innerHTML = parsedPasteRows.slice(0, 15).map((r, idx) => `
+          <tr>
+            <td class="text-muted small">${idx + 1}</td>
+            <td class="fw-bold font-monospace text-primary">${escapeHtml(r.lhTrip)}</td>
+            <td class="fw-bold text-dark">${escapeHtml(r.destination)}</td>
+            <td><span class="badge ${r.obZone?.includes('A') ? 'bg-danger' : r.obZone?.includes('B') ? 'bg-success' : 'bg-warning text-dark'}">${escapeHtml(r.obZone || '-')}</span></td>
+            <td><span class="badge bg-dark">${escapeHtml(r.cutoff || '-')}</span></td>
+            <td>${escapeHtml(r.plate || '-')}</td>
+            <td>${escapeHtml(r.driverName || '-')}</td>
+            <td><span class="text-danger small">${escapeHtml(r.newTrip || r.remarkLh || '-')}</span></td>
+          </tr>
+        `).join('') + (parsedPasteRows.length > 15 ? `<tr><td colspan="8" class="text-center text-muted py-2">...และอีก ${(parsedPasteRows.length - 15).toLocaleString()} แถว</td></tr>` : '');
+      } else {
+        document.getElementById('pastePreviewSection').className = 'd-none';
+        document.getElementById('btnConfirmPasteSave').disabled = true;
+      }
+    }
+
+    function savePastedTTBData() {
+      if (!parsedPasteRows || parsedPasteRows.length === 0) return;
+      const btn = document.getElementById('btnConfirmPasteSave');
+      if (btn) btn.disabled = true;
+
+      fetch('/api/ttb-registration/save-client-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sheetName: 'TTB - Registration (Pasted)',
+          rows: parsedPasteRows
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          if (pasteTTBModalInstance) pasteTTBModalInstance.hide();
+          globalTTBLiveData = data.data;
+          updateTTBSyncUI(data.data);
+          fetchCutoffData(); // Update Cutoff master tab
+          renderTTBLiveTable(); // Update live table tab
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              icon: 'success',
+              title: 'บันทึกข้อมูลเรียบร้อย!',
+              text: `อัปเดต Master และตาราง Cutoff เรียบร้อยแล้ว (${parsedPasteRows.length.toLocaleString()} เที่ยวรถ)`,
+              confirmButtonColor: '#10b981'
+            });
+          } else {
+            alert('✅ ' + data.message);
+          }
+        } else {
+          alert('❌ ' + (data.error || 'เกิดข้อผิดพลาดในการบันทึก'));
+        }
+      })
+      .catch(err => alert('❌ เกิดข้อผิดพลาด: ' + err.message))
+      .finally(() => {
+        if (btn) btn.disabled = false;
+      });
     }
 
     function escapeHtml(str) {
