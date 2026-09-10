@@ -79,6 +79,9 @@
         <select class="form-select form-select-sm" id="outboundFileSelect" style="width: auto; max-width: 280px;" onchange="switchOutboundFile(this.value)">
           <option value="">-- เลือกไฟล์หรือโฟลเดอร์ Outbound --</option>
         </select>
+        <button class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="openCustomGroupModal()" title="เลือกจัดกลุ่มหลายไฟล์พร้อมกันเพื่อสรุปรายงานภาพรวม">
+          <i class="fa-solid fa-layer-group me-1"></i> จัดกลุ่มไฟล์เอง
+        </button>
         <button class="btn btn-outline-danger btn-sm fw-bold" onclick="deleteSelectedOutboundFile()" title="ลบไฟล์หรือโฟลเดอร์ที่เลือกออกจากระบบ">
           <i class="fa-solid fa-trash me-1"></i> ลบที่เลือก
         </button>
@@ -86,7 +89,7 @@
           <i class="fa-solid fa-folder-open me-1"></i> อัปโหลด Folder
           <input type="file" id="outboundFolderInput" webkitdirectory directory multiple style="display: none;" onchange="handleOutboundFolderUpload(this.files)">
         </label>
-        <label class="btn btn-primary btn-sm fw-bold mb-0">
+        <label class="btn btn-outline-secondary btn-sm fw-bold mb-0">
           <i class="fa-solid fa-upload me-1"></i> อัปโหลด CSV/Excel
           <input type="file" id="outboundFileInput" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleOutboundFileUpload(this.files[0])">
         </label>
@@ -314,6 +317,47 @@
     </div>
   </div>
 
+  <!-- Custom Group File Selection Modal -->
+  <div class="modal fade" id="customGroupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+        <div class="modal-header bg-dark text-white p-3">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-layer-group text-warning me-2"></i> จัดกลุ่มไฟล์เอง (Custom Group Multi-Select)</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-3 bg-light">
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-muted">ตั้งชื่อกลุ่มรายงาน (Group Name)</label>
+            <input type="text" id="customGroupNameInput" class="form-control form-control-sm" placeholder="เช่น: w36 วันที่ 1-3 ก.ย., หรือ ไฟล์เฉพาะวันจันทร์-อังคาร" value="กลุ่มไฟล์ที่เลือก">
+          </div>
+          
+          <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+            <div class="input-group input-group-sm" style="max-width: 320px;">
+              <span class="input-group-text bg-white"><i class="fa-solid fa-search text-muted"></i></span>
+              <input type="text" id="customGroupSearchInput" class="form-control" placeholder="ค้นหาชื่อไฟล์..." oninput="filterCustomGroupList()">
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-primary" onclick="selectAllCustomGroupFiles(true)"><i class="fa-solid fa-check-double me-1"></i> เลือกทั้งหมด</button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="selectAllCustomGroupFiles(false)"><i class="fa-solid fa-xmark me-1"></i> ยกเลิกทั้งหมด</button>
+            </div>
+          </div>
+
+          <div class="card border p-2 bg-white rounded-3 shadow-sm" style="max-height: 380px; overflow-y: auto;" id="customGroupFilesContainer">
+            <!-- Rendered by JS -->
+          </div>
+          
+          <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+            <span class="small text-muted" id="customGroupSelectedCount">เลือกแล้ว 0 ไฟล์</span>
+          </div>
+        </div>
+        <div class="modal-footer bg-white border-top p-2 px-3">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="button" class="btn btn-primary btn-sm fw-bold px-3" onclick="submitCustomGroup()"><i class="fa-solid fa-chart-pie me-1"></i> สรุปและประมวลผลกลุ่มที่เลือก</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     let outboundDataState = null;
@@ -322,6 +366,7 @@
     let filteredRawRows = [];
     let currentRawPage = 1;
     const currentRawLimit = 50;
+    let availableGroupFiles = { folders: [], files: [] };
 
     function openGoogleSheetModal() {
       const modalEl = new bootstrap.Modal(document.getElementById('googleSheetSyncModal'));
@@ -402,9 +447,17 @@
     function fetchFileList() {
       safeFetchJson('/api/list-files')
         .then(data => {
+          availableGroupFiles = data;
           const selectEl = document.getElementById('outboundFileSelect');
           if (!selectEl) return;
           let html = '<option value="">-- เลือกไฟล์หรือโฟลเดอร์ Outbound --</option>';
+
+          // If current state is a custom group
+          if (outboundDataState && outboundDataState.isCustomGroup) {
+            html += `<optgroup label="🗂️ กลุ่มรวมข้อมูลที่กำหนดเอง (Active)">
+              <option value="${outboundDataState.filename}">🗂️ ${outboundDataState.folderName || 'กลุ่มที่เลือก'} (${outboundDataState.fileCount || 0} ไฟล์)</option>
+            </optgroup>`;
+          }
 
           const folders = data.folders || data.outbound_folders || [];
           if (folders.length > 0) {
@@ -413,13 +466,24 @@
               html += `<option value="${f.filename}">📁 ทั้งโฟลเดอร์: ${f.folderName} (${f.fileCount} ไฟล์รวมกัน)</option>`;
             });
             html += '</optgroup>';
+
+            // Render single files within each folder
+            folders.forEach(f => {
+              if (f.files && f.files.length > 0) {
+                html += `<optgroup label="📂 ไฟล์เดี่ยวใน [${f.folderName}] (${f.files.length} ไฟล์)">`;
+                f.files.forEach(cf => {
+                  html += `<option value="${cf.filename}">📑 ${cf.basename}</option>`;
+                });
+                html += '</optgroup>';
+              }
+            });
           }
 
           const files = data.files || data.outbound_files || [];
           if (files.length > 0) {
-            html += '<optgroup label="📄 ไฟล์เดี่ยว (Individual Files)">';
+            html += '<optgroup label="📄 ไฟล์เดี่ยวทั่วไป (Root / Uploads)">';
             files.forEach(f => {
-              html += `<option value="${f.filename}">📄 ${f.filename}</option>`;
+              html += `<option value="${f.filename}">📄 ${f.basename || f.filename}</option>`;
             });
             html += '</optgroup>';
           }
@@ -430,6 +494,156 @@
           }
         })
         .catch(err => console.error(err));
+    }
+
+    function openCustomGroupModal() {
+      safeFetchJson('/api/list-files')
+        .then(data => {
+          availableGroupFiles = data;
+          renderCustomGroupList();
+          const modalEl = new bootstrap.Modal(document.getElementById('customGroupModal'));
+          modalEl.show();
+        })
+        .catch(err => alert('ไม่สามารถโหลดรายการไฟล์ได้: ' + err.message));
+    }
+
+    function renderCustomGroupList() {
+      const container = document.getElementById('customGroupFilesContainer');
+      if (!container) return;
+      const q = (document.getElementById('customGroupSearchInput')?.value || '').toLowerCase().trim();
+      
+      let html = '';
+      const folders = availableGroupFiles.folders || availableGroupFiles.outbound_folders || [];
+      const rootFiles = availableGroupFiles.files || availableGroupFiles.outbound_files || [];
+      
+      // Render Folders & their child files
+      folders.forEach((f, fIdx) => {
+        const childs = (f.files || []).filter(c => !q || c.basename.toLowerCase().includes(q) || f.folderName.toLowerCase().includes(q));
+        if (childs.length > 0) {
+          html += `
+            <div class="mb-3 border rounded-3 p-2 bg-light shadow-xs">
+              <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
+                <div class="fw-bold text-primary small"><i class="fa-solid fa-folder me-1"></i> โฟลเดอร์: ${f.folderName} (${childs.length} ไฟล์)</div>
+                <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size:11px;" onclick="toggleFolderCheckboxes('fld_${fIdx}', true)">เลือกทั้งโฟลเดอร์นี้</button>
+              </div>
+              <div class="ps-2">
+                ${childs.map(c => `
+                  <div class="form-check py-1 border-bottom border-light">
+                    <input class="form-check-input custom-file-cb fld_${fIdx}" type="checkbox" value="${c.filename}" id="cb_${c.filename.replace(/[^a-zA-Z0-9]/g, '_')}" onchange="updateCustomGroupCount()">
+                    <label class="form-check-label small text-dark" for="cb_${c.filename.replace(/[^a-zA-Z0-9]/g, '_')}">
+                      📑 ${c.basename}
+                    </label>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+      });
+
+      // Render Root files
+      const filteredRoot = rootFiles.filter(c => !q || (c.basename || c.filename).toLowerCase().includes(q));
+      if (filteredRoot.length > 0) {
+        html += `
+          <div class="mb-2 border rounded-3 p-2 bg-white shadow-xs">
+            <div class="fw-bold text-secondary small mb-1 pb-1 border-bottom"><i class="fa-solid fa-file-lines me-1"></i> ไฟล์เดี่ยวทั่วไป (Root / Uploads)</div>
+            <div class="ps-2">
+              ${filteredRoot.map(c => `
+                <div class="form-check py-1 border-bottom border-light">
+                  <input class="form-check-input custom-file-cb" type="checkbox" value="${c.filename}" id="cb_${c.filename.replace(/[^a-zA-Z0-9]/g, '_')}" onchange="updateCustomGroupCount()">
+                  <label class="form-check-label small text-dark" for="cb_${c.filename.replace(/[^a-zA-Z0-9]/g, '_')}">
+                    📄 ${c.basename || c.filename}
+                  </label>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (!html) {
+        html = '<div class="text-center text-muted py-4 small">ไม่พบไฟล์ที่ตรงกับคำค้นหา</div>';
+      }
+
+      container.innerHTML = html;
+      updateCustomGroupCount();
+    }
+
+    function filterCustomGroupList() {
+      renderCustomGroupList();
+    }
+
+    function toggleFolderCheckboxes(folderClass, state) {
+      const cbs = document.querySelectorAll(`.${folderClass}`);
+      cbs.forEach(cb => cb.checked = true);
+      updateCustomGroupCount();
+    }
+
+    function selectAllCustomGroupFiles(state) {
+      const cbs = document.querySelectorAll('.custom-file-cb');
+      cbs.forEach(cb => cb.checked = state);
+      updateCustomGroupCount();
+    }
+
+    function updateCustomGroupCount() {
+      const cbs = document.querySelectorAll('.custom-file-cb:checked');
+      const countEl = document.getElementById('customGroupSelectedCount');
+      if (countEl) {
+        countEl.innerText = `เลือกแล้ว ${cbs.length} ไฟล์`;
+      }
+    }
+
+    function submitCustomGroup() {
+      const cbs = document.querySelectorAll('.custom-file-cb:checked');
+      const selectedFiles = Array.from(cbs).map(cb => cb.value);
+      if (selectedFiles.length === 0) {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({ title: 'กรุณาเลือกไฟล์', text: 'กรุณาเลือกไฟล์อย่างน้อย 1 ไฟล์เพื่อทำการรวมกลุ่มครับ', icon: 'warning', confirmButtonColor: '#2563eb', background: '#0d1b2a', color: '#fff' });
+        } else {
+          alert('กรุณาเลือกไฟล์อย่างน้อย 1 ไฟล์เพื่อทำการรวมกลุ่มครับ');
+        }
+        return;
+      }
+
+      const groupName = (document.getElementById('customGroupNameInput')?.value || `กลุ่ม ${selectedFiles.length} ไฟล์`).trim();
+      const modalEl = bootstrap.Modal.getInstance(document.getElementById('customGroupModal'));
+      if (modalEl) modalEl.hide();
+
+      showOutboundStatus(`กำลังประมวลผลกลุ่มไฟล์ "${groupName}" (${selectedFiles.length} ไฟล์)...`, 'loading');
+
+      safeFetchJson('/api/load-custom-group', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          files: selectedFiles,
+          type: 'outbound',
+          group_name: groupName
+        })
+      })
+      .then(data => {
+        if (data && data.success) {
+          outboundDataState = data;
+          safeSetLocalStorage('socn_outbound_data', data);
+          updateDashboard(data);
+          showOutboundStatus(`✅ ประมวลผลกลุ่มไฟล์ "${groupName}" (รวม ${data.fileCount} ไฟล์) เรียบร้อย`, 'success');
+          
+          fetchFileList();
+
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              title: '🗂️ รวมกลุ่มไฟล์สำเร็จ!',
+              html: `ประมวลผลกลุ่ม <b>"${groupName}"</b> เรียบร้อย<br>รวม <b>${data.fileCount} ไฟล์</b> (${selectedFiles.length} ไฟล์ที่เลือก)<br>ยอดพัสดุล่าช้ารวม: <b class="text-danger">${(data.totalLate || 0).toLocaleString()} ชิ้น</b>`,
+              icon: 'success',
+              confirmButtonColor: '#10b981',
+              background: '#0d1b2a',
+              color: '#fff'
+            });
+          }
+        } else {
+          showOutboundStatus(`เกิดข้อผิดพลาดในการรวมกลุ่ม: ${data.error}`, 'error');
+        }
+      })
+      .catch(err => showOutboundStatus(`ไม่สามารถรวมกลุ่มได้: ${err.message}`, 'error'));
     }
 
     function loadDefaultOutbound() {

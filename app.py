@@ -882,28 +882,40 @@ def process_dataframe(df, filename=""):
     }
 
 
-def process_folder(folder_path, folder_name=None):
-    if not folder_name:
-        folder_name = os.path.basename(folder_path)
-    
-    files = []
-    if os.path.exists(folder_path):
-        for root, dirs, filenames in os.walk(folder_path):
-            for f in filenames:
-                if f.lower().endswith(('.csv', '.xlsx', '.xls')) and not f.startswith('.'):
-                    files.append(os.path.join(root, f))
-                    
-    if not files:
+def resolve_file_path(fn):
+    if not fn: return None
+    fn_clean = str(fn).strip().replace("\\", "/")
+    # 1. Direct path in uploads (e.g. "uploads/w36/file.csv" or "w36/file.csv" or "file.csv")
+    candidates = [
+        os.path.join(UPLOAD_FOLDER, fn_clean),
+        os.path.join(BASE_DIR, fn_clean),
+        os.path.join(UPLOAD_FOLDER, os.path.basename(fn_clean)),
+        os.path.join(BASE_DIR, os.path.basename(fn_clean))
+    ]
+    for c in candidates:
+        if os.path.exists(c) and os.path.isfile(c):
+            return c
+    return None
+
+
+def process_file_list(files_or_names, group_name="กลุ่มไฟล์ที่เลือก"):
+    resolved_paths = []
+    for fn in files_or_names:
+        rp = resolve_file_path(fn)
+        if rp and rp not in resolved_paths:
+            resolved_paths.append(rp)
+            
+    if not resolved_paths:
         return {
             "success": False,
-            "error": f"ไม่พบไฟล์ CSV/Excel ในโฟลเดอร์ '{folder_name}'"
+            "error": "ไม่พบไฟล์ที่เลือกบนเซิร์ฟเวอร์"
         }
         
     dfs = []
     report_dates = []
     needed_patterns = ['ontime', 'cutoff', 'outbound', 'station', 'dest', 'late', 'route', 'shipment', 'tracking', 'received', 'pack', 'team', 'zone', 'to_number', 'report_date']
     
-    for f in sorted(files):
+    for f in sorted(resolved_paths):
         try:
             if f.lower().endswith('.csv'):
                 h = pd.read_csv(f, nrows=0)
@@ -966,34 +978,35 @@ def process_folder(folder_path, folder_name=None):
                 late_sub_df['source_file'] = os.path.basename(f)
                 dfs.append(late_sub_df)
         except Exception as e:
-            print(f"Error reading file {f} in folder {folder_name}:", e)
+            print(f"Error reading file {f}:", e)
             
     if not dfs:
         return {
             "success": False,
-            "error": f"ไม่สามารถอ่านข้อมูลจากไฟล์ในโฟลเดอร์ '{folder_name}' ได้"
+            "error": f"ไม่สามารถอ่านข้อมูลจากไฟล์ที่เลือกได้"
         }
         
     combined_late_df = pd.concat(dfs, ignore_index=True)
     if 'shipment_id' in combined_late_df.columns:
         combined_late_df = combined_late_df.drop_duplicates(subset=['shipment_id'])
         
-    data = process_dataframe(combined_late_df, filename=f"folder:{folder_name}")
+    data = process_dataframe(combined_late_df, filename=f"custom:{group_name}")
     data["isFolder"] = True
-    data["folderName"] = folder_name
-    data["fileCount"] = len(files)
-    data["fileList"] = [os.path.basename(f) for f in files]
-    data["filename"] = f"folder:{folder_name}"
+    data["isCustomGroup"] = True
+    data["folderName"] = group_name
+    data["fileCount"] = len(resolved_paths)
+    data["fileList"] = [os.path.basename(f) for f in resolved_paths]
+    data["filename"] = f"custom:{group_name}"
     if report_dates:
         data["reportDate"] = " - ".join(sorted(list(set(report_dates))))
     data["success"] = True
     return data
 
 
-def process_folder_skip(folder_path, folder_name=None):
+def process_folder(folder_path, folder_name=None):
     if not folder_name:
         folder_name = os.path.basename(folder_path)
-        
+    
     files = []
     if os.path.exists(folder_path):
         for root, dirs, filenames in os.walk(folder_path):
@@ -1002,12 +1015,32 @@ def process_folder_skip(folder_path, folder_name=None):
                     files.append(os.path.join(root, f))
                     
     if not files:
-        return {"success": False, "error": f"ไม่พบไฟล์ในโฟลเดอร์ '{folder_name}'"}
+        return {
+            "success": False,
+            "error": f"ไม่พบไฟล์ CSV/Excel ในโฟลเดอร์ '{folder_name}'"
+        }
+        
+    res = process_file_list(files, group_name=folder_name)
+    if res.get("success"):
+        res["filename"] = f"folder:{folder_name}"
+        res["isCustomGroup"] = False
+    return res
+
+
+def process_skip_file_list(files_or_names, group_name="กลุ่มไฟล์ที่เลือก"):
+    resolved_paths = []
+    for fn in files_or_names:
+        rp = resolve_file_path(fn)
+        if rp and rp not in resolved_paths:
+            resolved_paths.append(rp)
+            
+    if not resolved_paths:
+        return {"success": False, "error": "ไม่พบไฟล์ที่เลือกบนเซิร์ฟเวอร์"}
         
     dfs = []
     needed_patterns = ['shipment', 'tracking', 'waybill', 'late', 'reason', 'station', 'dest', 'hub', 'zone', 'team']
     
-    for f in sorted(files):
+    for f in sorted(resolved_paths):
         try:
             if f.lower().endswith('.csv'):
                 h = pd.read_csv(f, nrows=0)
@@ -1049,7 +1082,7 @@ def process_folder_skip(folder_path, folder_name=None):
             print(f"Error reading skip file {f}:", e)
             
     if not dfs:
-        return {"success": False, "error": f"ไม่สามารถอ่านไฟล์ในโฟลเดอร์ '{folder_name}'"}
+        return {"success": False, "error": f"ไม่สามารถอ่านข้อมูลจากไฟล์ที่เลือกได้"}
         
     combined_skip = pd.concat(dfs, ignore_index=True)
     if 'shipment_id' in combined_skip.columns:
@@ -1103,10 +1136,11 @@ def process_folder_skip(folder_path, folder_name=None):
     return {
         "success": True,
         "isFolder": True,
-        "folderName": folder_name,
-        "fileCount": len(files),
-        "fileList": [os.path.basename(f) for f in files],
-        "filename": f"folder:{folder_name}",
+        "isCustomGroup": True,
+        "folderName": group_name,
+        "fileCount": len(resolved_paths),
+        "fileList": [os.path.basename(f) for f in resolved_paths],
+        "filename": f"custom:{group_name}",
         "totalRows": len(combined_skip),
         "totalSkipCases": len(combined_skip),
         "machineCount": machine_count,
@@ -1114,6 +1148,31 @@ def process_folder_skip(folder_path, folder_name=None):
         "skipCountByZone": zone_counts,
         "rawRows": raw_export_list
     }
+
+
+def process_folder_skip(folder_path, folder_name=None):
+    if not folder_name:
+        folder_name = os.path.basename(folder_path)
+    
+    files = []
+    if os.path.exists(folder_path):
+        for root, dirs, filenames in os.walk(folder_path):
+            for f in filenames:
+                if f.lower().endswith(('.csv', '.xlsx', '.xls')) and not f.startswith('.'):
+                    files.append(os.path.join(root, f))
+                    
+    if not files:
+        return {
+            "success": False,
+            "error": f"ไม่พบไฟล์ CSV/Excel ในโฟลเดอร์ '{folder_name}'"
+        }
+        
+    res = process_skip_file_list(files, group_name=folder_name)
+    if res.get("success"):
+        res["filename"] = f"folder:{folder_name}"
+        res["isCustomGroup"] = False
+    return res
+
 
 
 
@@ -1729,15 +1788,25 @@ def list_files():
 
     # Search in uploads folder
     if os.path.exists(UPLOAD_FOLDER):
-        for item in os.listdir(UPLOAD_FOLDER):
+        for item in sorted(os.listdir(UPLOAD_FOLDER)):
             item_path = os.path.join(UPLOAD_FOLDER, item)
             if os.path.isdir(item_path):
-                child_files = [f for f in os.listdir(item_path) if f.lower().endswith(('.csv', '.xlsx', '.xls'))]
+                child_files = []
+                for f in sorted(os.listdir(item_path)):
+                    if f.lower().endswith(('.csv', '.xlsx', '.xls')) and not f.startswith('.'):
+                        f_p = os.path.join(item_path, f)
+                        child_files.append({
+                            "filename": f"{item}/{f}",
+                            "basename": f,
+                            "folder": item,
+                            "size": os.path.getsize(f_p),
+                            "mtime": os.path.getmtime(f_p)
+                        })
                 if child_files:
                     folder_list.append({
                         "folderName": item,
                         "filename": f"folder:{item}",
-                        "displayName": f"📁 ทั้งโฟลเดอร์: {item} ({len(child_files)} ไฟล์)",
+                        "displayName": f"📁 ทั้งโฟลเดอร์: {item} ({len(child_files)} ไฟล์รวมกัน)",
                         "fileCount": len(child_files),
                         "mtime": os.path.getmtime(item_path),
                         "files": child_files
@@ -1745,6 +1814,7 @@ def list_files():
             elif item.lower().endswith(('.csv', '.xlsx', '.xls')):
                 file_list.append({
                     "filename": item,
+                    "basename": item,
                     "location": "uploads",
                     "mtime": os.path.getmtime(item_path),
                     "size": os.path.getsize(item_path)
@@ -1752,11 +1822,12 @@ def list_files():
                 seen.add(item)
 
     # Search in root folder
-    for f in os.listdir(BASE_DIR):
-        if f.lower().endswith(".csv") and f not in seen:
+    for f in sorted(os.listdir(BASE_DIR)):
+        if f.lower().endswith((".csv", ".xlsx", ".xls")) and f not in seen:
             p = os.path.join(BASE_DIR, f)
             file_list.append({
                 "filename": f,
+                "basename": f,
                 "location": "root",
                 "mtime": os.path.getmtime(p),
                 "size": os.path.getsize(p)
@@ -1788,10 +1859,16 @@ def delete_file():
         folder_name = filename.replace("folder:", "").strip()
         folder_clean = os.path.basename(folder_name)
         target_dir = os.path.join(UPLOAD_FOLDER, folder_clean)
+        if not os.path.exists(target_dir):
+            target_dir = os.path.join(BASE_DIR, folder_clean)
         if os.path.exists(target_dir) and os.path.isdir(target_dir):
             import shutil
             try:
                 shutil.rmtree(target_dir)
+                # Clear RAM cache for folder
+                keys_to_delete = [k for k in FILE_PARSED_CACHE.keys() if folder_clean in k]
+                for k in keys_to_delete:
+                    FILE_PARSED_CACHE.pop(k, None)
                 log_activity("FOLDER_DELETE", f"🗑️ ลบโฟลเดอร์ข้อมูล: {folder_clean}")
                 return jsonify({"success": True, "filename": filename, "message": f"ลบโฟลเดอร์ {folder_clean} เรียบร้อยแล้ว"})
             except Exception as e:
@@ -1799,43 +1876,23 @@ def delete_file():
         else:
             return jsonify({"success": False, "error": f"ไม่พบโฟลเดอร์ '{folder_clean}' บนเซิร์ฟเวอร์"}), 404
 
-    filename_clean = os.path.basename(filename)
-    target_upload = os.path.join(UPLOAD_FOLDER, filename_clean)
-    target_compare = os.path.join(BACKLOG_COMPARE_FOLDER, filename_clean)
-    target_base = os.path.join(BASE_DIR, filename_clean)
+    target_path = resolve_file_path(filename)
+    if not target_path or not os.path.exists(target_path):
+        return jsonify({"success": False, "error": f"ไม่พบไฟล์ '{filename}' บนเซิร์ฟเวอร์"}), 404
 
-    deleted = False
-    deleted_path = ""
+    try:
+        os.remove(target_path)
+        # Clear RAM cache
+        filename_clean = os.path.basename(target_path)
+        keys_to_delete = [k for k in FILE_PARSED_CACHE.keys() if (target_path and target_path in k) or filename_clean in k]
+        for k in keys_to_delete:
+            FILE_PARSED_CACHE.pop(k, None)
 
-    if os.path.exists(target_compare):
-        try:
-            os.remove(target_compare)
-            deleted = True
-            deleted_path = target_compare
-        except Exception as e:
-            return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ได้: {str(e)}"}), 500
-    elif os.path.exists(target_upload):
-        try:
-            os.remove(target_upload)
-            deleted = True
-            deleted_path = target_upload
-        except Exception as e:
-            return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ได้: {str(e)}"}), 500
-    elif os.path.exists(target_base):
-        try:
-            os.remove(target_base)
-            deleted = True
-            deleted_path = target_base
-        except Exception as e:
-            return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ได้: {str(e)}"}), 500
+        log_activity("FILE_DELETE", f"🗑️ ลบไฟล์ข้อมูล: {filename_clean}")
+        return jsonify({"success": True, "filename": filename, "message": f"ลบไฟล์ {filename_clean} เรียบร้อยแล้ว"})
+    except Exception as e:
+        return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ได้: {str(e)}"}), 500
 
-    # Clear RAM cache
-    keys_to_delete = [k for k in FILE_PARSED_CACHE.keys() if (deleted_path and deleted_path in k) or filename_clean in k]
-    for k in keys_to_delete:
-        FILE_PARSED_CACHE.pop(k, None)
-
-    log_activity("FILE_DELETE", f"🗑️ ลบไฟล์ข้อมูล: {filename_clean}")
-    return jsonify({"success": True, "filename": filename_clean, "message": f"ลบไฟล์ {filename_clean} เรียบร้อยแล้ว"})
 
 FILE_PARSED_CACHE = {}
 
@@ -1867,11 +1924,8 @@ def load_file():
             FILE_PARSED_CACHE[cache_key] = res
         return jsonify(res)
 
-    target = os.path.join(UPLOAD_FOLDER, filename)
-    if not os.path.exists(target):
-        target = os.path.join(BASE_DIR, filename)
-
-    if not os.path.exists(target):
+    target = resolve_file_path(filename)
+    if not target or not os.path.exists(target):
         return jsonify({"success": False, "error": f"ไม่พบไฟล์ '{filename}' บนเซิร์ฟเวอร์ (ไฟล์อาจถูกลบหรือไม่ได้อัปโหลด)"}), 200
 
     try:
@@ -1890,6 +1944,38 @@ def load_file():
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "error": f"ไม่สามารถประมวลผลไฟล์ได้: {str(e)}"}), 200
+
+
+@app.route("/api/load-custom-group", methods=["GET", "POST"])
+def load_custom_group_api():
+    """Load and combine multiple custom-selected files into a single aggregated report."""
+    if request.method == "POST":
+        data = request.get_json() or {}
+        files = data.get("files", [])
+        group_type = (data.get("type") or "outbound").strip().lower()
+        group_name = (data.get("group_name") or data.get("name") or "กลุ่มไฟล์ที่เลือก").strip()
+    else:
+        files_param = request.args.get("files", "").strip()
+        group_type = request.args.get("type", "outbound").strip().lower()
+        group_name = request.args.get("group_name", request.args.get("name", "กลุ่มไฟล์ที่เลือก")).strip()
+        files = [f.strip() for f in files_param.split(",") if f.strip()] if files_param else []
+
+    if not files:
+        return jsonify({"success": False, "error": "ไม่ได้เลือกไฟล์สำหรับจัดกลุ่ม"}), 400
+
+    try:
+        if group_type == "skip":
+            res = process_skip_file_list(files, group_name=group_name)
+        else:
+            res = process_file_list(files, group_name=group_name)
+            
+        if res.get("success"):
+            log_activity("CUSTOM_GROUP_LOAD", f"📊 ประมวลผลกลุ่มไฟล์ ({len(files)} ไฟล์): {group_name}")
+        return jsonify(res)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการรวมกลุ่มไฟล์: {str(e)}"}), 200
 
 
 @app.route("/api/hub-zone-map", methods=["GET"])
@@ -1926,10 +2012,8 @@ def load_skip_lightweight():
             FILE_PARSED_CACHE[cache_key] = res
         return jsonify(res)
 
-    target = os.path.join(UPLOAD_FOLDER, filename)
-    if not os.path.exists(target):
-        target = os.path.join(BASE_DIR, filename)
-    if not os.path.exists(target):
+    target = resolve_file_path(filename)
+    if not target or not os.path.exists(target):
         return jsonify({"success": False, "error": f"ไม่พบไฟล์ '{filename}' บนเซิร์ฟเวอร์ (ไฟล์อาจถูกลบหรือไม่ได้อัปโหลด)"}), 200
 
     try:
