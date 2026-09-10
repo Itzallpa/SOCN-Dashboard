@@ -1,92 +1,102 @@
 [
   {
-    "id": "13d22c50",
-    "timestamp": "2026-09-08 02:26:10",
-    "email": "guy.panmanee@gmail.com",
-    "name": "กาย",
+    "id": "e5008176",
+    "timestamp": "2026-09-10 14:59:43",
+    "email": "guest",
+    "name": "Guest",
     "role": "Ground",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "27.130.38.5"
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): test.csv -> uploads",
+    "ip": "127.0.0.1"
   },
   {
-    "id": "623eabaa",
-    "timestamp": "2026-09-08 02:19:52",
-    "email": "guy.panmanee@gmail.com",
-    "name": "กาย",
+    "id": "41ed92d2",
+    "timestamp": "2026-09-10 13:12:15",
+    "email": "guest",
+    "name": "Guest",
     "role": "Ground",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "27.130.38.5"
+    "action": "TTB_SHEET_SYNC",
+    "details": "🔄 ซิงค์ข้อมูล TTB Registration สำเร็จ (1,801 คัน, 1801 สถานี)",
+    "ip": "112.121.130.34"
   },
   {
-    "id": "ed17af8d",
-    "timestamp": "2026-09-08 02:18:13",
+    "id": "fd6510a1",
+    "timestamp": "2026-09-10 13:06:16",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "TTB_SHEET_SYNC",
+    "details": "🔄 ซิงค์ข้อมูล TTB Registration สำเร็จ (1,801 คัน, 1801 สถานี)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "0403dbc1",
+    "timestamp": "2026-09-10 12:59:52",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "TTB_SHEET_SYNC",
+    "details": "🔄 ซิงค์ข้อมูล TTB Registration สำเร็จ (1,801 คัน, 1801 สถานี)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "d7867bb5",
+    "timestamp": "2026-09-10 12:59:44",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "TTB_SHEET_SYNC",
+    "details": "🔄 ซิงค์ข้อมูล TTB Registration สำเร็จ (1,801 คัน, 1801 สถานี)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "9ad67b2b",
+    "timestamp": "2026-09-10 12:59:15",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "a9991580",
+    "timestamp": "2026-09-10 12:56:53",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "SYNC_OB_BL",
+    "details": "Successfully synced OB BL data from https://docs.google.com/spreadsheets/d/e/2PACX-1vRByU-6geOW_SbnQxFA4Y05WJMIkpRbUZMehfpDMTaHiXevL5mSA186BUybW3h8cgb4cWK2vOKuTIK3/pub?output=csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "66d9f531",
+    "timestamp": "2026-09-09 23:48:45",
     "email": "guy.panmanee@spxexpress.com",
     "name": "Natakorn Panmanee",
     "role": "Admin",
-    "action": "VIEW_ADMIN_DASHBOARD",
-    "details": "Accessed Admin Control Panel & Audit Logs",
-    "ip": "27.130.38.5"
+    "action": "SYNC_OB_BL",
+    "details": "Successfully synced OB BL data from https://docs.google.com/spreadsheets/d/e/2PACX-1vRByU-6geOW_SbnQxFA4Y05WJMIkpRbUZMehfpDMTaHiXevL5mSA186BUybW3h8cgb4cWK2vOKuTIK3/pub?output=csv",
+    "ip": "161.82.215.50"
   },
   {
-    "id": "87fa6bf6",
-    "timestamp": "2026-09-08 02:16:21",
+    "id": "a0fe0e77",
+    "timestamp": "2026-09-09 23:47:37",
     "email": "guy.panmanee@spxexpress.com",
     "name": "Natakorn Panmanee",
     "role": "Admin",
     "action": "LOGIN",
     "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Admin)",
-    "ip": "27.130.38.5"
+    "ip": "161.82.215.50"
   },
   {
-    "id": "199ccd0b",
-    "timestamp": "2026-09-08 02:16:21",
+    "id": "2e1efde4",
+    "timestamp": "2026-09-09 23:47:37",
     "email": "guy.panmanee@spxexpress.com",
     "name": "Natakorn Panmanee",
     "role": "Admin",
     "action": "USER_LOGIN",
     "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
-    "ip": "27.130.38.5"
-  },
-  {
-    "id": "eb43e2b3",
-    "timestamp": "2026-09-08 02:15:24",
-    "email": "guy.panmanee@gmail.com",
-    "name": "กาย",
-    "role": "Ground",
-    "action": "SYNC_GOOGLE_SHEET",
-    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
-    "ip": "27.130.38.5"
-  },
-  {
-    "id": "50c39abc",
-    "timestamp": "2026-09-08 02:13:54",
-    "email": "guy.panmanee@gmail.com",
-    "name": "กาย",
-    "role": "Ground",
-    "action": "SYNC_GOOGLE_SHEET",
-    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
-    "ip": "27.130.38.5"
-  },
-  {
-    "id": "95b59216",
-    "timestamp": "2026-09-08 02:13:36",
-    "email": "guy.panmanee@gmail.com",
-    "name": "กาย",
-    "role": "Ground",
-    "action": "LOGIN",
-    "details": "Signed in via Google/Gmail as guy.panmanee@gmail.com (Role: Ground)",
-    "ip": "27.130.38.5"
-  },
-  {
-    "id": "87c26560",
-    "timestamp": "2026-09-08 02:13:36",
-    "email": "guy.panmanee@gmail.com",
-    "name": "กาย",
-    "role": "Supervisor",
-    "action": "USER_LOGIN",
-    "details": "เข้าสู่ระบบสำเร็จในฐานะ Supervisor",
-    "ip": "27.130.38.5"
+    "ip": "161.82.215.50"
   }
 ]

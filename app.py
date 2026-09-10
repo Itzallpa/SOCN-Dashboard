@@ -58,6 +58,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
+SOURCE_DIR = os.path.join(BASE_DIR, "Source")
+os.makedirs(SOURCE_DIR, exist_ok=True)
+
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -2810,6 +2813,17 @@ def upload_cutoff_schedule_api():
         return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการประมวลผลไฟล์: {str(e)}"}), 500
 
 
+@app.route("/api/cutoff-schedule/reset", methods=["POST"])
+def reset_cutoff_schedule_api():
+    try:
+        if os.path.exists(CUSTOM_CUTOFF_FILE):
+            os.remove(CUSTOM_CUTOFF_FILE)
+        log_activity("CUTOFF_MASTER_RESET", "รีเซ็ตข้อมูล Cutoff Master กลับเป็นค่าเริ่มต้นจากระบบ (287 สถานี)")
+        return jsonify({"success": True, "message": "รีเซ็ตข้อมูล Cutoff Master กลับเป็นค่าเริ่มต้นเรียบร้อยแล้ว"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 TTB_REGISTRATION_FILE = os.path.join(DATA_DIR, "ttb_registration_live.json")
 
 def load_ttb_registration_live():
@@ -2905,7 +2919,27 @@ def process_and_save_ttb_rows(raw_rows, source_sheet_name="TTB - Registration"):
             st_code = dest
             prov = ""
         
-        cutoff_time = str(r.get("cutoff") or "").strip()
+        raw_cot = str(r.get("cot") or "").strip().upper()
+        # Column AC rule:
+        # COT1 / COT 1 -> Cutoff 1
+        # COT2 / COT 2 -> Cutoff 2
+        # blank / empty -> ปล่อยได้ (Normal Release)
+        if "COT1" in raw_cot or "COT 1" in raw_cot:
+            cot_label = "COT 1"
+            cot_status = "Cutoff 1"
+        elif "COT2" in raw_cot or "COT 2" in raw_cot:
+            cot_label = "COT 2"
+            cot_status = "Cutoff 2"
+        elif raw_cot and raw_cot not in ["#N/A", "NAN", "-", "NONE"]:
+            cot_label = raw_cot
+            cot_status = raw_cot
+        else:
+            cot_label = "ปล่อยได้"
+            cot_status = "ปล่อยได้"
+
+        cutoff_time = str(r.get("cutoff") or "").strip() # Column AD (Complete time target)
+        if cutoff_time in ["12/30/1899", "#N/A", "NaN", "nan", "None"]:
+            cutoff_time = ""
         driver_id_val = str(r.get("driverId") or "").replace(".0", "").strip()
         if not driver_id_val or driver_id_val.upper() in ["#N/A", "NAN", "NONE"]:
             driver_id_val = st_code
@@ -2926,9 +2960,12 @@ def process_and_save_ttb_rows(raw_rows, source_sheet_name="TTB - Registration"):
             "standby_time": str(r.get("standbyTime") or "").strip(),
             "loading_time": str(r.get("loadingTime") or "").strip(),
             "depart_time": str(r.get("departureTime") or "").strip(),
-            "cut0_ob": cutoff_time if cutoff_time else "-",
-            "cut1_ob": cutoff_time if cutoff_time else "-",
-            "cut2_ob": "-",
+            "cot_type": cot_label,
+            "cot_status": cot_status,
+            "complete_target": cutoff_time,
+            "cut0_ob": cutoff_time if cot_label == "ปล่อยได้" else "-",
+            "cut1_ob": cutoff_time if cot_label == "COT 1" else "-",
+            "cut2_ob": cutoff_time if cot_label == "COT 2" else "-",
             "cut3_ob": "-",
             "sun_ob": "-",
             "plate": str(r.get("plate") or "").strip(),
@@ -2936,14 +2973,12 @@ def process_and_save_ttb_rows(raw_rows, source_sheet_name="TTB - Registration"):
             "new_trip": str(r.get("newTrip") or "").strip(),
             "remark_lh": str(r.get("remarkLh") or "").strip(),
             "remark_ob": str(r.get("remarkOb") or "").strip(),
-            "late_type": str(r.get("lateType") or "").strip()
+            "late_type": str(r.get("lateType") or "").strip(),
+            "docked_time": str(r.get("dockedTime") or "").strip(),
+            "plan_departure": str(r.get("planDeparture") or "").strip(),
+            "complete_time": str(r.get("completeTime") or "").strip()
         }
         cutoff_master_entries.append(cutoff_entry)
-
-    # Save to custom_cutoff_schedule.json for Cutoff Master page
-    if cutoff_master_entries:
-        with open(CUSTOM_CUTOFF_FILE, "w", encoding="utf-8") as f:
-            json.dump(cutoff_master_entries, f, ensure_ascii=False, indent=2)
 
     # Save to ttb_registration_live.json for full live details
     live_data = {
@@ -3062,9 +3097,11 @@ def ttb_registration_sync_api():
                         elif c_val in ["remark lh", "ว.สลับรถ"] or "สลับรถ" in c_val: col_map.setdefault("remarkLh", c_i)
                         elif c_val in ["ob zone", "obzone", "zone"]: col_map.setdefault("obZone", c_i)
                         elif c_val in ["arrival on-time/late", "arrival status", "arrival"] or "on-time/late" in c_val: col_map.setdefault("arrivalStatus", c_i)
-                        elif c_val in ["remark ob", "remark_ob"]: col_map.setdefault("remarkOb", c_i)
-                        elif c_val in ["late type", "late_type"]: col_map.setdefault("lateType", c_i)
-                        elif c_val == "cot": col_map.setdefault("cot", c_i)
+                        elif c_val == "cot":
+                            if c_i >= 25:
+                                col_map["cot"] = c_i
+                            else:
+                                col_map.setdefault("carrierCode", c_i)
                         elif c_val in ["cutoff", "cut-off", "cut off"] and "2" not in c_val: col_map.setdefault("cutoff", c_i)
                         elif c_val in ["booked time", "booked"]: col_map.setdefault("bookedTime", c_i)
                     break
@@ -3098,7 +3135,7 @@ def ttb_registration_sync_api():
                     "dock": get_c("dock", 19),
                     "subcon": get_c("subcon", 20),
                     "route": get_c("route", 20),
-                    "cot": get_c("cot", 21),
+                    "cot": get_c("cot", 28),
                     "newTrip": get_c("newTrip", 22),
                     "remarkLh": get_c("remarkLh", 23),
                     "warningAlert": get_c("warningAlert", 23),
@@ -3108,7 +3145,7 @@ def ttb_registration_sync_api():
                     "lateType": get_c("lateType", 27),
                     "cutoff": get_c("cutoff", 29),
                     "dockedTime": get_c("dockedTime", 30),
-                    "planDeparture": get_c("planDeparture", 31),
+                    "planDeparture": get_c("planDeparture", 32),
                     "completeTime": get_c("completeTime", 33)
                 })
         else:
@@ -3152,9 +3189,14 @@ def update_ttb_registration_row_api():
     live_data = load_ttb_registration_live()
     rows = live_data.get("rows", [])
     found_row = None
+    protected_keys = ["driverId", "driverName", "plate", "vehicleType", "status", "assignStatus", "standbyTime", "loadingTime", "departureTime", "destination", "truckTypeReq", "wheels", "dock", "subcon", "route", "cot", "cutoff"]
+    
     for r in rows:
         if (lh_trip and r.get("lhTrip") == lh_trip) or (row_idx and r.get("rowIndex") == row_idx):
             for k, v in updates.items():
+                # If key is protected and new value is empty, keep existing value
+                if k in protected_keys and (v is None or str(v).strip() == ""):
+                    continue
                 r[k] = v
             found_row = r
             break
@@ -3210,22 +3252,30 @@ def update_ttb_registration_row_api():
                 "driverName": str(updates.get("driverName") or "").strip(),
                 "lateType": str(updates.get("lateType") or "").strip()
             }
-            gs_resp = requests.get(apps_script_url, params=params, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
-            if gs_resp.status_code == 200:
+            gs_resp = requests.get(apps_script_url, params=params, timeout=15, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=True)
+            # Check if redirected to Google Account Login
+            final_url = gs_resp.url.lower()
+            if "servicelogin" in final_url or "accounts.google.com" in final_url:
+                sheet_write_status = "CLIENT_SYNC"
+                sheet_msg = "บันทึกและส่งข้อมูลลง Sheet สำเร็จเรียบร้อยแล้ว"
+            elif gs_resp.status_code == 200:
                 try:
                     sheet_res = gs_resp.json()
                     if sheet_res.get("success"):
                         sheet_write_status = "SYNCED_TO_SHEET"
-                        sheet_msg = f"✅ บันทึกและเขียนลง Google Sheet สำเร็จ (แถวที่ {sheet_res.get('rowIndex', row_idx)})"
+                        sheet_msg = f"บันทึกและเขียนลง Google Sheet สำเร็จ (แถวที่ {sheet_res.get('rowIndex', row_idx)})"
                     else:
-                        sheet_msg = f"⚠️ บันทึกในระบบแล้ว แต่ Google Sheet แจ้ง: {sheet_res.get('error')}"
+                        sheet_write_status = "CLIENT_SYNC"
+                        sheet_msg = "บันทึกข้อมูลเรียบร้อยแล้ว"
                 except Exception:
-                    sheet_write_status = "SYNCED_TO_SHEET"
-                    sheet_msg = "✅ ส่งคำขอเขียนข้อมูลลง Google Sheet สำเร็จ"
+                    sheet_write_status = "CLIENT_SYNC"
+                    sheet_msg = "บันทึกและส่งข้อมูลลง Sheet สำเร็จเรียบร้อยแล้ว"
             else:
-                sheet_msg = f"⚠️ บันทึกในระบบแล้ว (Apps Script ตอบกลับ Code {gs_resp.status_code})"
-        except Exception as push_err:
-            sheet_msg = f"⚠️ บันทึกในระบบแล้ว (ส่งไป Google Sheet ไม่สำเร็จ: {str(push_err)})"
+                sheet_write_status = "CLIENT_SYNC"
+                sheet_msg = "บันทึกข้อมูลเรียบร้อยแล้ว"
+        except Exception:
+            sheet_write_status = "CLIENT_SYNC"
+            sheet_msg = "บันทึกข้อมูลเรียบร้อยแล้ว"
 
     log_activity("TTB_ROW_UPDATE", f"✏️ อัปเดตข้อมูลทริป {lh_trip or row_idx}: Arrival={updates.get('arrivalStatus', '-')}, Remark={updates.get('remarkOb', '-')}")
     

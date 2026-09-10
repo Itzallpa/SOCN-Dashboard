@@ -522,7 +522,7 @@
       if (!file) return;
 
       const fn = file.name;
-      const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunks (completely bypasses Tunnel limit)
+      const CHUNK_SIZE = 1024 * 1024; // 1MB chunks (high stability across proxy & cloud preview)
       const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
       showStatus(`กำลังอัปโหลด "${fn}" เข้าโฟลเดอร์ Backlog Shipment (0%)...`, 'loading');
@@ -533,18 +533,37 @@
           const end = Math.min(start + CHUNK_SIZE, file.size);
           const chunk = file.slice(start, end);
 
-          const formData = new FormData();
-          formData.append('chunk', chunk, fn);
-          formData.append('filename', fn);
-          formData.append('chunk_index', i);
-          formData.append('total_chunks', totalChunks);
+          let success = false;
+          let lastErr = null;
 
-          const percent = Math.round(((i + 1) / totalChunks) * 100);
-          showStatus(`กำลังอัปโหลด "${fn}" เข้าโฟลเดอร์ Backlog Shipment... (${percent}%)`, 'loading');
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              const formData = new FormData();
+              formData.append('chunk', chunk, fn);
+              formData.append('filename', fn);
+              formData.append('chunk_index', i);
+              formData.append('total_chunks', totalChunks);
 
-          const res = await safeFetchJson('/api/upload-compare-chunk', { method: 'POST', body: formData });
-          if (!res || !res.success) {
-            throw new Error(res ? res.error : 'Upload chunk failed');
+              const percent = Math.round(((i + 1) / totalChunks) * 100);
+              showStatus(`กำลังอัปโหลด "${fn}" เข้าโฟลเดอร์ Backlog Shipment... (${percent}%)`, 'loading');
+
+              const res = await safeFetchJson('/api/upload-compare-chunk', { method: 'POST', body: formData });
+              if (res && res.success) {
+                success = true;
+                break;
+              } else {
+                throw new Error(res ? res.error : 'Upload chunk failed');
+              }
+            } catch (e) {
+              lastErr = e;
+              if (attempt < 3) {
+                await new Promise(r => setTimeout(r, 800 * attempt));
+              }
+            }
+          }
+
+          if (!success) {
+            throw new Error(`การอัปโหลดขัดข้องที่ Chunk ${i + 1}/${totalChunks}: ${lastErr ? lastErr.message : 'Failed to fetch'}`);
           }
         }
 

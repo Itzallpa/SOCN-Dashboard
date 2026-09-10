@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-08 14:40:00",
+  "updatedAt": "2026-09-09 19:25:21",
   "hourlyTarget": 45000,
   "hourlyMinimum": 40000,
   "hourlyMinimumPct": 90,
@@ -44,7 +44,7 @@
     }
   },
   "seatalk": {
-    "enabled": true,
+    "enabled": false,
     "webhookType": "seatalk",
     "webhookUrl": "https://openapi.seatalk.io/webhook/group/ISfK_B7MQeODPJHWrtQpqA",
     "triggerCondition": "below_minimum",
@@ -63,9 +63,10 @@
   },
   "ttbSync": {
     "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTgblrQVq9E7KcSf_gd_PGfGRwh-7HZBWXzRnXcZUYmnQ_WiX7xPHgWL_I5_TkUl0FHLy7zGxebGedq/pub?output=csv",
+    "appsScriptUrl": "https://script.google.com/a/macros/spxexpress.com/s/AKfycbw758kUWgQLv-Li2jkWu7i3gbv3UFK8BFnK-BmSOKK0k0GzfwYj6XsMQuMh2c9ttp3ozw/exec",
     "writeTargetUrl": "https://docs.google.com/spreadsheets/d/1fcW2_deyDFDN9Dp9JfOv1NOinS1de6KMDcNZp2EOL9w/edit?gid=719250654#gid=719250654",
     "autoSync": true,
     "intervalMinutes": 5,
-    "updatedAt": "2026-09-08 15:10:00"
+    "updatedAt": "2026-09-09 19:25:21"
   }
 }
