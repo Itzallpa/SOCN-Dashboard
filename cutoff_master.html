@@ -2216,24 +2216,31 @@
           r._diffMinutes = diff;
 
           const arrSt = (r.arrivalStatus || '').trim().toLowerCase();
+          const hasRecordedStatus = arrSt !== '' && arrSt !== '-' && arrSt !== '#n/a' && arrSt !== 'nan' && arrSt !== 'null' && arrSt !== 'undefined';
           const isOntime = arrSt === 'ontime' || arrSt === 'on-time' || arrSt === 'ตรงเวลา';
           const isCancelled = arrSt === 'ไม่ใช้รถ';
 
           if (!isCancelled) {
             // 🚨 Alert:
-            // 1) 0 to 30 mins before departure -> เตือนเตรียมปล่อยรถ
-            // 2) diff < 0 (เกินเวลาแพลน) -> ถ้า Ontime แล้วถือว่าไม่มีปัญหา ไม่ต้องเตือนตก Cut! เตือนเฉพาะตัวที่ยังไม่ Ontime หรือ Late
+            // 1) 0 to 30 mins before departure -> เตือนเตรียมปล่อยรถ (ถ้ายังไม่ออก/ยังไม่ลง Ontime)
             if (diff >= 0 && diff <= 30) {
-              r._isImminent = true;
-              imminentTrips.push(r);
-            } else if (diff >= -180 && diff < 0) {
               if (!isOntime) {
                 r._isImminent = true;
                 imminentTrips.push(r);
               }
+            } else if (diff >= -180 && diff < 0) {
+              // 2) diff < 0 (เกินเวลาแพลน):
+              // - ถ้าใส่ข้อมูลสถานะแล้ว (เช่น Late, Ontime, เลื่อนเวลาปล่อยรถ ฯลฯ) -> ถือว่ารับรู้สถานะแล้ว ไม่ต้องแดง
+              // - ถ้ายัง "ไม่ใส่ข้อมูล" (Blank / ยังว่างอยู่) -> ให้แดงเตือนทีม (เสี่ยงตก Cut / ข้อมูลยังไม่ลง)
+              if (!hasRecordedStatus) {
+                r._isImminent = true;
+                imminentTrips.push(r);
+              }
             } else if (diff > 30 && diff <= 60) {
-              r._isUpcoming = true;
-              upcomingTrips.push(r);
+              if (!hasRecordedStatus) {
+                r._isUpcoming = true;
+                upcomingTrips.push(r);
+              }
             }
           }
         }
@@ -2322,8 +2329,8 @@
           if (!r._isImminent) return false;
         } else if (cotFilter === 'OVERDUE_DEPART') {
           const arrSt = (r.arrivalStatus || '').trim().toLowerCase();
-          const isOntime = arrSt === 'ontime' || arrSt === 'on-time' || arrSt === 'ตรงเวลา';
-          if (r._diffMinutes >= 0 || r._diffMinutes < -180 || isOntime) return false;
+          const hasRecordedStatus = arrSt !== '' && arrSt !== '-' && arrSt !== '#n/a' && arrSt !== 'nan';
+          if (r._diffMinutes >= 0 || r._diffMinutes < -180 || hasRecordedStatus) return false;
         }
 
         // Zone filter
@@ -2435,9 +2442,6 @@
         let departBadge = '<span class="text-muted small">-</span>';
         if (r.departureTime) {
           const diffMin = r._diffMinutes;
-          const rawArrSt = (r.arrivalStatus || '').trim().toLowerCase();
-          const isArrOntime = rawArrSt === 'ontime' || rawArrSt === 'on-time' || rawArrSt === 'ตรงเวลา';
-
           if (r._isImminent) {
             const diffHtml = diffMin < 0 
               ? `<span class="badge bg-danger text-white d-block mt-1"><i class="fa-solid fa-triangle-exclamation me-1"></i> เกิน ${Math.abs(diffMin)} น. (เสี่ยงตก Cut)</span>`
@@ -2445,9 +2449,6 @@
             departBadge = `<div><span class="badge bg-dark font-monospace text-warning px-2 py-1 shadow-sm fs-6"><i class="fa-regular fa-clock me-1"></i> ${escapeHtml(r.departureTime)}</span>${diffHtml}</div>`;
           } else if (r._isUpcoming) {
             departBadge = `<div><span class="badge bg-dark font-monospace text-warning px-2 py-1 shadow-sm fs-6"><i class="fa-regular fa-clock me-1"></i> ${escapeHtml(r.departureTime)}</span><span class="badge bg-warning text-dark d-block mt-1">⏳ อีก ${r._diffMinutes} น.</span></div>`;
-          } else if (diffMin < 0 && isArrOntime) {
-            // เลยเวลาแพลนมาแล้ว แต่ลง Ontime แล้ว -> ไม่มีปัญหาอะไร
-            departBadge = `<span class="badge bg-dark font-monospace text-warning px-2 py-1 shadow-sm fs-6"><i class="fa-regular fa-clock me-1"></i> ${escapeHtml(r.departureTime)}</span>`;
           } else {
             departBadge = `<span class="badge bg-dark font-monospace text-warning px-2 py-1 shadow-sm fs-6"><i class="fa-regular fa-clock me-1"></i> ${escapeHtml(r.departureTime)}</span>`;
           }
