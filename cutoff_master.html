@@ -35,6 +35,8 @@
     }
     .table-custom {
       font-size: 0.85rem;
+      user-select: text !important;
+      -webkit-user-select: text !important;
     }
     .table-custom th {
       background-color: #0f172a;
@@ -42,10 +44,22 @@
       font-weight: 600;
       vertical-align: middle;
       padding: 10px 8px;
+      user-select: text !important;
+      -webkit-user-select: text !important;
     }
     .table-custom td {
       padding: 8px 8px;
       vertical-align: middle;
+      user-select: text !important;
+      -webkit-user-select: text !important;
+    }
+    ::selection {
+      background: #2563eb !important;
+      color: #ffffff !important;
+    }
+    .badge, .card-custom, .card, div, span, pre, code {
+      user-select: text;
+      -webkit-user-select: text;
     }
     .animate-pulse {
       animation: pulse 1.5s infinite;
@@ -1071,13 +1085,9 @@
       if (autoUpdateTimerId) clearInterval(autoUpdateTimerId);
 
       autoUpdateTimerId = setInterval(() => {
-        // 1. Recalculate countdowns and re-evaluate alerts every second for real-time accuracy
+        // 1. Recalculate countdowns and re-evaluate alert cards
         if (globalCutoffData.length > 0) {
           updateCutoffSummaryKPIs(globalCutoffData);
-        }
-        if (globalTTBLiveData && globalTTBLiveData.rows && globalTTBLiveData.rows.length > 0) {
-          // Re-render live table countdowns without interrupting user filter interactions
-          renderTTBLiveTable();
         }
 
         if (!isAutoUpdateActive) {
@@ -1389,8 +1399,15 @@
 
     function renderCutoffTable(list) {
       const tbody = document.getElementById('cutoffTableBody');
+      if (!tbody) return;
       document.getElementById('cutoffCountText').innerText = `แสดงผล ${list.length.toLocaleString()} จาก ${globalCutoffData.length.toLocaleString()} สถานี`;
       
+      // Do not replace table DOM if user is actively highlighting/selecting text for copying
+      const sel = window.getSelection ? window.getSelection() : null;
+      if (sel && sel.toString() && sel.toString().trim().length > 0) {
+        return;
+      }
+
       if (list.length === 0) {
         tbody.innerHTML = '<tr><td colspan="11" class="text-center py-4 text-muted">ไม่พบข้อมูลตรงตามเงื่อนไขที่ค้นหา</td></tr>';
         return;
@@ -2384,6 +2401,12 @@
 
       const tbody = document.getElementById('ttbLiveTableBody');
       if (!tbody) return;
+
+      // Do not replace table DOM if user is actively highlighting/selecting text for copying
+      const sel = window.getSelection ? window.getSelection() : null;
+      if (sel && sel.toString() && sel.toString().trim().length > 0) {
+        return;
+      }
 
       if (filtered.length === 0) {
         tbody.innerHTML = '<tr><td colspan="14" class="text-center py-5 text-muted"><i class="fa-solid fa-satellite-dish fs-3 mb-2 d-block text-secondary"></i>ไม่พบข้อมูลเที่ยวรถตรงตามเงื่อนไขที่เลือก (กดปุ่ม "ดึงข้อมูลล่าสุดจาก Sheet" เพื่อโหลดข้อมูล)</td></tr>';
