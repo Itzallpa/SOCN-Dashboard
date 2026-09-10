@@ -85,7 +85,10 @@
         <button class="btn btn-outline-danger btn-sm fw-bold" onclick="deleteSelectedOutboundFile()" title="ลบไฟล์หรือโฟลเดอร์ที่เลือกออกจากระบบ">
           <i class="fa-solid fa-trash me-1"></i> ลบที่เลือก
         </button>
-        <label class="btn btn-warning btn-sm fw-bold text-dark mb-0 shadow-sm" title="เลือกทั้งโฟลเดอร์เพื่อสรุปข้อมูลรวมทุกไฟล์ในโฟลเดอร์">
+        <button class="btn btn-warning btn-sm fw-bold text-dark shadow-sm" onclick="openFolderManagerModal()" title="สร้างและจัดการโฟลเดอร์ อัปโหลดไฟล์เข้าโฟลเดอร์ หรือย้ายไฟล์">
+          <i class="fa-solid fa-folder-tree me-1"></i> จัดการ Folder
+        </button>
+        <label class="btn btn-outline-warning btn-sm fw-bold text-dark mb-0 shadow-sm" title="เลือกทั้งโฟลเดอร์จากเครื่องเพื่ออัปโหลด">
           <i class="fa-solid fa-folder-open me-1"></i> อัปโหลด Folder
           <input type="file" id="outboundFolderInput" webkitdirectory directory multiple style="display: none;" onchange="handleOutboundFolderUpload(this.files)">
         </label>
@@ -353,6 +356,116 @@
         <div class="modal-footer bg-white border-top p-2 px-3">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
           <button type="button" class="btn btn-primary btn-sm fw-bold px-3" onclick="submitCustomGroup()"><i class="fa-solid fa-chart-pie me-1"></i> สรุปและประมวลผลกลุ่มที่เลือก</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Folder Manager Modal -->
+  <div class="modal fade" id="folderManagerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+        <div class="modal-header bg-dark text-white p-3">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-folder-tree text-warning me-2"></i> จัดการโฟลเดอร์ข้อมูล (Folder Manager)</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-3 bg-light">
+          <!-- Navigation Tabs within Modal -->
+          <ul class="nav nav-pills nav-fill mb-3 bg-white p-1 rounded-3 border shadow-xs" id="folderManagerTabs">
+            <li class="nav-item">
+              <button class="nav-link active fw-bold small py-2" data-bs-toggle="pill" data-bs-target="#tabCreateFolder">
+                <i class="fa-solid fa-folder-plus me-1 text-warning"></i> 1. สร้าง Folder ใหม่
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link fw-bold small py-2" data-bs-toggle="pill" data-bs-target="#tabUploadFolder">
+                <i class="fa-solid fa-cloud-arrow-up me-1 text-primary"></i> 2. อัปโหลดไฟล์เข้า Folder
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link fw-bold small py-2" data-bs-toggle="pill" data-bs-target="#tabMoveFolder">
+                <i class="fa-solid fa-arrows-split-up-and-left me-1 text-success"></i> 3. ย้ายไฟล์เข้า Folder
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content">
+            <!-- Tab 1: Create Folder -->
+            <div class="tab-pane fade show active" id="tabCreateFolder">
+              <div class="card border p-3 bg-white rounded-3 mb-3 shadow-xs">
+                <h6 class="fw-bold mb-2 text-dark"><i class="fa-solid fa-plus text-primary me-1"></i> เพิ่มโฟลเดอร์ใหม่บนระบบ</h6>
+                <div class="input-group mb-2">
+                  <span class="input-group-text bg-light fw-bold text-muted">uploads/</span>
+                  <input type="text" id="newFolderNameInput" class="form-control" placeholder="ระบุชื่อโฟลเดอร์ เช่น w37, Sep_Week1, Batch_01">
+                  <button class="btn btn-warning fw-bold text-dark px-3" onclick="submitCreateFolder()">
+                    <i class="fa-solid fa-folder-plus me-1"></i> สร้างโฟลเดอร์
+                  </button>
+                </div>
+                <div class="small text-muted">💡 เมื่อสร้างเสร็จ คุณสามารถอัปโหลดไฟล์ CSV/Excel เข้าโฟลเดอร์นี้เพื่อประมวลผลเป็นชุดได้ทันที</div>
+              </div>
+            </div>
+
+            <!-- Tab 2: Upload Files directly into Folder -->
+            <div class="tab-pane fade" id="tabUploadFolder">
+              <div class="card border p-3 bg-white rounded-3 mb-3 shadow-xs">
+                <h6 class="fw-bold mb-2 text-dark"><i class="fa-solid fa-upload text-primary me-1"></i> เลือกโฟลเดอร์ปลายทางที่จะอัปโหลดไฟล์</h6>
+                <div class="row g-2 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">โฟลเดอร์ปลายทาง</label>
+                    <select class="form-select form-select-sm" id="targetUploadFolderSelect">
+                      <!-- Rendered by JS -->
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">เลือกไฟล์ (เลือกได้หลายไฟล์พร้อมกัน)</label>
+                    <input type="file" id="folderMultiFileInput" class="form-control form-control-sm" accept=".csv,.xlsx,.xls" multiple onchange="onFolderFilesSelected(this.files)">
+                  </div>
+                </div>
+                <div id="folderUploadProgressArea" class="d-none mb-2">
+                  <div class="small fw-bold text-primary mb-1" id="folderUploadStatusText">กำลังอัปโหลด...</div>
+                  <div class="progress" style="height: 10px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" id="folderUploadProgressBar" style="width: 0%;"></div>
+                  </div>
+                </div>
+                <button class="btn btn-primary btn-sm fw-bold w-100" id="btnStartFolderUpload" onclick="startUploadFilesToFolder()" disabled>
+                  <i class="fa-solid fa-cloud-arrow-up me-1"></i> เริ่มอัปโหลดไฟล์เข้าโฟลเดอร์ที่เลือก
+                </button>
+              </div>
+            </div>
+
+            <!-- Tab 3: Move Existing Files to Folder -->
+            <div class="tab-pane fade" id="tabMoveFolder">
+              <div class="card border p-3 bg-white rounded-3 mb-3 shadow-xs">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-arrows-left-right text-success me-1"></i> ย้ายไฟล์เดี่ยวเข้าสู่โฟลเดอร์</h6>
+                  <div class="d-flex align-items-center gap-2">
+                    <label class="small fw-bold text-muted mb-0">ย้ายไปยัง:</label>
+                    <select class="form-select form-select-sm" id="targetMoveFolderSelect" style="width: 180px;">
+                      <!-- Rendered by JS -->
+                    </select>
+                  </div>
+                </div>
+                <div class="border rounded-2 p-2 bg-light mb-2" style="max-height: 200px; overflow-y: auto;" id="moveFilesChecklistContainer">
+                  <!-- Rendered by JS -->
+                </div>
+                <button class="btn btn-success btn-sm fw-bold w-100" onclick="submitMoveFilesToFolder()">
+                  <i class="fa-solid fa-check me-1"></i> ย้ายไฟล์ที่เลือกเข้าโฟลเดอร์
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Existing Folders Directory List -->
+          <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
+            <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-folder-tree text-primary me-1"></i> รายการโฟลเดอร์ทั้งหมดบนระบบ</h6>
+            <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:12px;" onclick="refreshFolderManager()"><i class="fa-solid fa-rotate me-1"></i> รีเฟรช</button>
+          </div>
+          <div class="card border p-2 bg-white rounded-3 shadow-xs" style="max-height: 280px; overflow-y: auto;" id="folderManagerListContainer">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+        <div class="modal-footer bg-white border-top p-2 px-3">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
         </div>
       </div>
     </div>
@@ -644,6 +757,302 @@
         }
       })
       .catch(err => showOutboundStatus(`ไม่สามารถรวมกลุ่มได้: ${err.message}`, 'error'));
+    }
+
+    let folderSelectedUploadFiles = [];
+
+    function openFolderManagerModal() {
+      refreshFolderManager();
+      const modalEl = new bootstrap.Modal(document.getElementById('folderManagerModal'));
+      modalEl.show();
+    }
+
+    function refreshFolderManager() {
+      safeFetchJson('/api/list-files')
+        .then(data => {
+          availableGroupFiles = data;
+          renderFolderManagerUI();
+          fetchFileList();
+        })
+        .catch(err => console.error(err));
+    }
+
+    function renderFolderManagerUI() {
+      const folders = availableGroupFiles.folders || availableGroupFiles.outbound_folders || availableGroupFiles.skip_folders || [];
+      const rootFiles = availableGroupFiles.files || availableGroupFiles.outbound_files || availableGroupFiles.skip_files || [];
+
+      // 1. Populate Target Folder Dropdowns
+      const targetUploadSelect = document.getElementById('targetUploadFolderSelect');
+      const targetMoveSelect = document.getElementById('targetMoveFolderSelect');
+      let folderOptionsHtml = folders.length > 0 
+        ? folders.map(f => `<option value="${f.folderName}">📁 ${f.folderName} (${f.fileCount || 0} ไฟล์)</option>`).join('')
+        : '<option value="">-- ยังไม่มีโฟลเดอร์ (กรุณาสร้างโฟลเดอร์ก่อน) --</option>';
+
+      if (targetUploadSelect) targetUploadSelect.innerHTML = folderOptionsHtml;
+      if (targetMoveSelect) targetMoveSelect.innerHTML = folderOptionsHtml;
+
+      // 2. Render Move Checklist
+      const moveContainer = document.getElementById('moveFilesChecklistContainer');
+      if (moveContainer) {
+        if (rootFiles.length === 0) {
+          moveContainer.innerHTML = '<div class="text-center text-muted py-3 small">ไม่มีไฟล์เดี่ยวภายนอกโฟลเดอร์ให้ย้าย</div>';
+        } else {
+          moveContainer.innerHTML = rootFiles.map(c => `
+            <div class="form-check py-1 border-bottom border-light">
+              <input class="form-check-input move-file-cb" type="checkbox" value="${c.filename}" id="move_${c.filename.replace(/[^a-zA-Z0-9]/g, '_')}">
+              <label class="form-check-label small text-dark" for="move_${c.filename.replace(/[^a-zA-Z0-9]/g, '_')}">
+                📄 ${c.basename || c.filename}
+              </label>
+            </div>
+          `).join('');
+        }
+      }
+
+      // 3. Render Folder Directory List
+      const listContainer = document.getElementById('folderManagerListContainer');
+      if (listContainer) {
+        if (folders.length === 0) {
+          listContainer.innerHTML = '<div class="text-center text-muted py-4 small">ยังไม่มีโฟลเดอร์ในระบบ กดแท็บ <b>"1. สร้าง Folder ใหม่"</b> เพื่อเริ่มต้น</div>';
+        } else {
+          listContainer.innerHTML = folders.map((f, idx) => {
+            const childs = f.files || [];
+            return `
+              <div class="border rounded-3 p-2 mb-2 bg-light shadow-xs">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div>
+                    <span class="fw-bold text-dark fs-6"><i class="fa-solid fa-folder text-warning me-1"></i> ${f.folderName}</span>
+                    <span class="badge bg-secondary ms-2">${f.fileCount || 0} ไฟล์</span>
+                  </div>
+                  <div class="d-flex gap-1">
+                    <button class="btn btn-xs btn-outline-primary py-1 px-2" style="font-size:11px;" onclick="loadFolderDirectly('${f.folderName}')">
+                      <i class="fa-solid fa-chart-line me-1"></i> เปิดดูข้อมูล
+                    </button>
+                    <button class="btn btn-xs btn-outline-success py-1 px-2" style="font-size:11px;" onclick="switchTabToUpload('${f.folderName}')">
+                      <i class="fa-solid fa-upload me-1"></i> อัปโหลดเพิ่ม
+                    </button>
+                    <button class="btn btn-xs btn-outline-danger py-1 px-2" style="font-size:11px;" onclick="deleteFolderDirectly('${f.folderName}')">
+                      <i class="fa-solid fa-trash me-1"></i> ลบโฟลเดอร์
+                    </button>
+                  </div>
+                </div>
+                ${childs.length > 0 ? `
+                  <div class="mt-2 ps-3 border-start border-3 border-warning" style="max-height: 120px; overflow-y: auto;">
+                    ${childs.map(c => `
+                      <div class="small text-muted py-1 d-flex justify-content-between align-items-center border-bottom border-light">
+                        <span>📑 ${c.basename}</span>
+                        <button class="btn btn-xs text-danger py-0 px-1 border-0" onclick="deleteSingleFileInsideFolder('${c.filename}')" title="ลบไฟล์นี้"><i class="fa-solid fa-xmark"></i></button>
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : '<div class="small text-muted mt-1 ps-2">(โฟลเดอร์ว่าง ยังไม่มีไฟล์)</div>'}
+              </div>
+            `;
+          }).join('');
+        }
+      }
+    }
+
+    function submitCreateFolder() {
+      const input = document.getElementById('newFolderNameInput');
+      const name = (input ? input.value : '').trim();
+      if (!name) {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({ title: 'กรุณาระบุชื่อ', text: 'กรุณาระบุชื่อโฟลเดอร์ที่ต้องการสร้างครับ', icon: 'warning', confirmButtonColor: '#2563eb', background: '#0d1b2a', color: '#fff' });
+        } else {
+          alert('กรุณาระบุชื่อโฟลเดอร์ที่ต้องการสร้างครับ');
+        }
+        return;
+      }
+
+      safeFetchJson('/api/create-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder_name: name })
+      })
+      .then(data => {
+        if (data.success) {
+          if (input) input.value = '';
+          refreshFolderManager();
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({ title: 'สร้างสำเร็จ!', text: `สร้างโฟลเดอร์ "${data.folderName}" เรียบร้อยแล้ว`, icon: 'success', confirmButtonColor: '#10b981', background: '#0d1b2a', color: '#fff', timer: 1500, showConfirmButton: false });
+          }
+        } else {
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({ title: 'เกิดข้อผิดพลาด', text: data.error, icon: 'error', confirmButtonColor: '#dc2626', background: '#0d1b2a', color: '#fff' });
+          } else {
+            alert(data.error);
+          }
+        }
+      })
+      .catch(err => alert('ไม่สามารถสร้างโฟลเดอร์ได้: ' + err.message));
+    }
+
+    function switchTabToUpload(targetFolder) {
+      const triggerEl = document.querySelector('#folderManagerTabs button[data-bs-target="#tabUploadFolder"]');
+      if (triggerEl) {
+        const tab = new bootstrap.Tab(triggerEl);
+        tab.show();
+      }
+      const sel = document.getElementById('targetUploadFolderSelect');
+      if (sel) sel.value = targetFolder;
+    }
+
+    function onFolderFilesSelected(files) {
+      folderSelectedUploadFiles = Array.from(files || []);
+      const btn = document.getElementById('btnStartFolderUpload');
+      if (btn) {
+        btn.disabled = folderSelectedUploadFiles.length === 0;
+        btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up me-1"></i> เริ่มอัปโหลด ${folderSelectedUploadFiles.length} ไฟล์เข้าโฟลเดอร์`;
+      }
+    }
+
+    async function startUploadFilesToFolder() {
+      const folderName = (document.getElementById('targetUploadFolderSelect')?.value || '').trim();
+      if (!folderName) {
+        alert('กรุณาเลือกโฟลเดอร์ปลายทาง');
+        return;
+      }
+      if (folderSelectedUploadFiles.length === 0) {
+        alert('กรุณาเลือกไฟล์ที่ต้องการอัปโหลด');
+        return;
+      }
+
+      const progressArea = document.getElementById('folderUploadProgressArea');
+      const statusText = document.getElementById('folderUploadStatusText');
+      const progressBar = document.getElementById('folderUploadProgressBar');
+      const startBtn = document.getElementById('btnStartFolderUpload');
+
+      if (progressArea) progressArea.classList.remove('d-none');
+      if (startBtn) startBtn.disabled = true;
+
+      try {
+        for (let fIdx = 0; fIdx < folderSelectedUploadFiles.length; fIdx++) {
+          const file = folderSelectedUploadFiles[fIdx];
+          const fileNum = fIdx + 1;
+          await uploadSingleFileChunks(file, 'outbound', folderName, (pct) => {
+            if (statusText) statusText.innerText = `กำลังอัปโหลด [${fileNum}/${folderSelectedUploadFiles.length}] "${file.name}" (${pct}%)...`;
+            const overallPct = Math.round(((fIdx + pct / 100) / folderSelectedUploadFiles.length) * 100);
+            if (progressBar) progressBar.style.width = `${overallPct}%`;
+          });
+        }
+
+        if (statusText) statusText.innerText = `✅ อัปโหลดครบทั้ง ${folderSelectedUploadFiles.length} ไฟล์เข้าโฟลเดอร์ "${folderName}" สำเร็จ!`;
+        if (progressBar) progressBar.style.width = '100%';
+
+        folderSelectedUploadFiles = [];
+        const fileInput = document.getElementById('folderMultiFileInput');
+        if (fileInput) fileInput.value = '';
+        if (startBtn) {
+          startBtn.disabled = true;
+          startBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up me-1"></i> เริ่มอัปโหลดไฟล์เข้าโฟลเดอร์ที่เลือก';
+        }
+
+        refreshFolderManager();
+
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({
+            title: 'อัปโหลดสำเร็จ!',
+            text: `อัปโหลดไฟล์เข้าโฟลเดอร์ "${folderName}" เรียบร้อยแล้ว`,
+            icon: 'success',
+            confirmButtonColor: '#10b981',
+            background: '#0d1b2a',
+            color: '#fff'
+          });
+        }
+      } catch (err) {
+        if (statusText) statusText.innerText = `เกิดข้อผิดพลาด: ${err.message}`;
+        if (startBtn) startBtn.disabled = false;
+      }
+    }
+
+    function submitMoveFilesToFolder() {
+      const cbs = document.querySelectorAll('.move-file-cb:checked');
+      const files = Array.from(cbs).map(cb => cb.value);
+      if (files.length === 0) {
+        alert('กรุณาเลือกไฟล์ที่ต้องการย้าย');
+        return;
+      }
+      const folderName = (document.getElementById('targetMoveFolderSelect')?.value || '').trim();
+      if (!folderName) {
+        alert('กรุณาเลือกโฟลเดอร์ปลายทาง');
+        return;
+      }
+
+      safeFetchJson('/api/move-file-to-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: files, folder_name: folderName })
+      })
+      .then(data => {
+        if (data.success) {
+          refreshFolderManager();
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({ title: 'ย้ายไฟล์สำเร็จ!', text: `ย้าย ${data.movedCount} ไฟล์เข้าสู่โฟลเดอร์ "${folderName}" เรียบร้อยแล้ว`, icon: 'success', confirmButtonColor: '#10b981', background: '#0d1b2a', color: '#fff' });
+          }
+        } else {
+          alert(data.error);
+        }
+      })
+      .catch(err => alert('เกิดข้อผิดพลาด: ' + err.message));
+    }
+
+    function loadFolderDirectly(folderName) {
+      const modalEl = bootstrap.Modal.getInstance(document.getElementById('folderManagerModal'));
+      if (modalEl) modalEl.hide();
+      switchOutboundFile(`folder:${folderName}`);
+    }
+
+    function deleteFolderDirectly(folderName) {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          title: '⚠️ ลบทั้งโฟลเดอร์ถาวร?',
+          html: `คุณต้องการลบโฟลเดอร์ <b>"${folderName}"</b> พร้อมไฟล์ทั้งหมดข้างในใช่หรือไม่?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc2626',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: 'ใช่, ลบทั้งโฟลเดอร์',
+          cancelButtonText: 'ยกเลิก',
+          background: '#0d1b2a',
+          color: '#fff'
+        }).then(res => {
+          if (res.isConfirmed) {
+            safeFetchJson('/api/delete-file', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ filename: `folder:${folderName}` })
+            }).then(data => {
+              if (data.success) {
+                refreshFolderManager();
+                Swal.fire({ title: 'ลบสำเร็จ!', text: `ลบโฟลเดอร์ "${folderName}" เรียบร้อยแล้ว`, icon: 'success', confirmButtonColor: '#10b981', background: '#0d1b2a', color: '#fff' });
+              } else {
+                Swal.fire({ title: 'เกิดข้อผิดพลาด', text: data.error, icon: 'error', confirmButtonColor: '#dc2626', background: '#0d1b2a', color: '#fff' });
+              }
+            });
+          }
+        });
+      } else {
+        if (confirm(`คุณต้องการลบโฟลเดอร์ "${folderName}" ใช่หรือไม่?`)) {
+          safeFetchJson('/api/delete-file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: `folder:${folderName}` })
+          }).then(() => refreshFolderManager());
+        }
+      }
+    }
+
+    function deleteSingleFileInsideFolder(filename) {
+      if (confirm(`คุณต้องการลบไฟล์ "${filename}" ใช่หรือไม่?`)) {
+        safeFetchJson('/api/delete-file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: filename })
+        }).then(data => {
+          if (data.success) refreshFolderManager();
+          else alert(data.error);
+        });
+      }
     }
 
     function loadDefaultOutbound() {

@@ -1802,15 +1802,14 @@ def list_files():
                             "size": os.path.getsize(f_p),
                             "mtime": os.path.getmtime(f_p)
                         })
-                if child_files:
-                    folder_list.append({
-                        "folderName": item,
-                        "filename": f"folder:{item}",
-                        "displayName": f"📁 ทั้งโฟลเดอร์: {item} ({len(child_files)} ไฟล์รวมกัน)",
-                        "fileCount": len(child_files),
-                        "mtime": os.path.getmtime(item_path),
-                        "files": child_files
-                    })
+                folder_list.append({
+                    "folderName": item,
+                    "filename": f"folder:{item}",
+                    "displayName": f"📁 ทั้งโฟลเดอร์: {item} ({len(child_files)} ไฟล์)",
+                    "fileCount": len(child_files),
+                    "mtime": os.path.getmtime(item_path),
+                    "files": child_files
+                })
             elif item.lower().endswith(('.csv', '.xlsx', '.xls')):
                 file_list.append({
                     "filename": item,
@@ -1846,6 +1845,69 @@ def list_files():
         "skip_files": file_list,
         "skip_folders": folder_list
     })
+
+
+@app.route("/api/create-folder", methods=["POST"])
+def create_folder():
+    """Create a new folder in uploads directory."""
+    data = request.get_json() or {}
+    folder_name = (data.get("folder_name") or data.get("folderName") or data.get("name") or "").strip()
+    if not folder_name:
+        return jsonify({"success": False, "error": "กรุณาระบุชื่อโฟลเดอร์"}), 400
+
+    folder_clean = re.sub(r'[\\/:*?"<>|]', '_', folder_name).strip()
+    if not folder_clean:
+        return jsonify({"success": False, "error": "ชื่อโฟลเดอร์มีอักขระที่ไม่ถูกต้อง"}), 400
+
+    target_dir = os.path.join(UPLOAD_FOLDER, folder_clean)
+    if os.path.exists(target_dir):
+        return jsonify({"success": False, "error": f"โฟลเดอร์ '{folder_clean}' มีอยู่แล้วในระบบ"}), 400
+
+    try:
+        os.makedirs(target_dir, exist_ok=True)
+        log_activity("FOLDER_CREATE", f"📁 สร้างโฟลเดอร์ใหม่: {folder_clean}")
+        return jsonify({"success": True, "folderName": folder_clean, "message": f"สร้างโฟลเดอร์ '{folder_clean}' เรียบร้อยแล้ว"})
+    except Exception as e:
+        return jsonify({"success": False, "error": f"ไม่สามารถสร้างโฟลเดอร์ได้: {str(e)}"}), 500
+
+
+@app.route("/api/move-file-to-folder", methods=["POST"])
+def move_file_to_folder():
+    """Move one or more files into a specified folder."""
+    data = request.get_json() or {}
+    files = data.get("files", [])
+    if isinstance(data.get("filename"), str) and data.get("filename"):
+        files.append(data.get("filename"))
+    folder_name = (data.get("folder_name") or data.get("folderName") or "").strip()
+    if not folder_name:
+        return jsonify({"success": False, "error": "กรุณาระบุโฟลเดอร์ปลายทาง"}), 400
+
+    folder_clean = re.sub(r'[\\/:*?"<>|]', '_', folder_name).strip()
+    target_dir = os.path.join(UPLOAD_FOLDER, folder_clean)
+    os.makedirs(target_dir, exist_ok=True)
+
+    moved_count = 0
+    import shutil
+    for fn in files:
+        src = resolve_file_path(fn)
+        if src and os.path.exists(src) and os.path.isfile(src):
+            dest = os.path.join(target_dir, os.path.basename(src))
+            if src != dest:
+                try:
+                    shutil.move(src, dest)
+                    moved_count += 1
+                except Exception as e:
+                    print(f"Error moving {src} to {dest}:", e)
+
+    FILE_PARSED_CACHE.clear()
+    log_activity("FOLDER_MOVE_FILES", f"🚚 ย้าย {moved_count} ไฟล์เข้าสู่โฟลเดอร์ '{folder_clean}'")
+    return jsonify({
+        "success": True,
+        "movedCount": moved_count,
+        "folderName": folder_clean,
+        "message": f"ย้าย {moved_count} ไฟล์เข้าสู่โฟลเดอร์ '{folder_clean}' เรียบร้อยแล้ว"
+    })
+
 
 
 @app.route("/api/delete-file", methods=["POST"])
