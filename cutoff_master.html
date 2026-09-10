@@ -221,20 +221,27 @@
           <i class="fa-solid fa-satellite-dish text-success fs-5"></i>
         </div>
         <div>
-          <div class="fw-bold d-flex align-items-center gap-2">
+          <div class="fw-bold d-flex align-items-center gap-2 flex-wrap">
             <span>Google Sheet Live Sync: <b class="text-warning">TTB - Registration</b></span>
             <span class="badge bg-success shadow-sm" id="gsheetStatusBadge">🟢 พร้อมใช้งาน</span>
+            <span class="badge bg-primary bg-opacity-75 shadow-sm d-inline-flex align-items-center gap-1" id="autoUpdatePulseBadge" style="cursor:pointer;" onclick="toggleAutoUpdate()" title="คลิกเพื่อหยุดชั่วคราวหรือเปิด Auto-Update">
+              <span class="spinner-grow spinner-grow-sm text-white" id="autoUpdateSpinner" style="width: 0.55rem; height: 0.55rem;" role="status"></span>
+              <span id="autoUpdateStatusText">Live Auto-Update: <b id="autoUpdateCountdownText">10s</b></span>
+            </span>
           </div>
           <div class="text-white-50 small" id="gsheetLastSyncText">
             ซิงค์ล่าสุด: <span class="text-white font-monospace" id="gsheetSyncTimestamp">ยังไม่ได้ซิงค์</span> | ข้อมูลรอบ Cutoff & รถวิ่งจะอัปเดตตรงกับในชีทอัตโนมัติ
           </div>
         </div>
       </div>
-      <div class="d-flex gap-2 align-items-center">
+      <div class="d-flex gap-2 align-items-center flex-wrap">
         <span class="badge bg-light text-dark font-monospace" id="gsheetTotalTripsBadge">0 เที่ยวรถ</span>
         <span class="badge bg-primary" id="gsheetZoneStatsBadge">Zone A: 0 | B: 0 | C: 0</span>
-        <button class="btn btn-sm btn-outline-light fw-bold" onclick="syncFromGoogleSheet()">
-          <i class="fa-solid fa-arrows-rotate me-1"></i> กดดึงข้อมูลใหม่
+        <button class="btn btn-sm btn-outline-warning fw-bold py-1 px-2" id="btnToggleAutoUpdate" onclick="toggleAutoUpdate()" title="เปิด/ปิด การอัปเดตตารางอัตโนมัติ">
+          <i class="fa-solid fa-play me-1" id="iconToggleAutoUpdate"></i> <span id="textToggleAutoUpdate">อัปเดตตลอด</span>
+        </button>
+        <button class="btn btn-sm btn-outline-light fw-bold py-1 px-2" onclick="syncFromGoogleSheet(false)">
+          <i class="fa-solid fa-arrows-rotate me-1"></i> ดึงข้อมูลทันที
         </button>
       </div>
     </div>
@@ -1041,26 +1048,101 @@
     let globalTTBData = {};
     let activeTTBDay = 'Wed-Sat TTB';
     let uploadModalInstance = null;
+    let isAutoUpdateActive = true;
+    let autoUpdateIntervalSec = 10;
+    let autoUpdateCountdown = 10;
+    let cutoffSyncIntervalSec = 30;
+    let cutoffSyncCountdown = 30;
+    let gsheetSyncIntervalSec = 120;
+    let gsheetSyncCountdown = 120;
+    let autoUpdateTimerId = null;
 
     document.addEventListener('DOMContentLoaded', () => {
       uploadModalInstance = new bootstrap.Modal(document.getElementById('uploadCutoffModal'));
       startLiveClock();
       loadTTBConfig();
-      fetchCutoffData();
+      fetchCutoffData(false);
       fetchTTBData();
-      fetchTTBLiveData();
+      fetchTTBLiveData(false);
+      startAutoUpdateLoop();
+    });
 
-      // Recalculate countdown every 10 seconds for real-time accuracy
-      setInterval(() => {
+    function startAutoUpdateLoop() {
+      if (autoUpdateTimerId) clearInterval(autoUpdateTimerId);
+
+      autoUpdateTimerId = setInterval(() => {
+        // 1. Recalculate countdowns and re-evaluate alerts every second for real-time accuracy
         if (globalCutoffData.length > 0) {
           updateCutoffSummaryKPIs(globalCutoffData);
-          filterCutoffTable();
         }
         if (globalTTBLiveData && globalTTBLiveData.rows && globalTTBLiveData.rows.length > 0) {
+          // Re-render live table countdowns without interrupting user filter interactions
           renderTTBLiveTable();
         }
-      }, 10000);
-    });
+
+        if (!isAutoUpdateActive) {
+          const cdText = document.getElementById('autoUpdateCountdownText');
+          if (cdText) cdText.innerText = 'หยุดชั่วคราว';
+          return;
+        }
+
+        // 2. Decrement countdown timers
+        autoUpdateCountdown--;
+        cutoffSyncCountdown--;
+        gsheetSyncCountdown--;
+
+        const cdText = document.getElementById('autoUpdateCountdownText');
+        if (cdText) cdText.innerText = `${autoUpdateCountdown}s`;
+
+        // 3. Trigger TTB Live Data silent fetch from backend
+        if (autoUpdateCountdown <= 0) {
+          autoUpdateCountdown = autoUpdateIntervalSec;
+          fetchTTBLiveData(true);
+        }
+
+        // 4. Trigger Cutoff Master schedule silent fetch from backend
+        if (cutoffSyncCountdown <= 0) {
+          cutoffSyncCountdown = cutoffSyncIntervalSec;
+          fetchCutoffData(true);
+        }
+
+        // 5. Trigger Google Sheet silent sync if enabled in settings
+        if (gsheetSyncCountdown <= 0) {
+          const intervalMins = ttbGlobalConfig.intervalMinutes || 2;
+          gsheetSyncIntervalSec = Math.max(intervalMins * 60, 60);
+          gsheetSyncCountdown = gsheetSyncIntervalSec;
+          
+          if (ttbGlobalConfig.autoSync !== false && (ttbGlobalConfig.url || ttbGlobalConfig.appsScriptUrl)) {
+            syncFromGoogleSheet(true);
+          }
+        }
+      }, 1000);
+    }
+
+    function toggleAutoUpdate() {
+      isAutoUpdateActive = !isAutoUpdateActive;
+      const pulseBadge = document.getElementById('autoUpdatePulseBadge');
+      const spinner = document.getElementById('autoUpdateSpinner');
+      const iconBtn = document.getElementById('iconToggleAutoUpdate');
+      const textBtn = document.getElementById('textToggleAutoUpdate');
+      const cdText = document.getElementById('autoUpdateCountdownText');
+
+      if (isAutoUpdateActive) {
+        autoUpdateCountdown = autoUpdateIntervalSec;
+        if (pulseBadge) pulseBadge.className = 'badge bg-primary bg-opacity-75 shadow-sm d-inline-flex align-items-center gap-1';
+        if (spinner) spinner.className = 'spinner-grow spinner-grow-sm text-white';
+        if (iconBtn) iconBtn.className = 'fa-solid fa-pause me-1';
+        if (textBtn) textBtn.innerText = 'หยุดชั่วคราว';
+        if (cdText) cdText.innerText = `${autoUpdateCountdown}s`;
+        fetchTTBLiveData(true);
+      } else {
+        if (pulseBadge) pulseBadge.className = 'badge bg-secondary shadow-sm d-inline-flex align-items-center gap-1';
+        if (spinner) spinner.className = 'd-none';
+        if (iconBtn) iconBtn.className = 'fa-solid fa-play me-1';
+        if (textBtn) textBtn.innerText = 'เปิดอัปเดตสด';
+        if (cdText) cdText.innerText = 'หยุดชั่วคราว';
+      }
+    }
 
     function startLiveClock() {
       const updateClock = () => {
@@ -1095,20 +1177,25 @@
       });
     }
 
-    function fetchCutoffData() {
-      safeFetchJson('/api/cutoff-schedule')
+    function fetchCutoffData(isSilent = false) {
+      return safeFetchJson('/api/cutoff-schedule')
         .then(data => {
           if (data.success && data.data) {
             globalCutoffData = data.data;
-            document.getElementById('tabCutoffCount').innerText = data.total.toLocaleString();
-            document.getElementById('kpiTotalStations').innerText = `${data.total.toLocaleString()} สถานี`;
+            const tabCnt = document.getElementById('tabCutoffCount');
+            if (tabCnt) tabCnt.innerText = (data.total || 0).toLocaleString();
+            const kpiTot = document.getElementById('kpiTotalStations');
+            if (kpiTot) kpiTot.innerText = `${(data.total || 0).toLocaleString()} สถานี`;
             
-            if (data.is_custom) {
-              document.getElementById('masterDataSourceBadge').innerText = 'Custom Uploaded';
-              document.getElementById('masterDataSourceBadge').className = 'badge bg-success';
-            } else {
-              document.getElementById('masterDataSourceBadge').innerText = 'System Default';
-              document.getElementById('masterDataSourceBadge').className = 'badge bg-primary';
+            const srcBadge = document.getElementById('masterDataSourceBadge');
+            if (srcBadge) {
+              if (data.is_custom) {
+                srcBadge.innerText = 'Custom Uploaded';
+                srcBadge.className = 'badge bg-success';
+              } else {
+                srcBadge.innerText = 'System Default';
+                srcBadge.className = 'badge bg-primary';
+              }
             }
 
             populateDynamicZoneFilters(globalCutoffData);
@@ -1117,8 +1204,13 @@
           }
         })
         .catch(err => {
-          console.error(err);
-          document.getElementById('cutoffTableBody').innerHTML = `<tr><td colspan="11" class="text-center py-4 text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${err.message}</td></tr>`;
+          if (!isSilent) {
+            console.error(err);
+            const tbody = document.getElementById('cutoffTableBody');
+            if (tbody && globalCutoffData.length === 0) {
+              tbody.innerHTML = `<tr><td colspan="11" class="text-center py-4 text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${err.message}</td></tr>`;
+            }
+          }
         });
     }
 
@@ -1614,10 +1706,10 @@
         .catch(err => console.error('Error loading TTB config:', err));
     }
 
-    function syncFromGoogleSheet() {
+    function syncFromGoogleSheet(isSilent = false) {
       const btn = document.getElementById('btnSyncGoogleSheet');
       const icon = document.getElementById('iconSyncSpinner');
-      if (btn) btn.disabled = true;
+      if (!isSilent && btn) btn.disabled = true;
       if (icon) icon.className = 'fa-solid fa-rotate fa-spin me-1';
 
       const performClientSideFetch = (targetUrl) => {
@@ -1636,22 +1728,24 @@
           });
       };
 
-      safeFetchJson('/api/ttb-registration/sync', { method: 'POST' })
+      return safeFetchJson('/api/ttb-registration/sync', { method: 'POST' })
         .then(res => {
           if (res.success && res.data) {
             globalTTBLiveData = res.data;
             updateTTBSyncUI(res.data);
-            fetchCutoffData(); // Reload Cutoff master table since cutoffs were updated
+            fetchCutoffData(true); // Reload Cutoff master table since cutoffs were updated
             renderTTBLiveTable();
-            if (typeof Swal !== 'undefined') {
-              Swal.fire({
-                icon: 'success',
-                title: 'ซิงค์ข้อมูลสำเร็จ!',
-                text: res.message,
-                confirmButtonColor: '#10b981'
-              });
-            } else {
-              alert('✅ ' + res.message);
+            if (!isSilent) {
+              if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                  icon: 'success',
+                  title: 'ซิงค์ข้อมูลสำเร็จ!',
+                  text: res.message,
+                  confirmButtonColor: '#10b981'
+                });
+              } else {
+                alert('✅ ' + res.message);
+              }
             }
           }
         })
@@ -1665,55 +1759,61 @@
                 if (savedRes.success && savedRes.data) {
                   globalTTBLiveData = savedRes.data;
                   updateTTBSyncUI(savedRes.data);
-                  fetchCutoffData();
+                  fetchCutoffData(true);
                   renderTTBLiveTable();
-                  if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                      icon: 'success',
-                      title: 'ซิงค์ข้อมูลสำเร็จ (Browser Session)!',
-                      text: savedRes.message,
-                      confirmButtonColor: '#10b981'
-                    });
-                  } else {
-                    alert('✅ ' + savedRes.message);
+                  if (!isSilent) {
+                    if (typeof Swal !== 'undefined') {
+                      Swal.fire({
+                        icon: 'success',
+                        title: 'ซิงค์ข้อมูลสำเร็จ (Browser Session)!',
+                        text: savedRes.message,
+                        confirmButtonColor: '#10b981'
+                      });
+                    } else {
+                      alert('✅ ' + savedRes.message);
+                    }
                   }
                 }
               })
               .catch(clientErr => {
                 console.error(clientErr);
-                if (typeof Swal !== 'undefined') {
-                  Swal.fire({
-                    icon: 'error',
-                    title: 'ไม่สามารถซิงค์ข้อมูลได้',
-                    html: `${clientErr.message || err.message}<br><br><button class="btn btn-sm btn-primary" onclick="openTTBConfigModal(); Swal.close();">⚙️ ตรวจสอบการตั้งค่า Web App URL</button>`,
-                    confirmButtonColor: '#dc2626'
-                  });
-                } else {
-                  alert('❌ ' + (clientErr.message || err.message));
+                if (!isSilent) {
+                  if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                      icon: 'error',
+                      title: 'ไม่สามารถซิงค์ข้อมูลได้',
+                      html: `${clientErr.message || err.message}<br><br><button class="btn btn-sm btn-primary" onclick="openTTBConfigModal(); Swal.close();">⚙️ ตรวจสอบการตั้งค่า Web App URL</button>`,
+                      confirmButtonColor: '#dc2626'
+                    });
+                  } else {
+                    alert('❌ ' + (clientErr.message || err.message));
+                  }
                 }
               });
           }
 
           console.error(err);
-          if (typeof Swal !== 'undefined') {
-            Swal.fire({
-              icon: 'error',
-              title: 'ไม่สามารถซิงค์ข้อมูลได้',
-              html: `${err.message}<br><br><button class="btn btn-sm btn-primary" onclick="openTTBConfigModal(); Swal.close();">⚙️ ตรวจสอบการตั้งค่า Web App URL</button>`,
-              confirmButtonColor: '#dc2626'
-            });
-          } else {
-            alert('❌ ' + err.message);
+          if (!isSilent) {
+            if (typeof Swal !== 'undefined') {
+              Swal.fire({
+                icon: 'error',
+                title: 'ไม่สามารถซิงค์ข้อมูลได้',
+                html: `${err.message}<br><br><button class="btn btn-sm btn-primary" onclick="openTTBConfigModal(); Swal.close();">⚙️ ตรวจสอบการตั้งค่า Web App URL</button>`,
+                confirmButtonColor: '#dc2626'
+              });
+            } else {
+              alert('❌ ' + err.message);
+            }
           }
         })
         .finally(() => {
-          if (btn) btn.disabled = false;
+          if (!isSilent && btn) btn.disabled = false;
           if (icon) icon.className = 'fa-solid fa-rotate me-1';
         });
     }
 
-    function fetchTTBLiveData() {
-      safeFetchJson('/api/ttb-registration/live')
+    function fetchTTBLiveData(isSilent = false) {
+      return safeFetchJson('/api/ttb-registration/live')
         .then(res => {
           if (res.success && res.data) {
             globalTTBLiveData = res.data;
@@ -1721,7 +1821,9 @@
             renderTTBLiveTable();
           }
         })
-        .catch(err => console.error('Error fetching live TTB data:', err));
+        .catch(err => {
+          if (!isSilent) console.error('Error fetching live TTB data:', err);
+        });
     }
 
     function updateTTBSyncUI(data) {
