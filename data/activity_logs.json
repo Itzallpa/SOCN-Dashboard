@@ -1,5 +1,45 @@
 [
   {
+    "id": "c84f0012",
+    "timestamp": "2026-09-12 13:31:33",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "86ad26b6",
+    "timestamp": "2026-09-12 13:31:33",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "f7bf10c5",
+    "timestamp": "2026-09-12 13:31:30",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Ground",
+    "action": "LOGOUT",
+    "details": "User logged out (admin@spxexpress.com)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "dad12315",
+    "timestamp": "2026-09-12 13:31:30",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Ground",
+    "action": "IDLE_AUTO_LOGOUT",
+    "details": "ผู้ใช้งานกด Logout",
+    "ip": "112.121.130.34"
+  },
+  {
     "id": "0e449888",
     "timestamp": "2026-09-12 13:28:33",
     "email": "admin@spxexpress.com",
