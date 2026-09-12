@@ -1175,37 +1175,7 @@
       }
     }
 
-    function syncGoogleSheetData() {
-      const btn = document.getElementById('btnSyncGoogleSheet');
-      const originalHtml = btn.innerHTML;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังซิงค์...';
-      btn.disabled = true;
 
-      fetch('/api/hourly-tracker/sync-google-sheet', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-      })
-      .then(res => res.json())
-      .then(data => {
-        btn.innerHTML = originalHtml;
-        btn.disabled = false;
-        if (data.success) {
-          loadHourlyTrackerData();
-          if (typeof Swal !== 'undefined') {
-            Swal.fire({
-              icon: 'success',
-              title: 'ซิงค์ข้อมูล Google Sheet สำเร็จ!',
-              html: `ยอดปล่อยรวม 24 ชม.: <b>${(data.data?.totalOrders || 0).toLocaleString()} ชิ้น</b>`,
-              timer: 2500,
-              showConfirmButton: false
-            });
-          }
-        } else {
-          if (typeof Swal !== 'undefined') {
-            Swal.fire('ข้อผิดพลาด', data.error || 'ไม่สามารถซิงค์ได้', 'error');
-          } else {
-    }
 
     // ==========================================
     // ⏱️ SLA CUTOFF COUNTDOWN & RUN-RATE TICKER
