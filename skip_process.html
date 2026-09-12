@@ -1370,6 +1370,7 @@
           counts[z] = (counts[z] || 0) + 1;
         });
       }
+      window.lastSummaryCounts = Object.assign({}, counts);
 
       const sumABC = (counts['A'] || 0) + (counts['B'] || 0) + (counts['C'] || 0);
       const allPercentVal = actual > 0 ? (sumABC / actual) * 100 : 0;
@@ -1753,9 +1754,13 @@
         dateVal = new Date().toISOString().split('T')[0];
       }
 
-      // 3. Get Skip Counts by Zone and Total
+      // 3. Get Skip Counts by Zone and Total from authoritative state
       let counts = { 'A': 0, 'B': 0, 'C': 0, 'INTERSOC': 0, 'RETURN': 0 };
-      if (rawSkipRows && rawSkipRows.length > 0) {
+      if (skipDataState && skipDataState.skipCountByZone && Object.keys(skipDataState.skipCountByZone).length > 0) {
+        Object.assign(counts, skipDataState.skipCountByZone);
+      } else if (window.lastSummaryCounts && Object.keys(window.lastSummaryCounts).length > 0) {
+        Object.assign(counts, window.lastSummaryCounts);
+      } else if (rawSkipRows && rawSkipRows.length > 0) {
         rawSkipRows.forEach(r => {
           let z = String(r.zone || r.obd_zone || '').toUpperCase();
           if (!z || z === 'UNDEFINED' || z === 'N/A') {
@@ -1768,7 +1773,11 @@
       }
 
       const sumABC = (counts['A'] || 0) + (counts['B'] || 0) + (counts['C'] || 0);
-      const overallPct = actualVal > 0 ? (sumABC / actualVal) * 100 : 0;
+      const totalAll = (skipDataState && typeof skipDataState.totalSkipCases === 'number' && skipDataState.totalSkipCases > 0)
+        ? skipDataState.totalSkipCases
+        : (sumABC + (counts['INTERSOC'] || 0) + (counts['RETURN'] || 0));
+
+      const overallPct = actualVal > 0 ? (totalAll / actualVal) * 100 : 0;
 
       const zonesPayload = {};
       for (const [zKey, zCount] of Object.entries(counts)) {
@@ -1779,7 +1788,8 @@
       return {
         date: dateVal,
         actualVolume: actualVal,
-        overallSkipCount: sumABC,
+        overallSkipCount: totalAll,
+        sumABC: sumABC,
         overallPct: parseFloat(overallPct.toFixed(2)),
         zones: zonesPayload
       };

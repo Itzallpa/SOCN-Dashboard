@@ -915,68 +915,91 @@ def process_file_list(files_or_names, group_name="กลุ่มไฟล์ท
     report_dates = []
     needed_patterns = ['ontime', 'cutoff', 'outbound', 'station', 'dest', 'late', 'route', 'shipment', 'tracking', 'received', 'pack', 'team', 'zone', 'to_number', 'report_date']
     
+    col_mapping_rules = {
+        'is_soc_outbound_ontime': ['is_soc_outbound_ontime', 'is_ontime', 'ontime', 'is_soc_outbound_2nd_ontime'],
+        'soc_outbound_based_received_2nd_cut_off_timestamp': ['soc_outbound_based_received_2nd_cut_off_timestamp', 'soc_outbound_based_received_cut_off_timestamp', 'cutoff_timestamp', 'cut_off_2'],
+        'first_soc_outbound_timestamp': ['first_soc_outbound_timestamp', 'first_outbound_timestamp', 'outbound_timestamp'],
+        'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
+        'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
+        'soc_outbound_route_type': ['soc_outbound_route_type', 'route_type', 'route'],
+        'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
+        'first_soc_received_timestamp': ['first_soc_received_timestamp', 'received_timestamp', 'inbound_timestamp'],
+        'recieve_team': ['recieve_team', 'receive_team', 'obd_zone', 'zone'],
+        'latest_to_number': ['latest_to_number', 'to_number', 'to_no'],
+        'report_date': ['report_date', 'date']
+    }
+
     for f in sorted(resolved_paths):
         try:
             if f.lower().endswith('.csv'):
                 h = pd.read_csv(f, nrows=0)
                 usecols = [c for c in h.columns if any(p in str(c).lower() for p in needed_patterns)]
-                sub_df = pd.read_csv(f, usecols=usecols if usecols else None, low_memory=False, on_bad_lines='skip')
+                for chunk in pd.read_csv(f, usecols=usecols if usecols else None, chunksize=50000, low_memory=False, on_bad_lines='skip'):
+                    if chunk.empty:
+                        continue
+                    col_map = {}
+                    target_used = set()
+                    for col in chunk.columns:
+                        c_clean = str(col).strip().lower()
+                        for target_name, cands in col_mapping_rules.items():
+                            if c_clean in cands and target_name not in target_used:
+                                col_map[col] = target_name
+                                target_used.add(target_name)
+                                break
+                    if col_map:
+                        chunk = chunk.rename(columns=col_map)
+                    chunk = chunk.loc[:, ~chunk.columns.duplicated()]
+
+                    if 'report_date' in chunk.columns and len(report_dates) < 5:
+                        vds = chunk['report_date'].dropna()
+                        if len(vds) > 0:
+                            report_dates.append(str(vds.iloc[0]))
+
+                    for req in ['is_soc_outbound_ontime', 'soc_outbound_late_type_2nd_cutoff', 'shipment_id', 'dest_station_name', 'first_soc_outbound_timestamp', 'soc_outbound_based_received_2nd_cut_off_timestamp']:
+                        if req not in chunk.columns:
+                            chunk[req] = ''
+
+                    ontime_str = chunk["is_soc_outbound_ontime"].astype(str).str.strip().str.upper()
+                    reason_str = chunk["soc_outbound_late_type_2nd_cutoff"].astype(str).str.strip().str.lower()
+                    is_late_mask = ontime_str.isin(["FALSE", "0"]) | (reason_str.notna() & ~reason_str.isin(["", "none", "nan"]))
+                    
+                    if is_late_mask.any():
+                        late_chunk = chunk[is_late_mask].copy()
+                        late_chunk['source_file'] = os.path.basename(f)
+                        dfs.append(late_chunk)
             else:
                 sub_df = read_dataframe(f)
+                if sub_df is not None and not sub_df.empty:
+                    col_map = {}
+                    target_used = set()
+                    for col in sub_df.columns:
+                        c_clean = str(col).strip().lower()
+                        for target_name, cands in col_mapping_rules.items():
+                            if c_clean in cands and target_name not in target_used:
+                                col_map[col] = target_name
+                                target_used.add(target_name)
+                                break
+                    if col_map:
+                        sub_df = sub_df.rename(columns=col_map)
+                    sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
 
-            if sub_df is not None and not sub_df.empty:
-                col_map = {}
-                target_used = set()
-                for col in sub_df.columns:
-                    c_clean = str(col).strip().lower()
-                    target = None
-                    if c_clean in ['is_soc_outbound_ontime', 'is_ontime', 'ontime', 'is_soc_outbound_2nd_ontime']:
-                        target = 'is_soc_outbound_ontime'
-                    elif c_clean in ['soc_outbound_based_received_2nd_cut_off_timestamp', 'soc_outbound_based_received_cut_off_timestamp', 'cutoff_timestamp', 'cut_off_2']:
-                        target = 'soc_outbound_based_received_2nd_cut_off_timestamp'
-                    elif c_clean in ['first_soc_outbound_timestamp', 'first_outbound_timestamp', 'outbound_timestamp']:
-                        target = 'first_soc_outbound_timestamp'
-                    elif c_clean in ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination']:
-                        target = 'dest_station_name'
-                    elif c_clean in ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason']:
-                        target = 'soc_outbound_late_type_2nd_cutoff'
-                    elif c_clean in ['soc_outbound_route_type', 'route_type', 'route']:
-                        target = 'soc_outbound_route_type'
-                    elif c_clean in ['shipment_id', 'tracking_id', 'tracking_no', 'waybill']:
-                        target = 'shipment_id'
-                    elif c_clean in ['first_soc_received_timestamp', 'received_timestamp', 'inbound_timestamp']:
-                        target = 'first_soc_received_timestamp'
-                    elif c_clean in ['recieve_team', 'receive_team', 'obd_zone', 'zone']:
-                        target = 'recieve_team'
-                    elif c_clean in ['latest_to_number', 'to_number', 'to_no']:
-                        target = 'latest_to_number'
-                    elif c_clean in ['report_date', 'date']:
-                        target = 'report_date'
+                    if 'report_date' in sub_df.columns:
+                        vds = sub_df['report_date'].dropna()
+                        if len(vds) > 0:
+                            report_dates.append(str(vds.iloc[0]))
 
-                    if target and target not in target_used:
-                        col_map[col] = target
-                        target_used.add(target)
+                    for req in ['is_soc_outbound_ontime', 'soc_outbound_late_type_2nd_cutoff', 'shipment_id', 'dest_station_name', 'first_soc_outbound_timestamp', 'soc_outbound_based_received_2nd_cut_off_timestamp']:
+                        if req not in sub_df.columns:
+                            sub_df[req] = ''
 
-                if col_map:
-                    sub_df = sub_df.rename(columns=col_map)
-                sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
-
-                if 'report_date' in sub_df.columns:
-                    vds = sub_df['report_date'].dropna()
-                    if len(vds) > 0:
-                        report_dates.append(str(vds.iloc[0]))
-
-                for req in ['is_soc_outbound_ontime', 'soc_outbound_late_type_2nd_cutoff', 'shipment_id', 'dest_station_name', 'first_soc_outbound_timestamp', 'soc_outbound_based_received_2nd_cut_off_timestamp']:
-                    if req not in sub_df.columns:
-                        sub_df[req] = ''
-
-                ontime_str = sub_df["is_soc_outbound_ontime"].astype(str).str.strip().str.upper() if 'is_soc_outbound_ontime' in sub_df.columns else pd.Series([''] * len(sub_df))
-                reason_str = sub_df["soc_outbound_late_type_2nd_cutoff"].astype(str).str.strip().str.lower() if 'soc_outbound_late_type_2nd_cutoff' in sub_df.columns else pd.Series([''] * len(sub_df))
-                is_late_mask = ontime_str.isin(["FALSE", "0"]) | (reason_str.notna() & ~reason_str.isin(["", "none", "nan"]))
-                
-                late_sub_df = sub_df[is_late_mask].copy() if is_late_mask.any() else sub_df.head(0).copy()
-                late_sub_df['source_file'] = os.path.basename(f)
-                dfs.append(late_sub_df)
+                    ontime_str = sub_df["is_soc_outbound_ontime"].astype(str).str.strip().str.upper()
+                    reason_str = sub_df["soc_outbound_late_type_2nd_cutoff"].astype(str).str.strip().str.lower()
+                    is_late_mask = ontime_str.isin(["FALSE", "0"]) | (reason_str.notna() & ~reason_str.isin(["", "none", "nan"]))
+                    
+                    if is_late_mask.any():
+                        late_sub_df = sub_df[is_late_mask].copy()
+                        late_sub_df['source_file'] = os.path.basename(f)
+                        dfs.append(late_sub_df)
         except Exception as e:
             print(f"Error reading file {f}:", e)
             
@@ -1039,45 +1062,72 @@ def process_skip_file_list(files_or_names, group_name="กลุ่มไฟล�
         
     dfs = []
     needed_patterns = ['shipment', 'tracking', 'waybill', 'late', 'reason', 'station', 'dest', 'hub', 'zone', 'team']
+    target_cols = {
+        'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
+        'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
+        'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
+        'obd_zone': ['obd zone', 'obd_zone', 'zone', 'recieve_team', 'receive_team']
+    }
     
     for f in sorted(resolved_paths):
         try:
             if f.lower().endswith('.csv'):
                 h = pd.read_csv(f, nrows=0)
                 usecols = [c for c in h.columns if any(p in str(c).lower() for p in needed_patterns)]
-                sub_df = pd.read_csv(f, usecols=usecols if usecols else None, low_memory=False, on_bad_lines='skip')
+                for chunk in pd.read_csv(f, usecols=usecols if usecols else None, chunksize=50000, low_memory=False, on_bad_lines='skip'):
+                    if chunk.empty:
+                        continue
+                    renames = {}
+                    used = set()
+                    for col in chunk.columns:
+                        c = str(col).strip().lower()
+                        for key, cands in target_cols.items():
+                            if c in cands and key not in used:
+                                renames[col] = key
+                                used.add(key)
+                                break
+
+                    if renames:
+                        chunk = chunk.rename(columns=renames)
+                    chunk = chunk.loc[:, ~chunk.columns.duplicated()]
+                    
+                    for n in ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name', 'obd_zone']:
+                        if n not in chunk.columns:
+                            chunk[n] = ''
+
+                    reason_s = chunk['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
+                    skip_mask = reason_s.str.contains('skip')
+                    if skip_mask.any():
+                        skip_chunk = chunk[skip_mask].copy()
+                        skip_chunk['source_file'] = os.path.basename(f)
+                        dfs.append(skip_chunk)
             else:
                 sub_df = read_dataframe(f)
+                if sub_df is not None and not sub_df.empty:
+                    renames = {}
+                    used = set()
+                    for col in sub_df.columns:
+                        c = str(col).strip().lower()
+                        for key, cands in target_cols.items():
+                            if c in cands and key not in used:
+                                renames[col] = key
+                                used.add(key)
+                                break
 
-            if sub_df is not None and not sub_df.empty:
-                target_cols = {
-                    'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
-                    'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
-                    'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
-                    'obd_zone': ['obd zone', 'obd_zone', 'zone', 'recieve_team', 'receive_team']
-                }
-                renames = {}
-                used = set()
-                for col in sub_df.columns:
-                    c = str(col).strip().lower()
-                    for key, cands in target_cols.items():
-                        if c in cands and key not in used:
-                            renames[col] = key
-                            used.add(key)
-                            break
+                    if renames:
+                        sub_df = sub_df.rename(columns=renames)
+                    sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
+                    
+                    for n in ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name', 'obd_zone']:
+                        if n not in sub_df.columns:
+                            sub_df[n] = ''
 
-                sub_df = sub_df.rename(columns=renames)
-                sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
-                
-                for n in ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name', 'obd_zone']:
-                    if n not in sub_df.columns:
-                        sub_df[n] = ''
-
-                reason_s = sub_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
-                skip_mask = reason_s.str.contains('skip')
-                skip_sub = sub_df[skip_mask].copy()
-                skip_sub['source_file'] = os.path.basename(f)
-                dfs.append(skip_sub)
+                    reason_s = sub_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
+                    skip_mask = reason_s.str.contains('skip')
+                    if skip_mask.any():
+                        skip_sub = sub_df[skip_mask].copy()
+                        skip_sub['source_file'] = os.path.basename(f)
+                        dfs.append(skip_sub)
         except Exception as e:
             print(f"Error reading skip file {f}:", e)
             
