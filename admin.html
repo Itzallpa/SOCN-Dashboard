@@ -2568,9 +2568,8 @@ ${body}`;
         payload.target = parseInt(document.getElementById('amtHourlyTarget')?.value || 45000);
         payload.minimum = parseInt(document.getElementById('amtHourlyMin')?.value || 40000);
         payload.actual = parseInt(document.getElementById('amtHourlyActual')?.value || 0);
-        const emails1 = (document.getElementById('settingHourlyMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-        const emails2 = (document.getElementById('settingHourlyMentionEmails2')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-        payload.mentionEmails = [...emails1, ...emails2];
+        payload.mentionEmails = (document.getElementById('settingHourlyMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+        payload.mentionEmails2 = (document.getElementById('settingHourlyMentionEmails2')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
         payload.webhookUrl = document.getElementById('settingHourlyWebhookUrl')?.value || '';
         payload.webhookUrl2 = document.getElementById('settingHourlyWebhookUrl2')?.value || '';
       } else if (currentAdminTriggerType === 'skip') {
@@ -2578,17 +2577,15 @@ ${body}`;
         payload.actualVolume = parseInt(document.getElementById('amtSkipActual')?.value || 0);
         payload.overallSkipCount = parseInt(document.getElementById('amtSkipCount')?.value || 0);
         payload.overallPct = payload.actualVolume > 0 ? parseFloat(((payload.overallSkipCount / payload.actualVolume) * 100).toFixed(2)) : 0.0;
-        const emails1 = (document.getElementById('settingSkipMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-        const emails2 = (document.getElementById('settingSkipMentionEmails2')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-        payload.mentionEmails = [...emails1, ...emails2];
+        payload.mentionEmails = (document.getElementById('settingSkipMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+        payload.mentionEmails2 = (document.getElementById('settingSkipMentionEmails2')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
         payload.webhookUrl = document.getElementById('settingSkipWebhookUrl')?.value || '';
         payload.webhookUrl2 = document.getElementById('settingSkipWebhookUrl2')?.value || '';
       } else if (currentAdminTriggerType === 'ob_bl') {
         payload.cutoffRound = document.getElementById('amtObBlCutoff')?.value;
         payload.totalLate = parseInt(document.getElementById('amtObBlLate')?.value || 0);
-        const emails1 = (document.getElementById('settingObBlMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-        const emails2 = (document.getElementById('settingObBlMentionEmails2')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-        payload.mentionEmails = [...emails1, ...emails2];
+        payload.mentionEmails = (document.getElementById('settingObBlMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+        payload.mentionEmails2 = (document.getElementById('settingObBlMentionEmails2')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
         payload.webhookUrl = document.getElementById('settingObBlWebhookUrl')?.value || '';
         payload.webhookUrl2 = document.getElementById('settingObBlWebhookUrl2')?.value || '';
       } else {

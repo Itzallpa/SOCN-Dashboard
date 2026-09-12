@@ -4423,7 +4423,7 @@ def get_module_seatalk_config(module_key):
         "triggerCondition": trigger_condition
     }
 
-def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=False, webhook_type="seatalk", **kwargs):
+def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_emails2=None, mention_all=False, webhook_type="seatalk", **kwargs):
     if not webhook_url:
         return False, "Webhook URL is not configured"
     
@@ -4446,7 +4446,7 @@ def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=Fa
         return False, "No valid Webhook URL found"
 
     try:
-        # Collect mention emails dynamically from explicit mention_emails
+        # Collect top mention emails dynamically from explicit mention_emails (Box 1 only)
         all_emails = []
         if mention_emails:
             if isinstance(mention_emails, str):
@@ -4460,6 +4460,15 @@ def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=Fa
                     cleaned_e = e.strip().lstrip('@')
                     if cleaned_e and cleaned_e not in all_emails:
                         all_emails.append(cleaned_e)
+
+        # Append Box 2 (mention_emails2) to bottom of message content
+        if mention_emails2:
+            if isinstance(mention_emails2, (list, tuple, set)):
+                m2_text = ", ".join([str(x).strip() for x in mention_emails2 if str(x).strip()])
+            else:
+                m2_text = str(mention_emails2).strip()
+            if m2_text and m2_text not in message:
+                message = f"{message}\n👥 ผู้รับผิดชอบ (กลุ่ม 2): {m2_text}"
 
         if webhook_type == "seatalk":
             payload = {
@@ -5526,7 +5535,10 @@ def admin_manual_trigger_api():
 
     mention_emails = req.get("mentionEmails")
     if mention_emails is None:
-        mention_emails = mod_cfg.get("combinedMentionEmails", [])
+        mention_emails = mod_cfg.get("mentionEmails", [])
+    mention_emails2 = req.get("mentionEmails2")
+    if mention_emails2 is None:
+        mention_emails2 = mod_cfg.get("mentionEmails2", [])
     mention_all = req.get("mentionAll", False)
     
     if mention_emails is None:
@@ -5534,7 +5546,7 @@ def admin_manual_trigger_api():
             mention_all = True
             mention_emails = []
         elif mod_cfg.get("mentionType") == "specific":
-            mention_emails = mod_cfg.get("combinedMentionEmails", [])
+            mention_emails = mod_cfg.get("mentionEmails", [])
         else:
             mention_emails = []
 
@@ -5604,6 +5616,7 @@ def admin_manual_trigger_api():
         target_webhooks,
         full_msg,
         mention_emails=mention_emails,
+        mention_emails2=mention_emails2,
         mention_all=mention_all,
         webhook_type=mod_cfg.get("webhookType", "seatalk")
     )

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-12 14:30:55",
+  "updatedAt": "2026-09-12 14:43:59",
   "hourlyTarget": 45000,
   "hourlyMinimum": 40000,
   "hourlyMinimumPct": 90,
@@ -72,7 +72,9 @@
           "https://openapi.seatalk.io/webhook/group/ISfK_B7MQeODPJHWrtQpqA"
         ],
         "mentionEmails": [],
-        "mentionEmails2": []
+        "mentionEmails2": [
+          "guy.panmanee@spxexpress.com"
+        ]
       },
       "ob_bl": {
         "enabled": false,
