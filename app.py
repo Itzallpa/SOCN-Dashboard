@@ -4394,8 +4394,19 @@ def get_module_seatalk_config(module_key):
             
     webhook_type = mod_cfg.get("webhookType") or st_cfg.get("webhookType", "seatalk")
     mention_type = mod_cfg.get("mentionType") or "specific"
-    mention_emails = mod_cfg.get("mentionEmails") if mod_cfg.get("mentionEmails") is not None else []
-    cc_text = mod_cfg.get("ccText") if mod_cfg.get("ccText") is not None else ""
+    
+    m_emails1 = mod_cfg.get("mentionEmails") if mod_cfg.get("mentionEmails") is not None else []
+    m_emails2 = mod_cfg.get("mentionEmails2") if mod_cfg.get("mentionEmails2") is not None else []
+    if isinstance(m_emails1, str):
+        m_emails1 = [e.strip() for e in re.split(r'[\r\n,; ]+', m_emails1) if e.strip()]
+    if isinstance(m_emails2, str):
+        m_emails2 = [e.strip() for e in re.split(r'[\r\n,; ]+', m_emails2) if e.strip()]
+        
+    combined_emails = []
+    for em in list(m_emails1) + list(m_emails2):
+        if em and em not in combined_emails:
+            combined_emails.append(em)
+
     enabled = mod_cfg.get("enabled", False)
     trigger_condition = mod_cfg.get("triggerCondition", "below_minimum")
     
@@ -4406,12 +4417,13 @@ def get_module_seatalk_config(module_key):
         "webhookUrls": dedup_urls,
         "webhookType": webhook_type,
         "mentionType": mention_type,
-        "mentionEmails": mention_emails,
-        "ccText": cc_text,
+        "mentionEmails": m_emails1,
+        "mentionEmails2": m_emails2,
+        "combinedMentionEmails": combined_emails,
         "triggerCondition": trigger_condition
     }
 
-def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=False, webhook_type="seatalk", cc_text=None):
+def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=False, webhook_type="seatalk", **kwargs):
     if not webhook_url:
         return False, "Webhook URL is not configured"
     
@@ -4434,33 +4446,20 @@ def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=Fa
         return False, "No valid Webhook URL found"
 
     try:
-        if cc_text is None:
-            cc_text = ""
-
         # Collect mention emails dynamically from explicit mention_emails
         all_emails = []
         if mention_emails:
             if isinstance(mention_emails, str):
                 raw_emails = re.split(r'[\r\n,; ]+', mention_emails.strip())
-            else:
+            elif isinstance(mention_emails, (list, tuple, set)):
                 raw_emails = mention_emails
+            else:
+                raw_emails = [str(mention_emails)]
             for e in raw_emails:
                 if isinstance(e, str) and e.strip():
                     cleaned_e = e.strip().lstrip('@')
                     if cleaned_e and cleaned_e not in all_emails:
                         all_emails.append(cleaned_e)
-
-        # Include CC emails into mention list dynamically so CC persons are also truly tagged/notified in SeaTalk
-        if cc_text and isinstance(cc_text, str):
-            extracted_cc = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', cc_text)
-            for ce in extracted_cc:
-                cleaned_ce = ce.strip().lstrip('@')
-                if cleaned_ce and cleaned_ce not in all_emails:
-                    all_emails.append(cleaned_ce)
-
-        # If cc_text is provided and not yet in message, append CC line to message bottom
-        if cc_text and isinstance(cc_text, str) and cc_text.strip() and "CC:" not in message:
-            message = f"{message}\nCC: {cc_text.strip()}"
 
         if webhook_type == "seatalk":
             payload = {
@@ -4820,10 +4819,9 @@ def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
                     mod_hourly_cfg = get_module_seatalk_config("hourly")
                     hourly_webhooks = mod_hourly_cfg.get("webhookUrls") or mod_hourly_cfg.get("webhookUrl")
                     if hourly_webhooks:
-                        cc_raw = (mod_hourly_cfg.get("ccText") or "").strip()
                         mention_all = (mod_hourly_cfg.get("mentionType") == "all")
-                        emails = mod_hourly_cfg.get("mentionEmails", []) if (mod_hourly_cfg.get("mentionType") == "specific") else []
-                        send_seatalk_alert(hourly_webhooks, msg, mention_emails=emails, mention_all=mention_all, webhook_type=mod_hourly_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
+                        emails = mod_hourly_cfg.get("combinedMentionEmails", []) if (mod_hourly_cfg.get("mentionType") == "specific") else []
+                        send_seatalk_alert(hourly_webhooks, msg, mention_emails=emails, mention_all=mention_all, webhook_type=mod_hourly_cfg.get("webhookType", "seatalk"))
                     
                     # Mark this slot and hash as permanently alerted
                     tracker_data["last_alerted"][date_str][slot_lbl] = current_timestamp
@@ -5299,10 +5297,9 @@ def save_hourly_tracker_api():
 📦 ปล่อยจริง (Actual): {act:,} ชิ้น
 📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)"""
             
-            cc_raw = (st_cfg.get("ccText") or "").strip()
             mention_all = (st_cfg.get("mentionType") == "all")
             emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
-            send_seatalk_alert(st_cfg.get("webhookUrl"), msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
+            send_seatalk_alert(st_cfg.get("webhookUrl"), msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"))
             
             if "alerted_slots" not in data:
                 data["alerted_slots"] = []
@@ -5341,14 +5338,13 @@ def send_manual_hourly_alert_api():
 📦 ปล่อยจริง (Actual): {actual:,} ชิ้น
 📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)"""
 
-    cc_raw = (req.get("ccText") or mod_cfg.get("ccText") or "").strip()
     mention_all = req.get("mentionAll") if req.get("mentionAll") is not None else (mod_cfg.get("mentionType") == "all")
     emails = req.get("mentionEmails")
     if emails is None:
-        emails = mod_cfg.get("mentionEmails", [])
+        emails = mod_cfg.get("combinedMentionEmails", [])
     webhook_type = mod_cfg.get("webhookType", "seatalk")
     
-    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=webhook_type, cc_text=cc_raw)
+    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=webhook_type)
     if ok:
         log_activity("SEATALK_MANUAL_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk รายชั่วโมง: {date_str} {time_range}")
         return jsonify({"success": True, "message": f"ส่งแจ้งเตือนช่วงเวลา {time_range} เข้า SeaTalk สำเร็จ!"})
@@ -5381,13 +5377,8 @@ def send_generic_seatalk_alert_api():
         
     if mention_emails is None:
         mention_emails = st_cfg.get("mentionEmails", [])
-            
-    cc_text = (st_cfg.get("ccText") or "").strip()
-    full_msg = message
-    if cc_text and "CC:" not in message:
-        full_msg += f"\nCC: {format_cc_text_for_seatalk(cc_text)}"
         
-    ok, err_msg = send_seatalk_alert(webhook_url, full_msg, mention_emails=mention_emails, mention_all=mention_all, webhook_type=webhook_type)
+    ok, err_msg = send_seatalk_alert(webhook_url, message, mention_emails=mention_emails, mention_all=mention_all, webhook_type=webhook_type)
     if ok:
         log_activity("SEATALK_GENERIC_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk: {title}")
         return jsonify({"success": True, "message": "ส่งข้อความแจ้งเตือนเข้า SeaTalk เรียบร้อยแล้ว!"})
@@ -5447,14 +5438,13 @@ def send_skip_process_seatalk_alert_api():
     if notes:
         msg += f"\n📝 หมายเหตุ/สาเหตุ: {notes}"
         
-    cc_raw = (req.get("ccText") or mod_cfg.get("ccText") or "").strip()
     mention_all = req.get("mentionAll") if req.get("mentionAll") is not None else (mod_cfg.get("mentionType") == "all")
     emails = req.get("mentionEmails")
     if emails is None:
-        emails = mod_cfg.get("mentionEmails", [])
+        emails = mod_cfg.get("combinedMentionEmails", [])
     webhook_type = mod_cfg.get("webhookType", "seatalk")
     
-    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=webhook_type, cc_text=cc_raw)
+    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=webhook_type)
     if ok:
         log_activity("SEATALK_SKIP_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk Skip Process วันที่ {date_str} (%Skip: {overall_pct:.2f}%)")
         return jsonify({"success": True, "message": f"ส่งแจ้งเตือน Skip Process ({date_str}) เข้า SeaTalk สำเร็จ!"})
@@ -5498,14 +5488,13 @@ def send_ob_bl_seatalk_alert_api():
     if notes:
         msg += f"\n📝 หมายเหตุ/การแก้ไข: {notes}"
         
-    cc_raw = (req.get("ccText") or mod_cfg.get("ccText") or "").strip()
     mention_all = req.get("mentionAll") if req.get("mentionAll") is not None else (mod_cfg.get("mentionType") == "all")
     emails = req.get("mentionEmails")
     if emails is None:
-        emails = mod_cfg.get("mentionEmails", [])
+        emails = mod_cfg.get("combinedMentionEmails", [])
     webhook_type = mod_cfg.get("webhookType", "seatalk")
     
-    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=webhook_type, cc_text=cc_raw)
+    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=webhook_type)
     if ok:
         log_activity("SEATALK_OB_BL_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk Outbound Backlog: {filename} ({total_late:,} ชิ้น)")
         return jsonify({"success": True, "message": f"ส่งแจ้งเตือน Outbound Backlog เข้า SeaTalk สำเร็จ!"})
@@ -5537,21 +5526,17 @@ def admin_manual_trigger_api():
 
     mention_emails = req.get("mentionEmails")
     if mention_emails is None:
-        mention_emails = mod_cfg.get("mentionEmails", [])
+        mention_emails = mod_cfg.get("combinedMentionEmails", [])
     mention_all = req.get("mentionAll", False)
-    cc_text = req.get("ccText")
     
     if mention_emails is None:
         if mod_cfg.get("mentionType") == "all":
             mention_all = True
             mention_emails = []
         elif mod_cfg.get("mentionType") == "specific":
-            mention_emails = mod_cfg.get("mentionEmails", [])
+            mention_emails = mod_cfg.get("combinedMentionEmails", [])
         else:
             mention_emails = []
-
-    if cc_text is None:
-        cc_text = (mod_cfg.get("ccText") or "").strip()
 
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -5620,8 +5605,7 @@ def admin_manual_trigger_api():
         full_msg,
         mention_emails=mention_emails,
         mention_all=mention_all,
-        webhook_type=mod_cfg.get("webhookType", "seatalk"),
-        cc_text=cc_text
+        webhook_type=mod_cfg.get("webhookType", "seatalk")
     )
 
     if ok:

@@ -536,12 +536,12 @@
 
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label fw-bold small text-secondary">ผู้รับผิดชอบหลักที่ต้องการแท็ก (Tag Emails):</label>
+                  <label class="form-label fw-bold small text-secondary">ผู้รับผิดชอบที่ต้องการแท็ก (กลุ่มหลัก - Tag Emails 1):</label>
                   <input type="text" id="settingHourlyMentionEmails" class="form-control form-control-sm" placeholder="ระบุอีเมลผู้รับผิดชอบ คั่นด้วย ,">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label fw-bold small text-secondary">CC ท้ายข้อความ (CC Persons / Emails):</label>
-                  <input type="text" id="settingHourlyCcText" class="form-control form-control-sm" placeholder="ระบุอีเมล CC คั่นด้วย , (เว้นว่างได้)">
+                  <label class="form-label fw-bold small text-secondary">ผู้รับผิดชอบที่ต้องการแท็ก (กลุ่มที่ 2 / เพิ่มเติม - Tag Emails 2):</label>
+                  <input type="text" id="settingHourlyMentionEmails2" class="form-control form-control-sm" placeholder="ระบุอีเมลผู้รับผิดชอบ คั่นด้วย , (เว้นว่างได้)">
                 </div>
               </div>
 
@@ -582,12 +582,12 @@
 
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label fw-bold small text-secondary">ผู้รับผิดชอบหลักที่ต้องการแท็ก (Tag Emails):</label>
+                  <label class="form-label fw-bold small text-secondary">ผู้รับผิดชอบที่ต้องการแท็ก (กลุ่มหลัก - Tag Emails 1):</label>
                   <input type="text" id="settingSkipMentionEmails" class="form-control form-control-sm" placeholder="ระบุอีเมลผู้รับผิดชอบ คั่นด้วย ,">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label fw-bold small text-secondary">CC ท้ายข้อความ (CC Persons / Emails):</label>
-                  <input type="text" id="settingSkipCcText" class="form-control form-control-sm" placeholder="ระบุอีเมล CC คั่นด้วย , (เว้นว่างได้)">
+                  <label class="form-label fw-bold small text-secondary">ผู้รับผิดชอบที่ต้องการแท็ก (กลุ่มที่ 2 / เพิ่มเติม - Tag Emails 2):</label>
+                  <input type="text" id="settingSkipMentionEmails2" class="form-control form-control-sm" placeholder="ระบุอีเมลผู้รับผิดชอบ คั่นด้วย , (เว้นว่างได้)">
                 </div>
               </div>
 
@@ -628,12 +628,12 @@
 
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label fw-bold small text-secondary">ผู้รับผิดชอบหลักที่ต้องการแท็ก (Tag Emails):</label>
+                  <label class="form-label fw-bold small text-secondary">ผู้รับผิดชอบที่ต้องการแท็ก (กลุ่มหลัก - Tag Emails 1):</label>
                   <input type="text" id="settingObBlMentionEmails" class="form-control form-control-sm" placeholder="ระบุอีเมลผู้รับผิดชอบ คั่นด้วย ,">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label fw-bold small text-secondary">CC ท้ายข้อความ (CC Persons / Emails):</label>
-                  <input type="text" id="settingObBlCcText" class="form-control form-control-sm" placeholder="ระบุอีเมล CC คั่นด้วย , (เว้นว่างได้)">
+                  <label class="form-label fw-bold small text-secondary">ผู้รับผิดชอบที่ต้องการแท็ก (กลุ่มที่ 2 / เพิ่มเติม - Tag Emails 2):</label>
+                  <input type="text" id="settingObBlMentionEmails2" class="form-control form-control-sm" placeholder="ระบุอีเมลผู้รับผิดชอบ คั่นด้วย , (เว้นว่างได้)">
                 </div>
               </div>
 
@@ -679,8 +679,8 @@
                   </select>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label fw-bold small text-secondary">CC ท้ายข้อความบรอดแคสต์:</label>
-                  <input type="text" id="settingCcText" class="form-control form-control-sm" placeholder="ระบุอีเมล CC คั่นด้วย , (เว้นว่างได้)">
+                  <label class="form-label fw-bold small text-secondary">แท็กเฉพาะรายชื่อ (Tag Emails - ระบุอีเมลคั่นด้วย ,):</label>
+                  <input type="text" id="settingMentionEmails" class="form-control form-control-sm" placeholder="ระบุอีเมลผู้รับผิดชอบ คั่นด้วย , (เว้นว่างได้)">
                 </div>
               </div>
 
@@ -1943,8 +1943,8 @@
       if (document.getElementById('settingHourlyMentionEmails')) {
         document.getElementById('settingHourlyMentionEmails').value = (modHourly.mentionEmails || st.mentionEmails || []).join(', ');
       }
-      if (document.getElementById('settingHourlyCcText')) {
-        document.getElementById('settingHourlyCcText').value = modHourly.ccText || st.ccText || '';
+      if (document.getElementById('settingHourlyMentionEmails2')) {
+        document.getElementById('settingHourlyMentionEmails2').value = (modHourly.mentionEmails2 || []).join(', ');
       }
 
       // Function 2: Skip Process
@@ -1960,8 +1960,8 @@
       if (document.getElementById('settingSkipMentionEmails')) {
         document.getElementById('settingSkipMentionEmails').value = (modSkip.mentionEmails || st.mentionEmails || []).join(', ');
       }
-      if (document.getElementById('settingSkipCcText')) {
-        document.getElementById('settingSkipCcText').value = modSkip.ccText || st.ccText || '';
+      if (document.getElementById('settingSkipMentionEmails2')) {
+        document.getElementById('settingSkipMentionEmails2').value = (modSkip.mentionEmails2 || []).join(', ');
       }
 
       // Function 3: Outbound Backlog
@@ -1977,8 +1977,8 @@
       if (document.getElementById('settingObBlMentionEmails')) {
         document.getElementById('settingObBlMentionEmails').value = (modObBl.mentionEmails || st.mentionEmails || []).join(', ');
       }
-      if (document.getElementById('settingObBlCcText')) {
-        document.getElementById('settingObBlCcText').value = modObBl.ccText || st.ccText || '';
+      if (document.getElementById('settingObBlMentionEmails2')) {
+        document.getElementById('settingObBlMentionEmails2').value = (modObBl.mentionEmails2 || []).join(', ');
       }
 
       // Function 4: Emergency Broadcast & Connectivity Test
@@ -1991,8 +1991,8 @@
       if (document.getElementById('settingMentionType')) {
         document.getElementById('settingMentionType').value = modBroadcast.mentionType || st.mentionType || 'specific';
       }
-      if (document.getElementById('settingCcText')) {
-        document.getElementById('settingCcText').value = modBroadcast.ccText || st.ccText || '';
+      if (document.getElementById('settingMentionEmails')) {
+        document.getElementById('settingMentionEmails').value = (modBroadcast.mentionEmails || st.mentionEmails || []).join(', ');
       }
 
       const gs = cfg.googleSheetSync || {};
@@ -2003,7 +2003,6 @@
     function syncDefaultWebhookToAll() {
       const globalUrl1 = (document.getElementById('settingWebhookUrl').value || '').trim();
       const globalUrl2 = (document.getElementById('settingWebhookUrl2')?.value || '').trim();
-      const globalCc = (document.getElementById('settingCcText')?.value || '').trim();
       
       if (document.getElementById('settingHourlyWebhookUrl')) document.getElementById('settingHourlyWebhookUrl').value = globalUrl1;
       if (document.getElementById('settingHourlyWebhookUrl2')) document.getElementById('settingHourlyWebhookUrl2').value = globalUrl2;
@@ -2016,18 +2015,6 @@
 
       if (document.getElementById('settingBroadcastWebhookUrl')) document.getElementById('settingBroadcastWebhookUrl').value = globalUrl1;
       if (document.getElementById('settingBroadcastWebhookUrl2')) document.getElementById('settingBroadcastWebhookUrl2').value = globalUrl2;
-      
-      if (globalCc) {
-        if (document.getElementById('settingHourlyCcText') && !document.getElementById('settingHourlyCcText').value) {
-          document.getElementById('settingHourlyCcText').value = globalCc;
-        }
-        if (document.getElementById('settingSkipCcText') && !document.getElementById('settingSkipCcText').value) {
-          document.getElementById('settingSkipCcText').value = globalCc;
-        }
-        if (document.getElementById('settingObBlCcText') && !document.getElementById('settingObBlCcText').value) {
-          document.getElementById('settingObBlCcText').value = globalCc;
-        }
-      }
 
       showToastNotification('✅ คัดลอกเรียบร้อย', 'คัดลอก Global Webhook APIs ไปยังทุกฟังก์ชันแล้ว (อย่าลืมกดบันทึกการตั้งค่า)', 'info', 3500);
     }
@@ -2084,7 +2071,6 @@
 
       const mentionEmailsStr = (document.getElementById('settingHourlyMentionEmails')?.value || document.getElementById('settingMentionEmails')?.value || '');
       const mentionEmailsArr = mentionEmailsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
-      const ccText = (document.getElementById('settingHourlyCcText')?.value || document.getElementById('settingCcText')?.value || '').trim();
 
       const zoneTargets = {
         "Zone A": {
@@ -2104,10 +2090,17 @@
         }
       };
 
-      // Extract specific module configs with multi-webhook API support
-      const hourlyEmails = (document.getElementById('settingHourlyMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(s => s.length > 0);
-      const skipEmails = (document.getElementById('settingSkipMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(s => s.length > 0);
-      const obBlEmails = (document.getElementById('settingObBlMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(s => s.length > 0);
+      // Extract specific module configs with multi-webhook API and dual Tag Emails support
+      const hourlyEmails1 = (document.getElementById('settingHourlyMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(s => s.length > 0);
+      const hourlyEmails2 = (document.getElementById('settingHourlyMentionEmails2')?.value || '').split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+      const skipEmails1 = (document.getElementById('settingSkipMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(s => s.length > 0);
+      const skipEmails2 = (document.getElementById('settingSkipMentionEmails2')?.value || '').split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+      const obBlEmails1 = (document.getElementById('settingObBlMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(s => s.length > 0);
+      const obBlEmails2 = (document.getElementById('settingObBlMentionEmails2')?.value || '').split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+      const broadcastEmails = (document.getElementById('settingMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(s => s.length > 0);
 
       const modHourlyUrl1 = (document.getElementById('settingHourlyWebhookUrl')?.value || '').trim();
       const modHourlyUrl2 = (document.getElementById('settingHourlyWebhookUrl2')?.value || '').trim();
@@ -2128,31 +2121,31 @@
           webhookUrl: modHourlyUrl1,
           webhookUrl2: modHourlyUrl2,
           webhookUrls: [modHourlyUrl1, modHourlyUrl2].filter(Boolean),
-          mentionEmails: hourlyEmails,
-          ccText: (document.getElementById('settingHourlyCcText')?.value || '').trim()
+          mentionEmails: hourlyEmails1,
+          mentionEmails2: hourlyEmails2
         },
         skip: {
           enabled: document.getElementById('settingSkipAlertEnabled')?.checked ?? true,
           webhookUrl: modSkipUrl1,
           webhookUrl2: modSkipUrl2,
           webhookUrls: [modSkipUrl1, modSkipUrl2].filter(Boolean),
-          mentionEmails: skipEmails,
-          ccText: (document.getElementById('settingSkipCcText')?.value || '').trim()
+          mentionEmails: skipEmails1,
+          mentionEmails2: skipEmails2
         },
         ob_bl: {
           enabled: document.getElementById('settingObBlAlertEnabled')?.checked ?? true,
           webhookUrl: modObBlUrl1,
           webhookUrl2: modObBlUrl2,
           webhookUrls: [modObBlUrl1, modObBlUrl2].filter(Boolean),
-          mentionEmails: obBlEmails,
-          ccText: (document.getElementById('settingObBlCcText')?.value || '').trim()
+          mentionEmails: obBlEmails1,
+          mentionEmails2: obBlEmails2
         },
         broadcast: {
           webhookUrl: modBroadUrl1,
           webhookUrl2: modBroadUrl2,
           webhookUrls: [modBroadUrl1, modBroadUrl2].filter(Boolean),
           mentionType: document.getElementById('settingMentionType')?.value || 'all',
-          ccText: (document.getElementById('settingCcText')?.value || '').trim()
+          mentionEmails: broadcastEmails
         }
       };
 
@@ -2176,8 +2169,8 @@
           webhookUrls: [globalUrl1, globalUrl2].filter(Boolean),
           triggerCondition: document.getElementById('settingHourlyCondition')?.value || 'below_minimum',
           mentionType: document.getElementById('settingMentionType')?.value || 'specific',
-          mentionEmails: hourlyEmails.length > 0 ? hourlyEmails : mentionEmailsArr,
-          ccText: ccText,
+          mentionEmails: hourlyEmails1.length > 0 ? hourlyEmails1 : mentionEmailsArr,
+          mentionEmails2: hourlyEmails2,
           autoAlertIntervalMinutes: 60,
           modules: modulesConfig
         },
@@ -2208,7 +2201,7 @@
             Swal.fire({
               icon: 'success',
               title: 'บันทึกการตั้งค่าสำเร็จ!',
-              text: 'การตั้งค่าเป้าหมายและ SeaTalk Webhook APIs (ส่งหลายกลุ่ม) ถูกบันทึกเรียบร้อย',
+              text: 'การตั้งค่าเป้าหมายและ SeaTalk Webhook APIs ถูกบันทึกเรียบร้อย',
               confirmButtonColor: '#10b981'
             });
           } else {
@@ -2238,7 +2231,6 @@
       const mentionType = document.getElementById('settingMentionType').value;
       const mentionEmailsStr = document.getElementById('settingMentionEmails')?.value || '';
       const mentionEmails = mentionEmailsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
-      const ccText = (document.getElementById('settingCcText').value || '').trim();
 
       if (!webhookUrl) {
         if (typeof Swal !== 'undefined') {
@@ -2264,8 +2256,7 @@
           webhookUrl,
           webhookType,
           mentionType,
-          mentionEmails,
-          ccText
+          mentionEmails
         })
       })
       .then(res => res.json())
@@ -2577,8 +2568,9 @@ ${body}`;
         payload.target = parseInt(document.getElementById('amtHourlyTarget')?.value || 45000);
         payload.minimum = parseInt(document.getElementById('amtHourlyMin')?.value || 40000);
         payload.actual = parseInt(document.getElementById('amtHourlyActual')?.value || 0);
-        payload.mentionEmails = (document.getElementById('settingHourlyMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-        payload.ccText = (document.getElementById('settingHourlyCcText')?.value || '').trim();
+        const emails1 = (document.getElementById('settingHourlyMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+        const emails2 = (document.getElementById('settingHourlyMentionEmails2')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+        payload.mentionEmails = [...emails1, ...emails2];
         payload.webhookUrl = document.getElementById('settingHourlyWebhookUrl')?.value || '';
         payload.webhookUrl2 = document.getElementById('settingHourlyWebhookUrl2')?.value || '';
       } else if (currentAdminTriggerType === 'skip') {
@@ -2586,22 +2578,23 @@ ${body}`;
         payload.actualVolume = parseInt(document.getElementById('amtSkipActual')?.value || 0);
         payload.overallSkipCount = parseInt(document.getElementById('amtSkipCount')?.value || 0);
         payload.overallPct = payload.actualVolume > 0 ? parseFloat(((payload.overallSkipCount / payload.actualVolume) * 100).toFixed(2)) : 0.0;
-        payload.mentionEmails = (document.getElementById('settingSkipMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-        payload.ccText = (document.getElementById('settingSkipCcText')?.value || '').trim();
+        const emails1 = (document.getElementById('settingSkipMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+        const emails2 = (document.getElementById('settingSkipMentionEmails2')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+        payload.mentionEmails = [...emails1, ...emails2];
         payload.webhookUrl = document.getElementById('settingSkipWebhookUrl')?.value || '';
         payload.webhookUrl2 = document.getElementById('settingSkipWebhookUrl2')?.value || '';
       } else if (currentAdminTriggerType === 'ob_bl') {
         payload.cutoffRound = document.getElementById('amtObBlCutoff')?.value;
         payload.totalLate = parseInt(document.getElementById('amtObBlLate')?.value || 0);
-        payload.mentionEmails = (document.getElementById('settingObBlMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-        payload.ccText = (document.getElementById('settingObBlCcText')?.value || '').trim();
+        const emails1 = (document.getElementById('settingObBlMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+        const emails2 = (document.getElementById('settingObBlMentionEmails2')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+        payload.mentionEmails = [...emails1, ...emails2];
         payload.webhookUrl = document.getElementById('settingObBlWebhookUrl')?.value || '';
         payload.webhookUrl2 = document.getElementById('settingObBlWebhookUrl2')?.value || '';
       } else {
         payload.title = document.getElementById('amtCustomTitle')?.value;
         payload.message = document.getElementById('amtCustomBody')?.value;
         payload.mentionEmails = (document.getElementById('settingMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-        payload.ccText = (document.getElementById('settingCcText')?.value || '').trim();
         payload.webhookUrl = document.getElementById('settingBroadcastWebhookUrl')?.value || '';
         payload.webhookUrl2 = document.getElementById('settingBroadcastWebhookUrl2')?.value || '';
         if (!payload.message) {
