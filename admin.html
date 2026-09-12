@@ -2509,6 +2509,18 @@
       const user = window.AuthGuard?.getUser() || { name: 'Admin', role: 'Admin' };
       let msg = '';
       
+      let currentCc = '';
+      if (currentAdminTriggerType === 'hourly') {
+        currentCc = document.getElementById('settingHourlyCcText')?.value || '';
+      } else if (currentAdminTriggerType === 'skip') {
+        currentCc = document.getElementById('settingSkipCcText')?.value || '';
+      } else if (currentAdminTriggerType === 'ob_bl') {
+        currentCc = document.getElementById('settingObBlCcText')?.value || '';
+      } else {
+        currentCc = document.getElementById('settingCcText')?.value || '';
+      }
+      const ccLine = currentCc ? `\nCC: ${currentCc}` : '';
+
       if (currentAdminTriggerType === 'hourly') {
         const slot = document.getElementById('amtHourlySlot')?.value || '08:00';
         const dateStr = document.getElementById('amtHourlyDate')?.value || new Date().toISOString().split('T')[0];
@@ -2526,8 +2538,7 @@
 ⚠️ เกณฑ์ขั้นต่ำ (Minimum): ${minVal.toLocaleString()} ชิ้น
 📦 ปล่อยจริง (Actual): ${act.toLocaleString()} ชิ้น
 📉 ส่วนต่าง (Gap): ${gap.toLocaleString()} ชิ้น (${pct}% of Target)
-👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})
-CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})${ccLine}`;
       } else if (currentAdminTriggerType === 'skip') {
         const dateStr = document.getElementById('amtSkipDate')?.value || new Date().toISOString().split('T')[0];
         const act = parseInt(document.getElementById('amtSkipActual')?.value || 0);
@@ -2540,8 +2551,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
 📦 ยอดปล่อยรวม: ${act.toLocaleString()} ชิ้น
 ⚠️ ยอด Skip รวม: ${skipCnt.toLocaleString()} ชิ้น (${pct}%)
 📍 สถานะรายโซน: ตรวจสอบข้อมูลในระบบ Dashboard
-👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})
-CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})${ccLine}`;
       } else if (currentAdminTriggerType === 'ob_bl') {
         const cutoff = document.getElementById('amtObBlCutoff')?.value || 'Cutoff 2';
         const late = parseInt(document.getElementById('amtObBlLate')?.value || 0);
@@ -2550,8 +2560,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
 ━━━━━━━━━━━━━━━━━━━━
 ⏰ รอบเวลา Cutoff: ${cutoff}
 📦 ยอดพัสดุตกค้างล่าช้า: ${late.toLocaleString()} ชิ้น
-👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})
-CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})${ccLine}`;
       } else {
         const title = document.getElementById('amtCustomTitle')?.value || 'SOCN BROADCAST';
         const body = document.getElementById('amtCustomBody')?.value || 'ระบุข้อความ...';
@@ -2560,8 +2569,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
 ⏰ เวลา: ${new Date().toLocaleString('th-TH')}
 👤 ผู้ส่งคำสั่ง: ${user.name} (Role: ${user.role})
 ━━━━━━━━━━━━━━━━━━━━
-${body}
-CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+${body}${ccLine}`;
       }
       previewEl.innerText = msg;
     }
