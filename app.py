@@ -4400,11 +4400,11 @@ def get_module_seatalk_config(module_key):
             dedup_urls.append(u)
             
     webhook_type = mod_cfg.get("webhookType") or st_cfg.get("webhookType", "seatalk")
-    mention_type = mod_cfg.get("mentionType") or st_cfg.get("mentionType", "specific")
-    mention_emails = mod_cfg.get("mentionEmails") if mod_cfg.get("mentionEmails") is not None else st_cfg.get("mentionEmails", [])
-    cc_text = mod_cfg.get("ccText") if mod_cfg.get("ccText") is not None else (st_cfg.get("ccText") or "")
-    enabled = mod_cfg.get("enabled", st_cfg.get("enabled", False))
-    trigger_condition = mod_cfg.get("triggerCondition", st_cfg.get("triggerCondition", "below_minimum"))
+    mention_type = mod_cfg.get("mentionType") or "specific"
+    mention_emails = mod_cfg.get("mentionEmails") if mod_cfg.get("mentionEmails") is not None else []
+    cc_text = mod_cfg.get("ccText") if mod_cfg.get("ccText") is not None else ""
+    enabled = mod_cfg.get("enabled", False)
+    trigger_condition = mod_cfg.get("triggerCondition", "below_minimum")
     
     return {
         "enabled": enabled,
@@ -4441,13 +4441,8 @@ def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=Fa
         return False, "No valid Webhook URL found"
 
     try:
-        # If cc_text not explicitly passed, try loading from system_settings.json
         if cc_text is None:
-            try:
-                st_cfg = load_system_settings().get("seatalk", {})
-                cc_text = (st_cfg.get("ccText") or "").strip()
-            except Exception:
-                cc_text = ""
+            cc_text = ""
 
         # Collect mention emails dynamically from explicit mention_emails
         all_emails = []
@@ -5564,8 +5559,8 @@ def admin_manual_trigger_api():
         else:
             mention_emails = []
 
-    if not cc_text:
-        cc_text = (mod_cfg.get("ccText") or st_cfg.get("ccText") or "").strip()
+    if cc_text is None:
+        cc_text = (mod_cfg.get("ccText") or "").strip()
 
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
