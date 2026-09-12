@@ -1,5 +1,55 @@
 [
   {
+    "id": "2e7cc310",
+    "timestamp": "2026-09-12 13:44:49",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "40c3184b",
+    "timestamp": "2026-09-12 13:44:18",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SEATALK_SKIP_ALERT",
+    "details": "📢 ส่งแจ้งเตือน SeaTalk Skip Process วันที่ 2026-09-04 (%Skip: 1.47%)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "fbf30153",
+    "timestamp": "2026-09-12 13:43:43",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYSTEM_SETTINGS_UPDATE",
+    "details": "🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: 45000, Min: 40000)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "6be137f4",
+    "timestamp": "2026-09-12 13:43:10",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "68723e30",
+    "timestamp": "2026-09-12 13:42:52",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
     "id": "c84f0012",
     "timestamp": "2026-09-12 13:31:33",
     "email": "guy.panmanee@spxexpress.com",

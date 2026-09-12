@@ -5357,7 +5357,9 @@ def send_manual_hourly_alert_api():
 
     cc_raw = (req.get("ccText") or mod_cfg.get("ccText") or "").strip()
     mention_all = req.get("mentionAll") if req.get("mentionAll") is not None else (mod_cfg.get("mentionType") == "all")
-    emails = req.get("mentionEmails") if req.get("mentionEmails") is not None else (mod_cfg.get("mentionEmails", []) if (mod_cfg.get("mentionType") == "specific") else [])
+    emails = req.get("mentionEmails")
+    if emails is None:
+        emails = mod_cfg.get("mentionEmails", [])
     webhook_type = mod_cfg.get("webhookType", "seatalk")
     
     ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=webhook_type, cc_text=cc_raw)
@@ -5392,13 +5394,7 @@ def send_generic_seatalk_alert_api():
         return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL ในระบบ Admin"}), 400
         
     if mention_emails is None:
-        if st_cfg.get("mentionType") == "all":
-            mention_all = True
-            mention_emails = []
-        elif st_cfg.get("mentionType") == "specific":
-            mention_emails = st_cfg.get("mentionEmails", [])
-        else:
-            mention_emails = []
+        mention_emails = st_cfg.get("mentionEmails", [])
             
     cc_text = (st_cfg.get("ccText") or "").strip()
     full_msg = message
@@ -5467,7 +5463,9 @@ def send_skip_process_seatalk_alert_api():
         
     cc_raw = (req.get("ccText") or mod_cfg.get("ccText") or "").strip()
     mention_all = req.get("mentionAll") if req.get("mentionAll") is not None else (mod_cfg.get("mentionType") == "all")
-    emails = req.get("mentionEmails") if req.get("mentionEmails") is not None else (mod_cfg.get("mentionEmails", []) if (mod_cfg.get("mentionType") == "specific") else [])
+    emails = req.get("mentionEmails")
+    if emails is None:
+        emails = mod_cfg.get("mentionEmails", [])
     webhook_type = mod_cfg.get("webhookType", "seatalk")
     
     ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=webhook_type, cc_text=cc_raw)
@@ -5516,7 +5514,9 @@ def send_ob_bl_seatalk_alert_api():
         
     cc_raw = (req.get("ccText") or mod_cfg.get("ccText") or "").strip()
     mention_all = req.get("mentionAll") if req.get("mentionAll") is not None else (mod_cfg.get("mentionType") == "all")
-    emails = req.get("mentionEmails") if req.get("mentionEmails") is not None else (mod_cfg.get("mentionEmails", []) if (mod_cfg.get("mentionType") == "specific") else [])
+    emails = req.get("mentionEmails")
+    if emails is None:
+        emails = mod_cfg.get("mentionEmails", [])
     webhook_type = mod_cfg.get("webhookType", "seatalk")
     
     ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=webhook_type, cc_text=cc_raw)
@@ -5550,6 +5550,8 @@ def admin_manual_trigger_api():
         return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL ในระบบ Admin"}), 400
 
     mention_emails = req.get("mentionEmails")
+    if mention_emails is None:
+        mention_emails = mod_cfg.get("mentionEmails", [])
     mention_all = req.get("mentionAll", False)
     cc_text = req.get("ccText")
     

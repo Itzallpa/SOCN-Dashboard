@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-11 17:51:28",
+  "updatedAt": "2026-09-12 13:43:43",
   "hourlyTarget": 45000,
   "hourlyMinimum": 40000,
   "hourlyMinimumPct": 90,
@@ -76,9 +76,11 @@
       },
       "skip": {
         "enabled": false,
-        "webhookUrl": "",
+        "webhookUrl": "https://openapi.seatalk.io/webhook/group/K_MB2UKYTG-nWhziInhcJg",
         "webhookUrl2": "",
-        "webhookUrls": [],
+        "webhookUrls": [
+          "https://openapi.seatalk.io/webhook/group/K_MB2UKYTG-nWhziInhcJg"
+        ],
         "mentionEmails": [
           "chain.kedsirin@spxexpress.com",
           "nulack.promarpo@spxexpress.com",
