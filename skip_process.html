@@ -129,7 +129,7 @@
         <button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); border:none;" onclick="openAiSkipAnalysisModal()">
           <i class="fa-solid fa-wand-magic-sparkles me-1"></i> ✨ AI Skip Analysis
         </button>
-        <button class="btn btn-success btn-sm fw-bold px-3 shadow-sm" onclick="sendSkipProcessSeatalkAlert()">
+        <button class="btn btn-success btn-sm fw-bold px-3 shadow-sm admin-only-btn" id="btnSendSkipSeatalk" data-role="admin-only" style="display:none;" onclick="sendSkipProcessSeatalkAlert()">
           <i class="fa-solid fa-paper-plane me-1"></i> 📢 แจ้งเตือน SeaTalk
         </button>
       </div>

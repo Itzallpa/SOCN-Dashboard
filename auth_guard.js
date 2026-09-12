@@ -998,8 +998,8 @@
       adminCardCol.style.display = canAccessAdmin ? 'flex' : 'none';
     }
 
-    // Dynamic Admin Only Controls (⚡ Manual Trigger): ONLY for Admin (NOT Supervisor, NOT Ground)
-    document.querySelectorAll('.admin-only-btn, [data-role="admin-only"], #btnManualTriggerSkip, #btnManualTriggerHourly, #btnManualTriggerObBl').forEach(function(el) {
+    // Dynamic Admin Only Controls (⚡ Manual Trigger, 📢 แจ้งเตือน SeaTalk): ONLY for Admin (NOT Supervisor, NOT Ground)
+    document.querySelectorAll('.admin-only-btn, [data-role="admin-only"], #btnManualTriggerSkip, #btnManualTriggerHourly, #btnManualTriggerObBl, #btnSendSkipSeatalk, #btnSendObBlSeatalk').forEach(function(el) {
       if (isAdmin) {
         el.style.setProperty('display', el.tagName.toLowerCase() === 'div' ? 'flex' : 'inline-block', 'important');
       } else {
