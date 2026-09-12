@@ -5529,6 +5529,10 @@ def admin_manual_trigger_api():
     trigger_type = req.get("triggerType", "custom") # 'hourly', 'skip', 'ob_bl', 'custom'
     admin_name = req.get("adminName") or session.get("user_name", "Admin")
     admin_role = req.get("role") or session.get("user_role", "Admin")
+    
+    if admin_role not in ["Admin", "admin"]:
+        return jsonify({"success": False, "error": "สงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น ไม่อนุญาตสำหรับ Supervisor หรือ Ground"}), 403
+
     custom_msg = (req.get("message") or "").strip()
     title = req.get("title") or "SOCN ADMIN MANUAL ALERT"
     

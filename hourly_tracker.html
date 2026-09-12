@@ -80,7 +80,7 @@
       </div>
 
       <div class="d-flex align-items-center gap-2 flex-wrap">
-        <button class="btn btn-danger btn-sm fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #dc2626, #991b1b); border:none;" onclick="openAdminManualTriggerModal('hourly')">
+        <button class="btn btn-danger btn-sm fw-bold px-3 shadow-sm admin-only-btn" id="btnManualTriggerHourly" data-role="admin-only" style="background: linear-gradient(135deg, #dc2626, #991b1b); border:none; display:none;" onclick="openAdminManualTriggerModal('hourly')">
           <i class="fa-solid fa-bolt me-1"></i> ⚡ Manual Trigger (Admin)
         </button>
         <button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); border:none;" onclick="openAiShiftSummaryModal()">

@@ -989,6 +989,7 @@
 
   function updateModuleButtonsUI() {
     const u = getStoredUser();
+    const isAdmin = u && (u.role === 'Admin' || u.role === 'admin');
     const canAccessAdmin = u && (u.role === 'Admin' || u.role === 'Supervisor');
 
     // Dynamic Admin Portal Card Visibility: Visible for Admin & Supervisor
@@ -996,6 +997,15 @@
     if (adminCardCol) {
       adminCardCol.style.display = canAccessAdmin ? 'flex' : 'none';
     }
+
+    // Dynamic Admin Only Controls (⚡ Manual Trigger): ONLY for Admin (NOT Supervisor, NOT Ground)
+    document.querySelectorAll('.admin-only-btn, [data-role="admin-only"], #btnManualTriggerSkip, #btnManualTriggerHourly, #btnManualTriggerObBl').forEach(function(el) {
+      if (isAdmin) {
+        el.style.setProperty('display', el.tagName.toLowerCase() === 'div' ? 'flex' : 'inline-block', 'important');
+      } else {
+        el.style.setProperty('display', 'none', 'important');
+      }
+    });
   }
 
   /* ─── Idle Timeout ─── */

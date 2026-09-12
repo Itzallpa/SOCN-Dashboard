@@ -595,8 +595,8 @@
           และวิเคราะห์ตามทีม/ชั่วโมง</div>
       </div>
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <button onclick="openAdminManualTriggerModal('ob_bl')"
-          style="background:linear-gradient(135deg, #dc2626, #991b1b); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
+        <button onclick="openAdminManualTriggerModal('ob_bl')" class="admin-only-btn" id="btnManualTriggerObBl" data-role="admin-only"
+          style="background:linear-gradient(135deg, #dc2626, #991b1b); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px; display:none;"><i
             class="fa-solid fa-bolt"></i> ⚡ Manual Trigger (Admin)</button>
         <button onclick="openExecutiveSummaryModal()"
           style="background:linear-gradient(135deg, #0284c7, #0369a1); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
