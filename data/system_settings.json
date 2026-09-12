@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-12 14:30:55",
+  "updatedAt": "2026-09-12 14:52:45",
   "hourlyTarget": 45000,
   "hourlyMinimum": 40000,
   "hourlyMinimumPct": 90,
@@ -56,7 +56,6 @@
       "nulack.promarpo@spxexpress.com",
       "big.amorntee@spxexpress.com"
     ],
-    "ccText": "guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com, tom.disayach@spxexpress.com",
     "autoAlertIntervalMinutes": 60,
     "modules": {
       "hourly": {
@@ -69,8 +68,7 @@
           "chain.kedsirin@spxexpress.com",
           "nulack.promarpo@spxexpress.com",
           "big.amorntee@spxexpress.com"
-        ],
-        "ccText": "guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com, tom.disayach@spxexpress.com"
+        ]
       },
       "skip": {
         "enabled": false,
@@ -79,8 +77,9 @@
         "webhookUrls": [
           "https://openapi.seatalk.io/webhook/group/ISfK_B7MQeODPJHWrtQpqA"
         ],
-        "mentionEmails": [],
-        "ccText": "guy.panmanee@spxexpress.com"
+        "mentionEmails": [
+          "guy.panmanee@spxexpress.com"
+        ]
       },
       "ob_bl": {
         "enabled": false,
@@ -90,15 +89,18 @@
         "mentionEmails": [
           "chain.kedsirin@spxexpress.com",
           "big.amorntee@spxexpress.com"
-        ],
-        "ccText": "guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com, tom.disayach@spxexpress.com, cho.jeamwong@spxexpress.com"
+        ]
       },
       "broadcast": {
         "webhookUrl": "",
         "webhookUrl2": "",
         "webhookUrls": [],
         "mentionType": "all",
-        "ccText": "guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com"
+        "mentionEmails": [
+          "chain.kedsirin@spxexpress.com",
+          "nulack.promarpo@spxexpress.com",
+          "big.amorntee@spxexpress.com"
+        ]
       }
     }
   },
