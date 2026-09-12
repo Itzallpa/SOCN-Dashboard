@@ -885,7 +885,10 @@ def process_dataframe(df, filename=""):
 def resolve_file_path(fn):
     if not fn: return None
     fn_clean = str(fn).strip().replace("\\", "/")
-    # 1. Direct path in uploads (e.g. "uploads/w36/file.csv" or "w36/file.csv" or "file.csv")
+    if os.path.isabs(fn_clean) and os.path.exists(fn_clean) and os.path.isfile(fn_clean):
+        return fn_clean
+    if os.path.exists(fn_clean) and os.path.isfile(fn_clean):
+        return os.path.abspath(fn_clean)
     candidates = [
         os.path.join(UPLOAD_FOLDER, fn_clean),
         os.path.join(BASE_DIR, fn_clean),
@@ -1990,7 +1993,7 @@ def delete_file():
 
     target_path = resolve_file_path(filename)
     if not target_path or not os.path.exists(target_path):
-        return jsonify({"success": False, "error": f"ไม่พบไฟล์ '{filename}' บนเซิร์ฟเวอร์"}), 404
+        return jsonify({"success": False, "error": f"ไม่พบไฟล์ '{filename}' บนเซิร์ฟเวอร์ (ไฟล์อาจถูกลบหรือไม่ได้อัปโหลด)"}), 404
 
     try:
         os.remove(target_path)
@@ -2020,21 +2023,35 @@ def load_file():
 
     if filename.startswith("folder:"):
         folder_name = filename.replace("folder:", "").strip()
-        folder_path = os.path.join(UPLOAD_FOLDER, os.path.basename(folder_name))
+        folder_clean = os.path.basename(folder_name)
+        folder_path = os.path.join(UPLOAD_FOLDER, folder_clean)
         if not os.path.exists(folder_path):
-            folder_path = os.path.join(BASE_DIR, os.path.basename(folder_name))
-        if not os.path.exists(folder_path):
+            folder_path = os.path.join(BASE_DIR, folder_clean)
+
+        if not os.path.exists(folder_path) and os.path.exists(UPLOAD_FOLDER):
+            for entry in os.listdir(UPLOAD_FOLDER):
+                if entry.lower() == folder_clean.lower() and os.path.isdir(os.path.join(UPLOAD_FOLDER, entry)):
+                    folder_path = os.path.join(UPLOAD_FOLDER, entry)
+                    folder_name = entry
+                    break
+
+        if not os.path.exists(folder_path) or not os.path.isdir(folder_path):
             return jsonify({"success": False, "error": f"ไม่พบโฟลเดอร์ '{folder_name}' บนเซิร์ฟเวอร์"}), 200
         
-        folder_mtime = os.path.getmtime(folder_path)
-        cache_key = f"folder_ob_{folder_path}_{folder_mtime}"
-        if cache_key in FILE_PARSED_CACHE:
-            return jsonify(FILE_PARSED_CACHE[cache_key])
-            
-        res = process_folder(folder_path, folder_name)
-        if res.get("success"):
-            FILE_PARSED_CACHE[cache_key] = res
-        return jsonify(res)
+        try:
+            folder_mtime = os.path.getmtime(folder_path)
+            cache_key = f"folder_ob_{folder_path}_{folder_mtime}"
+            if cache_key in FILE_PARSED_CACHE:
+                return jsonify(FILE_PARSED_CACHE[cache_key])
+                
+            res = process_folder(folder_path, folder_name)
+            if res.get("success"):
+                FILE_PARSED_CACHE[cache_key] = res
+            return jsonify(res)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการประมวลผลโฟลเดอร์ '{folder_name}': {str(e)}"}), 200
 
     target = resolve_file_path(filename)
     if not target or not os.path.exists(target):
@@ -2108,106 +2125,57 @@ def load_skip_lightweight():
 
     if filename.startswith("folder:"):
         folder_name = filename.replace("folder:", "").strip()
-        folder_path = os.path.join(UPLOAD_FOLDER, os.path.basename(folder_name))
+        folder_clean = os.path.basename(folder_name)
+        folder_path = os.path.join(UPLOAD_FOLDER, folder_clean)
         if not os.path.exists(folder_path):
-            folder_path = os.path.join(BASE_DIR, os.path.basename(folder_name))
-        if not os.path.exists(folder_path):
+            folder_path = os.path.join(BASE_DIR, folder_clean)
+
+        if not os.path.exists(folder_path) and os.path.exists(UPLOAD_FOLDER):
+            for entry in os.listdir(UPLOAD_FOLDER):
+                if entry.lower() == folder_clean.lower() and os.path.isdir(os.path.join(UPLOAD_FOLDER, entry)):
+                    folder_path = os.path.join(UPLOAD_FOLDER, entry)
+                    folder_name = entry
+                    break
+
+        if not os.path.exists(folder_path) or not os.path.isdir(folder_path):
             return jsonify({"success": False, "error": f"ไม่พบโฟลเดอร์ '{folder_name}' บนเซิร์ฟเวอร์"}), 200
             
-        folder_mtime = os.path.getmtime(folder_path)
-        cache_key = f"folder_skip_{folder_path}_{folder_mtime}"
-        if cache_key in FILE_PARSED_CACHE:
-            return jsonify(FILE_PARSED_CACHE[cache_key])
-            
-        res = process_folder_skip(folder_path, folder_name)
-        if res.get("success"):
-            FILE_PARSED_CACHE[cache_key] = res
-        return jsonify(res)
+        try:
+            folder_mtime = os.path.getmtime(folder_path)
+            cache_key = f"folder_skip_{folder_path}_{folder_mtime}"
+            if cache_key in FILE_PARSED_CACHE:
+                return jsonify(FILE_PARSED_CACHE[cache_key])
+                
+            res = process_folder_skip(folder_path, folder_name)
+            if res.get("success"):
+                FILE_PARSED_CACHE[cache_key] = res
+            return jsonify(res)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการประมวลผลโฟลเดอร์ '{folder_name}': {str(e)}"}), 200
 
     target = resolve_file_path(filename)
     if not target or not os.path.exists(target):
         return jsonify({"success": False, "error": f"ไม่พบไฟล์ '{filename}' บนเซิร์ฟเวอร์ (ไฟล์อาจถูกลบหรือไม่ได้อัปโหลด)"}), 200
 
     try:
-        full_df = pd.read_csv(target, low_memory=False)
+        mtime = os.path.getmtime(target)
+        cache_key = f"skip_file_{target}_{mtime}"
+        if cache_key in FILE_PARSED_CACHE:
+            return jsonify(FILE_PARSED_CACHE[cache_key])
 
-        target_cols = {
-            'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
-            'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
-            'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
-            'obd_zone': ['obd zone', 'obd_zone', 'zone', 'recieve_team', 'receive_team']
-        }
-        renames = {}
-        used = set()
-        for col in full_df.columns:
-            c = str(col).strip().lower()
-            for key, cands in target_cols.items():
-                if c in cands and key not in used:
-                    renames[col] = key
-                    used.add(key)
-                    break
-
-        sub_df = full_df.rename(columns=renames)
-        sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
-        needed = ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name']
-        for n in needed:
-            if n not in sub_df.columns:
-                sub_df[n] = ''
-
-        reason_s = sub_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
-        mask = reason_s.str.contains('skip')
-        skip_df = sub_df[mask].copy()
-
-        machine_count = int(reason_s[mask].str.contains('machine').sum())
-        system_count = int(reason_s[mask].str.contains('system').sum())
-
-        hub_map = build_hub_zone_map()
-
-        resolved_zones = []
-        for _, r in skip_df.iterrows():
-            explicit_zone = str(r.get('obd_zone', '') or '').strip().upper()
-            if explicit_zone in ['A', 'B', 'C', 'INTERSOC', 'RETURN']:
-                resolved_zones.append(explicit_zone)
-            elif 'INTER' in explicit_zone:
-                resolved_zones.append('INTERSOC')
-            elif 'RET' in explicit_zone:
-                resolved_zones.append('RETURN')
-            else:
-                hub = r.get('dest_station_name', '')
-                resolved_zones.append(lookup_obd_zone(hub, hub_map))
-
-        skip_df['zone'] = resolved_zones
-
-        zone_counts = {'A': 0, 'B': 0, 'C': 0, 'INTERSOC': 0, 'RETURN': 0}
-        for z in resolved_zones:
-            zone_counts[z] = zone_counts.get(z, 0) + 1
-
-        raw_export_list = []
-        for _, r in skip_df.iterrows():
-            raw_export_list.append({
-                'shipment_id': str(r.get('shipment_id', '-')),
-                'shipmentId': str(r.get('shipment_id', '-')),
-                'soc_outbound_late_type_2nd_cutoff': str(r.get('soc_outbound_late_type_2nd_cutoff', 'skip_outbound')),
-                'reason': str(r.get('soc_outbound_late_type_2nd_cutoff', 'skip_outbound')),
-                'dest_station_name': str(r.get('dest_station_name', '-')),
-                'hub': str(r.get('dest_station_name', '-')),
-                'zone': str(r.get('zone', 'A'))
-            })
-
-        return jsonify({
-            "success": True,
-            "filename": filename,
-            "totalRows": len(skip_df),
-            "totalSkipCases": len(skip_df),
-            "machineCount": machine_count,
-            "systemCount": system_count,
-            "skipCountByZone": zone_counts,
-            "rawRows": raw_export_list
-        })
+        res = process_skip_file_list([target], group_name=os.path.basename(target))
+        if res.get("success"):
+            res["filename"] = filename
+            res["isFolder"] = False
+            res["isCustomGroup"] = False
+            FILE_PARSED_CACHE[cache_key] = res
+        return jsonify(res)
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"success": False, "error": str(e)}), 200
+        return jsonify({"success": False, "error": f"ไม่สามารถประมวลผลไฟล์ได้: {str(e)}"}), 200
 
 
 @app.route("/api/raw-data", methods=["GET"])
