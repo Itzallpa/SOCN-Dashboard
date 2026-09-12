@@ -4458,10 +4458,6 @@ def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=Fa
                 if cleaned_ce and cleaned_ce not in all_emails:
                     all_emails.append(cleaned_ce)
 
-        # If cc_text is provided and not yet in message, append CC line to message bottom
-        if cc_text and isinstance(cc_text, str) and cc_text.strip() and "CC:" not in message:
-            message = f"{message}\nCC: {cc_text.strip()}"
-
         if webhook_type == "seatalk":
             payload = {
                 "tag": "text",
@@ -5381,13 +5377,8 @@ def send_generic_seatalk_alert_api():
         
     if mention_emails is None:
         mention_emails = st_cfg.get("mentionEmails", [])
-            
-    cc_text = (st_cfg.get("ccText") or "").strip()
-    full_msg = message
-    if cc_text and "CC:" not in message:
-        full_msg += f"\nCC: {format_cc_text_for_seatalk(cc_text)}"
         
-    ok, err_msg = send_seatalk_alert(webhook_url, full_msg, mention_emails=mention_emails, mention_all=mention_all, webhook_type=webhook_type)
+    ok, err_msg = send_seatalk_alert(webhook_url, message, mention_emails=mention_emails, mention_all=mention_all, webhook_type=webhook_type)
     if ok:
         log_activity("SEATALK_GENERIC_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk: {title}")
         return jsonify({"success": True, "message": "ส่งข้อความแจ้งเตือนเข้า SeaTalk เรียบร้อยแล้ว!"})
