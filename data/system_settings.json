@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-12 14:43:59",
+  "updatedAt": "2026-09-12 14:30:55",
   "hourlyTarget": 45000,
   "hourlyMinimum": 40000,
   "hourlyMinimumPct": 90,
@@ -51,8 +51,12 @@
     "webhookUrls": [],
     "triggerCondition": "below_minimum",
     "mentionType": "all",
-    "mentionEmails": [],
-    "mentionEmails2": [],
+    "mentionEmails": [
+      "chain.kedsirin@spxexpress.com",
+      "nulack.promarpo@spxexpress.com",
+      "big.amorntee@spxexpress.com"
+    ],
+    "ccText": "guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com, tom.disayach@spxexpress.com",
     "autoAlertIntervalMinutes": 60,
     "modules": {
       "hourly": {
@@ -61,8 +65,12 @@
         "webhookUrl": "",
         "webhookUrl2": "",
         "webhookUrls": [],
-        "mentionEmails": [],
-        "mentionEmails2": []
+        "mentionEmails": [
+          "chain.kedsirin@spxexpress.com",
+          "nulack.promarpo@spxexpress.com",
+          "big.amorntee@spxexpress.com"
+        ],
+        "ccText": "guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com, tom.disayach@spxexpress.com"
       },
       "skip": {
         "enabled": false,
@@ -72,24 +80,25 @@
           "https://openapi.seatalk.io/webhook/group/ISfK_B7MQeODPJHWrtQpqA"
         ],
         "mentionEmails": [],
-        "mentionEmails2": [
-          "guy.panmanee@spxexpress.com"
-        ]
+        "ccText": "guy.panmanee@spxexpress.com"
       },
       "ob_bl": {
         "enabled": false,
         "webhookUrl": "",
         "webhookUrl2": "",
         "webhookUrls": [],
-        "mentionEmails": [],
-        "mentionEmails2": []
+        "mentionEmails": [
+          "chain.kedsirin@spxexpress.com",
+          "big.amorntee@spxexpress.com"
+        ],
+        "ccText": "guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com, tom.disayach@spxexpress.com, cho.jeamwong@spxexpress.com"
       },
       "broadcast": {
         "webhookUrl": "",
         "webhookUrl2": "",
         "webhookUrls": [],
         "mentionType": "all",
-        "mentionEmails": []
+        "ccText": "guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com"
       }
     }
   },
