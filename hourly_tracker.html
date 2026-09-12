@@ -80,15 +80,54 @@
       </div>
 
       <div class="d-flex align-items-center gap-2 flex-wrap">
-        <button class="btn btn-danger btn-sm fw-bold px-3 shadow-sm" onclick="openQuickUploadModal()">
-          <i class="fa-solid fa-camera me-1"></i> 📸 อัปโหลดหลักฐานยอดหลุดเป้า
+        <button class="btn btn-danger btn-sm fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #dc2626, #991b1b); border:none;" onclick="openAdminManualTriggerModal('hourly')">
+          <i class="fa-solid fa-bolt me-1"></i> ⚡ Manual Trigger (Admin)
+        </button>
+        <button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); border:none;" onclick="openAiShiftSummaryModal()">
+          <i class="fa-solid fa-wand-magic-sparkles me-1"></i> ✨ AI Shift Summary
+        </button>
+        <button class="btn btn-warning btn-sm fw-bold px-3 shadow-sm text-dark" onclick="openShiftHandoverModal()">
+          <i class="fa-solid fa-clipboard-list me-1"></i> 📋 ส่งมอบกะ (Handover)
+        </button>
+        <button class="btn btn-info btn-sm fw-bold px-3 shadow-sm text-white" onclick="openWowComparisonModal()">
+          <i class="fa-solid fa-chart-line me-1"></i> 📈 เทียบ WoW
+        </button>
+        <button class="btn btn-secondary btn-sm fw-bold px-3 shadow-sm" onclick="openQuickUploadModal()">
+          <i class="fa-solid fa-camera me-1"></i> 📸 อัปโหลดหลักฐาน
         </button>
         <button class="btn btn-success btn-sm fw-bold px-3 shadow-sm" id="btnSyncGoogleSheet" onclick="syncGoogleSheetData()">
-          <i class="fa-solid fa-cloud-arrow-down me-1"></i> 🔄 ซิงค์สดจาก Google Sheet
+          <i class="fa-solid fa-cloud-arrow-down me-1"></i> 🔄 ซิงค์สด Google Sheet
         </button>
         <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="loadHourlyTrackerData()">
           <i class="fa-solid fa-rotate me-1"></i> รีเฟรช
         </button>
+      </div>
+    </div>
+
+    <!-- Live SLA Cutoff Countdown & Run-Rate Ticker -->
+    <div class="card border-0 mb-4 shadow-sm" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; border-radius: 14px;">
+      <div class="card-body p-3 p-md-4">
+        <div class="row align-items-center g-3">
+          <div class="col-12 col-md-5">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; font-size: 1.5rem;">
+                <i class="fa-solid fa-stopwatch animate__animated animate__pulse animate__infinite"></i>
+              </div>
+              <div>
+                <div class="text-secondary text-uppercase fw-bold" style="font-size: 0.72rem; letter-spacing: 1px;">SLA Cutoff Countdown</div>
+                <h5 class="fw-bold mb-0 text-white" id="nextCutoffLabel">⏳ กำลังคำนวณรอบ Cutoff ถัดไป...</h5>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3 text-md-center border-start border-secondary border-opacity-25">
+            <div class="text-secondary small fw-semibold">เวลานับถอยหลังสู่ Cutoff</div>
+            <div class="fw-bold font-monospace text-warning fs-4" id="cutoffCountdownTimer">--:--:--</div>
+          </div>
+          <div class="col-6 col-md-4 text-md-end border-start border-secondary border-opacity-25">
+            <div class="text-secondary small fw-semibold">Run-Rate เฉลี่ยที่ทำได้ / ชม.</div>
+            <div class="fw-bold fs-5 text-info" id="currentRunRateVal">0 ชิ้น/ชม. <span class="badge bg-secondary font-monospace" style="font-size: 0.75rem;" id="runRateStatusBadge">Normal</span></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1101,16 +1140,970 @@
           if (typeof Swal !== 'undefined') {
             Swal.fire('ข้อผิดพลาด', data.error || 'ไม่สามารถซิงค์ได้', 'error');
           } else {
+    }
+
+    // ==========================================
+    // ⏱️ SLA CUTOFF COUNTDOWN & RUN-RATE TICKER
+    // ==========================================
+    const CUTOFF_TIMES = [
+      { name: 'Cut 0 (รอบเช้า)', time: '00:00' },
+      { name: 'Cut 1 (รอบบ่าย)', time: '04:00' },
+      { name: 'Cut 2 (รอบเย็น - Main)', time: '07:00' },
+      { name: 'Cut 3 (รอบดึก)', time: '22:00' }
+    ];
+
+    function updateCutoffCountdown() {
+      const now = new Date();
+      const nowH = now.getHours();
+      const nowM = now.getMinutes();
+      const nowS = now.getSeconds();
+      const nowSeconds = nowH * 3600 + nowM * 60 + nowS;
+
+      let nextCut = null;
+      let minDiff = Infinity;
+
+      for (const cut of CUTOFF_TIMES) {
+        const [h, m] = cut.time.split(':').map(Number);
+        let cutSec = h * 3600 + m * 60;
+        let diff = cutSec - nowSeconds;
+        if (diff <= 0) {
+          diff += 86400; // next day
+        }
+        if (diff < minDiff) {
+          minDiff = diff;
+          nextCut = cut;
+        }
+      }
+
+      if (nextCut) {
+        const hrs = Math.floor(minDiff / 3600);
+        const mins = Math.floor((minDiff % 3600) / 60);
+        const secs = minDiff % 60;
+        const timeStr = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        
+        const labelEl = document.getElementById('nextCutoffLabel');
+        const timerEl = document.getElementById('cutoffCountdownTimer');
+        if (labelEl) labelEl.innerHTML = `<span class="badge bg-warning text-dark me-2">${nextCut.name} @ ${nextCut.time}</span>`;
+        if (timerEl) timerEl.textContent = timeStr;
+      }
+    }
+    setInterval(updateCutoffCountdown, 1000);
+    updateCutoffCountdown();
+
+
+    // ==========================================
+    // 🧠 AI SHIFT SUMMARY & ANALYSIS
+    // ==========================================
+    let currentAiSummaryData = null;
+
+    function openAiShiftSummaryModal(shift = 'ALL') {
+      const dateVal = document.getElementById('filterDate') ? document.getElementById('filterDate').value : new Date().toISOString().split('T')[0];
+      const modal = new bootstrap.Modal(document.getElementById('aiShiftSummaryModal'));
+      modal.show();
+
+      document.getElementById('aiSummaryContent').innerHTML = `
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+          <h5 class="mt-3 fw-bold text-dark">AI กำลังวิเคราะห์ข้อมูลการคัดแยกประจำกะ...</h5>
+          <p class="text-muted small">ประมวลผล Throughput, Bottlenecks, และคำนวณ Action Items สำหรับ Supervisor</p>
+        </div>
+      `;
+
+      fetch('/api/ai/shift-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: dateVal, shift: shift })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) {
+          document.getElementById('aiSummaryContent').innerHTML = `
+            <div class="alert alert-danger">${data.error || 'เกิดข้อผิดพลาดในการสร้างบทวิเคราะห์'}</div>
+          `;
+          return;
+        }
+        currentAiSummaryData = data;
+        renderAiSummaryModalContent(data);
+      })
+      .catch(err => {
+        document.getElementById('aiSummaryContent').innerHTML = `
+          <div class="alert alert-danger">Error: ${err.message}</div>
+        `;
+      });
+    }
+
+    function renderAiSummaryModalContent(data) {
+      const badgeStyle = `background: ${data.healthColor}15; color: ${data.healthColor}; border: 1px solid ${data.healthColor}40;`;
+      
+      const highlightList = data.highlights.map(h => `<li class="mb-2">${h}</li>`).join('');
+      const bottleneckList = data.bottlenecks.map(b => `<li class="mb-2 text-danger fw-semibold">${b}</li>`).join('');
+      const recList = data.recommendations.map(r => `<li class="mb-2">${r}</li>`).join('');
+
+      document.getElementById('aiSummaryContent').innerHTML = `
+        <div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2 pb-3 border-bottom">
+          <div>
+            <span class="badge px-3 py-2 fs-6 fw-bold rounded-pill" style="${badgeStyle}">
+              ${data.healthBadge}
+            </span>
+            <div class="text-muted small mt-1">วันที่วิเคราะห์: <b>${data.date}</b> | ช่วงเวลา: <b>${data.shift}</b></div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-primary fw-bold" onclick="openAiShiftSummaryModal('Day')">☀️ Day Shift</button>
+            <button class="btn btn-sm btn-outline-primary fw-bold" onclick="openAiShiftSummaryModal('Night')">🌙 Night Shift</button>
+            <button class="btn btn-sm btn-outline-secondary fw-bold" onclick="openAiShiftSummaryModal('ALL')">🌐 24 Hours</button>
+          </div>
+        </div>
+
+        <!-- 4 Key AI Metrics -->
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-3">
+            <div class="p-3 bg-light rounded-3 text-center border">
+              <div class="text-muted small">ยอดปล่อยรวม</div>
+              <div class="fs-4 fw-bold text-primary">${data.totalVolume.toLocaleString()}</div>
+              <div class="text-muted" style="font-size:0.75rem;">เฉลี่ย ${data.avgPerHour.toLocaleString()} /ชม.</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="p-3 bg-light rounded-3 text-center border">
+              <div class="text-muted small">อัตราผ่านเป้า (Pass Rate)</div>
+              <div class="fs-4 fw-bold ${data.passRate >= 75 ? 'text-success' : 'text-danger'}">${data.passRate}%</div>
+              <div class="text-muted" style="font-size:0.75rem;">ผ่าน ${data.hoursPassed} จาก ${data.totalRecorded - data.hoursStandby} ชม.</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="p-3 bg-light rounded-3 text-center border">
+              <div class="text-muted small">โซนยอดปล่อยสูงสุด</div>
+              <div class="fs-5 fw-bold text-success">${data.topZone.name}</div>
+              <div class="text-muted" style="font-size:0.75rem;">${data.topZone.volume.toLocaleString()} ชิ้น</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="p-3 bg-light rounded-3 text-center border">
+              <div class="text-muted small">โซนที่ชะลอตัวสุด</div>
+              <div class="fs-5 fw-bold text-danger">${data.lowestZone.name}</div>
+              <div class="text-muted" style="font-size:0.75rem;">${data.lowestZone.volume.toLocaleString()} ชิ้น</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Highlights & Bottlenecks -->
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-6">
+            <div class="card h-100 border-0 bg-light p-3 rounded-3 shadow-none">
+              <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-sparkles text-primary me-2"></i> สรุปไฮไลท์สำคัญ (Key Highlights)</h6>
+              <ul class="mb-0 ps-3 small text-slate-700">
+                ${highlightList}
+              </ul>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="card h-100 border-0 bg-danger bg-opacity-10 p-3 rounded-3 shadow-none">
+              <h6 class="fw-bold text-danger mb-3"><i class="fa-solid fa-triangle-exclamation me-2"></i> จุดติดขัด & คอขวด (Bottlenecks)</h6>
+              <ul class="mb-0 ps-3 small">
+                ${bottleneckList || '<li class="text-success">ไม่พบคอขวดรุนแรง ยอดปล่อยราบรื่น</li>'}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Items -->
+        <div class="card border-0 bg-primary bg-opacity-10 p-3 rounded-3 mb-3">
+          <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-list-check me-2"></i> ข้อเสนอแนะเชิงปฏิบัติการสำหรับ Supervisor (Action Items)</h6>
+          <ul class="mb-0 ps-3 small text-slate-800">
+            ${recList}
+          </ul>
+        </div>
+      `;
+    }
+
+    function copyAiSummaryText() {
+      if (!currentAiSummaryData || !currentAiSummaryData.seatalkCardText) return;
+      navigator.clipboard.writeText(currentAiSummaryData.seatalkCardText).then(() => {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({ icon: 'success', title: 'คัดลอกข้อความสรุปแล้ว!', timer: 1500, showConfirmButton: false });
+        } else {
+          alert('คัดลอกข้อความสรุปเรียบร้อยแล้ว!');
+        }
+      });
+    }
+
+    function sendAiSummaryToSeatalk() {
+      if (!currentAiSummaryData || !currentAiSummaryData.seatalkCardText) return;
+      fetch('/api/seatalk/send-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `AI Shift Summary (${currentAiSummaryData.date})`,
+          message: currentAiSummaryData.seatalkCardText
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          if (typeof Swal !== 'undefined') {
+            Swal.fire('สำเร็จ', 'ส่งบทวิเคราะห์ AI เข้ากลุ่ม SeaTalk เรียบร้อยแล้ว!', 'success');
+          } else {
+            alert('ส่งบทวิเคราะห์เข้า SeaTalk เรียบร้อยแล้ว!');
+          }
+        } else {
+          if (typeof Swal !== 'undefined') {
+            Swal.fire('ข้อผิดพลาด', data.error || 'ไม่สามารถส่งได้', 'error');
+          } else {
             alert(data.error);
           }
         }
       })
-      .catch(err => {
-        btn.innerHTML = originalHtml;
+      .catch(err => alert('Error: ' + err.message));
+    }
+
+
+    // ==========================================
+    // 📋 SHIFT HANDOVER NOTE (สมุดส่งมอบกะ)
+    // ==========================================
+    function openShiftHandoverModal() {
+      const dateVal = document.getElementById('filterDate') ? document.getElementById('filterDate').value : new Date().toISOString().split('T')[0];
+      const totalActVal = document.getElementById('kpiTotalActual') ? parseInt(document.getElementById('kpiTotalActual').textContent.replace(/,/g, '')) || 0 : 0;
+      
+      document.getElementById('hoDate').value = dateVal;
+      document.getElementById('hoTotalVolume').value = totalActVal;
+      
+      const modal = new bootstrap.Modal(document.getElementById('shiftHandoverModal'));
+      modal.show();
+      loadShiftHandoverList(dateVal);
+    }
+
+    function loadShiftHandoverList(dateVal) {
+      const listContainer = document.getElementById('handoverHistoryList');
+      if (!listContainer) return;
+      listContainer.innerHTML = '<div class="text-center py-3 text-muted"><div class="spinner-border spinner-border-sm me-1"></div> กำลังโหลดประวัติ...</div>';
+
+      fetch(`/api/shift-handover/list?date=${dateVal || ''}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.success || data.records.length === 0) {
+            listContainer.innerHTML = '<div class="text-center py-4 text-muted small">ยังไม่มีบันทึกส่งมอบกะสำหรับวันนี้</div>';
+            return;
+          }
+          listContainer.innerHTML = data.records.map(r => `
+            <div class="card border mb-2 shadow-none rounded-3" id="ho_item_${r.id}">
+              <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <div>
+                    <span class="badge bg-primary fw-bold">${r.shift}</span>
+                    <span class="fw-bold text-dark ms-2">${r.date}</span>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteShiftHandover('${r.id}')" title="ลบบันทึก">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="small text-muted mb-2">
+                  👔 ผู้ส่ง: <b>${r.supervisor}</b> ➔ 🤝 ผู้รับ: <b>${r.nextSupervisor}</b>
+                </div>
+                <div class="p-2 bg-light rounded small mb-2 border">
+                  📦 ยอดปล่อย: <b>${(r.totalVolume || 0).toLocaleString()}</b> | ตกค้าง: <b>${(r.backlogRemaining || 0).toLocaleString()}</b> | Skip: <b>${r.skipRate}%</b>
+                </div>
+                ${r.criticalIssues ? `<div class="small text-danger mb-1"><b>🚨 ปัญหา:</b> ${r.criticalIssues}</div>` : ''}
+                ${r.followUpItems ? `<div class="small text-primary"><b>📌 สิ่งที่ฝากตาม:</b> ${r.followUpItems}</div>` : ''}
+                <div class="text-muted text-end mt-2" style="font-size:0.7rem;">บันทึกเมื่อ: ${r.timestamp}</div>
+              </div>
+            </div>
+          `).join('');
+        })
+        .catch(err => {
+          listContainer.innerHTML = `<div class="text-danger small p-2">Error: ${err.message}</div>`;
+        });
+    }
+
+    function submitShiftHandoverForm(e) {
+      if (e) e.preventDefault();
+      const payload = {
+        date: document.getElementById('hoDate').value,
+        shift: document.getElementById('hoShift').value,
+        supervisor: document.getElementById('hoSupervisor').value,
+        nextSupervisor: document.getElementById('hoNextSupervisor').value,
+        totalVolume: document.getElementById('hoTotalVolume').value,
+        backlogRemaining: document.getElementById('hoBacklogRemaining').value,
+        skipRate: document.getElementById('hoSkipRate').value,
+        equipmentStatus: document.getElementById('hoEquipmentStatus').value,
+        manpowerStatus: document.getElementById('hoManpowerStatus').value,
+        criticalIssues: document.getElementById('hoCriticalIssues').value,
+        followUpItems: document.getElementById('hoFollowUpItems').value,
+        sendToSeatalk: document.getElementById('hoSendSeatalk').checked
+      };
+
+      fetch('/api/shift-handover/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              icon: 'success',
+              title: 'บันทึกสำเร็จ!',
+              text: payload.sendToSeatalk ? 'บันทึกและส่งรายงานเข้า SeaTalk เรียบร้อยแล้ว' : 'บันทึกสมุดส่งมอบกะเรียบร้อยแล้ว',
+              timer: 2000,
+              showConfirmButton: false
+            });
+          } else {
+            alert('บันทึกข้อมูลเรียบร้อยแล้ว!');
+          }
+          loadShiftHandoverList(payload.date);
+          document.getElementById('hoCriticalIssues').value = '';
+          document.getElementById('hoFollowUpItems').value = '';
+        } else {
+          alert(data.error || 'เกิดข้อผิดพลาด');
+        }
+      })
+      .catch(err => alert('Error: ' + err.message));
+    }
+
+    function deleteShiftHandover(id) {
+      if (!confirm('ต้องการลบบันทึกส่งมอบกะนี้ใช่หรือไม่?')) return;
+      fetch('/api/shift-handover/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const el = document.getElementById(`ho_item_${id}`);
+          if (el) el.remove();
+        }
+      });
+    }
+
+
+    // ==========================================
+    // 📈 WEEK-OVER-WEEK (WoW) COMPARISON
+    // ==========================================
+    function openWowComparisonModal() {
+      const dateVal = document.getElementById('filterDate') ? document.getElementById('filterDate').value : new Date().toISOString().split('T')[0];
+      const modal = new bootstrap.Modal(document.getElementById('wowComparisonModal'));
+      modal.show();
+
+      document.getElementById('wowComparisonContent').innerHTML = `
+        <div class="text-center py-5">
+          <div class="spinner-border text-info" role="status"></div>
+          <p class="mt-2 text-muted small">กำลังดึงสถิติเปรียบเทียบกับสัปดาห์ก่อนหน้า (WoW)...</p>
+        </div>
+      `;
+
+      fetch(`/api/analytics/wow-comparison?date=${dateVal}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.success) {
+            document.getElementById('wowComparisonContent').innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            return;
+          }
+          renderWowComparisonContent(data);
+        })
+        .catch(err => {
+          document.getElementById('wowComparisonContent').innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+        });
+    }
+
+    function renderWowComparisonContent(data) {
+      const growthIcon = data.growthPct >= 0 ? '🟢 📈' : '🔴 📉';
+      const growthClass = data.growthPct >= 0 ? 'text-success' : 'text-danger';
+
+      const tableRows = data.slots.map(s => {
+        const slotGrowthClass = s.diff >= 0 ? 'text-success' : 'text-danger';
+        const diffSign = s.diff >= 0 ? '+' : '';
+        return `
+          <tr>
+            <td class="fw-bold text-center">${s.slot}</td>
+            <td class="text-end fw-semibold">${s.current > 0 ? s.current.toLocaleString() : '-'}</td>
+            <td class="text-end text-muted">${s.lastWeek > 0 ? s.lastWeek.toLocaleString() : '-'}</td>
+            <td class="text-end fw-bold ${slotGrowthClass}">${s.current > 0 || s.lastWeek > 0 ? diffSign + s.diff.toLocaleString() : '-'}</td>
+            <td class="text-end fw-bold ${slotGrowthClass}">${s.lastWeek > 0 && s.current > 0 ? diffSign + s.growthPct + '%' : '-'}</td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('wowComparisonContent').innerHTML = `
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-4">
+            <div class="p-3 bg-light rounded-3 text-center border">
+              <div class="text-muted small">ยอดปล่อยวันนี้ (${data.currentDate})</div>
+              <div class="fs-4 fw-bold text-primary">${data.currentTotal.toLocaleString()} ชิ้น</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="p-3 bg-light rounded-3 text-center border">
+              <div class="text-muted small">สัปดาห์ก่อน (${data.lastWeekDate || 'N/A'})</div>
+              <div class="fs-4 fw-bold text-secondary">${data.lastWeekTotal.toLocaleString()} ชิ้น</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="p-3 bg-light rounded-3 text-center border">
+              <div class="text-muted small">อัตราเติบโต WoW Growth</div>
+              <div class="fs-4 fw-bold ${growthClass}">${growthIcon} ${data.growthPct > 0 ? '+' : ''}${data.growthPct}%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-responsive" style="max-height: 400px;">
+          <table class="table table-bordered table-sm table-hover align-middle mb-0" style="font-size:0.85rem;">
+            <thead class="table-dark sticky-top">
+              <tr>
+                <th class="text-center" style="width: 15%;">ช่วงเวลา (Hour)</th>
+                <th class="text-end" style="width: 25%;">ยอดวันนี้ (${data.currentDate})</th>
+                <th class="text-end" style="width: 25%;">สัปดาห์ก่อน (${data.lastWeekDate})</th>
+                <th class="text-end" style="width: 18%;">ส่วนต่าง (Diff)</th>
+                <th class="text-end" style="width: 17%;">% เติบโต</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+        </div>
+      `;
+    // ==========================================
+    // ⚡ ADMIN MANUAL TRIGGER SYSTEM (Admin Only)
+    // ==========================================
+    function checkAdminPermission() {
+      const user = window.AuthGuard ? window.AuthGuard.getUser() : null;
+      if (!user || (user.role !== 'Admin' && user.role !== 'admin')) {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({
+            icon: 'error',
+            title: '🔒 สิทธิ์ไม่เพียงพอ (Admin Only)',
+            html: `ฟังก์ชัน <b>Manual Trigger / ยิงแจ้งเตือน SeaTalk</b> สงวนสิทธิ์สำหรับผู้ใช้งานระดับ <span class="badge bg-danger px-2 py-1">Admin</span> เท่านั้น<br><br><small class="text-muted">ผู้ใช้งานปัจจุบัน: <b>${user ? user.name : 'ยังไม่ล็อกอิน'}</b> (Role: <b>${user ? user.role : 'Guest'}</b>)</small>`,
+            confirmButtonText: 'รับทราบ',
+            confirmButtonColor: '#ef4444'
+          });
+        } else {
+          alert('ฟังก์ชัน Manual Trigger อนุญาตเฉพาะผู้ใช้งานระดับ Admin เท่านั้น');
+        }
+        return false;
+      }
+      return true;
+    }
+
+    function quickHourlyAdminTrigger(slot, actual, target, min) {
+      if (!checkAdminPermission()) return;
+      const user = window.AuthGuard.getUser();
+      const dateVal = document.getElementById('filterDate') ? document.getElementById('filterDate').value : new Date().toISOString().split('T')[0];
+      
+      const gap = (actual || 0) - (target || 45000);
+      const pct = target > 0 ? Math.round(((actual || 0) / target) * 100) : 0;
+      
+      Swal.fire({
+        title: '⚡ สั่งยิงแจ้งเตือน SeaTalk (Admin)?',
+        html: `
+          <div class="text-start bg-light p-3 rounded-3 mb-3 border">
+            <div>⏰ ช่วงเวลา: <b class="text-primary">${slot}</b></div>
+            <div>📅 วันที่: <b>${dateVal}</b></div>
+            <div>🎯 Target: <b>${(target||45000).toLocaleString()}</b> | Actual: <b>${(actual||0).toLocaleString()} ชิ้น</b></div>
+            <div>📉 ส่วนต่าง (Gap): <b class="${gap < 0 ? 'text-danger' : 'text-success'}">${gap.toLocaleString()} ชิ้น (${pct}%)</b></div>
+            <div class="mt-1 pt-1 border-top">👤 สั่งยิงโดย: <b class="text-danger">${user.name} (${user.role})</b></div>
+          </div>
+          <p class="text-muted small mb-0">ระบบจะส่งข้อความแจ้งเตือนพร้อมแท็กผู้รับและ CC เข้า SeaTalk ทันที</p>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '🚀 สั่งยิงทันที (Send Alert)',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#dc2626'
+      }).then(res => {
+        if (res.isConfirmed) {
+          fetch('/api/admin/manual-trigger', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              triggerType: 'hourly',
+              slot: slot,
+              actual: actual || 0,
+              target: target || 45000,
+              minimum: min || 40000,
+              date: dateVal,
+              adminName: user.name,
+              role: user.role
+            })
+          })
+          .then(r => r.json())
+          .then(data => {
+            if (data.success) {
+              Swal.fire('สำเร็จ', data.message, 'success');
+            } else {
+              Swal.fire('ข้อผิดพลาด', data.error || 'ไม่สามารถส่งได้', 'error');
+            }
+          })
+          .catch(err => Swal.fire('Error', err.message, 'error'));
+        }
+      });
+    }
+
+    let currentAdminTriggerType = 'hourly';
+
+    function openAdminManualTriggerModal(defaultType = 'hourly') {
+      if (!checkAdminPermission()) return;
+      const user = window.AuthGuard.getUser();
+      const dateVal = document.getElementById('filterDate') ? document.getElementById('filterDate').value : new Date().toISOString().split('T')[0];
+      
+      document.getElementById('amtAdminUserDisplay').innerText = `${user.name} (${user.role})`;
+      document.getElementById('amtHourlyDate').value = dateVal;
+      document.getElementById('amtSkipDate').value = dateVal;
+      
+      switchAdminTriggerType(defaultType);
+      
+      const modal = new bootstrap.Modal(document.getElementById('adminManualTriggerModal'));
+      modal.show();
+    }
+
+    function switchAdminTriggerType(type) {
+      currentAdminTriggerType = type;
+      ['hourly', 'skip', 'ob_bl', 'custom'].forEach(t => {
+        const pane = document.getElementById(`amt_pane_${t}`);
+        const btn = document.getElementById(`amt_tab_btn_${t}`);
+        if (pane) pane.style.display = (t === type ? 'block' : 'none');
+        if (btn) {
+          if (t === type) {
+            btn.classList.add('btn-primary', 'text-white');
+            btn.classList.remove('btn-outline-secondary');
+          } else {
+            btn.classList.remove('btn-primary', 'text-white');
+            btn.classList.add('btn-outline-secondary');
+          }
+        }
+      });
+      updateAdminTriggerPreview();
+    }
+
+    function updateAdminTriggerPreview() {
+      const previewEl = document.getElementById('amtMessagePreview');
+      if (!previewEl) return;
+      
+      const user = window.AuthGuard?.getUser() || { name: 'Admin', role: 'Admin' };
+      let msg = '';
+      
+      if (currentAdminTriggerType === 'hourly') {
+        const slot = document.getElementById('amtHourlySlot')?.value || '08:00';
+        const dateStr = document.getElementById('amtHourlyDate')?.value || new Date().toISOString().split('T')[0];
+        const target = parseInt(document.getElementById('amtHourlyTarget')?.value || 45000);
+        const minVal = parseInt(document.getElementById('amtHourlyMin')?.value || 40000);
+        const act = parseInt(document.getElementById('amtHourlyActual')?.value || 0);
+        const gap = act - target;
+        const pct = target > 0 ? Math.round((act / target) * 100) : 0;
+        
+        msg = `🚨 [SOCN MANUAL HOURLY TRIGGER] แจ้งเตือนยอดปล่อยรายชั่วโมง (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: ${dateStr}
+⏰ ช่วงเวลา: ${slot}
+🎯 เป้าหมาย (Target): ${target.toLocaleString()} ชิ้น
+⚠️ เกณฑ์ขั้นต่ำ (Minimum): ${minVal.toLocaleString()} ชิ้น
+📦 ปล่อยจริง (Actual): ${act.toLocaleString()} ชิ้น
+📉 ส่วนต่าง (Gap): ${gap.toLocaleString()} ชิ้น (${pct}% of Target)
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      } else if (currentAdminTriggerType === 'skip') {
+        const dateStr = document.getElementById('amtSkipDate')?.value || new Date().toISOString().split('T')[0];
+        const act = parseInt(document.getElementById('amtSkipActual')?.value || 0);
+        const skipCnt = parseInt(document.getElementById('amtSkipCount')?.value || 0);
+        const pct = act > 0 ? ((skipCnt / act) * 100).toFixed(2) : '0.00';
+        
+        msg = `🚨 [SOCN MANUAL SKIP TRIGGER] สรุปรายงานสแกนข้ามขั้นตอน (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: ${dateStr}
+📦 ยอดปล่อยรวม: ${act.toLocaleString()} ชิ้น
+⚠️ ยอด Skip รวม: ${skipCnt.toLocaleString()} ชิ้น (${pct}%)
+📍 สถานะรายโซน: ตรวจสอบข้อมูลในระบบ Dashboard
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      } else if (currentAdminTriggerType === 'ob_bl') {
+        const cutoff = document.getElementById('amtObBlCutoff')?.value || 'Cutoff 2';
+        const late = parseInt(document.getElementById('amtObBlLate')?.value || 0);
+        
+        msg = `🚨 [SOCN MANUAL BACKLOG TRIGGER] สรุปยอดพัสดุขาออกล่าช้า (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+⏰ รอบเวลา Cutoff: ${cutoff}
+📦 ยอดพัสดุตกค้างล่าช้า: ${late.toLocaleString()} ชิ้น
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      } else {
+        const title = document.getElementById('amtCustomTitle')?.value || 'SOCN BROADCAST';
+        const body = document.getElementById('amtCustomBody')?.value || 'ระบุข้อความ...';
+        msg = `📢 [${title}] (Admin Manual Broadcast)
+━━━━━━━━━━━━━━━━━━━━
+⏰ เวลา: ${new Date().toLocaleString('th-TH')}
+👤 ผู้ส่งคำสั่ง: ${user.name} (Role: ${user.role})
+━━━━━━━━━━━━━━━━━━━━
+${body}
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      }
+      previewEl.innerText = msg;
+    }
+
+    function executeSendAdminTrigger() {
+      if (!checkAdminPermission()) return;
+      const user = window.AuthGuard.getUser();
+      
+      let payload = {
+        triggerType: currentAdminTriggerType,
+        adminName: user.name,
+        role: user.role
+      };
+      
+      if (currentAdminTriggerType === 'hourly') {
+        payload.slot = document.getElementById('amtHourlySlot')?.value;
+        payload.date = document.getElementById('amtHourlyDate')?.value;
+        payload.target = parseInt(document.getElementById('amtHourlyTarget')?.value || 45000);
+        payload.minimum = parseInt(document.getElementById('amtHourlyMin')?.value || 40000);
+        payload.actual = parseInt(document.getElementById('amtHourlyActual')?.value || 0);
+      } else if (currentAdminTriggerType === 'skip') {
+        payload.date = document.getElementById('amtSkipDate')?.value;
+        payload.actualVolume = parseInt(document.getElementById('amtSkipActual')?.value || 0);
+        payload.overallSkipCount = parseInt(document.getElementById('amtSkipCount')?.value || 0);
+        payload.overallPct = payload.actualVolume > 0 ? parseFloat(((payload.overallSkipCount / payload.actualVolume) * 100).toFixed(2)) : 0.0;
+      } else if (currentAdminTriggerType === 'ob_bl') {
+        payload.cutoffRound = document.getElementById('amtObBlCutoff')?.value;
+        payload.totalLate = parseInt(document.getElementById('amtObBlLate')?.value || 0);
+      } else {
+        payload.title = document.getElementById('amtCustomTitle')?.value;
+        payload.message = document.getElementById('amtCustomBody')?.value;
+        if (!payload.message) {
+          Swal.fire('คำเตือน', 'กรุณาระบุข้อความก่อนส่ง', 'warning');
+          return;
+        }
+      }
+
+      const btn = document.getElementById('btnAmtSubmit');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังส่งคำสั่ง...';
+
+      fetch('/api/admin/manual-trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(r => r.json())
+      .then(data => {
         btn.disabled = false;
-        console.error('Error syncing:', err);
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> 🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที';
+        if (data.success) {
+          bootstrap.Modal.getInstance(document.getElementById('adminManualTriggerModal'))?.hide();
+          Swal.fire({
+            icon: 'success',
+            title: 'Manual Trigger สำเร็จ!',
+            text: data.message,
+            confirmButtonColor: '#10b981'
+          });
+        } else {
+          Swal.fire('ข้อผิดพลาด', data.error || 'เกิดข้อผิดพลาดในการส่ง', 'error');
+        }
+      })
+      .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> 🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที';
+        Swal.fire('Error', err.message, 'error');
       });
     }
   </script>
+
+  <!-- ========================================== -->
+  <!-- ⚡ MODAL: ADMIN MANUAL TRIGGER PANEL       -->
+  <!-- ========================================== -->
+  <div class="modal fade" id="adminManualTriggerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-header text-white" style="background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%);">
+          <div>
+            <h5 class="modal-title fw-bold mb-0"><i class="fa-solid fa-bolt text-warning me-2"></i> Admin SeaTalk Manual Trigger Control</h5>
+            <small class="text-white-50">ศูนย์ควบคุมการสั่งยิงแจ้งเตือนด่วน (สำหรับผู้ใช้งานยศ Admin เท่านั้น)</small>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded-3 border">
+            <span class="small text-muted"><i class="fa-solid fa-shield-halved text-danger me-1"></i> สิทธิ์ปฏิบัติการ:</span>
+            <span class="badge bg-danger fs-6" id="amtAdminUserDisplay">Admin</span>
+          </div>
+
+          <!-- Type Selection Buttons -->
+          <label class="form-label fw-bold small text-muted mb-2">เลือกประเภทการแจ้งเตือน (Alert Category):</label>
+          <div class="d-flex gap-2 flex-wrap mb-4">
+            <button type="button" class="btn btn-sm btn-primary fw-bold px-3 shadow-sm" id="amt_tab_btn_hourly" onclick="switchAdminTriggerType('hourly')">
+              <i class="fa-solid fa-clock me-1"></i> 1. ยอดปล่อยรายชั่วโมง
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary fw-bold px-3" id="amt_tab_btn_skip" onclick="switchAdminTriggerType('skip')">
+              <i class="fa-solid fa-triangle-exclamation me-1"></i> 2. สแกนข้ามขั้นตอน (Skip)
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary fw-bold px-3" id="amt_tab_btn_ob_bl" onclick="switchAdminTriggerType('ob_bl')">
+              <i class="fa-solid fa-boxes-stacked me-1"></i> 3. Outbound Backlog
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary fw-bold px-3" id="amt_tab_btn_custom" onclick="switchAdminTriggerType('custom')">
+              <i class="fa-solid fa-bullhorn me-1"></i> 4. ข้อความบรอดแคสต์ด่วน
+            </button>
+          </div>
+
+          <!-- PANE 1: HOURLY -->
+          <div id="amt_pane_hourly" class="p-3 bg-light rounded-3 border mb-3">
+            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-stopwatch text-primary me-2"></i> ตั้งค่าแจ้งเตือนยอดหลุดเป้ารายชั่วโมง</h6>
+            <div class="row g-2 mb-2">
+              <div class="col-6 col-md-4">
+                <label class="form-label small fw-semibold">วันที่</label>
+                <input type="date" class="form-control form-control-sm" id="amtHourlyDate" onchange="updateAdminTriggerPreview()">
+              </div>
+              <div class="col-6 col-md-4">
+                <label class="form-label small fw-semibold">ช่วงเวลา (Hour Slot)</label>
+                <select class="form-select form-select-sm" id="amtHourlySlot" onchange="updateAdminTriggerPreview()">
+                  <option value="08:00">08:00 (08:00 - 09:00)</option>
+                  <option value="09:00">09:00 (09:00 - 10:00)</option>
+                  <option value="10:00">10:00 (10:00 - 11:00)</option>
+                  <option value="11:00">11:00 (11:00 - 12:00)</option>
+                  <option value="12:00">12:00 (12:00 - 13:00)</option>
+                  <option value="18:00">18:00 (18:00 - 19:00)</option>
+                  <option value="19:00">19:00 (19:00 - 20:00)</option>
+                  <option value="20:00">20:00 (20:00 - 21:00)</option>
+                  <option value="21:00">21:00 (21:00 - 22:00)</option>
+                  <option value="22:00">22:00 (22:00 - 23:00)</option>
+                  <option value="23:00">23:00 (23:00 - 00:00)</option>
+                  <option value="00:00">00:00 (00:00 - 01:00)</option>
+                  <option value="01:00">01:00 (01:00 - 02:00)</option>
+                  <option value="02:00">02:00 (02:00 - 03:00)</option>
+                  <option value="03:00">03:00 (03:00 - 04:00)</option>
+                  <option value="04:00">04:00 (04:00 - 05:00)</option>
+                  <option value="05:00">05:00 (05:00 - 06:00)</option>
+                  <option value="06:00">06:00 (06:00 - 07:00)</option>
+                  <option value="07:00">07:00 (07:00 - 08:00)</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label small fw-semibold text-danger">ยอดปล่อยจริง (Actual Orders)</label>
+                <input type="number" class="form-control form-control-sm border-danger" id="amtHourlyActual" value="32500" oninput="updateAdminTriggerPreview()">
+              </div>
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label small text-muted">เป้าหมาย (Target)</label>
+                <input type="number" class="form-control form-control-sm" id="amtHourlyTarget" value="45000" oninput="updateAdminTriggerPreview()">
+              </div>
+              <div class="col-6">
+                <label class="form-label small text-muted">เกณฑ์ขั้นต่ำ (Minimum)</label>
+                <input type="number" class="form-control form-control-sm" id="amtHourlyMin" value="40000" oninput="updateAdminTriggerPreview()">
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 2: SKIP PROCESS -->
+          <div id="amt_pane_skip" class="p-3 bg-light rounded-3 border mb-3" style="display:none;">
+            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i> ตั้งค่าแจ้งเตือน Skip Process</h6>
+            <div class="row g-2">
+              <div class="col-4">
+                <label class="form-label small fw-semibold">วันที่</label>
+                <input type="date" class="form-control form-control-sm" id="amtSkipDate" onchange="updateAdminTriggerPreview()">
+              </div>
+              <div class="col-4">
+                <label class="form-label small fw-semibold">Actual Volume (ชิ้น)</label>
+                <input type="number" class="form-control form-control-sm" id="amtSkipActual" value="850000" oninput="updateAdminTriggerPreview()">
+              </div>
+              <div class="col-4">
+                <label class="form-label small fw-semibold text-danger">ยอด Skip รวม (ชิ้น)</label>
+                <input type="number" class="form-control form-control-sm border-danger" id="amtSkipCount" value="12500" oninput="updateAdminTriggerPreview()">
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 3: OUTBOUND BACKLOG -->
+          <div id="amt_pane_ob_bl" class="p-3 bg-light rounded-3 border mb-3" style="display:none;">
+            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-boxes-stacked text-danger me-2"></i> ตั้งค่าแจ้งเตือน Outbound Backlog Late</h6>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">รอบ Cutoff</label>
+                <select class="form-select form-select-sm" id="amtObBlCutoff" onchange="updateAdminTriggerPreview()">
+                  <option value="Cutoff 0 (00:00)">Cutoff 0 (00:00)</option>
+                  <option value="Cutoff 1 (08:00)">Cutoff 1 (08:00)</option>
+                  <option value="Cutoff 2 (14:00)" selected>Cutoff 2 (14:00)</option>
+                  <option value="Cutoff 3 (20:00)">Cutoff 3 (20:00)</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold text-danger">ยอดพัสดุตกค้างล่าช้า (ชิ้น)</label>
+                <input type="number" class="form-control form-control-sm border-danger" id="amtObBlLate" value="38450" oninput="updateAdminTriggerPreview()">
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 4: CUSTOM BROADCAST -->
+          <div id="amt_pane_custom" class="p-3 bg-light rounded-3 border mb-3" style="display:none;">
+            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-bullhorn text-info me-2"></i> ข้อความแจ้งเตือนด่วนแบบกำหนดเอง (Custom Broadcast)</h6>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">หัวข้อเรื่อง (Title)</label>
+              <input type="text" class="form-control form-control-sm" id="amtCustomTitle" value="ประกาศด่วนจาก Admin ศูนย์ปฏิบัติการ SOCN" oninput="updateAdminTriggerPreview()">
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">เนื้อหาข้อความ (Message Content)</label>
+              <textarea class="form-control form-control-sm" id="amtCustomBody" rows="3" placeholder="พิมพ์ข้อความที่ต้องการประกาศในกลุ่ม..." oninput="updateAdminTriggerPreview()">แจ้งทุกโซนเร่งเคลียร์พัสดุตกค้างหน้าสายพานเข้าสู่กระบวนการคัดแยกด่วน ก่อนรอบ Cutoff ถัดไป</textarea>
+            </div>
+          </div>
+
+          <!-- Live Message Preview Box -->
+          <label class="form-label fw-bold small text-dark mb-1"><i class="fa-solid fa-eye text-primary me-1"></i> ตัวอย่างข้อความที่จะส่งเข้า SeaTalk (Live Preview):</label>
+          <div class="p-3 rounded-3 font-monospace text-light" style="background:#0f172a; font-size:0.8rem; white-space:pre-wrap; max-height:200px; overflow-y:auto;" id="amtMessagePreview">
+            <!-- Preview generated by JS -->
+          </div>
+        </div>
+        <div class="modal-footer bg-light d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="button" class="btn btn-danger btn-sm fw-bold px-4 shadow-sm" id="btnAmtSubmit" onclick="executeSendAdminTrigger()">
+            <i class="fa-solid fa-paper-plane me-1"></i> 🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 🧠 MODAL: AI SHIFT SUMMARY & ANALYSIS      -->
+  <!-- ========================================== -->
+  <div class="modal fade" id="aiShiftSummaryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg rounded-4">
+        <div class="modal-header text-white" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-wand-magic-sparkles text-warning me-2"></i> AI Shift Summary & Operations Analysis</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4" id="aiSummaryContent">
+          <!-- Populated by JS -->
+        </div>
+        <div class="modal-footer bg-light d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" data-bs-dismiss="modal">ปิด</button>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="copyAiSummaryText()">
+              <i class="fa-solid fa-copy me-1"></i> คัดลอกข้อความ (Copy)
+            </button>
+            <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="sendAiSummaryToSeatalk()">
+              <i class="fa-solid fa-paper-plane me-1"></i> 📢 ส่งเข้า SeaTalk ทันที
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 📋 MODAL: SHIFT HANDOVER (สมุดส่งมอบกะ)     -->
+  <!-- ========================================== -->
+  <div class="modal fade" id="shiftHandoverModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg rounded-4">
+        <div class="modal-header text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-clipboard-list text-warning me-2"></i> สมุดบันทึกส่งมอบเวรปฏิบัติการ (Shift Handover)</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-4">
+            <!-- Left Form Column -->
+            <div class="col-12 col-lg-6 border-end">
+              <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-pen-to-square text-primary me-2"></i> กรอกข้อมูลส่งมอบเวร</h6>
+              <form id="shiftHandoverForm" onsubmit="submitShiftHandoverForm(event)">
+                <div class="row g-2 mb-3">
+                  <div class="col-6">
+                    <label class="form-label small fw-bold text-muted mb-1">วันที่ปฏิบัติการ</label>
+                    <input type="date" class="form-control form-control-sm" id="hoDate" required>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small fw-bold text-muted mb-1">รอบกะการทำงาน</label>
+                    <select class="form-select form-select-sm" id="hoShift">
+                      <option value="Day Shift (08:00 - 20:00)">☀️ Day Shift (08:00 - 20:00)</option>
+                      <option value="Night Shift (20:00 - 08:00)">🌙 Night Shift (20:00 - 08:00)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="row g-2 mb-3">
+                  <div class="col-6">
+                    <label class="form-label small fw-bold text-muted mb-1">Supervisor ผู้ส่งมอบ</label>
+                    <input type="text" class="form-control form-control-sm" id="hoSupervisor" placeholder="ชื่อ Supervisor กะปัจจุบัน" required>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small fw-bold text-muted mb-1">Supervisor ผู้รับมอบ</label>
+                    <input type="text" class="form-control form-control-sm" id="hoNextSupervisor" placeholder="ชื่อ Supervisor กะถัดไป" required>
+                  </div>
+                </div>
+
+                <div class="row g-2 mb-3">
+                  <div class="col-4">
+                    <label class="form-label small fw-bold text-muted mb-1">ยอดปล่อยสะสม</label>
+                    <input type="number" class="form-control form-control-sm" id="hoTotalVolume" value="0">
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label small fw-bold text-muted mb-1">พัสดุตกค้าง (Backlog)</label>
+                    <input type="number" class="form-control form-control-sm" id="hoBacklogRemaining" value="0">
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label small fw-bold text-muted mb-1">% Skip Process</label>
+                    <input type="number" step="0.01" class="form-control form-control-sm" id="hoSkipRate" value="0.00">
+                  </div>
+                </div>
+
+                <div class="row g-2 mb-3">
+                  <div class="col-6">
+                    <label class="form-label small fw-bold text-muted mb-1">สถานะเครื่องจักร/สายพาน</label>
+                    <input type="text" class="form-control form-control-sm" id="hoEquipmentStatus" value="ปกติทั้งหมด (All Normal)">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small fw-bold text-muted mb-1">สถานะกำลังคน (Manpower)</label>
+                    <input type="text" class="form-control form-control-sm" id="hoManpowerStatus" value="กำลังคนครบตามแผน (Full Staffed)">
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-danger mb-1">🚨 ปัญหาสำคัญ/เคสพิเศษ (Critical Issues)</label>
+                  <textarea class="form-control form-control-sm" id="hoCriticalIssues" rows="2" placeholder="ระบุเหตุการณ์สำคัญ เช่น รถดีเลย์, ปัญหาพัสดุแตกหัก, หรือปัญหา IT"></textarea>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-primary mb-1">📌 สิ่งที่ฝากกะถัดไปติดตามต่อ (Follow-up Items)</label>
+                  <textarea class="form-control form-control-sm" id="hoFollowUpItems" rows="2" placeholder="ระบุสิ่งที่ต้องประสานต่อ เช่น ตรวจสอบยอดรอบ Cutoff 2 หรือจัดโซน"></textarea>
+                </div>
+
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input" type="checkbox" id="hoSendSeatalk" checked>
+                  <label class="form-check-label small fw-semibold text-dark" for="hoSendSeatalk">📢 ส่งรายงานเข้า SeaTalk อัตโนมัติทันที</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-sm fw-bold w-100 py-2 shadow-sm">
+                  <i class="fa-solid fa-floppy-disk me-1"></i> บันทึกข้อมูลส่งมอบเวร
+                </button>
+              </form>
+            </div>
+
+            <!-- Right History Column -->
+            <div class="col-12 col-lg-6">
+              <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> ประวัติการส่งมอบเวร</h6>
+              <div id="handoverHistoryList" style="max-height: 520px; overflow-y: auto;">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 📈 MODAL: WoW COMPARISON                   -->
+  <!-- ========================================== -->
+  <div class="modal fade" id="wowComparisonModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg rounded-4">
+        <div class="modal-header text-white" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-chart-line text-warning me-2"></i> สถิติเปรียบเทียบรายสัปดาห์ (Week-over-Week Analysis)</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4" id="wowComparisonContent">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

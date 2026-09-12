@@ -90,7 +90,8 @@ fuzzy_column_matcher = """
       'action_flag': ['action_flag', 'action', 'flag', 'status', 'late_type', 'reason', 'soc_outbound_late_type_2nd_cutoff'],
       'day_in_soc': ['day_in_soc', 'days_in_soc', 'day', 'days'],
       'intentional_backlog_type': ['intentional_backlog_type', 'backlog_type', 'backlog', 'type'],
-      'latest_awb_station_name': ['latest_awb_station_name', 'dest_station_name', 'dest_station', 'station_name', 'station', 'hub', 'destination']
+      'latest_awb_station_name': ['latest_awb_station_name', 'dest_station_name', 'dest_station', 'station_name', 'station', 'hub', 'destination'],
+      'is_high_value': ['is_high_value', 'high_value', 'is_high', 'high value', 'is_hv', 'hv']
     };
 
     function buildColumnIndex(rawHeaders) {

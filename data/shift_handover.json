@@ -1,0 +1,18 @@
+[
+  {
+    "id": "ho_1789114240_141",
+    "date": "2026-09-09",
+    "shift": "Day Shift (08:00 - 20:00)",
+    "supervisor": "Chain",
+    "nextSupervisor": "Big",
+    "totalVolume": 420000,
+    "backlogRemaining": 250,
+    "skipRate": 0.45,
+    "equipmentStatus": "ปกติ",
+    "manpowerStatus": "ครบตามแผน",
+    "criticalIssues": "ทดสอบบันทึกระบบ",
+    "followUpItems": "ตรวจสอบยอดรอบ 20:00",
+    "timestamp": "2026-09-11 15:10:40",
+    "createdBy": "Chain"
+  }
+]

@@ -323,11 +323,11 @@
               <a href="hourly_tracker.html" class="btn btn-outline-primary btn-sm fw-bold"><i class="fa-solid fa-chart-line me-1"></i> ไปยังหน้า Hourly Tracker</a>
             </div>
 
-            <!-- ZONE TARGETS (Zone A, Zone B, Zone C) -->
+            <!-- ZONE TARGETS & TARGET OVERALL (Zone A, Zone B, Zone C, Target Overall) -->
             <div class="row g-3 mb-3">
               <!-- Zone A -->
-              <div class="col-md-4">
-                <div class="p-3 rounded-3 border border-2 border-danger-subtle bg-light" style="border-left: 5px solid #db2777 !important;">
+              <div class="col-12 col-md-6 col-xl-3">
+                <div class="p-3 rounded-3 border border-2 border-danger-subtle bg-light h-100" style="border-left: 5px solid #db2777 !important;">
                   <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
                     <span class="fw-bold text-dark"><i class="fa-solid fa-layer-group text-danger me-1"></i> Zone A Target</span>
                     <span class="badge" style="background-color: #fdf2f8; color: #db2777; border: 1px solid #fbcfe8;">Zone A</span>
@@ -348,8 +348,8 @@
               </div>
 
               <!-- Zone B -->
-              <div class="col-md-4">
-                <div class="p-3 rounded-3 border border-2 border-success-subtle bg-light" style="border-left: 5px solid #16a34a !important;">
+              <div class="col-12 col-md-6 col-xl-3">
+                <div class="p-3 rounded-3 border border-2 border-success-subtle bg-light h-100" style="border-left: 5px solid #16a34a !important;">
                   <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
                     <span class="fw-bold text-dark"><i class="fa-solid fa-layer-group text-success me-1"></i> Zone B Target</span>
                     <span class="badge" style="background-color: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0;">Zone B</span>
@@ -370,8 +370,8 @@
               </div>
 
               <!-- Zone C -->
-              <div class="col-md-4">
-                <div class="p-3 rounded-3 border border-2 border-warning-subtle bg-light" style="border-left: 5px solid #ca8a04 !important;">
+              <div class="col-12 col-md-6 col-xl-3">
+                <div class="p-3 rounded-3 border border-2 border-warning-subtle bg-light h-100" style="border-left: 5px solid #ca8a04 !important;">
                   <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
                     <span class="fw-bold text-dark"><i class="fa-solid fa-layer-group text-warning me-1"></i> Zone C Target</span>
                     <span class="badge" style="background-color: #fefce8; color: #ca8a04; border: 1px solid #fef08a;">Zone C</span>
@@ -390,37 +390,35 @@
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- OVERALL TOTAL TARGETS (AUTO-SUMMED) -->
-            <div class="p-3 rounded-3 bg-white border shadow-sm mb-3">
-              <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
-                <span class="fw-bold text-slate-800 small"><i class="fa-solid fa-calculator text-primary me-1"></i> เป้าหมายรวมทุกโซน (Total Auto-Sum = Zone A + B + C)</span>
-                <span class="badge bg-primary bg-opacity-10 text-primary fw-normal">คำนวณอัตโนมัติ</span>
-              </div>
-              <div class="row g-3">
-                <div class="col-md-3">
-                  <label class="form-label fw-bold small text-primary">เป้าหมายรวมปกติ (Total Target / ชิ้น):</label>
-                  <input type="number" id="settingHourlyTarget" class="form-control form-control-sm fw-bold bg-light" min="0" step="any" required>
-                  <div class="text-muted" style="font-size: 0.74rem;">เป้าหมายรวมทุกโซนต่อชั่วโมง (เช่น 45,000)</div>
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label fw-bold small text-danger">เกณฑ์ขั้นต่ำรวม (Total Minimum / ชิ้น):</label>
-                  <input type="number" id="settingHourlyMinimum" class="form-control form-control-sm fw-bold border-danger text-danger bg-light" min="0" step="any" required>
-                  <div class="text-muted" style="font-size: 0.74rem;">หากยอดรวมต่ำกว่านี้ = แจ้งเตือนหลุดเป้า</div>
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label fw-bold small text-warning-emphasis">เป้าหมายรวมช่วงพีค (Total Peak Target):</label>
-                  <input type="number" id="settingPeakTarget" class="form-control form-control-sm fw-bold border-warning bg-light" min="0" step="any" required>
-                  <div class="text-muted" style="font-size: 0.74rem;">เป้าหมายรวมในชั่วโมงพีค (เช่น 50,000)</div>
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label fw-bold small text-secondary">เกณฑ์ขั้นต่ำเป็น % (% Min of Target):</label>
-                  <div class="input-group input-group-sm">
-                    <input type="number" id="settingHourlyMinimumPct" class="form-control fw-bold" min="0" max="100" step="any" oninput="recalcMinPct()">
-                    <span class="input-group-text">%</span>
+              <!-- Target Overall / ภาพรวมทั้งหมด -->
+              <div class="col-12 col-md-6 col-xl-3">
+                <div class="p-3 rounded-3 border border-2 border-primary-subtle bg-light h-100" style="border-left: 5px solid #2563eb !important;">
+                  <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
+                    <span class="fw-bold text-primary"><i class="fa-solid fa-bullseye text-primary me-1"></i> Target Overall</span>
+                    <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2 fw-semibold" style="font-size: 0.72rem;" onclick="recalcTotalTargetsFromZones()" title="คำนวณรวมจาก Zone A+B+C อัตโนมัติ">
+                      <i class="fa-solid fa-calculator me-1"></i> Auto-Sum
+                    </button>
                   </div>
-                  <div class="text-muted" style="font-size: 0.74rem;">สัดส่วนขั้นต่ำเทียบกับ Target (เช่น 90%)</div>
+                  <div class="mb-2">
+                    <label class="form-label fw-semibold small text-primary mb-1">เป้าหมายรวมปกติ (Total Target):</label>
+                    <input type="number" id="settingHourlyTarget" class="form-control form-control-sm fw-bold font-monospace border-primary text-primary bg-white" min="0" step="any" placeholder="45000" oninput="recalcMinPct()" required>
+                  </div>
+                  <div class="mb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <label class="form-label fw-semibold small text-danger mb-0">เกณฑ์ขั้นต่ำรวม (Min):</label>
+                      <span class="small text-muted" style="font-size: 0.7rem;">% Min:</span>
+                    </div>
+                    <div class="input-group input-group-sm">
+                      <input type="number" id="settingHourlyMinimum" class="form-control fw-bold font-monospace border-danger text-danger bg-white" min="0" step="any" placeholder="40000" required>
+                      <input type="number" id="settingHourlyMinimumPct" class="form-control fw-bold font-monospace" style="max-width: 65px;" min="0" max="100" step="any" placeholder="90" oninput="recalcMinPct()">
+                      <span class="input-group-text">%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="form-label fw-semibold small text-warning-emphasis mb-1">เป้าหมายรวมช่วงพีค (Peak Target):</label>
+                    <input type="number" id="settingPeakTarget" class="form-control form-control-sm fw-bold font-monospace border-warning bg-white" min="0" step="any" placeholder="50000" required>
+                  </div>
                 </div>
               </div>
             </div>
@@ -462,60 +460,241 @@
               </div>
             </div>
 
-            <div class="row g-3">
-              <div class="col-md-4">
-                <label class="form-label fw-bold small">ประเภท Webhook (Integration Type):</label>
-                <select id="settingWebhookType" class="form-select form-select-sm fw-bold">
-                  <option value="seatalk">💬 SeaTalk Bot Webhook (ส่งตรงเข้ากลุ่ม SeaTalk)</option>
-                  <option value="n8n">⚡ n8n / Custom Webhook (ส่งผ่าน n8n Workflow)</option>
-                </select>
-              </div>
-              <div class="col-md-8">
-                <label class="form-label fw-bold small text-primary">Webhook URL:</label>
-                <input type="url" id="settingWebhookUrl" class="form-control form-control-sm font-monospace" placeholder="https://openapi.seatalk.io/webhook/group/xxxx หรือ https://n8n.yourdomain/webhook/xxxx">
-                <div class="text-muted" style="font-size: 0.76rem;">วาง URL Webhook ที่ได้จาก SeaTalk Group Bot หรือ n8n Webhook Node</div>
-              </div>
-            </div>
-
-            <div class="row g-3 mt-1">
-              <div class="col-md-4">
-                <label class="form-label fw-bold small">เงื่อนไขการส่งแจ้งเตือน (Trigger Condition):</label>
-                <select id="settingAlertCondition" class="form-select form-select-sm">
-                  <option value="below_minimum">🔴 เมื่อยอดต่ำกว่าเกณฑ์ขั้นต่ำ (Actual < Minimum)</option>
-                  <option value="below_target">⚠️ เมื่อยอดต่ำกว่าเป้าหมายปกติ (Actual < Target)</option>
-                </select>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label fw-bold small">รูปแบบการแท็กผู้รับผิดชอบ (Mention Tag):</label>
-                <select id="settingMentionType" class="form-select form-select-sm" onchange="toggleMentionEmailsInput()">
-                  <option value="specific">👤 แท็กรายบุคคลตามอีเมล (Specific Emails)</option>
-                  <option value="all">📢 แท็กทุกคนในกลุ่ม (@all)</option>
-                  <option value="none">🔕 ไม่ต้องแท็ก (No Mention)</option>
-                </select>
-              </div>
-              <div class="col-md-4" id="mentionEmailsContainer">
-                <label class="form-label fw-bold small">อีเมลที่ต้องการให้แท็ก (Tag Emails):</label>
-                <input type="text" id="settingMentionEmails" class="form-control form-control-sm" placeholder="somchai@spxexpress.com, lead@spxexpress.com">
-                <div class="text-muted" style="font-size: 0.76rem;">ระบุอีเมล SPX Express คั่นด้วยเครื่องหมายจุลภาค (,)</div>
-              </div>
-            </div>
-
-            <div class="row g-3 mt-1">
-              <div class="col-md-12">
-                <label class="form-label fw-bold small text-dark"><i class="fa-solid fa-envelope-open-text text-primary me-1"></i> CC ท้ายข้อความแจ้งเตือน (CC: Persons / Emails / Notes):</label>
-                <input type="text" id="settingCcText" class="form-control form-control-sm" placeholder="เช่น Natakorn [Guy], Chain, Big, tom.disayach@spxexpress.com">
-                <div class="text-muted" style="font-size: 0.76rem;">ระบุรายชื่อหรือข้อความที่ต้องการให้แสดงหลัง <b>CC:</b> ท้ายข้อความแจ้งเตือน (หากเว้นว่างไว้จะไม่แสดงบรรทัด CC)</div>
-              </div>
-            </div>
-
-            <div class="mt-3 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
-              <div>
-                <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="testSeaTalkWebhook()">
-                  <i class="fa-solid fa-bell me-1"></i> 🔔 ทดสอบยิงข้อความเข้า SeaTalk (Test Send Alert)
+          <!-- Section 2: SeaTalk / n8n Webhook Alert Configuration (Separated by Functional Modules) -->
+          <div class="card-custom mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+              <h5 class="fw-bold mb-0 text-slate-800">
+                <i class="fa-solid fa-paper-plane text-primary me-2"></i> 2. ตั้งค่าระบบแจ้งเตือน SeaTalk / n8n Webhook แยกตามฟังก์ชัน (Module Alerts)
+              </h5>
+              <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-outline-primary btn-xs py-1 px-2 fw-bold" onclick="syncDefaultWebhookToAll()" title="คัดลอก Webhook URL และ CC ไปยังทุกฟังก์ชัน">
+                  <i class="fa-solid fa-clone me-1"></i> ใช้ Webhook & CC ร่วมกันทุกฟังก์ชัน
                 </button>
-                <span class="text-muted small ms-2" id="seatalkTestStatus"></span>
               </div>
             </div>
+            <p class="text-muted small mb-3">กำหนด Webhook URL, ผู้รับการแจ้งเตือน (Mention/Tag), ข้อความ CC และปุ่มคำสั่งแยกตามแต่ละฟังก์ชันอย่างชัดเจน</p>
+
+            <!-- Global Default Webhook URL Bar (Multi-Group Support) -->
+            <div class="p-3 bg-light rounded-3 border mb-4">
+              <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                <label class="form-label fw-bold small text-dark mb-0"><i class="fa-solid fa-globe text-primary me-1"></i> Global Default Webhook APIs (ส่งพร้อมกัน 2 กลุ่ม++):</label>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="small text-muted">ประเภท:</span>
+                  <select id="settingWebhookType" class="form-select form-select-sm fw-bold w-auto py-0">
+                    <option value="seatalk">💬 SeaTalk Bot Webhook</option>
+                    <option value="n8n">⚡ n8n Webhook Node</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <label class="form-label small text-secondary fw-semibold mb-1"><i class="fa-solid fa-users me-1 text-primary"></i> Global API 1 (กลุ่มหลัก / Primary Group):</label>
+                  <input type="url" id="settingWebhookUrl" class="form-control form-control-sm font-monospace" placeholder="https://openapi.seatalk.io/webhook/group/xxxx (กลุ่มหลัก)">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small text-secondary fw-semibold mb-1"><i class="fa-solid fa-users-rectangle me-1 text-info"></i> Global API 2 (กลุ่มที่ 2 / Secondary Group 2+):</label>
+                  <input type="url" id="settingWebhookUrl2" class="form-control form-control-sm font-monospace" placeholder="https://openapi.seatalk.io/webhook/group/yyyy (กลุ่มที่ 2 / ใส่หลาย URL คั่นด้วย , ได้)">
+                </div>
+              </div>
+              <small class="text-muted d-block mt-1" style="font-size:0.75rem;"><i class="fa-solid fa-circle-info me-1 text-primary"></i> สามารถวางหลาย Webhook URL ได้ (แยกด้วยเครื่องหมายจุลภาค <code>,</code> หรือขึ้นบรรทัดใหม่) เพื่อส่งแจ้งเตือนเข้า 2 กลุ่มหรือมากกว่าพร้อมกัน</small>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- ⏰ FUNCTION 1: HOURLY TRACKER ALERT PAIR   -->
+            <!-- ========================================== -->
+            <div class="p-3 rounded-3 border mb-4" style="background: #f8fafc; border-left: 5px solid #2563eb !important;">
+              <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div>
+                  <span class="badge bg-primary text-white mb-1"><i class="fa-solid fa-clock me-1"></i> ฟังก์ชันที่ 1 (Function 1)</span>
+                  <h6 class="fw-bold text-dark m-0">ยอดปล่อยรายชั่วโมง (Hourly Productivity Tracker)</h6>
+                  <small class="text-muted">ระบบตรวจจับยอดปล่อยรายชั่วโมง หากหลุดเป้า Minimum หรือ Target จะส่งแจ้งเตือนเข้า SeaTalk อัตโนมัติ</small>
+                </div>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="settingHourlyAlertEnabled" checked>
+                  <label class="form-check-label fw-bold small text-success" for="settingHourlyAlertEnabled">เปิดใช้งาน Auto Alert</label>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-bold small text-secondary">เงื่อนไขยิงเตือน (Trigger Condition):</label>
+                <select id="settingHourlyCondition" class="form-select form-select-sm">
+                  <option value="below_minimum">🔴 หลุดเกณฑ์ขั้นต่ำ (Actual < Minimum)</option>
+                  <option value="below_target">⚠️ หลุดเป้าหมายปกติ (Actual < Target)</option>
+                </select>
+              </div>
+
+              <div class="row g-2 mb-2 p-2 rounded-2" style="background: rgba(37, 99, 235, 0.05); border: 1px dashed rgba(37, 99, 235, 0.25);">
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-primary mb-1"><i class="fa-solid fa-link me-1"></i> Webhook API 1 (กลุ่มหลัก - Group 1):</label>
+                  <input type="url" id="settingHourlyWebhookUrl" class="form-control form-control-sm font-monospace" placeholder="เว้นว่างเพื่อใช้ Global API 1">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-primary mb-1"><i class="fa-solid fa-share-nodes me-1"></i> Webhook API 2 (กลุ่มที่ 2 / เพิ่มเติม - Group 2+):</label>
+                  <input type="url" id="settingHourlyWebhookUrl2" class="form-control form-control-sm font-monospace" placeholder="เว้นว่างเพื่อใช้ Global API 2 (ใส่หลาย URL คั่นด้วย , ได้)">
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-secondary">ผู้รับผิดชอบหลักที่ต้องการแท็ก (Tag Emails):</label>
+                  <input type="text" id="settingHourlyMentionEmails" class="form-control form-control-sm" placeholder="chain.kedsirin@spxexpress.com, nulack.promarpo@spxexpress.com">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-secondary">CC ท้ายข้อความ (CC Persons / Emails):</label>
+                  <input type="text" id="settingHourlyCcText" class="form-control form-control-sm" placeholder="guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com, tom.disayach@spxexpress.com">
+                </div>
+              </div>
+
+              <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span class="small text-muted"><i class="fa-solid fa-bolt text-danger me-1"></i> คำสั่งสั่งการด้วยมือเฉพาะฟังก์ชันนี้:</span>
+                <button type="button" class="btn btn-outline-danger btn-sm fw-bold px-3 shadow-sm" onclick="openAdminManualTriggerModal('hourly')">
+                  <i class="fa-solid fa-clock me-1"></i> ⚡ สั่งยิง Hourly Alert ด้วยมือทันที (Manual Trigger)
+                </button>
+              </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- ⚠️ FUNCTION 2: SKIP PROCESS ALERT PAIR     -->
+            <!-- ========================================== -->
+            <div class="p-3 rounded-3 border mb-4" style="background: #fffbeb; border-left: 5px solid #f59e0b !important; border-color: #fef3c7;">
+              <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div>
+                  <span class="badge bg-warning text-dark mb-1"><i class="fa-solid fa-triangle-exclamation me-1"></i> ฟังก์ชันที่ 2 (Function 2)</span>
+                  <h6 class="fw-bold text-dark m-0">สแกนข้ามขั้นตอน (Skip Process Monitor)</h6>
+                  <small class="text-muted">ควบคุมเกณฑ์มาตรฐานหลุดสแกนภาพรวม (< 0.80%) และรายโซน A, B, C (< 0.27%)</small>
+                </div>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="settingSkipAlertEnabled" checked>
+                  <label class="form-check-label fw-bold small text-success" for="settingSkipAlertEnabled">เปิดใช้งานแจ้งเตือน Skip</label>
+                </div>
+              </div>
+
+              <div class="row g-2 mb-2 p-2 rounded-2" style="background: rgba(245, 158, 11, 0.08); border: 1px dashed rgba(245, 158, 11, 0.35);">
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-dark mb-1"><i class="fa-solid fa-link me-1 text-warning"></i> Webhook API 1 (กลุ่มหลัก - Group 1):</label>
+                  <input type="url" id="settingSkipWebhookUrl" class="form-control form-control-sm font-monospace" placeholder="เว้นว่างเพื่อใช้ Global API 1">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-dark mb-1"><i class="fa-solid fa-share-nodes me-1 text-warning"></i> Webhook API 2 (กลุ่มที่ 2 / เพิ่มเติม - Group 2+):</label>
+                  <input type="url" id="settingSkipWebhookUrl2" class="form-control form-control-sm font-monospace" placeholder="เว้นว่างเพื่อใช้ Global API 2 (ใส่หลาย URL คั่นด้วย , ได้)">
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-secondary">ผู้รับผิดชอบหลักที่ต้องการแท็ก (Tag Emails):</label>
+                  <input type="text" id="settingSkipMentionEmails" class="form-control form-control-sm" placeholder="chain.kedsirin@spxexpress.com, nulack.promarpo@spxexpress.com">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-secondary">CC ท้ายข้อความ (CC Persons / Emails):</label>
+                  <input type="text" id="settingSkipCcText" class="form-control form-control-sm" placeholder="guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com, tom.disayach@spxexpress.com">
+                </div>
+              </div>
+
+              <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span class="small text-muted"><i class="fa-solid fa-bolt text-warning me-1"></i> คำสั่งสั่งการด้วยมือเฉพาะฟังก์ชันนี้:</span>
+                <button type="button" class="btn btn-outline-warning btn-sm fw-bold px-3 text-dark shadow-sm" onclick="openAdminManualTriggerModal('skip')">
+                  <i class="fa-solid fa-triangle-exclamation me-1"></i> ⚡ สั่งยิงแจ้งเตือน Skip Process ด้วยมือ (Manual Trigger)
+                </button>
+              </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 📦 FUNCTION 3: OUTBOUND BACKLOG ALERT PAIR -->
+            <!-- ========================================== -->
+            <div class="p-3 rounded-3 border mb-4" style="background: #fdf2f8; border-left: 5px solid #db2777 !important; border-color: #fce7f3;">
+              <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div>
+                  <span class="badge bg-danger text-white mb-1"><i class="fa-solid fa-boxes-stacked me-1"></i> ฟังก์ชันที่ 3 (Function 3)</span>
+                  <h6 class="fw-bold text-dark m-0">พัสดุขาออกตกค้างล่าช้า (Outbound Backlog & Late Cutoff)</h6>
+                  <small class="text-muted">รายงานยอดพัสดุคงค้างตก Cutoff 0, 1, 2, 3 และ Top สถานีปลายทางที่ล่าช้า</small>
+                </div>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="settingObBlAlertEnabled" checked>
+                  <label class="form-check-label fw-bold small text-success" for="settingObBlAlertEnabled">เปิดใช้งานแจ้งเตือน Backlog</label>
+                </div>
+              </div>
+
+              <div class="row g-2 mb-2 p-2 rounded-2" style="background: rgba(219, 39, 119, 0.06); border: 1px dashed rgba(219, 39, 119, 0.3);">
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-dark mb-1"><i class="fa-solid fa-link me-1 text-danger"></i> Webhook API 1 (กลุ่มหลัก - Group 1):</label>
+                  <input type="url" id="settingObBlWebhookUrl" class="form-control form-control-sm font-monospace" placeholder="เว้นว่างเพื่อใช้ Global API 1">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-dark mb-1"><i class="fa-solid fa-share-nodes me-1 text-danger"></i> Webhook API 2 (กลุ่มที่ 2 / เพิ่มเติม - Group 2+):</label>
+                  <input type="url" id="settingObBlWebhookUrl2" class="form-control form-control-sm font-monospace" placeholder="เว้นว่างเพื่อใช้ Global API 2 (ใส่หลาย URL คั่นด้วย , ได้)">
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-secondary">ผู้รับผิดชอบหลักที่ต้องการแท็ก (Tag Emails):</label>
+                  <input type="text" id="settingObBlMentionEmails" class="form-control form-control-sm" placeholder="chain.kedsirin@spxexpress.com, big.amorntee@spxexpress.com">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-secondary">CC ท้ายข้อความ (CC Persons / Emails):</label>
+                  <input type="text" id="settingObBlCcText" class="form-control form-control-sm" placeholder="guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com, tom.disayach@spxexpress.com">
+                </div>
+              </div>
+
+              <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span class="small text-muted"><i class="fa-solid fa-bolt text-danger me-1"></i> คำสั่งสั่งการด้วยมือเฉพาะฟังก์ชันนี้:</span>
+                <button type="button" class="btn btn-outline-primary btn-sm fw-bold px-3 shadow-sm" onclick="openAdminManualTriggerModal('ob_bl')">
+                  <i class="fa-solid fa-boxes-stacked me-1"></i> ⚡ สั่งยิงแจ้งเตือน Outbound Backlog ด้วยมือ (Manual Trigger)
+                </button>
+              </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 📢 FUNCTION 4: EMERGENCY BROADCAST & TEST  -->
+            <!-- ========================================== -->
+            <div class="p-3 rounded-3 border mb-2" style="background: #f8fafc; border-left: 5px solid #475569 !important;">
+              <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div>
+                  <span class="badge bg-dark text-white mb-1"><i class="fa-solid fa-bullhorn me-1"></i> ฟังก์ชันที่ 4 (Function 4)</span>
+                  <h6 class="fw-bold text-dark m-0">บรอดแคสต์ข้อความด่วน & ทดสอบระบบ (Emergency Broadcast & Connectivity Test)</h6>
+                  <small class="text-muted">สำหรับ Admin พิมพ์ข้อความสั่งการด่วนเข้ากลุ่ม SeaTalk หรือทดสอบการเชื่อมต่อ Webhook</small>
+                </div>
+                <span class="badge bg-danger">Admin Only</span>
+              </div>
+
+              <div class="row g-2 mb-2 p-2 rounded-2" style="background: rgba(71, 85, 105, 0.06); border: 1px dashed rgba(71, 85, 105, 0.3);">
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-dark mb-1"><i class="fa-solid fa-link me-1 text-secondary"></i> Webhook API 1 (กลุ่มหลัก - Group 1):</label>
+                  <input type="url" id="settingBroadcastWebhookUrl" class="form-control form-control-sm font-monospace" placeholder="เว้นว่างเพื่อใช้ Global API 1">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-dark mb-1"><i class="fa-solid fa-share-nodes me-1 text-secondary"></i> Webhook API 2 (กลุ่มที่ 2 / เพิ่มเติม - Group 2+):</label>
+                  <input type="url" id="settingBroadcastWebhookUrl2" class="form-control form-control-sm font-monospace" placeholder="เว้นว่างเพื่อใช้ Global API 2 (ใส่หลาย URL คั่นด้วย , ได้)">
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-secondary">รูปแบบการแท็กผู้รับ (Mention Tag):</label>
+                  <select id="settingMentionType" class="form-select form-select-sm">
+                    <option value="all">📢 แท็กทุกคนในกลุ่ม (@all)</option>
+                    <option value="specific">👤 แท็กเฉพาะรายชื่อ (Specific Emails)</option>
+                    <option value="none">🔕 ไม่ต้องแท็ก (No Mention)</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-secondary">CC ท้ายข้อความบรอดแคสต์:</label>
+                  <input type="text" id="settingCcText" class="form-control form-control-sm" placeholder="guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com">
+                </div>
+              </div>
+
+              <div class="mt-3 pt-2 border-top d-flex justify-content-end align-items-center flex-wrap gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="testSeaTalkWebhook()">
+                  <i class="fa-solid fa-bell me-1"></i> 🔔 ทดสอบส่งข้อความเชื่อมต่อ (Test Webhook)
+                </button>
+                <button type="button" class="btn btn-danger btn-sm fw-bold px-3 shadow-sm" onclick="openAdminManualTriggerModal('custom')">
+                  <i class="fa-solid fa-bullhorn me-1"></i> 🚀 บรอดแคสต์ข้อความด่วนเข้า SeaTalk ทันที
+                </button>
+              </div>
+              <div id="seatalkTestStatus" class="mt-2 small"></div>
+            </div>
+          </div>
           </div>
 
           <!-- Section 3: Live Google Sheet Sync URL -->
@@ -1735,18 +1914,122 @@
       document.getElementById('settingZoneSkipTarget').value = cfg.zoneSkipTargetPct || 0.27;
 
       const st = cfg.seatalk || {};
+      const modules = st.modules || {};
+      const modHourly = modules.hourly || {};
+      const modSkip = modules.skip || {};
+      const modObBl = modules.ob_bl || {};
+      const modBroadcast = modules.broadcast || {};
+
       document.getElementById('settingSeatalkEnabled').checked = !!st.enabled;
       document.getElementById('settingWebhookType').value = st.webhookType || 'seatalk';
       document.getElementById('settingWebhookUrl').value = st.webhookUrl || '';
-      document.getElementById('settingAlertCondition').value = st.triggerCondition || 'below_minimum';
-      document.getElementById('settingMentionType').value = st.mentionType || 'specific';
-      document.getElementById('settingMentionEmails').value = (st.mentionEmails || []).join(', ');
-      document.getElementById('settingCcText').value = st.ccText || '';
-      toggleMentionEmailsInput();
+      if (document.getElementById('settingWebhookUrl2')) {
+        document.getElementById('settingWebhookUrl2').value = st.webhookUrl2 || '';
+      }
+
+      // Function 1: Hourly Tracker
+      if (document.getElementById('settingHourlyAlertEnabled')) {
+        document.getElementById('settingHourlyAlertEnabled').checked = modHourly.enabled !== false;
+      }
+      if (document.getElementById('settingHourlyCondition')) {
+        document.getElementById('settingHourlyCondition').value = modHourly.triggerCondition || st.triggerCondition || 'below_minimum';
+      }
+      if (document.getElementById('settingHourlyWebhookUrl')) {
+        document.getElementById('settingHourlyWebhookUrl').value = modHourly.webhookUrl || '';
+      }
+      if (document.getElementById('settingHourlyWebhookUrl2')) {
+        document.getElementById('settingHourlyWebhookUrl2').value = modHourly.webhookUrl2 || '';
+      }
+      if (document.getElementById('settingHourlyMentionEmails')) {
+        document.getElementById('settingHourlyMentionEmails').value = (modHourly.mentionEmails || st.mentionEmails || []).join(', ');
+      }
+      if (document.getElementById('settingHourlyCcText')) {
+        document.getElementById('settingHourlyCcText').value = modHourly.ccText || st.ccText || '';
+      }
+
+      // Function 2: Skip Process
+      if (document.getElementById('settingSkipAlertEnabled')) {
+        document.getElementById('settingSkipAlertEnabled').checked = modSkip.enabled !== false;
+      }
+      if (document.getElementById('settingSkipWebhookUrl')) {
+        document.getElementById('settingSkipWebhookUrl').value = modSkip.webhookUrl || '';
+      }
+      if (document.getElementById('settingSkipWebhookUrl2')) {
+        document.getElementById('settingSkipWebhookUrl2').value = modSkip.webhookUrl2 || '';
+      }
+      if (document.getElementById('settingSkipMentionEmails')) {
+        document.getElementById('settingSkipMentionEmails').value = (modSkip.mentionEmails || st.mentionEmails || []).join(', ');
+      }
+      if (document.getElementById('settingSkipCcText')) {
+        document.getElementById('settingSkipCcText').value = modSkip.ccText || st.ccText || '';
+      }
+
+      // Function 3: Outbound Backlog
+      if (document.getElementById('settingObBlAlertEnabled')) {
+        document.getElementById('settingObBlAlertEnabled').checked = modObBl.enabled !== false;
+      }
+      if (document.getElementById('settingObBlWebhookUrl')) {
+        document.getElementById('settingObBlWebhookUrl').value = modObBl.webhookUrl || '';
+      }
+      if (document.getElementById('settingObBlWebhookUrl2')) {
+        document.getElementById('settingObBlWebhookUrl2').value = modObBl.webhookUrl2 || '';
+      }
+      if (document.getElementById('settingObBlMentionEmails')) {
+        document.getElementById('settingObBlMentionEmails').value = (modObBl.mentionEmails || st.mentionEmails || []).join(', ');
+      }
+      if (document.getElementById('settingObBlCcText')) {
+        document.getElementById('settingObBlCcText').value = modObBl.ccText || st.ccText || '';
+      }
+
+      // Function 4: Emergency Broadcast & Connectivity Test
+      if (document.getElementById('settingBroadcastWebhookUrl')) {
+        document.getElementById('settingBroadcastWebhookUrl').value = modBroadcast.webhookUrl || '';
+      }
+      if (document.getElementById('settingBroadcastWebhookUrl2')) {
+        document.getElementById('settingBroadcastWebhookUrl2').value = modBroadcast.webhookUrl2 || '';
+      }
+      if (document.getElementById('settingMentionType')) {
+        document.getElementById('settingMentionType').value = modBroadcast.mentionType || st.mentionType || 'specific';
+      }
+      if (document.getElementById('settingCcText')) {
+        document.getElementById('settingCcText').value = modBroadcast.ccText || st.ccText || '';
+      }
 
       const gs = cfg.googleSheetSync || {};
       document.getElementById('settingGoogleSheetEnabled').checked = !!gs.enabled;
       document.getElementById('settingGoogleSheetUrl').value = gs.url || '';
+    }
+
+    function syncDefaultWebhookToAll() {
+      const globalUrl1 = (document.getElementById('settingWebhookUrl').value || '').trim();
+      const globalUrl2 = (document.getElementById('settingWebhookUrl2')?.value || '').trim();
+      const globalCc = (document.getElementById('settingCcText')?.value || '').trim();
+      
+      if (document.getElementById('settingHourlyWebhookUrl')) document.getElementById('settingHourlyWebhookUrl').value = globalUrl1;
+      if (document.getElementById('settingHourlyWebhookUrl2')) document.getElementById('settingHourlyWebhookUrl2').value = globalUrl2;
+      
+      if (document.getElementById('settingSkipWebhookUrl')) document.getElementById('settingSkipWebhookUrl').value = globalUrl1;
+      if (document.getElementById('settingSkipWebhookUrl2')) document.getElementById('settingSkipWebhookUrl2').value = globalUrl2;
+      
+      if (document.getElementById('settingObBlWebhookUrl')) document.getElementById('settingObBlWebhookUrl').value = globalUrl1;
+      if (document.getElementById('settingObBlWebhookUrl2')) document.getElementById('settingObBlWebhookUrl2').value = globalUrl2;
+
+      if (document.getElementById('settingBroadcastWebhookUrl')) document.getElementById('settingBroadcastWebhookUrl').value = globalUrl1;
+      if (document.getElementById('settingBroadcastWebhookUrl2')) document.getElementById('settingBroadcastWebhookUrl2').value = globalUrl2;
+      
+      if (globalCc) {
+        if (document.getElementById('settingHourlyCcText') && !document.getElementById('settingHourlyCcText').value) {
+          document.getElementById('settingHourlyCcText').value = globalCc;
+        }
+        if (document.getElementById('settingSkipCcText') && !document.getElementById('settingSkipCcText').value) {
+          document.getElementById('settingSkipCcText').value = globalCc;
+        }
+        if (document.getElementById('settingObBlCcText') && !document.getElementById('settingObBlCcText').value) {
+          document.getElementById('settingObBlCcText').value = globalCc;
+        }
+      }
+
+      showToastNotification('✅ คัดลอกเรียบร้อย', 'คัดลอก Global Webhook APIs ไปยังทุกฟังก์ชันแล้ว (อย่าลืมกดบันทึกการตั้งค่า)', 'info', 3500);
     }
 
     function recalcTotalTargetsFromZones() {
@@ -1799,9 +2082,9 @@
       const peakHoursStr = document.getElementById('settingPeakHours').value || '';
       const peakHoursArr = peakHoursStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
 
-      const mentionEmailsStr = document.getElementById('settingMentionEmails').value || '';
+      const mentionEmailsStr = (document.getElementById('settingHourlyMentionEmails')?.value || document.getElementById('settingMentionEmails')?.value || '');
       const mentionEmailsArr = mentionEmailsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
-      const ccText = (document.getElementById('settingCcText').value || '').trim();
+      const ccText = (document.getElementById('settingHourlyCcText')?.value || document.getElementById('settingCcText')?.value || '').trim();
 
       const zoneTargets = {
         "Zone A": {
@@ -1821,6 +2104,61 @@
         }
       };
 
+      // Extract specific module configs with multi-webhook API support
+      const hourlyEmails = (document.getElementById('settingHourlyMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(s => s.length > 0);
+      const skipEmails = (document.getElementById('settingSkipMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(s => s.length > 0);
+      const obBlEmails = (document.getElementById('settingObBlMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+      const modHourlyUrl1 = (document.getElementById('settingHourlyWebhookUrl')?.value || '').trim();
+      const modHourlyUrl2 = (document.getElementById('settingHourlyWebhookUrl2')?.value || '').trim();
+
+      const modSkipUrl1 = (document.getElementById('settingSkipWebhookUrl')?.value || '').trim();
+      const modSkipUrl2 = (document.getElementById('settingSkipWebhookUrl2')?.value || '').trim();
+
+      const modObBlUrl1 = (document.getElementById('settingObBlWebhookUrl')?.value || '').trim();
+      const modObBlUrl2 = (document.getElementById('settingObBlWebhookUrl2')?.value || '').trim();
+
+      const modBroadUrl1 = (document.getElementById('settingBroadcastWebhookUrl')?.value || '').trim();
+      const modBroadUrl2 = (document.getElementById('settingBroadcastWebhookUrl2')?.value || '').trim();
+
+      const modulesConfig = {
+        hourly: {
+          enabled: document.getElementById('settingHourlyAlertEnabled')?.checked ?? true,
+          triggerCondition: document.getElementById('settingHourlyCondition')?.value || 'below_minimum',
+          webhookUrl: modHourlyUrl1,
+          webhookUrl2: modHourlyUrl2,
+          webhookUrls: [modHourlyUrl1, modHourlyUrl2].filter(Boolean),
+          mentionEmails: hourlyEmails,
+          ccText: (document.getElementById('settingHourlyCcText')?.value || '').trim()
+        },
+        skip: {
+          enabled: document.getElementById('settingSkipAlertEnabled')?.checked ?? true,
+          webhookUrl: modSkipUrl1,
+          webhookUrl2: modSkipUrl2,
+          webhookUrls: [modSkipUrl1, modSkipUrl2].filter(Boolean),
+          mentionEmails: skipEmails,
+          ccText: (document.getElementById('settingSkipCcText')?.value || '').trim()
+        },
+        ob_bl: {
+          enabled: document.getElementById('settingObBlAlertEnabled')?.checked ?? true,
+          webhookUrl: modObBlUrl1,
+          webhookUrl2: modObBlUrl2,
+          webhookUrls: [modObBlUrl1, modObBlUrl2].filter(Boolean),
+          mentionEmails: obBlEmails,
+          ccText: (document.getElementById('settingObBlCcText')?.value || '').trim()
+        },
+        broadcast: {
+          webhookUrl: modBroadUrl1,
+          webhookUrl2: modBroadUrl2,
+          webhookUrls: [modBroadUrl1, modBroadUrl2].filter(Boolean),
+          mentionType: document.getElementById('settingMentionType')?.value || 'all',
+          ccText: (document.getElementById('settingCcText')?.value || '').trim()
+        }
+      };
+
+      const globalUrl1 = (document.getElementById('settingWebhookUrl').value || '').trim();
+      const globalUrl2 = (document.getElementById('settingWebhookUrl2')?.value || '').trim();
+
       const payload = {
         hourlyTarget: parseInt(document.getElementById('settingHourlyTarget').value, 10) || 45000,
         hourlyMinimum: parseInt(document.getElementById('settingHourlyMinimum').value, 10) || 40000,
@@ -1833,12 +2171,15 @@
         seatalk: {
           enabled: document.getElementById('settingSeatalkEnabled').checked,
           webhookType: document.getElementById('settingWebhookType').value,
-          webhookUrl: (document.getElementById('settingWebhookUrl').value || '').trim(),
-          triggerCondition: document.getElementById('settingAlertCondition').value,
-          mentionType: document.getElementById('settingMentionType').value,
-          mentionEmails: mentionEmailsArr,
+          webhookUrl: globalUrl1,
+          webhookUrl2: globalUrl2,
+          webhookUrls: [globalUrl1, globalUrl2].filter(Boolean),
+          triggerCondition: document.getElementById('settingHourlyCondition')?.value || 'below_minimum',
+          mentionType: document.getElementById('settingMentionType')?.value || 'specific',
+          mentionEmails: hourlyEmails.length > 0 ? hourlyEmails : mentionEmailsArr,
           ccText: ccText,
-          autoAlertIntervalMinutes: 60
+          autoAlertIntervalMinutes: 60,
+          modules: modulesConfig
         },
         googleSheetSync: {
           enabled: document.getElementById('settingGoogleSheetEnabled').checked,
@@ -1867,7 +2208,7 @@
             Swal.fire({
               icon: 'success',
               title: 'บันทึกการตั้งค่าสำเร็จ!',
-              text: 'การตั้งค่าเป้าหมายและ SeaTalk Webhook ถูกบันทึกและมีผลต่อระบบทันที',
+              text: 'การตั้งค่าเป้าหมายและ SeaTalk Webhook APIs (ส่งหลายกลุ่ม) ถูกบันทึกเรียบร้อย',
               confirmButtonColor: '#10b981'
             });
           } else {
@@ -1885,10 +2226,17 @@
     }
 
     function testSeaTalkWebhook() {
-      const webhookUrl = (document.getElementById('settingWebhookUrl').value || '').trim();
+      const broadUrl1 = (document.getElementById('settingBroadcastWebhookUrl')?.value || '').trim();
+      const broadUrl2 = (document.getElementById('settingBroadcastWebhookUrl2')?.value || '').trim();
+      const globalUrl1 = (document.getElementById('settingWebhookUrl')?.value || '').trim();
+      const globalUrl2 = (document.getElementById('settingWebhookUrl2')?.value || '').trim();
+
+      const testUrls = [broadUrl1, broadUrl2, globalUrl1, globalUrl2].filter(Boolean);
+      const webhookUrl = testUrls.length > 0 ? testUrls.join(',') : '';
+
       const webhookType = document.getElementById('settingWebhookType').value;
       const mentionType = document.getElementById('settingMentionType').value;
-      const mentionEmailsStr = document.getElementById('settingMentionEmails').value || '';
+      const mentionEmailsStr = document.getElementById('settingMentionEmails')?.value || '';
       const mentionEmails = mentionEmailsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
       const ccText = (document.getElementById('settingCcText').value || '').trim();
 
@@ -1897,7 +2245,7 @@
           Swal.fire({
             icon: 'warning',
             title: 'ยังไม่ได้ระบุ Webhook URL',
-            text: 'กรุณาวาง Webhook URL ของ SeaTalk หรือ n8n ในช่องก่อนกดทดสอบครับ',
+            text: 'กรุณาวาง Webhook API URL ของ SeaTalk หรือ n8n ในช่องก่อนกดทดสอบครับ',
             confirmButtonColor: '#2563eb'
           });
         } else {
@@ -1907,7 +2255,7 @@
       }
 
       const statusEl = document.getElementById('seatalkTestStatus');
-      if (statusEl) statusEl.innerHTML = '<span class="text-primary"><i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังส่งข้อความทดสอบ...</span>';
+      if (statusEl) statusEl.innerHTML = '<span class="text-primary"><i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังส่งข้อความทดสอบไปยังกลุ่มเป้าหมาย...</span>';
 
       fetch('/api/system-settings/test-seatalk', {
         method: 'POST',
@@ -1923,12 +2271,12 @@
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          if (statusEl) statusEl.innerHTML = '<span class="text-success fw-bold"><i class="fa-solid fa-check me-1"></i> ส่งข้อความสำเร็จ! ตรวจสอบใน SeaTalk ได้เลย</span>';
+          if (statusEl) statusEl.innerHTML = '<span class="text-success fw-bold"><i class="fa-solid fa-check me-1"></i> ส่งข้อความสำเร็จ! ตรวจสอบใน SeaTalk ทุกกลุ่มได้เลย</span>';
           if (typeof Swal !== 'undefined') {
             Swal.fire({
               icon: 'success',
               title: 'ส่งข้อความทดสอบสำเร็จ!',
-              text: 'ข้อความทดสอบถูกส่งเข้า SeaTalk Group เรียบร้อยแล้ว',
+              text: data.message || 'ข้อความทดสอบถูกส่งเข้า SeaTalk Groups เรียบร้อยแล้ว',
               confirmButtonColor: '#10b981'
             });
           } else {
@@ -2111,6 +2459,330 @@
           .catch(err => console.error('Delete error:', err));
       }
     }
+
+    // ==========================================
+    // ⚡ ADMIN MANUAL TRIGGER SYSTEM (Admin Only)
+    // ==========================================
+    let currentAdminTriggerType = 'hourly';
+
+    function openAdminManualTriggerModal(defaultType = 'hourly') {
+      const user = window.AuthGuard?.getUser() || { name: 'Admin', role: 'Admin' };
+      const dateVal = new Date().toISOString().split('T')[0];
+      
+      const el = document.getElementById('amtAdminUserDisplay');
+      if (el) el.innerText = `${user.name} (${user.role})`;
+      
+      const hd = document.getElementById('amtHourlyDate');
+      if (hd) hd.value = dateVal;
+      const sd = document.getElementById('amtSkipDate');
+      if (sd) sd.value = dateVal;
+      
+      switchAdminTriggerType(defaultType);
+      
+      const modal = new bootstrap.Modal(document.getElementById('adminManualTriggerModal'));
+      modal.show();
+    }
+
+    function switchAdminTriggerType(type) {
+      currentAdminTriggerType = type;
+      ['hourly', 'skip', 'ob_bl', 'custom'].forEach(t => {
+        const pane = document.getElementById(`amt_pane_${t}`);
+        const btn = document.getElementById(`amt_tab_btn_${t}`);
+        if (pane) pane.style.display = (t === type ? 'block' : 'none');
+        if (btn) {
+          if (t === type) {
+            btn.classList.add('btn-primary', 'text-white');
+            btn.classList.remove('btn-outline-secondary');
+          } else {
+            btn.classList.remove('btn-primary', 'text-white');
+            btn.classList.add('btn-outline-secondary');
+          }
+        }
+      });
+      updateAdminTriggerPreview();
+    }
+
+    function updateAdminTriggerPreview() {
+      const previewEl = document.getElementById('amtMessagePreview');
+      if (!previewEl) return;
+      
+      const user = window.AuthGuard?.getUser() || { name: 'Admin', role: 'Admin' };
+      let msg = '';
+      
+      if (currentAdminTriggerType === 'hourly') {
+        const slot = document.getElementById('amtHourlySlot')?.value || '08:00';
+        const dateStr = document.getElementById('amtHourlyDate')?.value || new Date().toISOString().split('T')[0];
+        const target = parseInt(document.getElementById('amtHourlyTarget')?.value || 45000);
+        const minVal = parseInt(document.getElementById('amtHourlyMin')?.value || 40000);
+        const act = parseInt(document.getElementById('amtHourlyActual')?.value || 0);
+        const gap = act - target;
+        const pct = target > 0 ? Math.round((act / target) * 100) : 0;
+        
+        msg = `🚨 [SOCN MANUAL HOURLY TRIGGER] แจ้งเตือนยอดปล่อยรายชั่วโมง (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: ${dateStr}
+⏰ ช่วงเวลา: ${slot}
+🎯 เป้าหมาย (Target): ${target.toLocaleString()} ชิ้น
+⚠️ เกณฑ์ขั้นต่ำ (Minimum): ${minVal.toLocaleString()} ชิ้น
+📦 ปล่อยจริง (Actual): ${act.toLocaleString()} ชิ้น
+📉 ส่วนต่าง (Gap): ${gap.toLocaleString()} ชิ้น (${pct}% of Target)
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      } else if (currentAdminTriggerType === 'skip') {
+        const dateStr = document.getElementById('amtSkipDate')?.value || new Date().toISOString().split('T')[0];
+        const act = parseInt(document.getElementById('amtSkipActual')?.value || 0);
+        const skipCnt = parseInt(document.getElementById('amtSkipCount')?.value || 0);
+        const pct = act > 0 ? ((skipCnt / act) * 100).toFixed(2) : '0.00';
+        
+        msg = `🚨 [SOCN MANUAL SKIP TRIGGER] สรุปรายงานสแกนข้ามขั้นตอน (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: ${dateStr}
+📦 ยอดปล่อยรวม: ${act.toLocaleString()} ชิ้น
+⚠️ ยอด Skip รวม: ${skipCnt.toLocaleString()} ชิ้น (${pct}%)
+📍 สถานะรายโซน: ตรวจสอบข้อมูลในระบบ Dashboard
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      } else if (currentAdminTriggerType === 'ob_bl') {
+        const cutoff = document.getElementById('amtObBlCutoff')?.value || 'Cutoff 2';
+        const late = parseInt(document.getElementById('amtObBlLate')?.value || 0);
+        
+        msg = `🚨 [SOCN MANUAL BACKLOG TRIGGER] สรุปยอดพัสดุขาออกล่าช้า (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+⏰ รอบเวลา Cutoff: ${cutoff}
+📦 ยอดพัสดุตกค้างล่าช้า: ${late.toLocaleString()} ชิ้น
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      } else {
+        const title = document.getElementById('amtCustomTitle')?.value || 'SOCN BROADCAST';
+        const body = document.getElementById('amtCustomBody')?.value || 'ระบุข้อความ...';
+        msg = `📢 [${title}] (Admin Manual Broadcast)
+━━━━━━━━━━━━━━━━━━━━
+⏰ เวลา: ${new Date().toLocaleString('th-TH')}
+👤 ผู้ส่งคำสั่ง: ${user.name} (Role: ${user.role})
+━━━━━━━━━━━━━━━━━━━━
+${body}
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      }
+      previewEl.innerText = msg;
+    }
+
+    function executeSendAdminTrigger() {
+      const user = window.AuthGuard?.getUser() || { name: 'Admin', role: 'Admin' };
+      
+      let payload = {
+        triggerType: currentAdminTriggerType,
+        adminName: user.name,
+        role: user.role
+      };
+      
+      if (currentAdminTriggerType === 'hourly') {
+        payload.slot = document.getElementById('amtHourlySlot')?.value;
+        payload.date = document.getElementById('amtHourlyDate')?.value;
+        payload.target = parseInt(document.getElementById('amtHourlyTarget')?.value || 45000);
+        payload.minimum = parseInt(document.getElementById('amtHourlyMin')?.value || 40000);
+        payload.actual = parseInt(document.getElementById('amtHourlyActual')?.value || 0);
+      } else if (currentAdminTriggerType === 'skip') {
+        payload.date = document.getElementById('amtSkipDate')?.value;
+        payload.actualVolume = parseInt(document.getElementById('amtSkipActual')?.value || 0);
+        payload.overallSkipCount = parseInt(document.getElementById('amtSkipCount')?.value || 0);
+        payload.overallPct = payload.actualVolume > 0 ? parseFloat(((payload.overallSkipCount / payload.actualVolume) * 100).toFixed(2)) : 0.0;
+      } else if (currentAdminTriggerType === 'ob_bl') {
+        payload.cutoffRound = document.getElementById('amtObBlCutoff')?.value;
+        payload.totalLate = parseInt(document.getElementById('amtObBlLate')?.value || 0);
+      } else {
+        payload.title = document.getElementById('amtCustomTitle')?.value;
+        payload.message = document.getElementById('amtCustomBody')?.value;
+        if (!payload.message) {
+          Swal.fire('คำเตือน', 'กรุณาระบุข้อความก่อนส่ง', 'warning');
+          return;
+        }
+      }
+
+      const btn = document.getElementById('btnAmtSubmit');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังส่งคำสั่ง...';
+
+      fetch('/api/admin/manual-trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(r => r.json())
+      .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> 🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที';
+        if (data.success) {
+          bootstrap.Modal.getInstance(document.getElementById('adminManualTriggerModal'))?.hide();
+          Swal.fire({
+            icon: 'success',
+            title: 'Manual Trigger สำเร็จ!',
+            text: data.message,
+            confirmButtonColor: '#10b981'
+          });
+          fetchAuditLogs();
+        } else {
+          Swal.fire('ข้อผิดพลาด', data.error || 'เกิดข้อผิดพลาดในการส่ง', 'error');
+        }
+      })
+      .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> 🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที';
+        Swal.fire('Error', err.message, 'error');
+      });
+    }
   </script>
+
+  <!-- ========================================== -->
+  <!-- ⚡ MODAL: ADMIN MANUAL TRIGGER PANEL       -->
+  <!-- ========================================== -->
+  <div class="modal fade" id="adminManualTriggerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-header text-white" style="background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%);">
+          <div>
+            <h5 class="modal-title fw-bold mb-0"><i class="fa-solid fa-bolt text-warning me-2"></i> Admin SeaTalk Manual Trigger Control</h5>
+            <small class="text-white-50">ศูนย์ควบคุมการสั่งยิงแจ้งเตือนด่วน (สำหรับผู้ใช้งานยศ Admin เท่านั้น)</small>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded-3 border">
+            <span class="small text-muted"><i class="fa-solid fa-shield-halved text-danger me-1"></i> สิทธิ์ปฏิบัติการ:</span>
+            <span class="badge bg-danger fs-6" id="amtAdminUserDisplay">Admin</span>
+          </div>
+
+          <!-- Type Selection Buttons -->
+          <label class="form-label fw-bold small text-muted mb-2">เลือกประเภทการแจ้งเตือน (Alert Category):</label>
+          <div class="d-flex gap-2 flex-wrap mb-4">
+            <button type="button" class="btn btn-sm btn-primary fw-bold px-3 shadow-sm" id="amt_tab_btn_hourly" onclick="switchAdminTriggerType('hourly')">
+              <i class="fa-solid fa-clock me-1"></i> 1. ยอดปล่อยรายชั่วโมง
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary fw-bold px-3" id="amt_tab_btn_skip" onclick="switchAdminTriggerType('skip')">
+              <i class="fa-solid fa-triangle-exclamation me-1"></i> 2. สแกนข้ามขั้นตอน (Skip)
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary fw-bold px-3" id="amt_tab_btn_ob_bl" onclick="switchAdminTriggerType('ob_bl')">
+              <i class="fa-solid fa-boxes-stacked me-1"></i> 3. Outbound Backlog
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary fw-bold px-3" id="amt_tab_btn_custom" onclick="switchAdminTriggerType('custom')">
+              <i class="fa-solid fa-bullhorn me-1"></i> 4. ข้อความบรอดแคสต์ด่วน
+            </button>
+          </div>
+
+          <!-- PANE 1: HOURLY -->
+          <div id="amt_pane_hourly" class="p-3 bg-light rounded-3 border mb-3">
+            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-stopwatch text-primary me-2"></i> ตั้งค่าแจ้งเตือนยอดหลุดเป้ารายชั่วโมง</h6>
+            <div class="row g-2 mb-2">
+              <div class="col-6 col-md-4">
+                <label class="form-label small fw-semibold">วันที่</label>
+                <input type="date" class="form-control form-control-sm" id="amtHourlyDate" onchange="updateAdminTriggerPreview()">
+              </div>
+              <div class="col-6 col-md-4">
+                <label class="form-label small fw-semibold">ช่วงเวลา (Hour Slot)</label>
+                <select class="form-select form-select-sm" id="amtHourlySlot" onchange="updateAdminTriggerPreview()">
+                  <option value="08:00">08:00 (08:00 - 09:00)</option>
+                  <option value="09:00">09:00 (09:00 - 10:00)</option>
+                  <option value="10:00">10:00 (10:00 - 11:00)</option>
+                  <option value="11:00">11:00 (11:00 - 12:00)</option>
+                  <option value="12:00">12:00 (12:00 - 13:00)</option>
+                  <option value="18:00">18:00 (18:00 - 19:00)</option>
+                  <option value="19:00">19:00 (19:00 - 20:00)</option>
+                  <option value="20:00">20:00 (20:00 - 21:00)</option>
+                  <option value="21:00">21:00 (21:00 - 22:00)</option>
+                  <option value="22:00">22:00 (22:00 - 23:00)</option>
+                  <option value="23:00">23:00 (23:00 - 00:00)</option>
+                  <option value="00:00">00:00 (00:00 - 01:00)</option>
+                  <option value="01:00">01:00 (01:00 - 02:00)</option>
+                  <option value="02:00">02:00 (02:00 - 03:00)</option>
+                  <option value="03:00">03:00 (03:00 - 04:00)</option>
+                  <option value="04:00">04:00 (04:00 - 05:00)</option>
+                  <option value="05:00">05:00 (05:00 - 06:00)</option>
+                  <option value="06:00">06:00 (06:00 - 07:00)</option>
+                  <option value="07:00">07:00 (07:00 - 08:00)</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label small fw-semibold text-danger">ยอดปล่อยจริง (Actual Orders)</label>
+                <input type="number" class="form-control form-control-sm border-danger" id="amtHourlyActual" value="32500" oninput="updateAdminTriggerPreview()">
+              </div>
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label small text-muted">เป้าหมาย (Target)</label>
+                <input type="number" class="form-control form-control-sm" id="amtHourlyTarget" value="45000" oninput="updateAdminTriggerPreview()">
+              </div>
+              <div class="col-6">
+                <label class="form-label small text-muted">เกณฑ์ขั้นต่ำ (Minimum)</label>
+                <input type="number" class="form-control form-control-sm" id="amtHourlyMin" value="40000" oninput="updateAdminTriggerPreview()">
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 2: SKIP PROCESS -->
+          <div id="amt_pane_skip" class="p-3 bg-light rounded-3 border mb-3" style="display:none;">
+            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i> ตั้งค่าแจ้งเตือน Skip Process</h6>
+            <div class="row g-2">
+              <div class="col-4">
+                <label class="form-label small fw-semibold">วันที่</label>
+                <input type="date" class="form-control form-control-sm" id="amtSkipDate" onchange="updateAdminTriggerPreview()">
+              </div>
+              <div class="col-4">
+                <label class="form-label small fw-semibold">Actual Volume (ชิ้น)</label>
+                <input type="number" class="form-control form-control-sm" id="amtSkipActual" value="850000" oninput="updateAdminTriggerPreview()">
+              </div>
+              <div class="col-4">
+                <label class="form-label small fw-semibold text-danger">ยอด Skip รวม (ชิ้น)</label>
+                <input type="number" class="form-control form-control-sm border-danger" id="amtSkipCount" value="12500" oninput="updateAdminTriggerPreview()">
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 3: OUTBOUND BACKLOG -->
+          <div id="amt_pane_ob_bl" class="p-3 bg-light rounded-3 border mb-3" style="display:none;">
+            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-boxes-stacked text-danger me-2"></i> ตั้งค่าแจ้งเตือน Outbound Backlog Late</h6>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">รอบ Cutoff</label>
+                <select class="form-select form-select-sm" id="amtObBlCutoff" onchange="updateAdminTriggerPreview()">
+                  <option value="Cutoff 0 (00:00)">Cutoff 0 (00:00)</option>
+                  <option value="Cutoff 1 (08:00)">Cutoff 1 (08:00)</option>
+                  <option value="Cutoff 2 (14:00)" selected>Cutoff 2 (14:00)</option>
+                  <option value="Cutoff 3 (20:00)">Cutoff 3 (20:00)</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold text-danger">ยอดพัสดุตกค้างล่าช้า (ชิ้น)</label>
+                <input type="number" class="form-control form-control-sm border-danger" id="amtObBlLate" value="38450" oninput="updateAdminTriggerPreview()">
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 4: CUSTOM BROADCAST -->
+          <div id="amt_pane_custom" class="p-3 bg-light rounded-3 border mb-3" style="display:none;">
+            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-bullhorn text-info me-2"></i> ข้อความแจ้งเตือนด่วนแบบกำหนดเอง (Custom Broadcast)</h6>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">หัวข้อเรื่อง (Title)</label>
+              <input type="text" class="form-control form-control-sm" id="amtCustomTitle" value="ประกาศด่วนจาก Admin ศูนย์ปฏิบัติการ SOCN" oninput="updateAdminTriggerPreview()">
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">เนื้อหาข้อความ (Message Content)</label>
+              <textarea class="form-control form-control-sm" id="amtCustomBody" rows="3" placeholder="พิมพ์ข้อความที่ต้องการประกาศในกลุ่ม..." oninput="updateAdminTriggerPreview()">แจ้งทุกโซนเร่งเคลียร์พัสดุตกค้างหน้าสายพานเข้าสู่กระบวนการคัดแยกด่วน ก่อนรอบ Cutoff ถัดไป</textarea>
+            </div>
+          </div>
+
+          <!-- Live Message Preview Box -->
+          <label class="form-label fw-bold small text-dark mb-1"><i class="fa-solid fa-eye text-primary me-1"></i> ตัวอย่างข้อความที่จะส่งเข้า SeaTalk (Live Preview):</label>
+          <div class="p-3 rounded-3 font-monospace text-light" style="background:#0f172a; font-size:0.8rem; white-space:pre-wrap; max-height:200px; overflow-y:auto;" id="amtMessagePreview">
+            <!-- Preview generated by JS -->
+          </div>
+        </div>
+        <div class="modal-footer bg-light d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="button" class="btn btn-danger btn-sm fw-bold px-4 shadow-sm" id="btnAmtSubmit" onclick="executeSendAdminTrigger()">
+            <i class="fa-solid fa-paper-plane me-1"></i> 🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

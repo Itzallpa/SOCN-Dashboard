@@ -540,20 +540,9 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11">
-    window.addEventListener('DOMContentLoaded', () => {
-      fetchFileList();
-      load();
-    });
-
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js">
-    window.addEventListener('DOMContentLoaded', () => {
-      fetchFileList();
-      load();
-    });
-
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 </head>
 
@@ -594,12 +583,6 @@
     </div>
   </nav>
   <script src="auth_guard.js"></script>
-  <script>
-    window.addEventListener('DOMContentLoaded', () => {
-      fetchFileList();
-      load();
-    });
-  </script>
 
   <div class="app">
 
@@ -611,7 +594,19 @@
         <div class="subtitle" id="subtitle" style="color:#94a3b8;">ระบบติดตามพัสดุค้าง OB Backlog
           และวิเคราะห์ตามทีม/ชั่วโมง</div>
       </div>
-      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <button onclick="openAdminManualTriggerModal('ob_bl')"
+          style="background:linear-gradient(135deg, #dc2626, #991b1b); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
+            class="fa-solid fa-bolt"></i> ⚡ Manual Trigger (Admin)</button>
+        <button onclick="openExecutiveSummaryModal()"
+          style="background:linear-gradient(135deg, #0284c7, #0369a1); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
+            class="fa-solid fa-file-invoice"></i> 📊 สรุปรายงาน (Summary)</button>
+        <button onclick="openAiObBlAnalysisModal()"
+          style="background:linear-gradient(135deg, #4f46e5, #7c3aed); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
+            class="fa-solid fa-wand-magic-sparkles"></i> ✨ AI Backlog</button>
+        <button onclick="sendObBlSeatalkAlert()"
+          style="background:#059669; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
+            class="fa-solid fa-paper-plane"></i> 📢 แจ้งเตือน SeaTalk</button>
         <button onclick="openGoogleSheetModal()"
           style="background:#10b981; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
             class="fa-solid fa-link"></i> Sync Google Sheet</button>
@@ -630,12 +625,14 @@
         <button id="refreshBtn" onclick="forceRefresh()"
           style="background:rgba(255,255,255,0.12); color:#ffffff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;">↻
           Refresh</button>
+        <button id="exportSummaryBtn" onclick="exportSummaryExcel()"
+          style="background:linear-gradient(135deg, #10b981, #059669); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
+            class="fa-solid fa-file-excel"></i> ⇩ Export สรุป (Excel)</button>
         <button id="exportBtn" class="export-btn" disabled
           style="background:#334155; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;">⇩
           Export Raw (CSV)</button>
       </div>
     </header>
-
 
     <div id="errorBox" class="error-box"></div>
 
@@ -675,9 +672,36 @@
             <div class="card-title">Pivot: Action Flag × Team</div>
             <div class="card-sub" id="pivotMainSub"></div>
           </div>
+          <button id="mainPivotExportBtn" onclick="exportMainPivotCsv()" class="small-btn">⇩ Export CSV</button>
         </div>
         <div class="table-wrap">
           <table class="pivot" id="pivotMain"></table>
+        </div>
+      </div>
+
+      <!-- ⏳ Day in SOC Breakdown (Column N) -->
+      <div class="card">
+        <div class="card-title-row">
+          <div>
+            <div class="card-title">⏳ Day in SOC (Column N / Aging)</div>
+            <div class="card-sub" id="daySocSub">วิเคราะห์ระยะเวลาตกค้างในศูนย์คัดแยกตาม Column N · คลิกตัวเลขเพื่อดู raw data</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <select id="daySocActionFilter" onchange="renderDayInSocPivot()" style="padding:6px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:12.5px; font-weight:700; background:#fff; color:#1e293b;">
+              <option value="">-- ทุก Action Flag --</option>
+              <option value="_02_pending_packed">Pending Packed</option>
+              <option value="_03_pending_linehual_packed">Pending Linehaul-Packed</option>
+              <option value="_04_pending_reworked">Pending Reworked</option>
+            </select>
+            <div class="tabs" id="daySocViewTabs">
+              <button id="daySocTabTeam" class="active" onclick="switchDaySocView('team')">🏢 แยกตามแผนก (Team)</button>
+              <button id="daySocTabAction" onclick="switchDaySocView('action')">🏷️ แยกตาม Action Flag</button>
+            </div>
+            <button id="daySocExportBtn" onclick="exportDaySocCsv()" class="small-btn">⇩ Export CSV</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="pivot" id="daySocPivot"></table>
         </div>
       </div>
 
@@ -715,7 +739,10 @@
             <div class="card-title">Pivot ตามชั่วโมง (Hour Bucket) × Team</div>
             <div class="card-sub">Operation window: 13:00 วันนี้ → 12:59 วันถัดไป · คลิกตัวเลขเพื่อดู raw data</div>
           </div>
-          <div class="tabs" id="hourTabs"></div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <div class="tabs" id="hourTabs"></div>
+            <button id="hourPivotExportBtn" onclick="exportHourPivotCsv()" class="small-btn">⇩ Export CSV</button>
+          </div>
         </div>
         <div class="table-wrap">
           <table class="pivot" id="hourPivot"></table>
@@ -770,7 +797,8 @@
     // across every row in a given pull, so it can't be used to bucket by hour).
     const NEEDED_FIELDS = [
       'shipment_id', 'route_type', 'latest_status_timestamp', 'latest_operator_name',
-      'action_flag', 'day_in_soc', 'intentional_backlog_type', 'latest_awb_station_name'
+      'action_flag', 'day_in_soc', 'intentional_backlog_type', 'latest_awb_station_name',
+      'is_high_value'
     ];
 
     // ---- Operator -> Team static lookup map ------------------------------
@@ -851,6 +879,7 @@
       if (upper.includes('CBS')) return 'CBS';
       if (upper.includes('HHS') || upper.includes('WMC') || upper.includes('MANUAL') || upper.includes('MS')) return 'MS';
       if (upper.includes('RW') || upper.includes('REWORK')) return 'Rework';
+      if (upper.includes('HIGH VALUE') || upper.includes('HIGH_VALUE') || upper.includes('HIGHVALUE')) return 'High Value';
       if (upper.includes('POUCH')) return 'Pouch';
       if (upper.includes('CABINET')) return 'Cabinet';
       if (upper.includes('RET') || upper.includes('RTN') || upper.includes('RETURN')) return 'Return';
@@ -910,6 +939,19 @@
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
+    const SOC_BUCKETS = ['< 1 day', '1 day', '2 days', '3 - 5 days', '6 - 7 days', '> 7 days'];
+
+    function getSocBucket(raw) {
+      const s = String(raw || '').trim();
+      if (s.toLowerCase().includes('<') || s === '0') return '< 1 day';
+      if (s.toLowerCase() === '1 day' || s === '1') return '1 day';
+      if (s.toLowerCase() === '2 days' || s === '2') return '2 days';
+      if (s.includes('3') || s.includes('4') || s.includes('5')) return '3 - 5 days';
+      if (s.includes('6') || s.includes('7')) return '6 - 7 days';
+      if (s.includes('>')) return '> 7 days';
+      return s ? s : '< 1 day';
+    }
+
     function showToast(msg, isError) {
       const t = document.getElementById('toast');
       document.getElementById('toastMsg').textContent = msg;
@@ -928,12 +970,31 @@
       document.getElementById('errorBox').style.display = 'none';
     }
 
+    function isHighValue(v) {
+      if (v === true || v === 1) return true;
+      if (v === false || v === 0 || v === null || v === undefined) return false;
+      const s = String(v).trim().toLowerCase();
+      return s === 'true' || s === '1' || s === 'yes' || s === 't' || s === 'y';
+    }
+
     function buildColumnIndex(headerRow) {
       const idx = {};
       const norm = headerRow.map(h => (h || '').toString().trim().toLowerCase());
       NEEDED_FIELDS.forEach(f => {
         let i = norm.indexOf(f.toLowerCase());
         if (i === -1) i = norm.indexOf(f.toLowerCase().replace(/_/g, ' '));
+        if (f === 'day_in_soc' && i === -1) {
+          i = norm.findIndex(h => h.includes('day in soc') || h.includes('day_in_soc') || h.includes('day in hub') || h.includes('day_in_hub') || h === 'aging');
+          if (i === -1 && norm.length > 13) {
+            i = 13; // Column N (14th column, 0-indexed 13)
+          }
+        }
+        if (f === 'is_high_value' && i === -1) {
+          i = norm.findIndex(h => h.includes('high_value') || h.includes('high value') || h.includes('is_high') || h === 'is_hv' || h === 'hv');
+          if (i === -1 && norm.length > 20) {
+            i = 20; // Column U (21st column, 0-indexed 20)
+          }
+        }
         idx[f] = i;
       });
       return idx;
@@ -1343,6 +1404,9 @@
         if (colIndex.latest_status_timestamp >= 0) {
           raw[colIndex.latest_status_timestamp] = normalizeSheetTimestamp(raw[colIndex.latest_status_timestamp]);
         }
+        const highValRaw = colIndex.is_high_value >= 0 ? get('is_high_value') : (raw.length > 20 ? raw[20] : null);
+        const isHV = isHighValue(highValRaw);
+
         const rec = {
           shipment_id: get('shipment_id'),
           route_type: get('route_type'),
@@ -1352,9 +1416,15 @@
           day_in_soc: get('day_in_soc'),
           intentional_backlog_type: get('intentional_backlog_type'),
           latest_awb_station_name: get('latest_awb_station_name'),
+          is_high_value: isHV,
           _raw: raw
         };
-        rec.team = lookupTeam(rec.latest_operator_name);
+        // 💎 High Value sort by Column U = TRUE
+        if (isHV) {
+          rec.team = 'High Value';
+        } else {
+          rec.team = lookupTeam(rec.latest_operator_name);
+        }
         // Bucket by the actual timestamp shown in the sheet (local/business
         // time). Do not convert it to UTC; raw views and the Pivot use the
         // same real-world clock.
@@ -1391,21 +1461,220 @@
       OB_ACTIONS.forEach(a => counts[a] = 0);
       obRows.forEach(r => counts[r.action_flag] = (counts[r.action_flag] || 0) + 1);
 
+      let under1Day = 0;
+      let over1Day = 0;
+      obRows.forEach(r => {
+        if (isUnder1Day(r.day_in_soc)) under1Day++;
+        else over1Day++;
+      });
+
       const cards = [
         { label: 'Total OB BL', value: total, sub: 'จากทั้งหมด ' + allRecords.length.toLocaleString() + ' แถว' }
       ].concat(OB_ACTIONS.map(a => ({
         label: OB_ACTION_LABELS[a],
         value: counts[a] || 0,
         sub: a
-      })));
+      }))).concat([
+        { label: 'Day in SOC (< 1 Day)', value: under1Day, sub: 'Column N: < 1 day' },
+        { label: 'Day in SOC (≥ 1 Day)', value: over1Day, sub: 'Column N: ตกค้างข้ามวัน' }
+      ]);
 
-      document.getElementById('kpiRow').innerHTML = cards.map(c => `
-        <div class="kpi-card">
-          <div class="kpi-label">${esc(c.label)}</div>
-          <div class="kpi-value">${c.value.toLocaleString()}</div>
-          <div class="kpi-sub">${esc(c.sub)}</div>
-        </div>
-      `).join('');
+      const kpiEl = document.getElementById('kpiRow');
+      if (kpiEl) {
+        kpiEl.style.gridTemplateColumns = 'repeat(auto-fit, minmax(190px, 1fr))';
+        kpiEl.innerHTML = cards.map(c => `
+          <div class="kpi-card">
+            <div class="kpi-label">${esc(c.label)}</div>
+            <div class="kpi-value">${c.value.toLocaleString()}</div>
+            <div class="kpi-sub">${esc(c.sub)}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    let activeDaySocView = 'team'; // 'team' or 'action'
+
+    function switchDaySocView(view) {
+      activeDaySocView = view;
+      const tabTeam = document.getElementById('daySocTabTeam');
+      const tabAction = document.getElementById('daySocTabAction');
+      const filterSelect = document.getElementById('daySocActionFilter');
+      if (tabTeam) tabTeam.classList.toggle('active', view === 'team');
+      if (tabAction) tabAction.classList.toggle('active', view === 'action');
+      if (filterSelect) filterSelect.style.display = (view === 'team' ? 'inline-block' : 'none');
+      renderDayInSocPivot();
+    }
+
+    function renderDayInSocPivot() {
+      const daySocEl = document.getElementById('daySocPivot');
+      if (!daySocEl) return;
+
+      const actionFilter = (document.getElementById('daySocActionFilter')?.value || '').trim();
+      const targetRows = (activeDaySocView === 'team' && actionFilter) ? obRows.filter(r => r.action_flag === actionFilter) : obRows;
+
+      const socBuckets = ['< 1 day', '1 day', '2 days', '3 - 5 days', '6 - 7 days', '> 7 days'];
+
+      function getSocBucket(raw) {
+        const s = String(raw || '').trim();
+        if (s.toLowerCase().includes('<') || s === '0') return '< 1 day';
+        if (s.toLowerCase() === '1 day' || s === '1') return '1 day';
+        if (s.toLowerCase() === '2 days' || s === '2') return '2 days';
+        if (s.includes('3') || s.includes('4') || s.includes('5')) return '3 - 5 days';
+        if (s.includes('6') || s.includes('7')) return '6 - 7 days';
+        if (s.includes('>')) return '> 7 days';
+        return s ? s : '< 1 day';
+      }
+
+      if (activeDaySocView === 'team') {
+        const teams = collectTeams(targetRows);
+        const grid = {};
+        teams.forEach(t => {
+          grid[t] = {};
+          socBuckets.forEach(b => grid[t][b] = 0);
+        });
+
+        targetRows.forEach(r => {
+          const b = getSocBucket(r.day_in_soc);
+          if (!grid[r.team]) grid[r.team] = {};
+          grid[r.team][b] = (grid[r.team][b] || 0) + 1;
+        });
+
+        const colTotals = {};
+        socBuckets.forEach(b => colTotals[b] = 0);
+        let grandTotal = 0;
+
+        let thead = '<thead><tr><th>แผนก / Team</th>' + socBuckets.map(b => `<th>${esc(b)}</th>`).join('') + '<th>Total</th></tr></thead>';
+        let tbody = '<tbody>';
+        teams.forEach(t => {
+          let rowTotal = 0;
+          const cells = socBuckets.map(b => {
+            const v = (grid[t] && grid[t][b]) || 0;
+            rowTotal += v;
+            colTotals[b] += v;
+            return `<td class="clickable-cell${v === 0 ? ' zero' : ''}" data-team="${esc(t)}" data-soc="${esc(b)}" data-flag="${esc(actionFilter)}">${v.toLocaleString()}</td>`;
+          }).join('');
+          grandTotal += rowTotal;
+          tbody += `<tr><td style="font-weight:700;">${esc(t)}</td>${cells}<td style="font-weight:800;" class="clickable-cell" data-team="${esc(t)}" data-soc="" data-flag="${esc(actionFilter)}">${rowTotal.toLocaleString()}</td></tr>`;
+        });
+        tbody += `<tr class="total-row"><th>Total</th>${socBuckets.map(b => `<td class="clickable-cell" data-team="" data-soc="${esc(b)}" data-flag="${esc(actionFilter)}">${colTotals[b].toLocaleString()}</td>`).join('')}<td class="clickable-cell" data-team="" data-soc="" data-flag="${esc(actionFilter)}">${grandTotal.toLocaleString()}</td></tr>`;
+        tbody += '</tbody>';
+
+        daySocEl.innerHTML = thead + tbody;
+        const subEl = document.getElementById('daySocSub');
+        if (subEl) {
+          const filterLabel = actionFilter ? (OB_ACTION_LABELS[actionFilter] || actionFilter) : 'ทุก Action Flag';
+          subEl.textContent = `วิเคราะห์ระยะเวลาตกค้างแยกตามแผนก (${teams.length} ทีม) · ${filterLabel} · คลิกตัวเลขเพื่อดู raw data`;
+        }
+
+        Array.from(daySocEl.querySelectorAll('td.clickable-cell')).forEach(td => {
+          td.addEventListener('click', () => {
+            openDaySocTeamDrilldown(td.dataset.team || null, td.dataset.soc || null, td.dataset.flag || null);
+          });
+        });
+
+      } else {
+        // View by Action Flag
+        const grid = {};
+        OB_ACTIONS.forEach(a => {
+          grid[a] = {};
+          socBuckets.forEach(b => grid[a][b] = 0);
+        });
+
+        obRows.forEach(r => {
+          const b = getSocBucket(r.day_in_soc);
+          if (!grid[r.action_flag]) return;
+          grid[r.action_flag][b] = (grid[r.action_flag][b] || 0) + 1;
+        });
+
+        const colTotals = {};
+        socBuckets.forEach(b => colTotals[b] = 0);
+        let grandTotal = 0;
+
+        let thead = '<thead><tr><th>Action Flag</th>' + socBuckets.map(b => `<th>${esc(b)}</th>`).join('') + '<th>Total</th></tr></thead>';
+        let tbody = '<tbody>';
+        OB_ACTIONS.forEach(a => {
+          let rowTotal = 0;
+          const cells = socBuckets.map(b => {
+            const v = grid[a][b] || 0;
+            rowTotal += v;
+            colTotals[b] += v;
+            return `<td class="clickable-cell${v === 0 ? ' zero' : ''}" data-flag="${esc(a)}" data-soc="${esc(b)}">${v.toLocaleString()}</td>`;
+          }).join('');
+          grandTotal += rowTotal;
+          tbody += `<tr><td>${esc(OB_ACTION_LABELS[a] || a)}<br><span style="font-weight:400;color:var(--ink-soft);font-size:11px;">${esc(a)}</span></td>${cells}<td style="font-weight:800;" class="clickable-cell" data-flag="${esc(a)}" data-soc="">${rowTotal.toLocaleString()}</td></tr>`;
+        });
+        tbody += `<tr class="total-row"><th>Total</th>${socBuckets.map(b => `<td class="clickable-cell" data-flag="" data-soc="${esc(b)}">${colTotals[b].toLocaleString()}</td>`).join('')}<td class="clickable-cell" data-flag="" data-soc="">${grandTotal.toLocaleString()}</td></tr>`;
+        tbody += '</tbody>';
+
+        daySocEl.innerHTML = thead + tbody;
+        const subEl = document.getElementById('daySocSub');
+        if (subEl) subEl.textContent = 'วิเคราะห์ตาม Column N (Day in SOC / Aging) · คลิกตัวเลขเพื่อดู raw data';
+
+        Array.from(daySocEl.querySelectorAll('td.clickable-cell')).forEach(td => {
+          td.addEventListener('click', () => {
+            openDaySocDrilldown(td.dataset.flag || null, td.dataset.soc || null);
+          });
+        });
+      }
+    }
+
+    function openDaySocTeamDrilldown(team, socBucket, actionFlag) {
+      function matchSoc(raw, bucket) {
+        if (!bucket) return true;
+        const s = String(raw || '').trim();
+        if (bucket === '< 1 day') return s.toLowerCase().includes('<') || s === '0';
+        if (bucket === '1 day') return s.toLowerCase() === '1 day' || s === '1';
+        if (bucket === '2 days') return s.toLowerCase() === '2 days' || s === '2';
+        if (bucket === '3 - 5 days') return s.includes('3') || s.includes('4') || s.includes('5');
+        if (bucket === '6 - 7 days') return s.includes('6') || s.includes('7');
+        if (bucket === '> 7 days') return s.includes('>');
+        return s === bucket;
+      }
+
+      const matches = obRows.filter(r => {
+        if (team && r.team !== team) return false;
+        if (actionFlag && r.action_flag !== actionFlag) return false;
+        if (!matchSoc(r.day_in_soc, socBucket)) return false;
+        return true;
+      });
+
+      const teamLabel = team || 'ทุกแผนก';
+      const socLabel = socBucket ? ('Day in SOC: ' + socBucket) : 'ทุกช่วงเวลา';
+      const flagLabel = actionFlag ? (OB_ACTION_LABELS[actionFlag] || actionFlag) : 'ทุก Action Flag';
+
+      openDrilldown(
+        'Raw data · แผนก ' + teamLabel + ' × ' + socLabel,
+        flagLabel + ' · Column N (Day in SOC) = ' + (socBucket || 'All'),
+        matches
+      );
+    }
+
+    function openDaySocDrilldown(actionFlag, socBucket) {
+      function matchSoc(raw, bucket) {
+        if (!bucket) return true;
+        const s = String(raw || '').trim();
+        if (bucket === '< 1 day') return s.toLowerCase().includes('<') || s === '0';
+        if (bucket === '1 day') return s.toLowerCase() === '1 day' || s === '1';
+        if (bucket === '2 days') return s.toLowerCase() === '2 days' || s === '2';
+        if (bucket === '3 - 5 days') return s.includes('3') || s.includes('4') || s.includes('5');
+        if (bucket === '6 - 7 days') return s.includes('6') || s.includes('7');
+        if (bucket === '> 7 days') return s.includes('>');
+        return s === bucket;
+      }
+
+      const matches = obRows.filter(r => {
+        const matchFlag = (!actionFlag || r.action_flag === actionFlag);
+        if (!matchFlag) return false;
+        if (!matchSoc(r.day_in_soc, socBucket)) return false;
+        return true;
+      });
+      const flagLabel = actionFlag ? (OB_ACTION_LABELS[actionFlag] || actionFlag) : 'ทุก Action Flag';
+      const socLabel = socBucket ? ('Day in SOC: ' + socBucket) : 'ทุกช่วงเวลา';
+      openDrilldown(
+        'Raw data · ' + flagLabel + ' × ' + socLabel,
+        'Column N (Day in SOC) = ' + (socBucket || 'All'),
+        matches
+      );
     }
 
     function renderPivotMain() {
@@ -1721,16 +1990,40 @@
     }
 
     function render() {
-      renderKpis();
-      renderPivotMain();
-      renderStationTable();
-      renderSummaryTable();
-      renderHourTabs();
-      renderHourPivot();
+      try {
+        renderKpis();
+      } catch (e) { console.error('Error in renderKpis:', e); }
 
-      document.getElementById('stateMsg').style.display = 'none';
-      document.getElementById('content').style.display = 'flex';
-      document.getElementById('exportBtn').disabled = obRows.length === 0;
+      try {
+        renderPivotMain();
+      } catch (e) { console.error('Error in renderPivotMain:', e); }
+
+      try {
+        renderDayInSocPivot();
+      } catch (e) { console.error('Error in renderDayInSocPivot:', e); }
+
+      try {
+        renderStationTable();
+      } catch (e) { console.error('Error in renderStationTable:', e); }
+
+      try {
+        renderSummaryTable();
+      } catch (e) { console.error('Error in renderSummaryTable:', e); }
+
+      try {
+        renderHourTabs();
+      } catch (e) { console.error('Error in renderHourTabs:', e); }
+
+      try {
+        renderHourPivot();
+      } catch (e) { console.error('Error in renderHourPivot:', e); }
+
+      const stateMsg = document.getElementById('stateMsg');
+      const content = document.getElementById('content');
+      if (stateMsg) stateMsg.style.display = 'none';
+      if (content) content.style.display = 'flex';
+      const expBtn = document.getElementById('exportBtn');
+      if (expBtn) expBtn.disabled = obRows.length === 0;
     }
 
     // =======================================================================
@@ -1784,9 +2077,563 @@
       showToast('Export ' + stationEntriesFull.length.toLocaleString() + ' stations สำเร็จ');
     }
 
+    // =======================================================================
+    // EXPORT FUNCTIONS (Multi-Tab Excel & Individual CSVs)
+    // =======================================================================
+    function exportMainPivotCsv() {
+      if (!obRows.length) { showToast('ไม่มีข้อมูลให้ export', true); return; }
+      const teams = collectTeams(obRows);
+      const grid = {};
+      OB_ACTIONS.forEach(a => { grid[a] = {}; teams.forEach(t => grid[a][t] = 0); });
+      obRows.forEach(r => {
+        if (!grid[r.action_flag]) return;
+        grid[r.action_flag][r.team] = (grid[r.action_flag][r.team] || 0) + 1;
+      });
+
+      const colTotals = {}; teams.forEach(t => colTotals[t] = 0);
+      let grandTotal = 0;
+
+      const headers = ['Action Flag', 'Action Label'].concat(teams).concat(['Total']);
+      const lines = [headers.map(csvEscape).join(',')];
+
+      OB_ACTIONS.forEach(a => {
+        let rowTotal = 0;
+        const row = [a, OB_ACTION_LABELS[a] || a];
+        teams.forEach(t => {
+          const v = grid[a][t] || 0;
+          rowTotal += v;
+          colTotals[t] += v;
+          row.push(v);
+        });
+        grandTotal += rowTotal;
+        row.push(rowTotal);
+        lines.push(row.map(csvEscape).join(','));
+      });
+
+      const totalRow = ['Total', 'รวมทุก Action'].concat(teams.map(t => colTotals[t])).concat([grandTotal]);
+      lines.push(totalRow.map(csvEscape).join(','));
+
+      const csv = lines.join('\r\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'OB_BL_Pivot_Action_x_Team_' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Export Pivot Action Flag × Team สำเร็จ');
+    }
+
+    function exportDaySocCsv() {
+      try {
+        if (!obRows || !obRows.length) { showToast('ไม่มีข้อมูล OB BL ให้ export', true); return; }
+        const view = (typeof activeDaySocView !== 'undefined' && activeDaySocView) ? activeDaySocView : 'team';
+        const socBuckets = ['< 1 day', '1 day', '2 days', '3 - 5 days', '6 - 7 days', '> 7 days'];
+        const lines = [];
+
+        if (view === 'team') {
+          const actionFilter = (document.getElementById('daySocActionFilter')?.value || '').trim();
+          const rowsToUse = actionFilter ? obRows.filter(r => r.action_flag === actionFilter) : obRows;
+          const teams = collectTeams(rowsToUse);
+          const grid = {};
+          teams.forEach(t => { grid[t] = {}; socBuckets.forEach(b => grid[t][b] = 0); });
+          rowsToUse.forEach(r => {
+            const b = getSocBucket(r.day_in_soc);
+            if (!grid[r.team]) grid[r.team] = {};
+            grid[r.team][b] = (grid[r.team][b] || 0) + 1;
+          });
+
+          const colTotals = {}; socBuckets.forEach(b => colTotals[b] = 0);
+          let grandTotal = 0;
+
+          const filterDesc = actionFilter ? ` (${OB_ACTION_LABELS[actionFilter] || actionFilter})` : '';
+          const headers = [`Team / แผนก${filterDesc}`].concat(socBuckets).concat(['Total']);
+          lines.push(headers.map(csvEscape).join(','));
+
+          teams.forEach(t => {
+            let rowTotal = 0;
+            const row = [t];
+            socBuckets.forEach(b => {
+              const v = (grid[t] && grid[t][b]) || 0;
+              rowTotal += v;
+              colTotals[b] += v;
+              row.push(v);
+            });
+            grandTotal += rowTotal;
+            row.push(rowTotal);
+            lines.push(row.map(csvEscape).join(','));
+          });
+
+          const totalRow = ['Total'].concat(socBuckets.map(b => colTotals[b])).concat([grandTotal]);
+          lines.push(totalRow.map(csvEscape).join(','));
+
+        } else {
+          const grid = {};
+          OB_ACTIONS.forEach(a => { grid[a] = {}; socBuckets.forEach(b => grid[a][b] = 0); });
+          obRows.forEach(r => {
+            const b = getSocBucket(r.day_in_soc);
+            if (!grid[r.action_flag]) return;
+            grid[r.action_flag][b] = (grid[r.action_flag][b] || 0) + 1;
+          });
+
+          const colTotals = {}; socBuckets.forEach(b => colTotals[b] = 0);
+          let grandTotal = 0;
+
+          const headers = ['Action Flag', 'Action Label'].concat(socBuckets).concat(['Total']);
+          lines.push(headers.map(csvEscape).join(','));
+
+          OB_ACTIONS.forEach(a => {
+            let rowTotal = 0;
+            const row = [a, OB_ACTION_LABELS[a] || a];
+            socBuckets.forEach(b => {
+              const v = grid[a][b] || 0;
+              rowTotal += v;
+              colTotals[b] += v;
+              row.push(v);
+            });
+            grandTotal += rowTotal;
+            row.push(rowTotal);
+            lines.push(row.map(csvEscape).join(','));
+          });
+
+          const totalRow = ['Total', 'รวมทุก Action'].concat(socBuckets.map(b => colTotals[b])).concat([grandTotal]);
+          lines.push(totalRow.map(csvEscape).join(','));
+        }
+
+        const csv = lines.join('\r\n');
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'OB_BL_Day_In_SOC_' + view + '_' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Export Day in SOC Pivot (' + (view === 'team' ? 'แยกตามแผนก' : 'แยกตาม Action Flag') + ') สำเร็จ 📥');
+      } catch (err) {
+        console.error('Error in exportDaySocCsv:', err);
+        showToast('เกิดข้อผิดพลาดในการ Export: ' + err.message, true);
+      }
+    }
+
+    function exportHourPivotCsv() {
+      if (!obRows.length) { showToast('ไม่มีข้อมูลให้ export', true); return; }
+      const rows = obRows.filter(r => r.action_flag === activeHourFlag);
+      const teams = collectTeams(rows);
+      const grid = {};
+      WINDOW_HOURS.forEach(h => { grid[h] = {}; teams.forEach(t => grid[h][t] = 0); });
+      rows.forEach(r => {
+        if (r.hour === null || WINDOW_HOURS.indexOf(r.hour) === -1) return;
+        grid[r.hour][r.team] = (grid[r.hour][r.team] || 0) + 1;
+      });
+
+      const colTotals = {}; teams.forEach(t => colTotals[t] = 0);
+      let grandTotal = 0;
+
+      const headers = ['Hour Slot'].concat(teams).concat(['Total']);
+      const lines = [headers.map(csvEscape).join(',')];
+
+      WINDOW_HOURS.forEach(h => {
+        let rowTotal = 0;
+        const row = [String(h).padStart(2, '0') + ':00'];
+        teams.forEach(t => {
+          const v = grid[h][t] || 0;
+          rowTotal += v;
+          colTotals[t] += v;
+          row.push(v);
+        });
+        grandTotal += rowTotal;
+        row.push(rowTotal);
+        lines.push(row.map(csvEscape).join(','));
+      });
+
+      const totalRow = ['Total'].concat(teams.map(t => colTotals[t])).concat([grandTotal]);
+      lines.push(totalRow.map(csvEscape).join(','));
+
+      const csv = lines.join('\r\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const flagClean = activeHourFlag.replace(/[^a-zA-Z0-9_]/g, '_');
+      a.download = 'OB_BL_Hour_Pivot_' + flagClean + '_' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Export Hour Pivot (' + (OB_ACTION_LABELS[activeHourFlag] || activeHourFlag) + ') สำเร็จ');
+    }
+
+    // =======================================================================
+    // 📊 MULTI-TAB EXCEL EXPORT (SheetJS .xlsx)
+    // =======================================================================
+    function exportSummaryExcel() {
+      if (!obRows.length) {
+        showToast('ไม่มีข้อมูล OB BL ให้ export', true);
+        return;
+      }
+      if (typeof XLSX === 'undefined') {
+        showToast('กำลังโหลด SheetJS library... หรือลองดาวน์โหลดเป็น CSV แทน', true);
+        return;
+      }
+
+      try {
+        const wb = XLSX.utils.book_new();
+        const dateStr = new Date().toLocaleString('th-TH');
+        const filename = (document.getElementById('fileSelectDropdown')?.value) || 'Current Report';
+        const socBuckets = ['< 1 day', '1 day', '2 days', '3 - 5 days', '6 - 7 days', '> 7 days'];
+
+        // -------------------------------------------------------------
+        // TAB 1: Overview & Executive Summary
+        // -------------------------------------------------------------
+        const overviewData = [
+          ['SOCN Outbound Backlog (OB BL) Executive Summary Report'],
+          ['สร้างเมื่อวันที่', dateStr],
+          ['ไฟล์รายงาน', filename],
+          ['ยอดพัสดุตกค้างรวม (Total OB BL)', obRows.length],
+          [],
+          ['--- สรุปแยกตาม Action Flag ---'],
+          ['Action Flag Code', 'Action Flag Name', 'Count (ชิ้น)', 'Share (%)']
+        ];
+        OB_ACTIONS.forEach(a => {
+          const cnt = obRows.filter(r => r.action_flag === a).length;
+          const pct = obRows.length > 0 ? ((cnt / obRows.length) * 100).toFixed(2) + '%' : '0%';
+          overviewData.push([a, OB_ACTION_LABELS[a] || a, cnt, pct]);
+        });
+
+        overviewData.push([]);
+        overviewData.push(['--- สรุปแยกตามระยะเวลาตกค้าง (Day in SOC / Column N) ---']);
+        overviewData.push(['Day in SOC Bucket', 'Count (ชิ้น)', 'Share (%)']);
+        socBuckets.forEach(b => {
+          const cnt = obRows.filter(r => getSocBucket(r.day_in_soc) === b).length;
+          const pct = obRows.length > 0 ? ((cnt / obRows.length) * 100).toFixed(2) + '%' : '0%';
+          overviewData.push([b, cnt, pct]);
+        });
+
+        const wsOverview = XLSX.utils.aoa_to_sheet(overviewData);
+        XLSX.utils.book_append_sheet(wb, wsOverview, 'Summary_Overview');
+
+        // -------------------------------------------------------------
+        // TAB 2: Action Flag × Team Pivot
+        // -------------------------------------------------------------
+        const allTeams = collectTeams(obRows);
+        const gridActionTeam = {};
+        OB_ACTIONS.forEach(a => { gridActionTeam[a] = {}; allTeams.forEach(t => gridActionTeam[a][t] = 0); });
+        obRows.forEach(r => {
+          if (gridActionTeam[r.action_flag]) {
+            gridActionTeam[r.action_flag][r.team] = (gridActionTeam[r.action_flag][r.team] || 0) + 1;
+          }
+        });
+        const colTotalsAT = {}; allTeams.forEach(t => colTotalsAT[t] = 0);
+        let grandTotalAT = 0;
+
+        const actionTeamData = [
+          ['Action Flag', 'Action Description'].concat(allTeams).concat(['Total'])
+        ];
+        OB_ACTIONS.forEach(a => {
+          let rowTot = 0;
+          const row = [a, OB_ACTION_LABELS[a] || a];
+          allTeams.forEach(t => {
+            const v = gridActionTeam[a][t] || 0;
+            rowTot += v;
+            colTotalsAT[t] += v;
+            row.push(v);
+          });
+          grandTotalAT += rowTot;
+          row.push(rowTot);
+          actionTeamData.push(row);
+        });
+        const totalRowAT = ['Total', 'รวมทุกแผนก'].concat(allTeams.map(t => colTotalsAT[t])).concat([grandTotalAT]);
+        actionTeamData.push(totalRowAT);
+
+        const wsActionTeam = XLSX.utils.aoa_to_sheet(actionTeamData);
+        XLSX.utils.book_append_sheet(wb, wsActionTeam, 'ActionFlag_x_Team');
+
+        // -------------------------------------------------------------
+        // TAB 3: Day in SOC × Team Pivot
+        // -------------------------------------------------------------
+        const gridDaySocTeam = {};
+        allTeams.forEach(t => { gridDaySocTeam[t] = {}; socBuckets.forEach(b => gridDaySocTeam[t][b] = 0); });
+        obRows.forEach(r => {
+          const b = getSocBucket(r.day_in_soc);
+          if (gridDaySocTeam[r.team]) {
+            gridDaySocTeam[r.team][b] = (gridDaySocTeam[r.team][b] || 0) + 1;
+          }
+        });
+        const colTotalsDT = {}; socBuckets.forEach(b => colTotalsDT[b] = 0);
+        let grandTotalDT = 0;
+
+        const daySocTeamData = [
+          ['Team / แผนก'].concat(socBuckets).concat(['Total'])
+        ];
+        allTeams.forEach(t => {
+          let rowTot = 0;
+          const row = [t];
+          socBuckets.forEach(b => {
+            const v = (gridDaySocTeam[t] && gridDaySocTeam[t][b]) || 0;
+            rowTot += v;
+            colTotalsDT[b] += v;
+            row.push(v);
+          });
+          grandTotalDT += rowTot;
+          row.push(rowTot);
+          daySocTeamData.push(row);
+        });
+        const totalRowDT = ['Total'].concat(socBuckets.map(b => colTotalsDT[b])).concat([grandTotalDT]);
+        daySocTeamData.push(totalRowDT);
+
+        const wsDaySocTeam = XLSX.utils.aoa_to_sheet(daySocTeamData);
+        XLSX.utils.book_append_sheet(wb, wsDaySocTeam, 'DayInSoc_x_Team');
+
+        // -------------------------------------------------------------
+        // TAB 4: Day in SOC × Action Flag
+        // -------------------------------------------------------------
+        const gridDaySocAction = {};
+        OB_ACTIONS.forEach(a => { gridDaySocAction[a] = {}; socBuckets.forEach(b => gridDaySocAction[a][b] = 0); });
+        obRows.forEach(r => {
+          const b = getSocBucket(r.day_in_soc);
+          if (gridDaySocAction[r.action_flag]) {
+            gridDaySocAction[r.action_flag][b] = (gridDaySocAction[r.action_flag][b] || 0) + 1;
+          }
+        });
+        const colTotalsDA = {}; socBuckets.forEach(b => colTotalsDA[b] = 0);
+        let grandTotalDA = 0;
+
+        const daySocActionData = [
+          ['Action Flag', 'Action Description'].concat(socBuckets).concat(['Total'])
+        ];
+        OB_ACTIONS.forEach(a => {
+          let rowTot = 0;
+          const row = [a, OB_ACTION_LABELS[a] || a];
+          socBuckets.forEach(b => {
+            const v = gridDaySocAction[a][b] || 0;
+            rowTot += v;
+            colTotalsDA[b] += v;
+            row.push(v);
+          });
+          grandTotalDA += rowTot;
+          row.push(rowTot);
+          daySocActionData.push(row);
+        });
+        const totalRowDA = ['Total', 'รวมทุกช่วงเวลา'].concat(socBuckets.map(b => colTotalsDA[b])).concat([grandTotalDA]);
+        daySocActionData.push(totalRowDA);
+
+        const wsDaySocAction = XLSX.utils.aoa_to_sheet(daySocActionData);
+        XLSX.utils.book_append_sheet(wb, wsDaySocAction, 'DayInSoc_x_ActionFlag');
+
+        // -------------------------------------------------------------
+        // TAB 5: Top Stations (Linehaul-Packed)
+        // -------------------------------------------------------------
+        const stationData = [
+          ['Rank', 'Station Name (latest_awb_station_name)', 'Count (ชิ้น)', 'Share (%)']
+        ];
+        const lhTotal = obRows.filter(r => r.action_flag === '_03_pending_linehual_packed').length;
+        stationEntriesFull.forEach(([st, cnt], i) => {
+          const pct = lhTotal > 0 ? ((cnt / lhTotal) * 100).toFixed(2) + '%' : '0%';
+          stationData.push([i + 1, st, cnt, pct]);
+        });
+
+        const wsStation = XLSX.utils.aoa_to_sheet(stationData);
+        XLSX.utils.book_append_sheet(wb, wsStation, 'Top_Stations_Linehaul');
+
+        // Write file
+        const outFilename = 'OB_Backlog_Summary_Report_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+        XLSX.writeFile(wb, outFilename);
+        showToast('ดาวน์โหลดไฟล์ Excel สรุปครบทุกมิติสำเร็จ (' + outFilename + ') 🚀');
+      } catch (err) {
+        console.error('Error generating summary excel:', err);
+        showToast('เกิดข้อผิดพลาดในการสร้าง Excel: ' + err.message, true);
+      }
+    }
+
+    // =======================================================================
+    // 📊 EXECUTIVE SUMMARY MODAL & COPYABLE REPORT
+    // =======================================================================
+    let currentExecutiveSummaryText = '';
+
+    function openExecutiveSummaryModal() {
+      if (!obRows.length) {
+        showToast('ไม่มีข้อมูล OB BL สำหรับจัดทำสรุป', true);
+        return;
+      }
+      const modal = document.getElementById('executiveSummaryModalOverlay');
+      if (modal) modal.style.display = 'flex';
+
+      const total = obRows.length;
+      const teams = collectTeams(obRows);
+      const socBuckets = ['< 1 day', '1 day', '2 days', '3 - 5 days', '6 - 7 days', '> 7 days'];
+
+      // Action Flag Stats
+      const actCounts = {};
+      OB_ACTIONS.forEach(a => {
+        actCounts[a] = obRows.filter(r => r.action_flag === a).length;
+      });
+
+      // Team Stats (Sorted desc)
+      const teamCounts = {};
+      teams.forEach(t => teamCounts[t] = 0);
+      obRows.forEach(r => teamCounts[r.team] = (teamCounts[r.team] || 0) + 1);
+      const sortedTeams = Object.entries(teamCounts).sort((a, b) => b[1] - a[1]);
+
+      // Day in SOC Stats
+      const socCounts = {};
+      socBuckets.forEach(b => socCounts[b] = 0);
+      obRows.forEach(r => {
+        const b = getSocBucket(r.day_in_soc);
+        socCounts[b] = (socCounts[b] || 0) + 1;
+      });
+
+      // Top 5 Stations
+      const topStations = stationEntriesFull.slice(0, 5);
+
+      // Generate copyable formatted text
+      const dateStr = new Date().toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
+      const filename = document.getElementById('fileSelectDropdown')?.value || 'Realtime Snapshot';
+
+      currentExecutiveSummaryText = `📊 [SOCN OUTBOUND BACKLOG EXECUTIVE SUMMARY]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📅 ข้อมูล ณ: ${dateStr}
+📁 ไฟล์รายงาน: ${filename}
+📦 พัสดุตกค้างรวม (Total OB BL): ${total.toLocaleString()} ชิ้น
+
+🏷️ สรุปตาม Action Flag:
+• Pending Packed: ${(actCounts['_02_pending_packed'] || 0).toLocaleString()} ชิ้น (${total > 0 ? (((actCounts['_02_pending_packed'] || 0)/total)*100).toFixed(1) : 0}%)
+• Linehaul-Packed: ${(actCounts['_03_pending_linehual_packed'] || 0).toLocaleString()} ชิ้น (${total > 0 ? (((actCounts['_03_pending_linehual_packed'] || 0)/total)*100).toFixed(1) : 0}%)
+• Pending Reworked: ${(actCounts['_04_pending_reworked'] || 0).toLocaleString()} ชิ้น (${total > 0 ? (((actCounts['_04_pending_reworked'] || 0)/total)*100).toFixed(1) : 0}%)
+
+🏢 Top 5 แผนก/ทีม ที่มีพัสดุตกค้างสูงสุด:
+${sortedTeams.slice(0, 5).map(([tm, cnt], idx) => `${idx + 1}. ${tm}: ${cnt.toLocaleString()} ชิ้น (${((cnt/total)*100).toFixed(1)}%)`).join('\n')}
+
+⏳ ระยะเวลาตกค้างในศูนย์ (Day in SOC / Aging):
+${socBuckets.map(b => `• ${b}: ${(socCounts[b] || 0).toLocaleString()} ชิ้น (${total > 0 ? (((socCounts[b] || 0)/total)*100).toFixed(1) : 0}%)`).join('\n')}
+
+🚛 Top 5 สถานีค้าง Linehaul-Packed สูงสุด:
+${topStations.map(([st, cnt], idx) => `${idx + 1}. ${st}: ${cnt.toLocaleString()} ชิ้น`).join('\n')}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Dashboard: SOCN Outbound Backlog Monitor`;
+
+      // Render Modal UI
+      const contentEl = document.getElementById('executiveSummaryModalContent');
+      if (contentEl) {
+        contentEl.innerHTML = `
+          <!-- KPI Header Row -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:18px;">
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px; text-align:center;">
+              <div style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase;">ยอดพัสดุตกค้างรวม</div>
+              <div style="font-size:26px; font-weight:900; color:#dc2626; margin-top:2px;">${total.toLocaleString()}</div>
+              <div style="font-size:11px; color:#94a3b8;">ชิ้น (Total Shipments)</div>
+            </div>
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:14px; text-align:center;">
+              <div style="font-size:12px; font-weight:700; color:#1e40af; text-transform:uppercase;">Pending Packed</div>
+              <div style="font-size:24px; font-weight:900; color:#2563eb; margin-top:2px;">${(actCounts['_02_pending_packed'] || 0).toLocaleString()}</div>
+              <div style="font-size:11px; color:#3b82f6;">${total > 0 ? (((actCounts['_02_pending_packed'] || 0)/total)*100).toFixed(1) : 0}% of Total</div>
+            </div>
+            <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:12px; padding:14px; text-align:center;">
+              <div style="font-size:12px; font-weight:700; color:#991b1b; text-transform:uppercase;">Linehaul-Packed</div>
+              <div style="font-size:24px; font-weight:900; color:#dc2626; margin-top:2px;">${(actCounts['_03_pending_linehual_packed'] || 0).toLocaleString()}</div>
+              <div style="font-size:11px; color:#ef4444;">${total > 0 ? (((actCounts['_03_pending_linehual_packed'] || 0)/total)*100).toFixed(1) : 0}% of Total</div>
+            </div>
+            <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:14px; text-align:center;">
+              <div style="font-size:12px; font-weight:700; color:#92400e; text-transform:uppercase;">Pending Reworked</div>
+              <div style="font-size:24px; font-weight:900; color:#d97706; margin-top:2px;">${(actCounts['_04_pending_reworked'] || 0).toLocaleString()}</div>
+              <div style="font-size:11px; color:#f59e0b;">${total > 0 ? (((actCounts['_04_pending_reworked'] || 0)/total)*100).toFixed(1) : 0}% of Total</div>
+            </div>
+          </div>
+
+          <!-- Two Column Breakdown -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
+            <!-- Left: Team Breakdown -->
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px;">
+              <div style="font-weight:800; font-size:14px; color:#0f172a; margin-bottom:12px;"><i class="fa-solid fa-users" style="color:#2563eb; margin-right:6px;"></i> สัดส่วนพัสดุตกค้างรายแผนก (Top Teams)</div>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                ${sortedTeams.slice(0, 6).map(([tm, cnt], idx) => {
+                  const pct = total > 0 ? ((cnt / total) * 100).toFixed(1) : 0;
+                  return `
+                    <div>
+                      <div style="display:flex; justify-content:space-between; font-size:12.5px; font-weight:700; margin-bottom:3px;">
+                        <span>${idx + 1}. ${tm}</span>
+                        <span style="color:#2563eb;">${cnt.toLocaleString()} ชิ้น (${pct}%)</span>
+                      </div>
+                      <div style="height:6px; background:#e2e8f0; border-radius:999px; overflow:hidden;">
+                        <div style="height:100%; width:${pct}%; background:linear-gradient(90deg, #3b82f6, #1d4ed8); border-radius:999px;"></div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <!-- Right: Day in SOC Aging Breakdown -->
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px;">
+              <div style="font-weight:800; font-size:14px; color:#0f172a; margin-bottom:12px;"><i class="fa-solid fa-hourglass-half" style="color:#d97706; margin-right:6px;"></i> ระยะเวลาตกค้างในศูนย์ (Day in SOC / Column N)</div>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                ${socBuckets.map(b => {
+                  const cnt = socCounts[b] || 0;
+                  const pct = total > 0 ? ((cnt / total) * 100).toFixed(1) : 0;
+                  const isOld = b === '3 - 5 days' || b === '6 - 7 days' || b === '> 7 days';
+                  const barColor = isOld ? 'linear-gradient(90deg, #f59e0b, #dc2626)' : 'linear-gradient(90deg, #10b981, #059669)';
+                  return `
+                    <div>
+                      <div style="display:flex; justify-content:space-between; font-size:12.5px; font-weight:700; margin-bottom:3px;">
+                        <span style="${isOld ? 'color:#dc2626;' : ''}">${b}</span>
+                        <span style="${isOld ? 'color:#dc2626; font-weight:800;' : 'color:#059669;'}">${cnt.toLocaleString()} ชิ้น (${pct}%)</span>
+                      </div>
+                      <div style="height:6px; background:#e2e8f0; border-radius:999px; overflow:hidden;">
+                        <div style="height:100%; width:${pct}%; background:${barColor}; border-radius:999px;"></div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom: Top 5 Linehaul Stations & Text Preview -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:14px;">
+            <div style="font-weight:800; font-size:14px; color:#0f172a; margin-bottom:10px;"><i class="fa-solid fa-truck-fast" style="color:#dc2626; margin-right:6px;"></i> Top 5 สถานีปลายทางตกค้าง Linehaul-Packed สูงสุด</div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:8px;">
+              ${topStations.map(([st, cnt], idx) => `
+                <div style="background:#fff; border:1px solid #cbd5e1; border-radius:8px; padding:10px; text-align:center;">
+                  <div style="font-size:11px; color:#64748b; font-weight:700;">#${idx+1} ${st}</div>
+                  <div style="font-size:16px; font-weight:800; color:#dc2626; margin-top:2px;">${cnt.toLocaleString()}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Copyable Text Container -->
+          <div style="font-weight:700; font-size:13px; color:#334155; margin-bottom:6px;"><i class="fa-solid fa-clipboard" style="color:#2563eb; margin-right:4px;"></i> ตัวอย่างข้อความสรุปสำหรับส่งต่อ (Management / Line / SeaTalk):</div>
+          <div style="background:#0f172a; color:#f8fafc; padding:14px; border-radius:10px; font-family:Consolas, monospace; font-size:12px; line-height:1.5; white-space:pre-wrap; max-height:180px; overflow-y:auto; border:1px solid #334155;">${esc(currentExecutiveSummaryText)}</div>
+        `;
+      }
+    }
+
+    function closeExecutiveSummaryModal() {
+      const modal = document.getElementById('executiveSummaryModalOverlay');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function copyExecutiveSummaryText() {
+      if (!currentExecutiveSummaryText) return;
+      navigator.clipboard.writeText(currentExecutiveSummaryText).then(() => {
+        showToast('คัดลอกรายงานสรุป (Executive Summary) สำเร็จ! 📋');
+      }).catch(err => {
+        showToast('ไม่สามารถคัดลอกได้: ' + err.message, true);
+      });
+    }
+
     document.getElementById('refreshBtn').addEventListener('click', forceRefresh);
     document.getElementById('exportBtn').addEventListener('click', exportObBlCsv);
     document.getElementById('stationExportBtn').addEventListener('click', exportStationCsv);
+    const daySocBtn = document.getElementById('daySocExportBtn');
+    if (daySocBtn) daySocBtn.addEventListener('click', exportDaySocCsv);
+    const mainPivotBtn = document.getElementById('mainPivotExportBtn');
+    if (mainPivotBtn) mainPivotBtn.addEventListener('click', exportMainPivotCsv);
+    const hourPivotBtn = document.getElementById('hourPivotExportBtn');
+    if (hourPivotBtn) hourPivotBtn.addEventListener('click', exportHourPivotCsv);
     document.getElementById('stationToggleBtn').addEventListener('click', () => {
       stationExpanded = !stationExpanded;
       renderStationTable();
@@ -1804,14 +2651,535 @@
       if (e.key === 'Escape') closeStationDrilldown();
     });
 
-    load();
-
     window.addEventListener('DOMContentLoaded', () => {
       fetchFileList();
-      syncGoogleSheetUrl(DEFAULT_OB_BL_SHEET_URL);
+      fetchObBlData();
     });
 
+    // ==========================================
+    // 📢 SEATALK OB BACKLOG ALERT
+    // ==========================================
+    function getObBlSummaryPayload() {
+      const dropdown = document.getElementById('fileSelectDropdown');
+      const filename = dropdown && dropdown.value ? dropdown.value : 'Outbound Backlog';
+      const totalCount = Array.isArray(filteredRows) ? filteredRows.length : 0;
+      
+      const topStations = (stationEntriesFull || []).slice(0, 7).map(([st, cnt]) => {
+        const pct = totalCount > 0 ? ((cnt / totalCount) * 100).toFixed(1) : '0.0';
+        return { name: st, count: cnt, pct: pct };
+      });
+
+      return {
+        filename: filename,
+        totalLate: totalCount,
+        cutoffRound: 'Cutoff 2 / Real-time Backlog',
+        topStations: topStations
+      };
+    }
+
+    function sendObBlSeatalkAlert() {
+      if (!checkAdminPermission()) return;
+      const payload = getObBlSummaryPayload();
+      if (!payload.totalLate || payload.totalLate <= 0) {
+        alert('ไม่พบรายการพัสดุตกค้าง (Total Late = 0) ไม่จำเป็นต้องส่งแจ้งเตือน');
+        return;
+      }
+
+      if (confirm(`ส่งแจ้งเตือน Outbound Backlog เข้า SeaTalk หรือไม่?\nยอดรวม: ${payload.totalLate.toLocaleString()} ชิ้น`)) {
+        fetch('/api/ob-bl/send-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showToast('📢 ส่งแจ้งเตือน Outbound Backlog เข้า SeaTalk สำเร็จ!');
+          } else {
+            alert(data.error || 'เกิดข้อผิดพลาดในการส่งแจ้งเตือน');
+          }
+        })
+        .catch(err => alert('Error: ' + err.message));
+      }
+    }
+
+
+    // ==========================================
+    // 🧠 AI BACKLOG ANALYSIS
+    // ==========================================
+    let currentAiObBlText = '';
+
+    function openAiObBlAnalysisModal() {
+      const payload = getObBlSummaryPayload();
+      const modalOverlay = document.getElementById('aiObBlModalOverlay');
+      if (modalOverlay) modalOverlay.classList.add('show');
+
+      const total = payload.totalLate;
+      const topStations = payload.topStations;
+      const topStationSum = topStations.reduce((sum, s) => sum + s.count, 0);
+      const topConcentrationPct = total > 0 ? ((topStationSum / total) * 100).toFixed(1) : 0;
+
+      const riskLevel = total > 5000 ? '🔴 วิกฤต (High Critical)' : (total > 1500 ? '🟡 ปานกลาง (Moderate)' : '🟢 ปกติ (Low Risk)');
+
+      const stListHtml = topStations.map((s, idx) => `
+        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #e2e8f0; font-size:13px;">
+          <span><b>${idx+1}. ${s.name}</b></span>
+          <span style="color:#dc2626; font-weight:700;">${s.count.toLocaleString()} ชิ้น (${s.pct}%)</span>
+        </div>
+      `).join('');
+
+      const recs = [
+        `1. <b>กระจุกตัวสูง (${topConcentrationPct}%):</b> พัสดุตกค้างส่วนใหญ่สะสมอยู่ที่ Top 7 สถานี แนะนำให้เร่งจัดรถเสริม (Special Linehaul Trip) ไปยังสถานี ${topStations[0]?.name || 'ปลายทางหลัก'} ทันที`,
+        `2. <b>เปิดช่องปล่อยพิเศษ (Dedicated Chute):</b> กำหนดสายพานปล่อยเฉพาะสำหรับ Hub ปลายทางขนาดใหญ่เพื่อเร่งระบายพัสดุ`,
+        `3. <b>ประสานงาน HUB ปลายทาง:</b> แจ้งเตือน Hub ปลายทางเตรียม Manpower สำหรับรอบ Outbound ที่กำลังจะเข้าไปส่งมอบ`
+      ];
+
+      currentAiObBlText = `✨ [AI BACKLOG ANALYSIS] สรุปผลวิเคราะห์พัสดุตกค้างขาออก (OB BL)
+━━━━━━━━━━━━━━━━━━━━
+📁 ข้อมูล: ${payload.filename}
+🎯 ระดับความเสี่ยง: ${riskLevel}
+📦 พัสดุตกค้างทั้งหมด: ${total.toLocaleString()} ชิ้น
+📊 การกระจุกตัวของ Top 7 Hub: ${topConcentrationPct}% (${topStationSum.toLocaleString()} ชิ้น)
+━━━━━━━━━━━━━━━━━━━━
+🏢 Top 5 สถานีล่าช้าสูงสุด:
+${topStations.slice(0, 5).map((s, i) => `• ${i+1}. ${s.name}: ${s.count.toLocaleString()} ชิ้น (${s.pct}%)`).join('\n')}
+━━━━━━━━━━━━━━━━━━━━
+💡 คำแนะนำการแก้ไขหน้างาน:
+${recs.map(r => r.replace(/<b>|<\/b>/g, '')).join('\n')}`;
+
+      document.getElementById('aiObBlContent').innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+          <span style="background:#fee2e2; color:#dc2626; padding:6px 14px; border-radius:20px; font-weight:800; font-size:13px;">${riskLevel}</span>
+          <span style="font-size:12px; color:#64748b;">ไฟล์: <b>${payload.filename}</b></span>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:18px;">
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; text-align:center;">
+            <div style="font-size:12px; color:#64748b;">พัสดุตกค้างรวม</div>
+            <div style="font-size:22px; font-weight:800; color:#dc2626;">${total.toLocaleString()} ชิ้น</div>
+          </div>
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; text-align:center;">
+            <div style="font-size:12px; color:#64748b;">สัดส่วน Top 7 Hub</div>
+            <div style="font-size:22px; font-weight:800; color:#2563eb;">${topConcentrationPct}%</div>
+          </div>
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; text-align:center;">
+            <div style="font-size:12px; color:#64748b;">สถานีล่าช้าสูงสุด</div>
+            <div style="font-size:16px; font-weight:800; color:#0f172a; margin-top:4px;">${topStations[0]?.name || '-'}</div>
+          </div>
+        </div>
+
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:16px;">
+          <div style="font-weight:800; font-size:13.5px; color:#0f172a; margin-bottom:8px;"><i class="fa-solid fa-ranking-star text-primary"></i> Top สถานีปลายทางที่มีพัสดุตกค้างสูงสุด</div>
+          ${stListHtml || '<div style="color:#64748b; font-size:12px;">ไม่มีข้อมูล</div>'}
+        </div>
+
+        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:14px;">
+          <div style="font-weight:800; font-size:13.5px; color:#1d4ed8; margin-bottom:8px;"><i class="fa-solid fa-wand-magic-sparkles"></i> คำแนะนำเชิงปฏิบัติการ (Action Plan)</div>
+          <ul style="margin:0; padding-left:18px; font-size:13px; color:#1e293b; line-height:1.6;">
+            ${recs.map(r => `<li style="margin-bottom:6px;">${r}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    function closeAiObBlModal() {
+      const modalOverlay = document.getElementById('aiObBlModalOverlay');
+      if (modalOverlay) modalOverlay.classList.remove('show');
+    }
+
+    function copyAiObBlText() {
+      if (!currentAiObBlText) return;
+      navigator.clipboard.writeText(currentAiObBlText).then(() => {
+        showToast('คัดลอกบทวิเคราะห์ AI เรียบร้อยแล้ว!');
+      });
+    }
+
+    function sendAiObBlToSeatalk() {
+      if (!checkAdminPermission()) return;
+      if (!currentAiObBlText) return;
+      fetch('/api/seatalk/send-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'AI Outbound Backlog Analysis',
+          message: currentAiObBlText
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          showToast('📢 ส่งบทวิเคราะห์เข้า SeaTalk เรียบร้อยแล้ว!');
+        } else {
+          alert(data.error || 'เกิดข้อผิดพลาด');
+        }
+      })
+      .catch(err => alert('Error: ' + err.message));
+    }
+
+    // ==========================================
+    // ⚡ ADMIN MANUAL TRIGGER SYSTEM (Admin Only)
+    // ==========================================
+    function checkAdminPermission() {
+      const user = window.AuthGuard ? window.AuthGuard.getUser() : null;
+      if (!user || (user.role !== 'Admin' && user.role !== 'admin')) {
+        alert(`🔒 สิทธิ์ไม่เพียงพอ (Admin Only)\n\nฟังก์ชัน Manual Trigger / ยิงแจ้งเตือน SeaTalk สงวนสิทธิ์สำหรับผู้ใช้งานระดับ Admin เท่านั้น\nผู้ใช้งานปัจจุบัน: ${user ? user.name : 'ยังไม่ล็อกอิน'} (Role: ${user ? user.role : 'Guest'})`);
+        return false;
+      }
+      return true;
+    }
+
+    let currentAdminTriggerType = 'ob_bl';
+
+    function openAdminManualTriggerModal(defaultType = 'ob_bl') {
+      if (!checkAdminPermission()) return;
+      const user = window.AuthGuard.getUser();
+      const dateVal = new Date().toISOString().split('T')[0];
+      
+      const adminEl = document.getElementById('amtAdminUserDisplay');
+      if (adminEl) adminEl.innerText = `${user.name} (${user.role})`;
+      
+      const obblDate = document.getElementById('amtObBlLate');
+      const payload = getObBlSummaryPayload();
+      if (obblDate && payload.totalLate) obblDate.value = payload.totalLate;
+      
+      switchAdminTriggerType(defaultType);
+      
+      const modal = document.getElementById('adminManualTriggerModalOverlay');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeAdminManualTriggerModal() {
+      const modal = document.getElementById('adminManualTriggerModalOverlay');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function switchAdminTriggerType(type) {
+      currentAdminTriggerType = type;
+      ['hourly', 'skip', 'ob_bl', 'custom'].forEach(t => {
+        const pane = document.getElementById(`amt_pane_${t}`);
+        const btn = document.getElementById(`amt_tab_btn_${t}`);
+        if (pane) pane.style.display = (t === type ? 'block' : 'none');
+        if (btn) {
+          if (t === type) {
+            btn.style.background = '#2563eb';
+            btn.style.color = '#ffffff';
+          } else {
+            btn.style.background = '#f1f5f9';
+            btn.style.color = '#334155';
+          }
+        }
+      });
+      updateAdminTriggerPreview();
+    }
+
+    function updateAdminTriggerPreview() {
+      const previewEl = document.getElementById('amtMessagePreview');
+      if (!previewEl) return;
+      
+      const user = window.AuthGuard?.getUser() || { name: 'Admin', role: 'Admin' };
+      let msg = '';
+      
+      if (currentAdminTriggerType === 'hourly') {
+        const slot = document.getElementById('amtHourlySlot')?.value || '08:00';
+        const dateStr = document.getElementById('amtHourlyDate')?.value || new Date().toISOString().split('T')[0];
+        const target = parseInt(document.getElementById('amtHourlyTarget')?.value || 45000);
+        const minVal = parseInt(document.getElementById('amtHourlyMin')?.value || 40000);
+        const act = parseInt(document.getElementById('amtHourlyActual')?.value || 0);
+        const gap = act - target;
+        const pct = target > 0 ? Math.round((act / target) * 100) : 0;
+        
+        msg = `🚨 [SOCN MANUAL HOURLY TRIGGER] แจ้งเตือนยอดปล่อยรายชั่วโมง (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: ${dateStr}
+⏰ ช่วงเวลา: ${slot}
+🎯 เป้าหมาย (Target): ${target.toLocaleString()} ชิ้น
+⚠️ เกณฑ์ขั้นต่ำ (Minimum): ${minVal.toLocaleString()} ชิ้น
+📦 ปล่อยจริง (Actual): ${act.toLocaleString()} ชิ้น
+📉 ส่วนต่าง (Gap): ${gap.toLocaleString()} ชิ้น (${pct}% of Target)
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      } else if (currentAdminTriggerType === 'skip') {
+        const dateStr = document.getElementById('amtSkipDate')?.value || new Date().toISOString().split('T')[0];
+        const act = parseInt(document.getElementById('amtSkipActual')?.value || 0);
+        const skipCnt = parseInt(document.getElementById('amtSkipCount')?.value || 0);
+        const pct = act > 0 ? ((skipCnt / act) * 100).toFixed(2) : '0.00';
+        
+        msg = `🚨 [SOCN MANUAL SKIP TRIGGER] สรุปรายงานสแกนข้ามขั้นตอน (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: ${dateStr}
+📦 ยอดปล่อยรวม: ${act.toLocaleString()} ชิ้น
+⚠️ ยอด Skip รวม: ${skipCnt.toLocaleString()} ชิ้น (${pct}%)
+📍 สถานะรายโซน: ตรวจสอบข้อมูลในระบบ Dashboard
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      } else if (currentAdminTriggerType === 'ob_bl') {
+        const cutoff = document.getElementById('amtObBlCutoff')?.value || 'Cutoff 2';
+        const late = parseInt(document.getElementById('amtObBlLate')?.value || 0);
+        
+        msg = `🚨 [SOCN MANUAL BACKLOG TRIGGER] สรุปยอดพัสดุขาออกล่าช้า (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+⏰ รอบเวลา Cutoff: ${cutoff}
+📦 ยอดพัสดุตกค้างล่าช้า: ${late.toLocaleString()} ชิ้น
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      } else {
+        const title = document.getElementById('amtCustomTitle')?.value || 'SOCN BROADCAST';
+        const body = document.getElementById('amtCustomBody')?.value || 'ระบุข้อความ...';
+        msg = `📢 [${title}] (Admin Manual Broadcast)
+━━━━━━━━━━━━━━━━━━━━
+⏰ เวลา: ${new Date().toLocaleString('th-TH')}
+👤 ผู้ส่งคำสั่ง: ${user.name} (Role: ${user.role})
+━━━━━━━━━━━━━━━━━━━━
+${body}
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      }
+      previewEl.innerText = msg;
+    }
+
+    function executeSendAdminTrigger() {
+      if (!checkAdminPermission()) return;
+      const user = window.AuthGuard.getUser();
+      
+      let payload = {
+        triggerType: currentAdminTriggerType,
+        adminName: user.name,
+        role: user.role
+      };
+      
+      if (currentAdminTriggerType === 'hourly') {
+        payload.slot = document.getElementById('amtHourlySlot')?.value;
+        payload.date = document.getElementById('amtHourlyDate')?.value;
+        payload.target = parseInt(document.getElementById('amtHourlyTarget')?.value || 45000);
+        payload.minimum = parseInt(document.getElementById('amtHourlyMin')?.value || 40000);
+        payload.actual = parseInt(document.getElementById('amtHourlyActual')?.value || 0);
+      } else if (currentAdminTriggerType === 'skip') {
+        payload.date = document.getElementById('amtSkipDate')?.value;
+        payload.actualVolume = parseInt(document.getElementById('amtSkipActual')?.value || 0);
+        payload.overallSkipCount = parseInt(document.getElementById('amtSkipCount')?.value || 0);
+        payload.overallPct = payload.actualVolume > 0 ? parseFloat(((payload.overallSkipCount / payload.actualVolume) * 100).toFixed(2)) : 0.0;
+      } else if (currentAdminTriggerType === 'ob_bl') {
+        payload.cutoffRound = document.getElementById('amtObBlCutoff')?.value;
+        payload.totalLate = parseInt(document.getElementById('amtObBlLate')?.value || 0);
+      } else {
+        payload.title = document.getElementById('amtCustomTitle')?.value;
+        payload.message = document.getElementById('amtCustomBody')?.value;
+        if (!payload.message) {
+          alert('กรุณาระบุข้อความก่อนส่ง');
+          return;
+        }
+      }
+
+      const btn = document.getElementById('btnAmtSubmit');
+      btn.disabled = true;
+      btn.innerText = 'กำลังส่งคำสั่ง...';
+
+      fetch('/api/admin/manual-trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(r => r.json())
+      .then(data => {
+        btn.disabled = false;
+        btn.innerText = '🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที';
+        if (data.success) {
+          closeAdminManualTriggerModal();
+          showToast('⚡ ' + data.message);
+        } else {
+          alert('ข้อผิดพลาด: ' + (data.error || 'เกิดข้อผิดพลาดในการส่ง'));
+        }
+      })
+      .catch(err => {
+        btn.disabled = false;
+        btn.innerText = '🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที';
+        alert('Error: ' + err.message);
+      });
+    }
   </script>
+
+  <!-- ========================================== -->
+  <!-- ⚡ MODAL: ADMIN MANUAL TRIGGER PANEL       -->
+  <!-- ========================================== -->
+  <div id="adminManualTriggerModalOverlay" class="modal-overlay" onclick="if(event.target.id==='adminManualTriggerModalOverlay') closeAdminManualTriggerModal();" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(15,23,42,0.85); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+    <div class="modal-box" style="max-width:760px; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+      <div class="modal-header" style="background:linear-gradient(135deg, #991b1b, #dc2626); color:#ffffff; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div class="modal-title" style="color:#ffffff; font-weight:800; font-size:1.1rem;"><i class="fa-solid fa-bolt" style="color:#fbbf24; margin-right:8px;"></i> Admin SeaTalk Manual Trigger Control</div>
+          <div class="modal-sub" style="color:rgba(255,255,255,0.8); font-size:0.8rem;">ศูนย์ควบคุมการสั่งยิงแจ้งเตือนด่วน (สำหรับผู้ใช้งานยศ Admin เท่านั้น)</div>
+        </div>
+        <button class="modal-close" style="background:rgba(255,255,255,0.2); color:#ffffff; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-weight:bold;" onclick="closeAdminManualTriggerModal()">✕ ปิด</button>
+      </div>
+      <div class="modal-body" style="padding:20px; max-height:75vh; overflow-y:auto; color:#1e293b;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding:10px 14px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
+          <span style="font-size:0.85rem; color:#64748b;"><i class="fa-solid fa-shield-halved" style="color:#dc2626; margin-right:4px;"></i> สิทธิ์ปฏิบัติการ:</span>
+          <span style="background:#dc2626; color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:bold; font-size:0.8rem;" id="amtAdminUserDisplay">Admin</span>
+        </div>
+
+        <!-- Type Selection Buttons -->
+        <div style="font-weight:700; font-size:0.85rem; color:#475569; margin-bottom:8px;">เลือกประเภทการแจ้งเตือน (Alert Category):</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+          <button type="button" style="border:none; border-radius:6px; padding:8px 14px; font-weight:700; font-size:0.85rem; cursor:pointer; background:#f1f5f9; color:#334155;" id="amt_tab_btn_hourly" onclick="switchAdminTriggerType('hourly')"><i class="fa-solid fa-clock"></i> 1. ยอดรายชั่วโมง</button>
+          <button type="button" style="border:none; border-radius:6px; padding:8px 14px; font-weight:700; font-size:0.85rem; cursor:pointer; background:#f1f5f9; color:#334155;" id="amt_tab_btn_skip" onclick="switchAdminTriggerType('skip')"><i class="fa-solid fa-triangle-exclamation"></i> 2. Skip Process</button>
+          <button type="button" style="border:none; border-radius:6px; padding:8px 14px; font-weight:700; font-size:0.85rem; cursor:pointer; background:#2563eb; color:#ffffff;" id="amt_tab_btn_ob_bl" onclick="switchAdminTriggerType('ob_bl')"><i class="fa-solid fa-boxes-stacked"></i> 3. Outbound Backlog</button>
+          <button type="button" style="border:none; border-radius:6px; padding:8px 14px; font-weight:700; font-size:0.85rem; cursor:pointer; background:#f1f5f9; color:#334155;" id="amt_tab_btn_custom" onclick="switchAdminTriggerType('custom')"><i class="fa-solid fa-bullhorn"></i> 4. ข้อความด่วน</button>
+        </div>
+
+        <!-- PANE 1: HOURLY -->
+        <div id="amt_pane_hourly" style="display:none; padding:14px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:14px;">
+          <div style="font-weight:700; color:#1e293b; margin-bottom:10px;"><i class="fa-solid fa-stopwatch" style="color:#2563eb;"></i> ตั้งค่าแจ้งเตือนยอดหลุดเป้ารายชั่วโมง</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:8px;">
+            <div>
+              <label style="font-size:0.75rem; font-weight:700; color:#64748b;">วันที่</label>
+              <input type="date" id="amtHourlyDate" style="width:100%; padding:6px; border-radius:6px; border:1px solid #cbd5e1;" onchange="updateAdminTriggerPreview()">
+            </div>
+            <div>
+              <label style="font-size:0.75rem; font-weight:700; color:#64748b;">ช่วงเวลา</label>
+              <select id="amtHourlySlot" style="width:100%; padding:6px; border-radius:6px; border:1px solid #cbd5e1;" onchange="updateAdminTriggerPreview()">
+                <option value="08:00">08:00 (08:00 - 09:00)</option>
+                <option value="09:00">09:00 (09:00 - 10:00)</option>
+                <option value="10:00">10:00 (10:00 - 11:00)</option>
+                <option value="11:00">11:00 (11:00 - 12:00)</option>
+                <option value="12:00">12:00 (12:00 - 13:00)</option>
+                <option value="18:00">18:00 (18:00 - 19:00)</option>
+                <option value="19:00">19:00 (19:00 - 20:00)</option>
+                <option value="20:00">20:00 (20:00 - 21:00)</option>
+                <option value="21:00">21:00 (21:00 - 22:00)</option>
+                <option value="22:00">22:00 (22:00 - 23:00)</option>
+                <option value="23:00">23:00 (23:00 - 00:00)</option>
+                <option value="00:00">00:00 (00:00 - 01:00)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:0.75rem; font-weight:700; color:#dc2626;">ยอดปล่อยจริง (ชิ้น)</label>
+              <input type="number" id="amtHourlyActual" value="32500" style="width:100%; padding:6px; border-radius:6px; border:1px solid #dc2626; color:#dc2626; font-weight:bold;" oninput="updateAdminTriggerPreview()">
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <label style="font-size:0.75rem; color:#64748b;">เป้าหมาย Target</label>
+              <input type="number" id="amtHourlyTarget" value="45000" style="width:100%; padding:6px; border-radius:6px; border:1px solid #cbd5e1;" oninput="updateAdminTriggerPreview()">
+            </div>
+            <div>
+              <label style="font-size:0.75rem; color:#64748b;">เกณฑ์ขั้นต่ำ Minimum</label>
+              <input type="number" id="amtHourlyMin" value="40000" style="width:100%; padding:6px; border-radius:6px; border:1px solid #cbd5e1;" oninput="updateAdminTriggerPreview()">
+            </div>
+          </div>
+        </div>
+
+        <!-- PANE 2: SKIP PROCESS -->
+        <div id="amt_pane_skip" style="display:none; padding:14px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:14px;">
+          <div style="font-weight:700; color:#1e293b; margin-bottom:10px;"><i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> ตั้งค่าแจ้งเตือน Skip Process</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+            <div>
+              <label style="font-size:0.75rem; font-weight:700; color:#64748b;">วันที่</label>
+              <input type="date" id="amtSkipDate" style="width:100%; padding:6px; border-radius:6px; border:1px solid #cbd5e1;" onchange="updateAdminTriggerPreview()">
+            </div>
+            <div>
+              <label style="font-size:0.75rem; font-weight:700; color:#64748b;">Actual Volume (ชิ้น)</label>
+              <input type="number" id="amtSkipActual" value="850000" style="width:100%; padding:6px; border-radius:6px; border:1px solid #cbd5e1;" oninput="updateAdminTriggerPreview()">
+            </div>
+            <div>
+              <label style="font-size:0.75rem; font-weight:700; color:#dc2626;">ยอด Skip รวม (ชิ้น)</label>
+              <input type="number" id="amtSkipCount" value="12500" style="width:100%; padding:6px; border-radius:6px; border:1px solid #dc2626; color:#dc2626; font-weight:bold;" oninput="updateAdminTriggerPreview()">
+            </div>
+          </div>
+        </div>
+
+        <!-- PANE 3: OUTBOUND BACKLOG -->
+        <div id="amt_pane_ob_bl" style="display:block; padding:14px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:14px;">
+          <div style="font-weight:700; color:#1e293b; margin-bottom:10px;"><i class="fa-solid fa-boxes-stacked" style="color:#dc2626;"></i> ตั้งค่าแจ้งเตือน Outbound Backlog Late</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <label style="font-size:0.75rem; font-weight:700; color:#64748b;">รอบ Cutoff</label>
+              <select id="amtObBlCutoff" style="width:100%; padding:6px; border-radius:6px; border:1px solid #cbd5e1;" onchange="updateAdminTriggerPreview()">
+                <option value="Cutoff 0 (00:00)">Cutoff 0 (00:00)</option>
+                <option value="Cutoff 1 (08:00)">Cutoff 1 (08:00)</option>
+                <option value="Cutoff 2 (14:00)" selected>Cutoff 2 (14:00)</option>
+                <option value="Cutoff 3 (20:00)">Cutoff 3 (20:00)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:0.75rem; font-weight:700; color:#dc2626;">ยอดพัสดุตกค้างล่าช้า (ชิ้น)</label>
+              <input type="number" id="amtObBlLate" value="38450" style="width:100%; padding:6px; border-radius:6px; border:1px solid #dc2626; color:#dc2626; font-weight:bold;" oninput="updateAdminTriggerPreview()">
+            </div>
+          </div>
+        </div>
+
+        <!-- PANE 4: CUSTOM BROADCAST -->
+        <div id="amt_pane_custom" style="display:none; padding:14px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:14px;">
+          <div style="font-weight:700; color:#1e293b; margin-bottom:10px;"><i class="fa-solid fa-bullhorn" style="color:#0284c7;"></i> ข้อความแจ้งเตือนด่วนแบบกำหนดเอง (Custom Broadcast)</div>
+          <div style="margin-bottom:8px;">
+            <label style="font-size:0.75rem; font-weight:700; color:#64748b;">หัวข้อเรื่อง (Title)</label>
+            <input type="text" id="amtCustomTitle" value="ประกาศด่วนจาก Admin ศูนย์ปฏิบัติการ SOCN" style="width:100%; padding:6px; border-radius:6px; border:1px solid #cbd5e1;" oninput="updateAdminTriggerPreview()">
+          </div>
+          <div>
+            <label style="font-size:0.75rem; font-weight:700; color:#64748b;">เนื้อหาข้อความ (Message Content)</label>
+            <textarea id="amtCustomBody" rows="3" style="width:100%; padding:6px; border-radius:6px; border:1px solid #cbd5e1;" oninput="updateAdminTriggerPreview()">แจ้งทุกโซนเร่งเคลียร์พัสดุตกค้างหน้าสายพานเข้าสู่กระบวนการคัดแยกด่วน ก่อนรอบ Cutoff ถัดไป</textarea>
+          </div>
+        </div>
+
+        <!-- Live Message Preview Box -->
+        <div style="font-weight:700; font-size:0.85rem; color:#1e293b; margin-bottom:4px;"><i class="fa-solid fa-eye" style="color:#2563eb;"></i> ตัวอย่างข้อความที่จะส่งเข้า SeaTalk (Live Preview):</div>
+        <div id="amtMessagePreview" style="background:#0f172a; color:#f8fafc; padding:12px; border-radius:8px; font-family:monospace; font-size:0.78rem; white-space:pre-wrap; max-height:180px; overflow-y:auto;">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 20px; background:#f8fafc; border-top:1px solid #e2e8f0;">
+        <button onclick="closeAdminManualTriggerModal()" style="background:#e2e8f0; color:#334155; border:none; border-radius:6px; padding:8px 16px; font-weight:700; cursor:pointer;">ยกเลิก</button>
+        <button id="btnAmtSubmit" onclick="executeSendAdminTrigger()" style="background:#dc2626; color:#ffffff; border:none; border-radius:6px; padding:8px 20px; font-weight:700; cursor:pointer; box-shadow:0 4px 6px -1px rgba(220,38,38,0.3);"><i class="fa-solid fa-paper-plane"></i> 🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 🧠 MODAL: AI OUTBOUND BACKLOG ANALYSIS     -->
+  <!-- ========================================== -->
+  <div id="aiObBlModalOverlay" class="modal-overlay" onclick="if(event.target.id==='aiObBlModalOverlay') closeAiObBlModal();">
+    <div class="modal-box" style="max-width:760px;">
+      <div class="modal-header" style="background:linear-gradient(135deg, #1e1b4b, #312e81); color:#ffffff;">
+        <div>
+          <div class="modal-title" style="color:#ffffff;"><i class="fa-solid fa-wand-magic-sparkles" style="color:#fbbf24; margin-right:8px;"></i> AI Outbound Backlog Analysis & Bottlenecks</div>
+          <div class="modal-sub" style="color:#cbd5e1;">ประมวลผลความหนาแน่นและสถานีปลายทางที่ตกค้างสูงสุด</div>
+        </div>
+        <button class="modal-close" style="background:rgba(255,255,255,0.15); color:#ffffff; border:none; cursor:pointer;" onclick="closeAiObBlModal()">✕ ปิด</button>
+      </div>
+      <div class="modal-body" id="aiObBlContent" style="padding:18px;">
+        <!-- Populated by JS -->
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 18px; background:#f8fafc; border-top:1px solid #e2e8f0;">
+        <button onclick="closeAiObBlModal()" style="background:#e2e8f0; color:#334155; border:none; border-radius:6px; padding:8px 16px; font-weight:700; cursor:pointer;">ปิด</button>
+        <div style="display:flex; gap:8px;">
+          <button onclick="copyAiObBlText()" style="background:#2563eb; color:#ffffff; border:none; border-radius:6px; padding:8px 16px; font-weight:700; cursor:pointer;"><i class="fa-solid fa-copy"></i> คัดลอกข้อความ</button>
+          <button onclick="sendAiObBlToSeatalk()" style="background:#059669; color:#ffffff; border:none; border-radius:6px; padding:8px 16px; font-weight:700; cursor:pointer;"><i class="fa-solid fa-paper-plane"></i> 📢 ส่งเข้า SeaTalk</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 📊 MODAL: EXECUTIVE SUMMARY & MULTI-BREAKDOWN -->
+  <!-- ========================================== -->
+  <div id="executiveSummaryModalOverlay" class="modal-overlay" onclick="if(event.target.id==='executiveSummaryModalOverlay') closeExecutiveSummaryModal();" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(15,23,42,0.85); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+    <div class="modal-box" style="max-width:840px; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+      <div class="modal-header" style="background:linear-gradient(135deg, #0369a1, #0284c7); color:#ffffff; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div class="modal-title" style="color:#ffffff; font-weight:800; font-size:1.15rem;"><i class="fa-solid fa-file-invoice" style="color:#fbbf24; margin-right:8px;"></i> สรุปรายงานผู้บริหาร (Executive Summary Report)</div>
+          <div class="modal-sub" style="color:rgba(255,255,255,0.85); font-size:0.8rem;">สรุปภาพรวมพัสดุตกค้าง OB BL, มิติแผนก, ระยะเวลา Day in SOC, และสถานีปลายทางหลัก</div>
+        </div>
+        <button class="modal-close" style="background:rgba(255,255,255,0.2); color:#ffffff; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-weight:bold;" onclick="closeExecutiveSummaryModal()">✕ ปิด</button>
+      </div>
+      <div class="modal-body" id="executiveSummaryModalContent" style="padding:20px; max-height:75vh; overflow-y:auto; color:#1e293b;">
+        <!-- Populated by JS -->
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; flex-wrap:wrap; gap:8px;">
+        <button onclick="closeExecutiveSummaryModal()" style="background:#e2e8f0; color:#334155; border:none; border-radius:6px; padding:8px 16px; font-weight:700; cursor:pointer;">ปิดหน้าต่าง</button>
+        <div style="display:flex; gap:8px;">
+          <button onclick="copyExecutiveSummaryText()" style="background:#2563eb; color:#ffffff; border:none; border-radius:6px; padding:8px 16px; font-weight:700; cursor:pointer;"><i class="fa-solid fa-copy"></i> คัดลอกข้อความสรุป</button>
+          <button onclick="exportSummaryExcel()" style="background:#10b981; color:#ffffff; border:none; border-radius:6px; padding:8px 16px; font-weight:700; cursor:pointer;"><i class="fa-solid fa-file-excel"></i> ดาวน์โหลด Excel (ครบทุกมิติ)</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 
 </html>

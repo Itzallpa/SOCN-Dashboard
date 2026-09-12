@@ -4038,14 +4038,18 @@ def api_compare_ob_bl():
                     idx.setdefault("shipment_id", i)
                 if "action" in h_lower or "flag" in h_lower:
                     idx.setdefault("action_flag", i)
-                if "timestamp" in h_lower or "time" in h_lower or "status time" in h_lower:
+                if "timestamp" in h_lower or "status time" in h_lower or ("time" in h_lower and "snap" not in h_lower):
                     idx.setdefault("latest_status_timestamp", i)
-                if "day" in h_lower or "soc" in h_lower:
+                if "day in soc" in h_lower or "day in hub" in h_lower or "aging" in h_lower or h_lower == "day_in_soc" or h_lower == "day":
                     idx.setdefault("day_in_soc", i)
-                if "station" in h_lower or "awb" in h_lower:
+                if ("station" in h_lower and "soc" not in h_lower) or "awb" in h_lower:
                     idx.setdefault("latest_awb_station_name", i)
                 if "operator" in h_lower or "user" in h_lower:
                     idx.setdefault("latest_operator_name", i)
+            if "day_in_soc" not in idx and len(headers) > 13:
+                idx["day_in_soc"] = 13
+            if "latest_awb_station_name" not in idx and len(headers) > 4:
+                idx["latest_awb_station_name"] = 4
             return idx
 
         idx1 = get_col_indices(headers1)
@@ -4349,12 +4353,129 @@ def save_hourly_tracker_data(data):
         print("Error saving hourly tracker data:", e)
         return False
 
-def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=False, webhook_type="seatalk"):
-    if not webhook_url or not webhook_url.strip():
+def format_cc_text_for_seatalk(cc_raw):
+    if not cc_raw or not isinstance(cc_raw, str):
+        return ""
+    cc_raw = cc_raw.strip()
+    if not cc_raw:
+        return ""
+    # Extract all emails and prefix each with @ for direct mention
+    emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', cc_raw)
+    if emails:
+        return " ".join([f"@{e.strip()}" if not e.strip().startswith("@") else e.strip() for e in emails])
+    return cc_raw
+
+def get_module_seatalk_config(module_key):
+    settings = load_system_settings()
+    st_cfg = settings.get("seatalk", {})
+    modules = st_cfg.get("modules", {})
+    mod_cfg = modules.get(module_key, {})
+    
+    # Gather module-specific webhook URLs (primary, secondary, or list)
+    urls = []
+    for k in ["webhookUrl", "webhookUrl2", "webhookUrls"]:
+        val = mod_cfg.get(k)
+        if val:
+            if isinstance(val, list):
+                urls.extend([u.strip() for u in val if isinstance(u, str) and u.strip()])
+            elif isinstance(val, str):
+                split_u = [u.strip() for u in re.split(r'[\r\n,;]+', val) if u.strip().startswith("http")]
+                urls.extend(split_u)
+
+    # Fallback to global webhooks if no module-specific webhook URLs
+    if not urls:
+        for k in ["webhookUrl", "webhookUrl2", "webhookUrls"]:
+            val = st_cfg.get(k)
+            if val:
+                if isinstance(val, list):
+                    urls.extend([u.strip() for u in val if isinstance(u, str) and u.strip()])
+                elif isinstance(val, str):
+                    split_u = [u.strip() for u in re.split(r'[\r\n,;]+', val) if u.strip().startswith("http")]
+                    urls.extend(split_u)
+
+    # Deduplicate while preserving order
+    dedup_urls = []
+    for u in urls:
+        if u and u not in dedup_urls:
+            dedup_urls.append(u)
+            
+    webhook_type = mod_cfg.get("webhookType") or st_cfg.get("webhookType", "seatalk")
+    mention_type = mod_cfg.get("mentionType") or st_cfg.get("mentionType", "specific")
+    mention_emails = mod_cfg.get("mentionEmails") if mod_cfg.get("mentionEmails") is not None else st_cfg.get("mentionEmails", [])
+    cc_text = mod_cfg.get("ccText") if mod_cfg.get("ccText") is not None else (st_cfg.get("ccText") or "")
+    enabled = mod_cfg.get("enabled", st_cfg.get("enabled", False))
+    trigger_condition = mod_cfg.get("triggerCondition", st_cfg.get("triggerCondition", "below_minimum"))
+    
+    return {
+        "enabled": enabled,
+        "webhookUrl": dedup_urls[0] if dedup_urls else "",
+        "webhookUrl2": dedup_urls[1] if len(dedup_urls) > 1 else "",
+        "webhookUrls": dedup_urls,
+        "webhookType": webhook_type,
+        "mentionType": mention_type,
+        "mentionEmails": mention_emails,
+        "ccText": cc_text,
+        "triggerCondition": trigger_condition
+    }
+
+def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=False, webhook_type="seatalk", cc_text=None):
+    if not webhook_url:
         return False, "Webhook URL is not configured"
     
-    webhook_url = webhook_url.strip()
+    # Collect all destination URLs (supports list, single string, or comma/newline separated multi-URL string)
+    target_urls = []
+    if isinstance(webhook_url, (list, tuple, set)):
+        for item in webhook_url:
+            if isinstance(item, str) and item.strip():
+                for sub in re.split(r'[\r\n,;]+', item.strip()):
+                    if sub.strip().startswith("http") and sub.strip() not in target_urls:
+                        target_urls.append(sub.strip())
+    elif isinstance(webhook_url, str):
+        for sub in re.split(r'[\r\n,;]+', webhook_url.strip()):
+            if sub.strip().startswith("http") and sub.strip() not in target_urls:
+                target_urls.append(sub.strip())
+        if not target_urls and webhook_url.strip():
+            target_urls.append(webhook_url.strip())
+
+    if not target_urls:
+        return False, "No valid Webhook URL found"
+
     try:
+        # If cc_text not explicitly passed, try loading from system_settings.json
+        if cc_text is None:
+            try:
+                st_cfg = load_system_settings().get("seatalk", {})
+                cc_text = (st_cfg.get("ccText") or "").strip()
+            except Exception:
+                cc_text = ""
+
+        # Collect and combine all mention emails (explicit mentions + CC emails + emails in text)
+        all_emails = []
+        if mention_emails:
+            for e in mention_emails:
+                if isinstance(e, str) and e.strip() and e.strip() not in all_emails:
+                    all_emails.append(e.strip())
+                    
+        # Extract emails from cc_text parameter if provided
+        if cc_text and isinstance(cc_text, str):
+            extracted_cc = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', cc_text)
+            for ce in extracted_cc:
+                if ce and ce.strip() and ce.strip() not in all_emails:
+                    all_emails.append(ce.strip())
+
+        # If cc_text is provided and not yet in message, append CC line to message bottom
+        if cc_text and isinstance(cc_text, str) and cc_text.strip() and "CC:" not in message:
+            formatted_cc = format_cc_text_for_seatalk(cc_text)
+            if formatted_cc:
+                message = f"{message}\nCC: {formatted_cc}"
+
+        # Automatically extract emails from entire message content (e.g., CC: email@...) so everyone is tagged
+        if message and isinstance(message, str):
+            extracted_msg = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', message)
+            for me in extracted_msg:
+                if me and me.strip() and me.strip() not in all_emails:
+                    all_emails.append(me.strip())
+
         if webhook_type == "seatalk":
             payload = {
                 "tag": "text",
@@ -4364,24 +4485,39 @@ def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=Fa
             }
             if mention_all:
                 payload["text"]["mentioned_list"] = ["@all"]
-            elif mention_emails and len(mention_emails) > 0:
-                payload["text"]["mentioned_email_list"] = [e.strip() for e in mention_emails if e and e.strip()]
+            if len(all_emails) > 0:
+                payload["text"]["mentioned_email_list"] = all_emails
         else:
             # n8n or generic webhook payload
             payload = {
-                "source": "SOCN_HOURLY_TRACKER",
+                "source": "SOCN_ALERT_SYSTEM",
                 "message": message,
                 "mentionAll": mention_all,
-                "mentionEmails": mention_emails or [],
+                "mentionEmails": all_emails,
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
 
         headers = {"Content-Type": "application/json"}
-        res = requests.post(webhook_url, json=payload, headers=headers, timeout=10)
-        if res.status_code in [200, 201, 204]:
-            return True, "Alert sent successfully"
+        
+        # Broadcast to all target SeaTalk/n8n groups
+        success_count = 0
+        error_msgs = []
+        for url in target_urls:
+            try:
+                res = requests.post(url, json=payload, headers=headers, timeout=10)
+                if res.status_code in [200, 201, 204]:
+                    success_count += 1
+                else:
+                    error_msgs.append(f"HTTP {res.status_code} ({url[:25]}...)")
+            except Exception as ex:
+                error_msgs.append(f"{str(ex)[:50]} ({url[:25]}...)")
+
+        if success_count == len(target_urls):
+            return True, f"Alert dispatched to all {len(target_urls)} SeaTalk groups successfully"
+        elif success_count > 0:
+            return True, f"Dispatched to {success_count}/{len(target_urls)} groups (Errors: {'; '.join(error_msgs)})"
         else:
-            return False, f"Server returned HTTP {res.status_code}: {res.text[:200]}"
+            return False, f"Failed sending to all {len(target_urls)} groups: {'; '.join(error_msgs)}"
     except Exception as e:
         return False, str(e)
 
@@ -4436,13 +4572,11 @@ def test_seatalk_alert_api():
 🎯 เป้าหมายระบบ (Target): 45,000 ชิ้น/ชม.
 ⚠️ เกณฑ์ขั้นต่ำ (Minimum): 40,000 ชิ้น/ชม.
 📡 สถานะการเชื่อมต่อ: ✅ เชื่อมต่อสำเร็จ (Connection Verified)"""
-    if cc_text:
-        test_msg += f"\nCC: {cc_text}"
-
+    cc_raw = cc_text
     mention_all = (mention_type == "all")
     emails_to_tag = mention_emails if (mention_type == "specific") else []
 
-    ok, msg = send_seatalk_alert(webhook_url, test_msg, mention_emails=emails_to_tag, mention_all=mention_all, webhook_type=webhook_type)
+    ok, msg = send_seatalk_alert(webhook_url, test_msg, mention_emails=emails_to_tag, mention_all=mention_all, webhook_type=webhook_type, cc_text=cc_raw)
     if ok:
         log_activity("SEATALK_TEST_ALERT", f"🔔 ทดสอบยิงแจ้งเตือน SeaTalk Webhook สำเร็จ ({webhook_url[:30]}...)")
         return jsonify({"success": True, "message": "ส่งข้อความทดสอบเข้า SeaTalk เรียบร้อยแล้ว!"})
@@ -4697,13 +4831,10 @@ def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
 👤 ผู้รับผิดชอบ {lowest_zone_name} (ใครช้า): {staff_str}
 👔 Supervisor ประจำรอบ: {sups_str}"""
 
-                    cc_text = (st_cfg.get("ccText") or "").strip()
-                    if cc_text:
-                        msg += f"\nCC: {cc_text}"
-
+                    cc_raw = (st_cfg.get("ccText") or "").strip()
                     mention_all = (st_cfg.get("mentionType") == "all")
                     emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
-                    send_seatalk_alert(st_cfg.get("webhookUrl"), msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"))
+                    send_seatalk_alert(st_cfg.get("webhookUrl"), msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
                     
                     # Mark this slot and hash as permanently alerted
                     tracker_data["last_alerted"][date_str][slot_lbl] = current_timestamp
@@ -5179,13 +5310,10 @@ def save_hourly_tracker_api():
 📦 ปล่อยจริง (Actual): {act:,} ชิ้น
 📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)"""
             
-            cc_text = (st_cfg.get("ccText") or "").strip()
-            if cc_text:
-                msg += f"\nCC: {cc_text}"
-            
+            cc_raw = (st_cfg.get("ccText") or "").strip()
             mention_all = (st_cfg.get("mentionType") == "all")
             emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
-            send_seatalk_alert(st_cfg.get("webhookUrl"), msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"))
+            send_seatalk_alert(st_cfg.get("webhookUrl"), msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
             
             if "alerted_slots" not in data:
                 data["alerted_slots"] = []
@@ -5225,19 +5353,689 @@ def send_manual_hourly_alert_api():
 📦 ปล่อยจริง (Actual): {actual:,} ชิ้น
 📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)"""
 
-    cc_text = (st_cfg.get("ccText") or "").strip()
-    if cc_text:
-        msg += f"\nCC: {cc_text}"
-
+    cc_raw = (st_cfg.get("ccText") or "").strip()
     mention_all = (st_cfg.get("mentionType") == "all")
     emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
     
-    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"))
+    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
     if ok:
         log_activity("SEATALK_MANUAL_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk รายชั่วโมง: {date_str} {time_range}")
         return jsonify({"success": True, "message": f"ส่งแจ้งเตือนช่วงเวลา {time_range} เข้า SeaTalk สำเร็จ!"})
     else:
         return jsonify({"success": False, "error": f"ส่งแจ้งเตือนไม่สำเร็จ: {err_msg}"}), 400
+
+
+# ==========================================
+# 📢 SEATALK & MESSAGING ALERT APIS
+# ==========================================
+
+@app.route("/api/seatalk/send-alert", methods=["POST"])
+def send_generic_seatalk_alert_api():
+    req = request.get_json(silent=True) or {}
+    message = req.get("message", "").strip()
+    title = req.get("title", "SOCN Notification")
+    mention_emails = req.get("mentionEmails")
+    mention_all = req.get("mentionAll", False)
+    
+    if not message:
+        return jsonify({"success": False, "error": "ไม่ได้ระบุข้อความแจ้งเตือน"}), 400
+        
+    settings = load_system_settings()
+    st_cfg = settings.get("seatalk", {})
+    webhook_url = req.get("webhookUrl") or st_cfg.get("webhookUrl")
+    webhook_type = req.get("webhookType") or st_cfg.get("webhookType", "seatalk")
+    
+    if not webhook_url:
+        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL ในระบบ Admin"}), 400
+        
+    if mention_emails is None:
+        if st_cfg.get("mentionType") == "all":
+            mention_all = True
+            mention_emails = []
+        elif st_cfg.get("mentionType") == "specific":
+            mention_emails = st_cfg.get("mentionEmails", [])
+        else:
+            mention_emails = []
+            
+    cc_text = (st_cfg.get("ccText") or "").strip()
+    full_msg = message
+    if cc_text and "CC:" not in message:
+        full_msg += f"\nCC: {format_cc_text_for_seatalk(cc_text)}"
+        
+    ok, err_msg = send_seatalk_alert(webhook_url, full_msg, mention_emails=mention_emails, mention_all=mention_all, webhook_type=webhook_type)
+    if ok:
+        log_activity("SEATALK_GENERIC_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk: {title}")
+        return jsonify({"success": True, "message": "ส่งข้อความแจ้งเตือนเข้า SeaTalk เรียบร้อยแล้ว!"})
+    else:
+        return jsonify({"success": False, "error": f"ส่งแจ้งเตือนไม่สำเร็จ: {err_msg}"}), 400
+
+
+@app.route("/api/skip-process/send-alert", methods=["POST"])
+def send_skip_process_seatalk_alert_api():
+    req = request.get_json(silent=True) or {}
+    date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+    overall_skip_count = req.get("overallSkipCount", 0)
+    actual_volume = req.get("actualVolume", 0)
+    overall_pct = req.get("overallPct", 0.0)
+    zones = req.get("zones") or {}
+    notes = (req.get("notes") or "").strip()
+    
+    settings = load_system_settings()
+    st_cfg = settings.get("seatalk", {})
+    webhook_url = st_cfg.get("webhookUrl")
+    if not webhook_url:
+        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL ในระบบ Admin"}), 400
+        
+    overall_target_pct = settings.get("overallSkipTargetPct", 0.8)
+    zone_target_pct = settings.get("zoneSkipTargetPct", 0.27)
+    
+    status_emoji = "🔴" if overall_pct > overall_target_pct else "🟢"
+    status_text = "เกินเกณฑ์มาตรฐาน (Exceeded Target)" if overall_pct > overall_target_pct else "ผ่านเกณฑ์มาตรฐาน (Passed Target)"
+    
+    zone_lines = []
+    failed_zones = []
+    for z_name in ["A", "B", "C", "INTERSOC", "RETURN"]:
+        if z_name in zones:
+            z_data = zones[z_name]
+            z_pct = float(z_data.get("pct", 0.0))
+            z_cnt = int(z_data.get("count", 0))
+            z_icon = "🔴" if z_pct > zone_target_pct else "🟢"
+            zone_lines.append(f"  • โซน {z_name}: {z_icon} {z_pct:.2f}% ({z_cnt:,} ชิ้น)")
+            if z_pct > zone_target_pct:
+                failed_zones.append(f"Zone {z_name} ({z_pct:.2f}%)")
+                
+    zone_summary_str = "\n".join(zone_lines) if zone_lines else "  • ไม่มีข้อมูลโซน"
+    
+    msg = f"""{status_emoji} [SOCN SKIP PROCESS ALERT] รายงานผลการสแกนพัสดุ (Skip Process Monitor)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_str}
+🎯 เป้าหมายภาพรวม: < {overall_target_pct:.2f}% | เป้าหมายรายโซน: < {zone_target_pct:.2f}%
+📦 SOCN Actual Volume: {actual_volume:,} ชิ้น
+⚠️ ยอดพัสดุ Skip รวม: {overall_skip_count:,} ชิ้น
+📊 อัตรา Skip ภาพรวม: {status_emoji} {overall_pct:.2f}% ({status_text})
+━━━━━━━━━━━━━━━━━━━━
+📍 สรุปรายโซน:
+{zone_summary_str}"""
+
+    if failed_zones:
+        msg += f"\n🚨 โซนที่ต้องตรวจสอบด่วน: {', '.join(failed_zones)}"
+    if notes:
+        msg += f"\n📝 หมายเหตุ/สาเหตุ: {notes}"
+        
+    cc_raw = (st_cfg.get("ccText") or "").strip()
+    mention_all = (st_cfg.get("mentionType") == "all")
+    emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
+    
+    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
+    if ok:
+        log_activity("SEATALK_SKIP_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk Skip Process วันที่ {date_str} (%Skip: {overall_pct:.2f}%)")
+        return jsonify({"success": True, "message": f"ส่งแจ้งเตือน Skip Process ({date_str}) เข้า SeaTalk สำเร็จ!"})
+    else:
+        return jsonify({"success": False, "error": f"ส่งแจ้งเตือนไม่สำเร็จ: {err_msg}"}), 400
+
+
+@app.route("/api/ob-bl/send-alert", methods=["POST"])
+def send_ob_bl_seatalk_alert_api():
+    req = request.get_json(silent=True) or {}
+    filename = req.get("filename", "Outbound Backlog")
+    total_late = req.get("totalLate", 0)
+    cutoff_round = req.get("cutoffRound", "Cutoff 2")
+    top_stations = req.get("topStations") or []
+    notes = (req.get("notes") or "").strip()
+    
+    settings = load_system_settings()
+    st_cfg = settings.get("seatalk", {})
+    webhook_url = st_cfg.get("webhookUrl")
+    if not webhook_url:
+        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL ในระบบ Admin"}), 400
+        
+    station_lines = []
+    for idx, st in enumerate(top_stations[:7], 1):
+        st_name = st.get("name") or st.get("station") or "N/A"
+        st_cnt = st.get("count") or st.get("lateCount") or 0
+        st_pct = st.get("pct", "")
+        pct_str = f" ({st_pct}%)" if st_pct else ""
+        station_lines.append(f"  {idx}. {st_name}: {st_cnt:,} ชิ้น{pct_str}")
+        
+    station_str = "\n".join(station_lines) if station_lines else "  • ไม่มีรายการสถานีล่าช้า"
+    
+    msg = f"""🚨 [SOCN OUTBOUND BACKLOG ALERT] สรุปยอดพัสดุขาออกล่าช้า (Outbound Late Summary)
+━━━━━━━━━━━━━━━━━━━━
+📁 ไฟล์ข้อมูล: {filename}
+⏰ รอบเวลา Cutoff: {cutoff_round}
+📦 ยอดพัสดุตกค้างล่าช้าทั้งหมด: {total_late:,} ชิ้น
+━━━━━━━━━━━━━━━━━━━━
+🏢 Top 7 สถานีปลายทางที่ล่าช้าสูงสุด:
+{station_str}"""
+
+    if notes:
+        msg += f"\n📝 หมายเหตุ/การแก้ไข: {notes}"
+        
+    cc_raw = (st_cfg.get("ccText") or "").strip()
+    mention_all = (st_cfg.get("mentionType") == "all")
+    emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
+    
+    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
+    if ok:
+        log_activity("SEATALK_OB_BL_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk Outbound Backlog: {filename} ({total_late:,} ชิ้น)")
+        return jsonify({"success": True, "message": f"ส่งแจ้งเตือน Outbound Backlog เข้า SeaTalk สำเร็จ!"})
+    else:
+        return jsonify({"success": False, "error": f"ส่งแจ้งเตือนไม่สำเร็จ: {err_msg}"}), 400
+
+
+@app.route("/api/admin/manual-trigger", methods=["POST"])
+def admin_manual_trigger_api():
+    req = request.get_json(silent=True) or {}
+    trigger_type = req.get("triggerType", "custom") # 'hourly', 'skip', 'ob_bl', 'custom'
+    admin_name = req.get("adminName") or session.get("user_name", "Admin")
+    admin_role = req.get("role") or session.get("user_role", "Admin")
+    custom_msg = (req.get("message") or "").strip()
+    title = req.get("title") or "SOCN ADMIN MANUAL ALERT"
+    
+    settings = load_system_settings()
+    mod_key = trigger_type if trigger_type in ["hourly", "skip", "ob_bl"] else "broadcast"
+    mod_cfg = get_module_seatalk_config(mod_key)
+    st_cfg = settings.get("seatalk", {})
+
+    target_webhooks = req.get("webhookUrls") or req.get("webhookUrl") or mod_cfg.get("webhookUrls") or mod_cfg.get("webhookUrl")
+    if not target_webhooks:
+        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL ในระบบ Admin"}), 400
+
+    mention_emails = req.get("mentionEmails")
+    mention_all = req.get("mentionAll", False)
+    cc_text = req.get("ccText")
+    
+    if mention_emails is None:
+        if mod_cfg.get("mentionType") == "all":
+            mention_all = True
+            mention_emails = []
+        elif mod_cfg.get("mentionType") == "specific":
+            mention_emails = mod_cfg.get("mentionEmails", [])
+        else:
+            mention_emails = []
+
+    if not cc_text:
+        cc_text = (mod_cfg.get("ccText") or st_cfg.get("ccText") or "").strip()
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    if trigger_type == "hourly":
+        hour_slot = req.get("slot", "08:00")
+        actual_val = req.get("actual", 0)
+        target_val = req.get("target", settings.get("hourlyTarget", 45000))
+        min_val = req.get("minimum", settings.get("hourlyMinimum", 40000))
+        gap = int(actual_val) - int(target_val)
+        pct = round((int(actual_val) / int(target_val) * 100), 1) if int(target_val) > 0 else 0
+        date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+        
+        full_msg = f"""🚨 [SOCN MANUAL HOURLY TRIGGER] แจ้งเตือนยอดปล่อยรายชั่วโมง (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_str}
+⏰ ช่วงเวลา: {hour_slot}
+🎯 เป้าหมาย (Target): {int(target_val):,} ชิ้น
+⚠️ เกณฑ์ขั้นต่ำ (Minimum): {int(min_val):,} ชิ้น
+📦 ปล่อยจริง (Actual): {int(actual_val):,} ชิ้น
+📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)
+👤 สั่งยิงโดย: {admin_name} (Role: {admin_role})"""
+
+    elif trigger_type == "skip":
+        date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+        overall_pct = float(req.get("overallPct", 0.0))
+        actual_vol = int(req.get("actualVolume", 0))
+        skip_cnt = int(req.get("overallSkipCount", 0))
+        zones_desc = req.get("zonesSummary", "")
+        
+        full_msg = f"""🚨 [SOCN MANUAL SKIP TRIGGER] สรุปรายงานสแกนข้ามขั้นตอน (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_str}
+📦 ยอดปล่อยรวม: {actual_vol:,} ชิ้น
+⚠️ ยอด Skip รวม: {skip_cnt:,} ชิ้น ({overall_pct:.2f}%)
+📍 สถานะรายโซน:
+{zones_desc or '  • ตรวจสอบข้อมูลรายโซนใน Dashboard'}
+👤 สั่งยิงโดย: {admin_name} (Role: {admin_role})"""
+
+    elif trigger_type == "ob_bl":
+        date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+        total_late = int(req.get("totalLate", 0))
+        cutoff = req.get("cutoffRound", "Cutoff 2")
+        top_st = req.get("topStationsDesc", "")
+        
+        full_msg = f"""🚨 [SOCN MANUAL BACKLOG TRIGGER] สรุปยอดพัสดุขาออกล่าช้า (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+⏰ รอบเวลา Cutoff: {cutoff}
+📦 ยอดพัสดุตกค้างล่าช้า: {total_late:,} ชิ้น
+🏢 สถานีปลายทางสำคัญ:
+{top_st or '  • ตรวจสอบรายละเอียดใน Outbound Backlog'}
+👤 สั่งยิงโดย: {admin_name} (Role: {admin_role})"""
+
+    else:
+        # Custom message
+        if not custom_msg:
+            return jsonify({"success": False, "error": "กรุณาระบุเนื้อหาข้อความสำหรับ Manual Trigger"}), 400
+        full_msg = f"""📢 [{title.strip()}] (Admin Manual Broadcast)
+━━━━━━━━━━━━━━━━━━━━
+⏰ เวลา: {now_str}
+👤 ผู้สั่งยิง: {admin_name} (Role: {admin_role})
+━━━━━━━━━━━━━━━━━━━━
+{custom_msg}"""
+
+    ok, err_msg = send_seatalk_alert(
+        target_webhooks,
+        full_msg,
+        mention_emails=mention_emails,
+        mention_all=mention_all,
+        webhook_type=mod_cfg.get("webhookType", "seatalk"),
+        cc_text=cc_text
+    )
+
+    if ok:
+        log_activity("ADMIN_MANUAL_TRIGGER", f"⚡ Admin Manual Trigger ({trigger_type}): สั่งยิงโดย {admin_name} ({admin_role})")
+        return jsonify({
+            "success": True,
+            "message": f"⚡ ทำการ Manual Trigger ส่งเข้า SeaTalk เรียบร้อยแล้วโดย {admin_name}!",
+            "content": full_msg
+        })
+    else:
+        return jsonify({"success": False, "error": f"ยิงข้อความไม่สำเร็จ: {err_msg}"}), 400
+
+
+
+# ==========================================
+# 🧠 AI & SMART ANALYSIS ENGINE
+# ==========================================
+
+@app.route("/api/ai/shift-summary", methods=["POST"])
+def generate_ai_shift_summary_api():
+    req = request.get_json(silent=True) or {}
+    date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+    shift_filter = req.get("shift", "ALL") # 'ALL', 'Day', 'Night'
+    
+    settings = load_system_settings()
+    target_normal = settings.get("hourlyTarget", 45000)
+    target_min = settings.get("hourlyMinimum", 40000)
+    target_peak = settings.get("peakHourTarget", 50000)
+    peak_hours = set(settings.get("peakHours", []))
+    
+    tracker_data = load_hourly_tracker_data()
+    records = tracker_data.get("records", {}).get(date_str, {})
+    zone_breakdowns = tracker_data.get("zone_breakdowns", {}).get(date_str, {})
+    
+    day_shift_hours = {"08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"}
+    night_shift_hours = {"20:00", "21:00", "22:00", "23:00", "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00"}
+    quiet_hours = {"13:00", "14:00", "15:00", "16:00", "17:00"}
+    
+    total_volume = 0
+    recorded_hours = 0
+    passed_hours = 0
+    warning_hours = 0
+    under_hours = 0
+    standby_hours = 0
+    
+    zone_totals = {"Zone A": 0, "Zone B": 0, "Zone C": 0, "Zone D": 0, "Zone E": 0, "Zone OBC": 0}
+    truck_totals = 0
+    
+    hourly_performance = []
+    peak_slot = None
+    peak_volume = 0
+    lowest_slot = None
+    lowest_volume = float("inf")
+    
+    for slot_lbl, act_val in records.items():
+        if act_val is None:
+            continue
+            
+        if shift_filter == "Day" and slot_lbl not in day_shift_hours:
+            continue
+        elif shift_filter == "Night" and slot_lbl not in night_shift_hours:
+            continue
+            
+        act = int(act_val)
+        is_quiet = slot_lbl in quiet_hours
+        is_peak = slot_lbl in peak_hours
+        slot_target = target_peak if is_peak else target_normal
+        slot_min = target_min
+        
+        recorded_hours += 1
+        total_volume += act
+        
+        if is_quiet and act == 0:
+            standby_hours += 1
+            status = "standby"
+        elif act >= slot_target:
+            passed_hours += 1
+            status = "passed"
+        elif act >= slot_min:
+            warning_hours += 1
+            status = "warning"
+        else:
+            under_hours += 1
+            status = "under_target"
+            
+        if act > peak_volume and not is_quiet:
+            peak_volume = act
+            peak_slot = slot_lbl
+            
+        if act > 0 and act < lowest_volume and not is_quiet:
+            lowest_volume = act
+            lowest_slot = slot_lbl
+            
+        zd = zone_breakdowns.get(slot_lbl, {})
+        za = zd.get("zoneA", 0)
+        zb = zd.get("zoneB", 0)
+        zc = zd.get("zoneC", 0)
+        zone_totals["Zone A"] += za
+        zone_totals["Zone B"] += zb
+        zone_totals["Zone C"] += zc
+        zone_totals["Zone D"] += zd.get("zoneD", 0)
+        zone_totals["Zone E"] += zd.get("zoneE", 0)
+        zone_totals["Zone OBC"] += zd.get("zoneOBC", 0)
+        truck_totals += zd.get("trucks", 0)
+        
+        hourly_performance.append({
+            "slot": slot_lbl,
+            "actual": act,
+            "target": slot_target,
+            "achievePct": round(act / slot_target * 100, 1) if slot_target > 0 else 0.0,
+            "status": status,
+            "zoneA": za,
+            "zoneB": zb,
+            "zoneC": zc
+        })
+
+    if lowest_volume == float("inf"):
+        lowest_volume = 0
+        
+    avg_per_hour = round(total_volume / recorded_hours) if recorded_hours > 0 else 0
+    active_recorded = recorded_hours - standby_hours
+    pass_rate = round((passed_hours / active_recorded * 100), 1) if active_recorded > 0 else 0.0
+    
+    # Identify lowest zone among core zones A, B, C
+    core_zones = [("Zone A", zone_totals["Zone A"]), ("Zone B", zone_totals["Zone B"]), ("Zone C", zone_totals["Zone C"])]
+    core_zones.sort(key=lambda x: x[1])
+    lowest_zone_name = core_zones[0][0]
+    lowest_zone_vol = core_zones[0][1]
+    top_zone_name = core_zones[-1][0]
+    top_zone_vol = core_zones[-1][1]
+    
+    # Assess overall Health Score / Level
+    if pass_rate >= 80 and under_hours <= 1:
+        health_level = "EXCELLENT"
+        health_color = "#10b981"
+        health_badge = "🟢 ประสิทธิภาพยอดเยี่ยม (High Performance)"
+    elif pass_rate >= 50 or under_hours <= 3:
+        health_level = "MODERATE"
+        health_color = "#f59e0b"
+        health_badge = "🟡 เฝ้าระวังคอขวดบางช่วง (Moderate / Bottlenecks)"
+    else:
+        health_level = "CRITICAL"
+        health_color = "#ef4444"
+        health_badge = "🔴 หลุดเป้าหมายวิกฤต (Critical Under Target)"
+
+    # AI Synthesis Highlights
+    highlights = []
+    highlights.append(f"📦 ยอดปล่อยพัสดุรวมทั้งสิ้น **{total_volume:,} ชิ้น** (เฉลี่ย **{avg_per_hour:,} ชิ้น/ชม.** รวม {truck_totals} เที่ยวรถ)")
+    if peak_slot:
+        highlights.append(f"⚡ ช่วงเวลาปล่อยได้สูงสุด (Peak): **{peak_slot}** ทำได้ **{peak_volume:,} ชิ้น**")
+    if lowest_slot and lowest_slot != peak_slot:
+        highlights.append(f"⚠️ ช่วงเวลาปล่อยต่ำสุด (Drop): **{lowest_slot}** ทำได้ **{lowest_volume:,} ชิ้น**")
+    highlights.append(f"📍 โซนที่ทำผลงานสูงสุด: **{top_zone_name}** ({top_zone_vol:,} ชิ้น) | โซนที่ชะลอตัวสุด: **{lowest_zone_name}** ({lowest_zone_vol:,} ชิ้น)")
+    
+    # AI Root Cause & Bottleneck Analysis
+    bottlenecks = []
+    if under_hours > 0:
+        bottlenecks.append(f"พบช่วงเวลาที่ยอดหลุดเป้าหมาย (Under Target) จำนวน **{under_hours} ชั่วโมง** จากทั้งหมด {active_recorded} ชั่วโมงปฏิบัติการ")
+    if lowest_zone_vol < (top_zone_vol * 0.75) and top_zone_vol > 0:
+        gap_zone = top_zone_vol - lowest_zone_vol
+        bottlenecks.append(f"ความสมดุลของโซนต่างกันมาก ({lowest_zone_name} ตามหลัง {top_zone_name} ถึง **{gap_zone:,} ชิ้น**) ควรเกลี่ยกำลังคน (Load Balancing)")
+    if recorded_hours == 0:
+        bottlenecks.append("ยังไม่มีการบันทึกข้อมูลยอดรายชั่วโมงสำหรับวันที่เลือก")
+
+    # Actionable Recommendations for Supervisors
+    recommendations = []
+    if lowest_zone_name:
+        recommendations.append(f"1. **จัดสรรกำลังพลเสริม {lowest_zone_name}:** โยกพนักงานจากโซนที่ยอดผ่านเกณฑ์ไปช่วยคัดแยกพัสดุคงค้างที่ {lowest_zone_name} ด่วน")
+    recommendations.append(f"2. **ติดตามรอบเทียบท่ารถ (Truck Docking):** ประสานงานทีม Linehaul เร่งนำรถเทียบช่องปล่อยพัสดุให้ตรงตาม Schedule ป้องกันงานสะสมหน้าสายพาน")
+    if under_hours >= 2:
+        recommendations.append(f"3. **ประชุมด่วนปรับแผนกะถัดไป:** มอบหมาย Lead Supervisor ตรวจสอบสาเหตุพัสดุติดค้างช่วง {lowest_slot or 'หลุดเป้า'} เพื่อวางแผนแก้ปัญหาก่อนเริ่มกะใหม่")
+    else:
+        recommendations.append("3. **รักษามาตรฐานความเร็ว (Pacing):** ควบคุมสปีดการสแกนและคัดแยกให้คงที่ต่อเนื่องตาม Target 45,000+ ชิ้น/ชม.")
+
+    # Format Executive Text for SeaTalk & Clipboard
+    shift_title = "กะกลางวัน (Day)" if shift_filter == "Day" else ("กะกลางคืน (Night)" if shift_filter == "Night" else "ตลอดวัน (24 Hours)")
+    seatalk_card_text = f"""✨ [AI SHIFT EXECUTIVE SUMMARY] บทวิเคราะห์สรุปผลงาน {shift_title}
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_str}
+🎯 สถานะภาพรวม: {health_badge}
+📦 ยอดปล่อยพัสดุรวม: {total_volume:,} ชิ้น ({avg_per_hour:,} ชิ้น/ชม.)
+🚚 เที่ยวรถสะสม: {truck_totals} เที่ยว
+📊 สัดส่วนเป้าหมาย: ผ่านเกณฑ์ {passed_hours} ชม. | เฝ้าระวัง {warning_hours} ชม. | หลุดเป้า {under_hours} ชม. ({pass_rate}% ผ่าน)
+━━━━━━━━━━━━━━━━━━━━
+🔍 ไฮไลท์สำคัญ (Key Highlights):
+• Peak Slot: {peak_slot or '-'} ({peak_volume:,} ชิ้น)
+• Lowest Slot: {lowest_slot or '-'} ({lowest_volume:,} ชิ้น)
+• Top Zone: {top_zone_name} ({top_zone_vol:,}) vs Lowest: {lowest_zone_name} ({lowest_zone_vol:,})
+━━━━━━━━━━━━━━━━━━━━
+💡 ข้อเสนอแนะเชิงปฏิบัติการ (Action Items):
+{chr(10).join([r.replace('**', '') for r in recommendations])}"""
+
+    return jsonify({
+        "success": True,
+        "date": date_str,
+        "shift": shift_filter,
+        "healthLevel": health_level,
+        "healthColor": health_color,
+        "healthBadge": health_badge,
+        "passRate": pass_rate,
+        "totalVolume": total_volume,
+        "avgPerHour": avg_per_hour,
+        "truckTotals": truck_totals,
+        "hoursPassed": passed_hours,
+        "hoursWarning": warning_hours,
+        "hoursUnder": under_hours,
+        "hoursStandby": standby_hours,
+        "totalRecorded": recorded_hours,
+        "peakSlot": peak_slot,
+        "peakVolume": peak_volume,
+        "lowestSlot": lowest_slot,
+        "lowestVolume": lowest_volume,
+        "topZone": {"name": top_zone_name, "volume": top_zone_vol},
+        "lowestZone": {"name": lowest_zone_name, "volume": lowest_zone_vol},
+        "zoneTotals": zone_totals,
+        "highlights": highlights,
+        "bottlenecks": bottlenecks,
+        "recommendations": recommendations,
+        "seatalkCardText": seatalk_card_text
+    })
+
+
+# ==========================================
+# 📋 SHIFT HANDOVER NOTE & REPORTING APIS
+# ==========================================
+
+SHIFT_HANDOVER_FILE = os.path.join(DATA_DIR, "shift_handover.json")
+
+def load_shift_handover_data():
+    if os.path.exists(SHIFT_HANDOVER_FILE):
+        try:
+            with open(SHIFT_HANDOVER_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
+
+def save_shift_handover_data(data):
+    try:
+        with open(SHIFT_HANDOVER_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("Error saving shift handover data:", e)
+
+
+@app.route("/api/shift-handover/list", methods=["GET"])
+def list_shift_handover_api():
+    date_filter = request.args.get("date", "").strip()
+    shift_filter = request.args.get("shift", "").strip()
+    
+    records = load_shift_handover_data()
+    if date_filter:
+        records = [r for r in records if r.get("date") == date_filter]
+    if shift_filter:
+        records = [r for r in records if r.get("shift") == shift_filter]
+        
+    records.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    return jsonify({"success": True, "records": records, "total": len(records)})
+
+
+@app.route("/api/shift-handover/save", methods=["POST"])
+def save_shift_handover_api():
+    req = request.get_json(silent=True) or {}
+    record_id = req.get("id") or f"ho_{int(time.time())}_{random.randint(100, 999)}"
+    
+    date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+    shift_name = req.get("shift", "Day Shift") # 'Day Shift (08:00 - 20:00)' or 'Night Shift (20:00 - 08:00)'
+    supervisor = req.get("supervisor") or session.get("user_name", "Supervisor")
+    next_supervisor = req.get("nextSupervisor", "Next Shift Lead")
+    
+    total_volume = req.get("totalVolume", 0)
+    backlog_remaining = req.get("backlogRemaining", 0)
+    skip_rate = req.get("skipRate", 0.0)
+    equipment_status = req.get("equipmentStatus", "ปกติทั้งหมด (All Normal)")
+    manpower_status = req.get("manpowerStatus", "กำลังคนครบตามแผน (Full Staffed)")
+    critical_issues = req.get("criticalIssues", "")
+    follow_up_items = req.get("followUpItems", "")
+    send_to_seatalk = req.get("sendToSeatalk", False)
+    
+    entry = {
+        "id": record_id,
+        "date": date_str,
+        "shift": shift_name,
+        "supervisor": supervisor,
+        "nextSupervisor": next_supervisor,
+        "totalVolume": int(total_volume) if str(total_volume).isdigit() else total_volume,
+        "backlogRemaining": int(backlog_remaining) if str(backlog_remaining).isdigit() else backlog_remaining,
+        "skipRate": float(skip_rate) if str(skip_rate).replace('.', '', 1).isdigit() else skip_rate,
+        "equipmentStatus": equipment_status,
+        "manpowerStatus": manpower_status,
+        "criticalIssues": critical_issues,
+        "followUpItems": follow_up_items,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "createdBy": session.get("user_name", supervisor)
+    }
+    
+    records = load_shift_handover_data()
+    # Update if ID exists else prepend
+    existing_idx = next((i for i, r in enumerate(records) if r.get("id") == record_id), None)
+    if existing_idx is not None:
+        records[existing_idx] = entry
+    else:
+        records.insert(0, entry)
+        
+    save_shift_handover_data(records)
+    log_activity("SHIFT_HANDOVER_SAVE", f"📋 บันทึกส่งมอบกะ {shift_name} ({date_str}) โดย {supervisor}")
+    
+    seatalk_status = None
+    if send_to_seatalk:
+        settings = load_system_settings()
+        st_cfg = settings.get("seatalk", {})
+        webhook_url = st_cfg.get("webhookUrl")
+        if webhook_url:
+            msg = f"""📋 [SOCN SHIFT HANDOVER] บันทึกส่งมอบเวรปฏิบัติการ ({shift_name})
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_str}
+👔 ผู้ส่งมอบ (Outgoing): {supervisor}
+🤝 ผู้รับมอบ (Incoming): {next_supervisor}
+━━━━━━━━━━━━━━━━━━━━
+📊 ผลการดำเนินงานประจำกะ:
+📦 ยอดปล่อยพัสดุสะสม: {entry['totalVolume']:,} ชิ้น
+📦 พัสดุตกค้างส่งต่อ: {entry['backlogRemaining']:,} ชิ้น
+🎯 อัตรา Skip: {entry['skipRate']}%
+⚙️ สถานะเครื่องจักร/สายพาน: {equipment_status}
+👥 กำลังพล (Manpower): {manpower_status}
+━━━━━━━━━━━━━━━━━━━━"""
+            if critical_issues:
+                msg += f"\n🚨 ปัญหาสำคัญ/เคสพิเศษ:\n{critical_issues}"
+            if follow_up_items:
+                msg += f"\n📌 สิ่งที่ฝากกะถัดไปติดตามต่อ:\n{follow_up_items}"
+                
+            cc_raw = (st_cfg.get("ccText") or "").strip()
+            mention_all = (st_cfg.get("mentionType") == "all")
+            emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
+            ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
+            seatalk_status = {"sent": ok, "error": err_msg if not ok else None}
+            if ok:
+                log_activity("SEATALK_HANDOVER_ALERT", f"📢 ส่งบันทึกส่งมอบกะ {shift_name} เข้า SeaTalk สำเร็จ")
+                
+    return jsonify({
+        "success": True,
+        "message": f"บันทึกข้อมูลส่งมอบกะ {shift_name} เรียบร้อยแล้ว!",
+        "record": entry,
+        "seatalk": seatalk_status
+    })
+
+
+@app.route("/api/shift-handover/delete", methods=["POST"])
+def delete_shift_handover_api():
+    req = request.get_json(silent=True) or {}
+    record_id = req.get("id")
+    if not record_id:
+        return jsonify({"success": False, "error": "ไม่ได้ระบุ ID ที่ต้องการลบ"}), 400
+        
+    records = load_shift_handover_data()
+    records = [r for r in records if r.get("id") != record_id]
+    save_shift_handover_data(records)
+    log_activity("SHIFT_HANDOVER_DELETE", f"🗑️ ลบบันทึกส่งมอบกะ ID: {record_id}")
+    return jsonify({"success": True, "message": "ลบบันทึกเรียบร้อยแล้ว"})
+
+
+# ==========================================
+# 📈 TREND & COMPARATIVE ANALYTICS APIS
+# ==========================================
+
+@app.route("/api/analytics/wow-comparison", methods=["GET"])
+def get_wow_comparison_api():
+    date_str = request.args.get("date") or datetime.now().strftime("%Y-%m-%d")
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        import datetime as dt_module
+        last_week_dt = dt - dt_module.timedelta(days=7)
+        last_week_str = last_week_dt.strftime("%Y-%m-%d")
+    except Exception:
+        last_week_str = ""
+        
+    tracker_data = load_hourly_tracker_data()
+    current_records = tracker_data.get("records", {}).get(date_str, {})
+    last_week_records = tracker_data.get("records", {}).get(last_week_str, {}) if last_week_str else {}
+    
+    current_total = sum(v for v in current_records.values() if v is not None)
+    last_week_total = sum(v for v in last_week_records.values() if v is not None)
+    
+    growth_pct = round(((current_total - last_week_total) / last_week_total * 100), 1) if last_week_total > 0 else 0.0
+    
+    comparison_slots = []
+    all_slots = [f"{h:02d}:00" for h in [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]]
+    
+    for slot in all_slots:
+        cur_v = current_records.get(slot, 0) or 0
+        lw_v = last_week_records.get(slot, 0) or 0
+        diff = cur_v - lw_v
+        pct = round((diff / lw_v * 100), 1) if lw_v > 0 else 0.0
+        comparison_slots.append({
+            "slot": slot,
+            "current": cur_v,
+            "lastWeek": lw_v,
+            "diff": diff,
+            "growthPct": pct
+        })
+        
+    return jsonify({
+        "success": True,
+        "currentDate": date_str,
+        "lastWeekDate": last_week_str,
+        "currentTotal": current_total,
+        "lastWeekTotal": last_week_total,
+        "growthPct": growth_pct,
+        "slots": comparison_slots
+    })
 
 
 @app.route("/investigation")
