@@ -1,5 +1,515 @@
 [
   {
+    "id": "623c5f61",
+    "timestamp": "2026-09-12 14:53:52",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SEATALK_SKIP_ALERT",
+    "details": "📢 ส่งแจ้งเตือน SeaTalk Skip Process วันที่ 2026-09-04 (%Skip: 1.47%)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "87af3e5a",
+    "timestamp": "2026-09-12 14:52:50",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "3aee70de",
+    "timestamp": "2026-09-12 14:52:45",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYSTEM_SETTINGS_UPDATE",
+    "details": "🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: 45000, Min: 40000)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "f35c8daf",
+    "timestamp": "2026-09-12 14:52:33",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "bacef3b7",
+    "timestamp": "2026-09-12 14:50:02",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "03062794",
+    "timestamp": "2026-09-12 14:49:43",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "89b8acf4",
+    "timestamp": "2026-09-12 14:48:09",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "d669a232",
+    "timestamp": "2026-09-12 14:48:01",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "50b6803f",
+    "timestamp": "2026-09-12 14:46:41",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "9315e2c2",
+    "timestamp": "2026-09-12 14:46:28",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "4b87222d",
+    "timestamp": "2026-09-12 14:44:04",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "0f20c7f5",
+    "timestamp": "2026-09-12 14:43:59",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYSTEM_SETTINGS_UPDATE",
+    "details": "🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: 45000, Min: 40000)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "e0bb114b",
+    "timestamp": "2026-09-12 14:43:47",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "47c79a8b",
+    "timestamp": "2026-09-12 14:39:46",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "17c78a07",
+    "timestamp": "2026-09-12 14:39:36",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "68fa15db",
+    "timestamp": "2026-09-12 14:34:51",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "fb8fa216",
+    "timestamp": "2026-09-12 14:34:32",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "77ea5eb2",
+    "timestamp": "2026-09-12 14:30:59",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "efc24019",
+    "timestamp": "2026-09-12 14:30:55",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYSTEM_SETTINGS_UPDATE",
+    "details": "🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: 45000, Min: 40000)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "6100646f",
+    "timestamp": "2026-09-12 14:30:42",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "f8deb0f5",
+    "timestamp": "2026-09-12 14:30:33",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "70188f1b",
+    "timestamp": "2026-09-12 14:26:53",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "73940859",
+    "timestamp": "2026-09-12 14:26:39",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "b7c6d0c5",
+    "timestamp": "2026-09-12 14:24:06",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "8072191a",
+    "timestamp": "2026-09-12 14:22:28",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "9b7e6e92",
+    "timestamp": "2026-09-12 14:22:23",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYSTEM_SETTINGS_UPDATE",
+    "details": "🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: 45000, Min: 40000)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "354e0607",
+    "timestamp": "2026-09-12 14:22:11",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "642e2749",
+    "timestamp": "2026-09-12 14:21:44",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "11651749",
+    "timestamp": "2026-09-12 14:16:35",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "3d2d6a0d",
+    "timestamp": "2026-09-12 14:16:30",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYSTEM_SETTINGS_UPDATE",
+    "details": "🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: 45000, Min: 40000)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "5ac30f3d",
+    "timestamp": "2026-09-12 14:16:23",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYSTEM_SETTINGS_UPDATE",
+    "details": "🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: 45000, Min: 40000)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "b1d63681",
+    "timestamp": "2026-09-12 14:16:03",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "492a0214",
+    "timestamp": "2026-09-12 14:15:56",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYSTEM_SETTINGS_UPDATE",
+    "details": "🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: 45000, Min: 40000)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "fb6831a6",
+    "timestamp": "2026-09-12 14:14:11",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "5015d162",
+    "timestamp": "2026-09-12 14:13:59",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "f2dacce3",
+    "timestamp": "2026-09-12 14:13:51",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "6a066c93",
+    "timestamp": "2026-09-12 14:11:15",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "9094a9b0",
+    "timestamp": "2026-09-12 14:11:05",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "fec8d961",
+    "timestamp": "2026-09-12 14:09:47",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "1419d93c",
+    "timestamp": "2026-09-12 14:09:37",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "a14e15c5",
+    "timestamp": "2026-09-12 14:06:56",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "ad790d49",
+    "timestamp": "2026-09-12 14:06:44",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "b3d056eb",
+    "timestamp": "2026-09-12 14:04:21",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "7562527a",
+    "timestamp": "2026-09-12 14:04:06",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "dab0d427",
+    "timestamp": "2026-09-12 14:01:27",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "ADMIN_MANUAL_TRIGGER",
+    "details": "⚡ Admin Manual Trigger (skip): สั่งยิงโดย Natakorn Panmanee (Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "34e26f35",
+    "timestamp": "2026-09-12 14:01:09",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYSTEM_SETTINGS_UPDATE",
+    "details": "🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: 45000, Min: 40000)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "c6a29e3d",
+    "timestamp": "2026-09-12 14:00:36",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "21f852d3",
+    "timestamp": "2026-09-12 13:55:24",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "5956e27d",
+    "timestamp": "2026-09-12 13:54:55",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SEATALK_SKIP_ALERT",
+    "details": "📢 ส่งแจ้งเตือน SeaTalk Skip Process วันที่ Daily (%Skip: 0.00%)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "54544f95",
+    "timestamp": "2026-09-12 13:54:41",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYSTEM_SETTINGS_UPDATE",
+    "details": "🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: 45000, Min: 40000)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "33126a51",
+    "timestamp": "2026-09-12 13:54:09",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "112.121.130.34"
+  },
+  {
     "id": "2e7cc310",
     "timestamp": "2026-09-12 13:44:49",
     "email": "guy.panmanee@spxexpress.com",
