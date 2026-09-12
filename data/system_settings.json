@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-12 14:16:30",
+  "updatedAt": "2026-09-12 14:22:23",
   "hourlyTarget": 45000,
   "hourlyMinimum": 40000,
   "hourlyMinimumPct": 90,
@@ -56,7 +56,7 @@
       "nulack.promarpo@spxexpress.com",
       "big.amorntee@spxexpress.com"
     ],
-    "ccText": "",
+    "ccText": "guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com, tom.disayach@spxexpress.com",
     "autoAlertIntervalMinutes": 60,
     "modules": {
       "hourly": {
@@ -80,9 +80,10 @@
           "https://openapi.seatalk.io/webhook/group/ISfK_B7MQeODPJHWrtQpqA"
         ],
         "mentionEmails": [
-          "guy.panmanee@spxexpress.com"
+          "chain.kedsirin@spxexpress.com",
+          "nulack.promarpo@spxexpress.com"
         ],
-        "ccText": "guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com, tom.disayach@spxexpress.com"
+        "ccText": "guy.panmanee@spxexpress.com"
       },
       "ob_bl": {
         "enabled": false,

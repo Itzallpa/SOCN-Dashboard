@@ -537,11 +537,11 @@
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label fw-bold small text-secondary">ผู้รับผิดชอบหลักที่ต้องการแท็ก (Tag Emails):</label>
-                  <input type="text" id="settingHourlyMentionEmails" class="form-control form-control-sm" placeholder="chain.kedsirin@spxexpress.com, nulack.promarpo@spxexpress.com">
+                  <input type="text" id="settingHourlyMentionEmails" class="form-control form-control-sm" placeholder="ระบุอีเมลผู้รับผิดชอบ คั่นด้วย ,">
                 </div>
                 <div class="col-md-6">
                   <label class="form-label fw-bold small text-secondary">CC ท้ายข้อความ (CC Persons / Emails):</label>
-                  <input type="text" id="settingHourlyCcText" class="form-control form-control-sm" placeholder="guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com, tom.disayach@spxexpress.com">
+                  <input type="text" id="settingHourlyCcText" class="form-control form-control-sm" placeholder="ระบุอีเมล CC คั่นด้วย , (เว้นว่างได้)">
                 </div>
               </div>
 
@@ -583,11 +583,11 @@
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label fw-bold small text-secondary">ผู้รับผิดชอบหลักที่ต้องการแท็ก (Tag Emails):</label>
-                  <input type="text" id="settingSkipMentionEmails" class="form-control form-control-sm" placeholder="chain.kedsirin@spxexpress.com, nulack.promarpo@spxexpress.com">
+                  <input type="text" id="settingSkipMentionEmails" class="form-control form-control-sm" placeholder="ระบุอีเมลผู้รับผิดชอบ คั่นด้วย ,">
                 </div>
                 <div class="col-md-6">
                   <label class="form-label fw-bold small text-secondary">CC ท้ายข้อความ (CC Persons / Emails):</label>
-                  <input type="text" id="settingSkipCcText" class="form-control form-control-sm" placeholder="guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com, tom.disayach@spxexpress.com">
+                  <input type="text" id="settingSkipCcText" class="form-control form-control-sm" placeholder="ระบุอีเมล CC คั่นด้วย , (เว้นว่างได้)">
                 </div>
               </div>
 
@@ -629,11 +629,11 @@
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label fw-bold small text-secondary">ผู้รับผิดชอบหลักที่ต้องการแท็ก (Tag Emails):</label>
-                  <input type="text" id="settingObBlMentionEmails" class="form-control form-control-sm" placeholder="chain.kedsirin@spxexpress.com, big.amorntee@spxexpress.com">
+                  <input type="text" id="settingObBlMentionEmails" class="form-control form-control-sm" placeholder="ระบุอีเมลผู้รับผิดชอบ คั่นด้วย ,">
                 </div>
                 <div class="col-md-6">
                   <label class="form-label fw-bold small text-secondary">CC ท้ายข้อความ (CC Persons / Emails):</label>
-                  <input type="text" id="settingObBlCcText" class="form-control form-control-sm" placeholder="guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com, tom.disayach@spxexpress.com">
+                  <input type="text" id="settingObBlCcText" class="form-control form-control-sm" placeholder="ระบุอีเมล CC คั่นด้วย , (เว้นว่างได้)">
                 </div>
               </div>
 
@@ -680,7 +680,7 @@
                 </div>
                 <div class="col-md-6">
                   <label class="form-label fw-bold small text-secondary">CC ท้ายข้อความบรอดแคสต์:</label>
-                  <input type="text" id="settingCcText" class="form-control form-control-sm" placeholder="guy.panmanee@spxexpress.com, men.phuditde@spxexpress.com">
+                  <input type="text" id="settingCcText" class="form-control form-control-sm" placeholder="ระบุอีเมล CC คั่นด้วย , (เว้นว่างได้)">
                 </div>
               </div>
 
@@ -2508,18 +2508,6 @@
       
       const user = window.AuthGuard?.getUser() || { name: 'Admin', role: 'Admin' };
       let msg = '';
-      
-      let currentCc = '';
-      if (currentAdminTriggerType === 'hourly') {
-        currentCc = document.getElementById('settingHourlyCcText')?.value || '';
-      } else if (currentAdminTriggerType === 'skip') {
-        currentCc = document.getElementById('settingSkipCcText')?.value || '';
-      } else if (currentAdminTriggerType === 'ob_bl') {
-        currentCc = document.getElementById('settingObBlCcText')?.value || '';
-      } else {
-        currentCc = document.getElementById('settingCcText')?.value || '';
-      }
-      const ccLine = currentCc ? `\nCC: ${currentCc}` : '';
 
       if (currentAdminTriggerType === 'hourly') {
         const slot = document.getElementById('amtHourlySlot')?.value || '08:00';
@@ -2538,7 +2526,7 @@
 ⚠️ เกณฑ์ขั้นต่ำ (Minimum): ${minVal.toLocaleString()} ชิ้น
 📦 ปล่อยจริง (Actual): ${act.toLocaleString()} ชิ้น
 📉 ส่วนต่าง (Gap): ${gap.toLocaleString()} ชิ้น (${pct}% of Target)
-👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})${ccLine}`;
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})`;
       } else if (currentAdminTriggerType === 'skip') {
         const dateStr = document.getElementById('amtSkipDate')?.value || new Date().toISOString().split('T')[0];
         const act = parseInt(document.getElementById('amtSkipActual')?.value || 0);
@@ -2551,7 +2539,7 @@
 📦 ยอดปล่อยรวม: ${act.toLocaleString()} ชิ้น
 ⚠️ ยอด Skip รวม: ${skipCnt.toLocaleString()} ชิ้น (${pct}%)
 📍 สถานะรายโซน: ตรวจสอบข้อมูลในระบบ Dashboard
-👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})${ccLine}`;
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})`;
       } else if (currentAdminTriggerType === 'ob_bl') {
         const cutoff = document.getElementById('amtObBlCutoff')?.value || 'Cutoff 2';
         const late = parseInt(document.getElementById('amtObBlLate')?.value || 0);
@@ -2560,7 +2548,7 @@
 ━━━━━━━━━━━━━━━━━━━━
 ⏰ รอบเวลา Cutoff: ${cutoff}
 📦 ยอดพัสดุตกค้างล่าช้า: ${late.toLocaleString()} ชิ้น
-👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})${ccLine}`;
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})`;
       } else {
         const title = document.getElementById('amtCustomTitle')?.value || 'SOCN BROADCAST';
         const body = document.getElementById('amtCustomBody')?.value || 'ระบุข้อความ...';
@@ -2569,7 +2557,7 @@
 ⏰ เวลา: ${new Date().toLocaleString('th-TH')}
 👤 ผู้ส่งคำสั่ง: ${user.name} (Role: ${user.role})
 ━━━━━━━━━━━━━━━━━━━━
-${body}${ccLine}`;
+${body}`;
       }
       previewEl.innerText = msg;
     }
@@ -2590,7 +2578,7 @@ ${body}${ccLine}`;
         payload.minimum = parseInt(document.getElementById('amtHourlyMin')?.value || 40000);
         payload.actual = parseInt(document.getElementById('amtHourlyActual')?.value || 0);
         payload.mentionEmails = (document.getElementById('settingHourlyMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-        payload.ccText = document.getElementById('settingHourlyCcText')?.value || '';
+        payload.ccText = (document.getElementById('settingHourlyCcText')?.value || '').trim();
         payload.webhookUrl = document.getElementById('settingHourlyWebhookUrl')?.value || '';
         payload.webhookUrl2 = document.getElementById('settingHourlyWebhookUrl2')?.value || '';
       } else if (currentAdminTriggerType === 'skip') {
@@ -2599,21 +2587,21 @@ ${body}${ccLine}`;
         payload.overallSkipCount = parseInt(document.getElementById('amtSkipCount')?.value || 0);
         payload.overallPct = payload.actualVolume > 0 ? parseFloat(((payload.overallSkipCount / payload.actualVolume) * 100).toFixed(2)) : 0.0;
         payload.mentionEmails = (document.getElementById('settingSkipMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-        payload.ccText = document.getElementById('settingSkipCcText')?.value || '';
+        payload.ccText = (document.getElementById('settingSkipCcText')?.value || '').trim();
         payload.webhookUrl = document.getElementById('settingSkipWebhookUrl')?.value || '';
         payload.webhookUrl2 = document.getElementById('settingSkipWebhookUrl2')?.value || '';
       } else if (currentAdminTriggerType === 'ob_bl') {
         payload.cutoffRound = document.getElementById('amtObBlCutoff')?.value;
         payload.totalLate = parseInt(document.getElementById('amtObBlLate')?.value || 0);
         payload.mentionEmails = (document.getElementById('settingObBlMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-        payload.ccText = document.getElementById('settingObBlCcText')?.value || '';
+        payload.ccText = (document.getElementById('settingObBlCcText')?.value || '').trim();
         payload.webhookUrl = document.getElementById('settingObBlWebhookUrl')?.value || '';
         payload.webhookUrl2 = document.getElementById('settingObBlWebhookUrl2')?.value || '';
       } else {
         payload.title = document.getElementById('amtCustomTitle')?.value;
         payload.message = document.getElementById('amtCustomBody')?.value;
         payload.mentionEmails = (document.getElementById('settingMentionEmails')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-        payload.ccText = document.getElementById('settingCcText')?.value || '';
+        payload.ccText = (document.getElementById('settingCcText')?.value || '').trim();
         payload.webhookUrl = document.getElementById('settingBroadcastWebhookUrl')?.value || '';
         payload.webhookUrl2 = document.getElementById('settingBroadcastWebhookUrl2')?.value || '';
         if (!payload.message) {
