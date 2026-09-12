@@ -4359,11 +4359,9 @@ def format_cc_text_for_seatalk(cc_raw):
     cc_raw = cc_raw.strip()
     if not cc_raw:
         return ""
-    # Extract all emails and prefix each with @ for direct mention
-    emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', cc_raw)
-    if emails:
-        return " ".join([f"@{e.strip()}" if not e.strip().startswith("@") else e.strip() for e in emails])
-    return cc_raw
+    # Clean and format CC list as comma-separated text
+    items = [x.strip() for x in re.split(r'[\r\n,;]+', cc_raw) if x.strip()]
+    return ", ".join(items) if items else cc_raw
 
 def get_module_seatalk_config(module_key):
     settings = load_system_settings()
@@ -4449,32 +4447,24 @@ def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=Fa
             except Exception:
                 cc_text = ""
 
-        # Collect and combine all mention emails (explicit mentions + CC emails + emails in text)
+        # Strictly only tag emails explicitly provided in mention_emails (Tag Emails field)
         all_emails = []
         if mention_emails:
-            for e in mention_emails:
-                if isinstance(e, str) and e.strip() and e.strip() not in all_emails:
-                    all_emails.append(e.strip())
-                    
-        # Extract emails from cc_text parameter if provided
-        if cc_text and isinstance(cc_text, str):
-            extracted_cc = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', cc_text)
-            for ce in extracted_cc:
-                if ce and ce.strip() and ce.strip() not in all_emails:
-                    all_emails.append(ce.strip())
+            if isinstance(mention_emails, str):
+                raw_emails = re.split(r'[\r\n,; ]+', mention_emails.strip())
+            else:
+                raw_emails = mention_emails
+            for e in raw_emails:
+                if isinstance(e, str) and e.strip():
+                    cleaned_e = e.strip().lstrip('@')
+                    if cleaned_e and cleaned_e not in all_emails:
+                        all_emails.append(cleaned_e)
 
-        # If cc_text is provided and not yet in message, append CC line to message bottom
+        # If cc_text is provided and not yet in message, append CC line to message bottom as text footer
         if cc_text and isinstance(cc_text, str) and cc_text.strip() and "CC:" not in message:
             formatted_cc = format_cc_text_for_seatalk(cc_text)
             if formatted_cc:
                 message = f"{message}\nCC: {formatted_cc}"
-
-        # Automatically extract emails from entire message content (e.g., CC: email@...) so everyone is tagged
-        if message and isinstance(message, str):
-            extracted_msg = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', message)
-            for me in extracted_msg:
-                if me and me.strip() and me.strip() not in all_emails:
-                    all_emails.append(me.strip())
 
         if webhook_type == "seatalk":
             payload = {
