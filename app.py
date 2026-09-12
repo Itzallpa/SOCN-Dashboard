@@ -4356,14 +4356,7 @@ def save_hourly_tracker_data(data):
 def format_cc_text_for_seatalk(cc_raw):
     if not cc_raw or not isinstance(cc_raw, str):
         return ""
-    cc_raw = cc_raw.strip()
-    if not cc_raw:
-        return ""
-    emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', cc_raw)
-    if emails:
-        return ", ".join([f"@{e.strip()}" if not e.strip().startswith("@") else e.strip() for e in emails])
-    items = [x.strip() for x in re.split(r'[\r\n,;]+', cc_raw) if x.strip()]
-    return ", ".join(items) if items else cc_raw
+    return cc_raw.strip()
 
 def get_module_seatalk_config(module_key):
     settings = load_system_settings()
