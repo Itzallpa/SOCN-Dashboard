@@ -4462,14 +4462,6 @@ def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=Fa
                     if cleaned_e and cleaned_e not in all_emails:
                         all_emails.append(cleaned_e)
 
-        # Include CC emails into mention list dynamically so CC persons are also truly tagged in SeaTalk
-        if cc_text and isinstance(cc_text, str):
-            extracted_cc = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', cc_text)
-            for ce in extracted_cc:
-                cleaned_ce = ce.strip().lstrip('@')
-                if cleaned_ce and cleaned_ce not in all_emails:
-                    all_emails.append(cleaned_ce)
-
         # If cc_text is provided and not yet in message, append CC line to message bottom
         if cc_text and isinstance(cc_text, str) and cc_text.strip() and "CC:" not in message:
             formatted_cc = format_cc_text_for_seatalk(cc_text)
