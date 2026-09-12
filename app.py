@@ -4831,10 +4831,13 @@ def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
 👤 ผู้รับผิดชอบ {lowest_zone_name} (ใครช้า): {staff_str}
 👔 Supervisor ประจำรอบ: {sups_str}"""
 
-                    cc_raw = (st_cfg.get("ccText") or "").strip()
-                    mention_all = (st_cfg.get("mentionType") == "all")
-                    emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
-                    send_seatalk_alert(st_cfg.get("webhookUrl"), msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
+                    mod_hourly_cfg = get_module_seatalk_config("hourly")
+                    hourly_webhooks = mod_hourly_cfg.get("webhookUrls") or mod_hourly_cfg.get("webhookUrl")
+                    if hourly_webhooks:
+                        cc_raw = (mod_hourly_cfg.get("ccText") or "").strip()
+                        mention_all = (mod_hourly_cfg.get("mentionType") == "all")
+                        emails = mod_hourly_cfg.get("mentionEmails", []) if (mod_hourly_cfg.get("mentionType") == "specific") else []
+                        send_seatalk_alert(hourly_webhooks, msg, mention_emails=emails, mention_all=mention_all, webhook_type=mod_hourly_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
                     
                     # Mark this slot and hash as permanently alerted
                     tracker_data["last_alerted"][date_str][slot_lbl] = current_timestamp
@@ -5329,11 +5332,10 @@ def send_manual_hourly_alert_api():
     slot_info = req.get("slotInfo") or {}
     date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
     
-    settings = load_system_settings()
-    st_cfg = settings.get("seatalk", {})
-    webhook_url = st_cfg.get("webhookUrl")
+    mod_cfg = get_module_seatalk_config("hourly")
+    webhook_url = req.get("webhookUrls") or req.get("webhookUrl") or mod_cfg.get("webhookUrls") or mod_cfg.get("webhookUrl")
     if not webhook_url:
-        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL ในระบบ Admin"}), 400
+        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL สำหรับ Hourly Tracker ในระบบ Admin"}), 400
         
     hour_slot = slot_info.get("slot", "N/A")
     time_range = slot_info.get("timeRange", hour_slot)
@@ -5353,11 +5355,12 @@ def send_manual_hourly_alert_api():
 📦 ปล่อยจริง (Actual): {actual:,} ชิ้น
 📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)"""
 
-    cc_raw = (st_cfg.get("ccText") or "").strip()
-    mention_all = (st_cfg.get("mentionType") == "all")
-    emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
+    cc_raw = (req.get("ccText") or mod_cfg.get("ccText") or "").strip()
+    mention_all = req.get("mentionAll") if req.get("mentionAll") is not None else (mod_cfg.get("mentionType") == "all")
+    emails = req.get("mentionEmails") if req.get("mentionEmails") is not None else (mod_cfg.get("mentionEmails", []) if (mod_cfg.get("mentionType") == "specific") else [])
+    webhook_type = mod_cfg.get("webhookType", "seatalk")
     
-    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
+    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=webhook_type, cc_text=cc_raw)
     if ok:
         log_activity("SEATALK_MANUAL_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk รายชั่วโมง: {date_str} {time_range}")
         return jsonify({"success": True, "message": f"ส่งแจ้งเตือนช่วงเวลา {time_range} เข้า SeaTalk สำเร็จ!"})
@@ -5421,10 +5424,10 @@ def send_skip_process_seatalk_alert_api():
     notes = (req.get("notes") or "").strip()
     
     settings = load_system_settings()
-    st_cfg = settings.get("seatalk", {})
-    webhook_url = st_cfg.get("webhookUrl")
+    mod_cfg = get_module_seatalk_config("skip")
+    webhook_url = req.get("webhookUrls") or req.get("webhookUrl") or mod_cfg.get("webhookUrls") or mod_cfg.get("webhookUrl")
     if not webhook_url:
-        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL ในระบบ Admin"}), 400
+        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL สำหรับ Skip Process ในระบบ Admin"}), 400
         
     overall_target_pct = settings.get("overallSkipTargetPct", 0.8)
     zone_target_pct = settings.get("zoneSkipTargetPct", 0.27)
@@ -5462,11 +5465,12 @@ def send_skip_process_seatalk_alert_api():
     if notes:
         msg += f"\n📝 หมายเหตุ/สาเหตุ: {notes}"
         
-    cc_raw = (st_cfg.get("ccText") or "").strip()
-    mention_all = (st_cfg.get("mentionType") == "all")
-    emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
+    cc_raw = (req.get("ccText") or mod_cfg.get("ccText") or "").strip()
+    mention_all = req.get("mentionAll") if req.get("mentionAll") is not None else (mod_cfg.get("mentionType") == "all")
+    emails = req.get("mentionEmails") if req.get("mentionEmails") is not None else (mod_cfg.get("mentionEmails", []) if (mod_cfg.get("mentionType") == "specific") else [])
+    webhook_type = mod_cfg.get("webhookType", "seatalk")
     
-    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
+    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=webhook_type, cc_text=cc_raw)
     if ok:
         log_activity("SEATALK_SKIP_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk Skip Process วันที่ {date_str} (%Skip: {overall_pct:.2f}%)")
         return jsonify({"success": True, "message": f"ส่งแจ้งเตือน Skip Process ({date_str}) เข้า SeaTalk สำเร็จ!"})
@@ -5483,11 +5487,10 @@ def send_ob_bl_seatalk_alert_api():
     top_stations = req.get("topStations") or []
     notes = (req.get("notes") or "").strip()
     
-    settings = load_system_settings()
-    st_cfg = settings.get("seatalk", {})
-    webhook_url = st_cfg.get("webhookUrl")
+    mod_cfg = get_module_seatalk_config("ob_bl")
+    webhook_url = req.get("webhookUrls") or req.get("webhookUrl") or mod_cfg.get("webhookUrls") or mod_cfg.get("webhookUrl")
     if not webhook_url:
-        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL ในระบบ Admin"}), 400
+        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL สำหรับ Outbound Backlog ในระบบ Admin"}), 400
         
     station_lines = []
     for idx, st in enumerate(top_stations[:7], 1):
@@ -5511,11 +5514,12 @@ def send_ob_bl_seatalk_alert_api():
     if notes:
         msg += f"\n📝 หมายเหตุ/การแก้ไข: {notes}"
         
-    cc_raw = (st_cfg.get("ccText") or "").strip()
-    mention_all = (st_cfg.get("mentionType") == "all")
-    emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
+    cc_raw = (req.get("ccText") or mod_cfg.get("ccText") or "").strip()
+    mention_all = req.get("mentionAll") if req.get("mentionAll") is not None else (mod_cfg.get("mentionType") == "all")
+    emails = req.get("mentionEmails") if req.get("mentionEmails") is not None else (mod_cfg.get("mentionEmails", []) if (mod_cfg.get("mentionType") == "specific") else [])
+    webhook_type = mod_cfg.get("webhookType", "seatalk")
     
-    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
+    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=webhook_type, cc_text=cc_raw)
     if ok:
         log_activity("SEATALK_OB_BL_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk Outbound Backlog: {filename} ({total_late:,} ชิ้น)")
         return jsonify({"success": True, "message": f"ส่งแจ้งเตือน Outbound Backlog เข้า SeaTalk สำเร็จ!"})
