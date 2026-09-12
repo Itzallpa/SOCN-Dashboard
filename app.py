@@ -4359,7 +4359,9 @@ def format_cc_text_for_seatalk(cc_raw):
     cc_raw = cc_raw.strip()
     if not cc_raw:
         return ""
-    # Clean and format CC list as comma-separated text
+    emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', cc_raw)
+    if emails:
+        return ", ".join([f"@{e.strip()}" if not e.strip().startswith("@") else e.strip() for e in emails])
     items = [x.strip() for x in re.split(r'[\r\n,;]+', cc_raw) if x.strip()]
     return ", ".join(items) if items else cc_raw
 
@@ -4447,7 +4449,7 @@ def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=Fa
             except Exception:
                 cc_text = ""
 
-        # Strictly only tag emails explicitly provided in mention_emails (Tag Emails field)
+        # Collect mention emails dynamically from explicit mention_emails
         all_emails = []
         if mention_emails:
             if isinstance(mention_emails, str):
@@ -4460,7 +4462,15 @@ def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=Fa
                     if cleaned_e and cleaned_e not in all_emails:
                         all_emails.append(cleaned_e)
 
-        # If cc_text is provided and not yet in message, append CC line to message bottom as text footer
+        # Include CC emails into mention list dynamically so CC persons are also truly tagged in SeaTalk
+        if cc_text and isinstance(cc_text, str):
+            extracted_cc = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', cc_text)
+            for ce in extracted_cc:
+                cleaned_ce = ce.strip().lstrip('@')
+                if cleaned_ce and cleaned_ce not in all_emails:
+                    all_emails.append(cleaned_ce)
+
+        # If cc_text is provided and not yet in message, append CC line to message bottom
         if cc_text and isinstance(cc_text, str) and cc_text.strip() and "CC:" not in message:
             formatted_cc = format_cc_text_for_seatalk(cc_text)
             if formatted_cc:
