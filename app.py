@@ -5076,7 +5076,17 @@ def get_hourly_tracker_api():
         if ok:
             hourly_data = load_hourly_tracker_data()
             
-    date_param = hourly_data.get("lastSyncDate") or request.args.get("date", "").strip() or datetime.now().strftime("%Y-%m-%d")
+    available_dates = sorted(list(hourly_data.get("records", {}).keys()))
+    latest_avail_date = available_dates[-1] if available_dates else datetime.now().strftime("%Y-%m-%d")
+    
+    req_date = request.args.get("date", "").strip()
+    if req_date:
+        date_param = req_date
+    else:
+        date_param = hourly_data.get("lastSyncDate") or hourly_data.get("date") or latest_avail_date
+        if date_param not in hourly_data.get("records", {}) and latest_avail_date in hourly_data.get("records", {}):
+            date_param = latest_avail_date
+
     records_for_date = hourly_data.get("records", {}).get(date_param, {})
     zones_for_date = hourly_data.get("zone_breakdowns", {}).get(date_param, {})
     summary_rows_for_date = hourly_data.get("summary_rows", {}).get(date_param, {})
@@ -5240,6 +5250,7 @@ def get_hourly_tracker_api():
     return jsonify({
         "success": True,
         "date": date_param,
+        "availableDates": available_dates,
         "updatedAt": hourly_data.get("updatedAt", ""),
         "lastSyncAt": hourly_data.get("lastSyncAt", ""),
         "settings": settings,

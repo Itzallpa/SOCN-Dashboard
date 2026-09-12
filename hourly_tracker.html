@@ -95,6 +95,12 @@
         <button class="btn btn-secondary btn-sm fw-bold px-3 shadow-sm" onclick="openQuickUploadModal()">
           <i class="fa-solid fa-camera me-1"></i> 📸 อัปโหลดหลักฐาน
         </button>
+        <div class="d-flex align-items-center gap-1 bg-light p-1 rounded border">
+          <label class="small fw-bold text-muted px-1" for="hourlyDateSelect"><i class="fa-solid fa-calendar-day me-1"></i></label>
+          <select class="form-select form-select-sm fw-bold border-0 bg-transparent text-dark py-1 px-2" id="hourlyDateSelect" style="width: auto; font-size: 0.82rem; cursor:pointer;" onchange="onHourlyDateSelectChange(this.value)">
+            <option value="">กำลังโหลดวันที่...</option>
+          </select>
+        </div>
         <button class="btn btn-success btn-sm fw-bold px-3 shadow-sm" id="btnSyncGoogleSheet" onclick="syncGoogleSheetData()">
           <i class="fa-solid fa-cloud-arrow-down me-1"></i> 🔄 ซิงค์สด Google Sheet
         </button>
@@ -548,8 +554,14 @@
       });
     }
 
-    function loadHourlyTrackerData() {
-      fetch('/api/hourly-tracker')
+    function onHourlyDateSelectChange(selectedDate) {
+      if (!selectedDate) return;
+      loadHourlyTrackerData(selectedDate);
+    }
+
+    function loadHourlyTrackerData(date) {
+      const url = date ? `/api/hourly-tracker?date=${encodeURIComponent(date)}` : '/api/hourly-tracker';
+      fetch(url)
         .then(res => res.json())
         .then(data => {
           if (data.success) {
@@ -560,10 +572,63 @@
         .catch(err => console.error('Error loading hourly data:', err));
     }
 
+    function syncGoogleSheetData() {
+      const btn = document.getElementById('btnSyncGoogleSheet');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังซิงค์...';
+      }
+      fetch('/api/hourly-tracker?sync=1')
+        .then(res => res.json())
+        .then(data => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down me-1"></i> 🔄 ซิงค์สด Google Sheet';
+          }
+          if (data.success) {
+            currentHourlyData = data;
+            updateDashboardUI(data);
+            if (typeof Swal !== 'undefined') {
+              Swal.fire({
+                icon: 'success',
+                title: 'ซิงค์ข้อมูลสำเร็จ!',
+                text: `อัปเดตข้อมูลรอบวันที่ ${data.date} เรียบร้อยแล้ว`,
+                timer: 1500,
+                showConfirmButton: false
+              });
+            }
+          } else {
+            if (typeof Swal !== 'undefined') {
+              Swal.fire('ข้อผิดพลาด', data.error || 'ไม่สามารถซิงค์ข้อมูลได้', 'error');
+            } else {
+              alert(data.error || 'ไม่สามารถซิงค์ข้อมูลได้');
+            }
+          }
+        })
+        .catch(err => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down me-1"></i> 🔄 ซิงค์สด Google Sheet';
+          }
+          alert('Error: ' + err.message);
+        });
+    }
+
     function updateDashboardUI(data) {
       const sum = data.summary || {};
       const sumRows = data.summaryRows || {};
       const totalRow = sumRows['Total'] || {};
+
+      // Update Date Selector
+      const dateSelect = document.getElementById('hourlyDateSelect');
+      if (dateSelect && data.availableDates && data.availableDates.length > 0) {
+        const curDate = data.date;
+        dateSelect.innerHTML = data.availableDates.slice().reverse().map(d => {
+          const isSelected = d === curDate ? 'selected' : '';
+          const label = d === data.availableDates[data.availableDates.length - 1] ? `${d} (ล่าสุด)` : d;
+          return `<option value="${d}" ${isSelected}>📅 ${label}</option>`;
+        }).join('');
+      }
 
       document.getElementById('kpiTotalActual').innerText = (totalRow.actual || sum.totalActual || 0).toLocaleString() + ' ชิ้น';
       document.getElementById('kpiTotalTrucks').innerText = `รวม ${(totalRow.trucks || 0).toLocaleString()} เที่ยวรถ (4WH: ${totalRow.truck4wh || 0}, 6WH: ${totalRow.truck6wh || 0})`;
@@ -1565,6 +1630,8 @@
           </table>
         </div>
       `;
+    }
+
     // ==========================================
     // ⚡ ADMIN MANUAL TRIGGER SYSTEM (Admin Only)
     // ==========================================
