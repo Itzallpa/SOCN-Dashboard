@@ -1864,6 +1864,41 @@ def process_table_sheet(df):
     if not region_col and len(df_clean.columns) > 25: region_col = df_clean.columns[25]
     if not zone_col and len(df_clean.columns) > 26: zone_col = df_clean.columns[26]
 
+    # Detect Outbound and Inbound order & weight columns
+    ob_order_col = None
+    ob_weight_col = None
+    ob_to_col = None
+    ib_order_col = None
+    ib_weight_col = None
+
+    for c in df_clean.columns:
+        c_str = str(c).lower().replace("_", " ").strip()
+        if ('outbound(order' in c_str or 'outbound (order' in c_str or 'outbound order' in c_str or 'ob order' in c_str or ('outbound' in c_str and 'order' in c_str)) and not ob_order_col:
+            ob_order_col = c
+        elif ('outbound(weight' in c_str or 'outbound weight' in c_str or ('outbound' in c_str and 'weight' in c_str)) and not ob_weight_col:
+            ob_weight_col = c
+        elif ('outbound(to' in c_str or 'outbound to' in c_str or ('outbound' in c_str and 'to' in c_str)) and not ob_to_col:
+            ob_to_col = c
+        elif ('inbound(order' in c_str or 'inbound order' in c_str or ('inbound' in c_str and 'order' in c_str)) and not ib_order_col:
+            ib_order_col = c
+        elif ('inbound(weight' in c_str or 'inbound weight' in c_str or ('inbound' in c_str and 'weight' in c_str)) and not ib_weight_col:
+            ib_weight_col = c
+
+    # Generic order column fallback if not named 'outbound'
+    if not ob_order_col:
+        for c in df_clean.columns:
+            c_str = str(c).lower().replace("_", " ").strip()
+            if c_str in ['order', 'orders', 'order count', 'total orders', 'total_orders']:
+                ob_order_col = c
+                break
+
+    # Fallback to column index positions if not found by name
+    if not ob_order_col and len(df_clean.columns) > 24: ob_order_col = df_clean.columns[24]
+    if not ob_weight_col and len(df_clean.columns) > 25: ob_weight_col = df_clean.columns[25]
+    if not ob_to_col and len(df_clean.columns) > 23: ob_to_col = df_clean.columns[23]
+    if not ib_order_col and len(df_clean.columns) > 21: ib_order_col = df_clean.columns[21]
+    if not ib_weight_col and len(df_clean.columns) > 22: ib_weight_col = df_clean.columns[22]
+
     raw_rows = []
     rows_cells = []
     headers = [str(c) for c in df.columns]
@@ -1871,6 +1906,31 @@ def process_table_sheet(df):
     for idx, row in df_clean.iterrows():
         cells = [str(val) if pd.notna(val) else '' for val in row]
         rows_cells.append({"cells": cells, "routeLink": ""})
+
+        # Parse numeric outbound_order and outbound_weight safely
+        raw_ob_order = row.get(ob_order_col, '') if ob_order_col else ''
+        raw_ob_weight = row.get(ob_weight_col, '') if ob_weight_col else ''
+
+        parsed_ob_order = 0
+        if pd.notna(raw_ob_order) and str(raw_ob_order).strip():
+            try:
+                clean_num_str = str(raw_ob_order).replace(',', '').strip()
+                p = float(clean_num_str)
+                if not pd.isna(p):
+                    parsed_ob_order = int(p) if p.is_integer() else p
+            except Exception:
+                parsed_ob_order = 0
+
+        parsed_ob_weight = 0.0
+        if pd.notna(raw_ob_weight) and str(raw_ob_weight).strip():
+            try:
+                clean_wt_str = str(raw_ob_weight).replace(',', '').strip()
+                p = float(clean_wt_str)
+                if not pd.isna(p):
+                    parsed_ob_weight = round(p, 2)
+            except Exception:
+                parsed_ob_weight = 0.0
+
         raw_rows.append({
             "shipment_id": str(row.get(trip_col, '')) if trip_col else '',
             "trip_category": str(row.get(cat_col, '')) if cat_col else '',
@@ -1879,6 +1939,9 @@ def process_table_sheet(df):
             "driver": str(row.get(driver_col, '')) if driver_col else '',
             "origin": str(row.get(origin_col, '')) if origin_col else '',
             "dest_station_name": str(row.get(dest_col, '')) if dest_col else '',
+            "outbound_order": parsed_ob_order,
+            "outbound_weight": parsed_ob_weight,
+            "outbound_to": str(row.get(ob_to_col, '')) if ob_to_col else '',
             "cut0": str(row.get(cut0_col, '')) if cut0_col else '',
             "cut1": str(row.get(cut1_col, '')) if cut1_col else '',
             "cut2": str(row.get(cut2_col, '')) if cut2_col else '',
@@ -1889,14 +1952,21 @@ def process_table_sheet(df):
             "zone": str(row.get(zone_col, '')) if zone_col else ''
         })
 
+    total_orders = sum(r.get("outbound_order", 0) for r in raw_rows)
+    late_orders = sum(r.get("outbound_order", 0) for r in raw_rows if "late" in str(r.get("status", "")).lower())
+    on_time_orders = total_orders - late_orders
+
     return {
         "success": True,
         "headers": headers,
         "rows": rows_cells,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "totalTrips": total_trips,
+        "totalOrders": total_orders,
         "onTimeTrips": on_time,
+        "onTimeOrders": on_time_orders,
         "lateTrips": late,
+        "lateOrders": late_orders,
         "onTimeRate": f"{rate}%",
         "totalLate": late,
         "ranking": ranking,
