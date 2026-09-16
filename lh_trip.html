@@ -199,15 +199,8 @@
         </div>
         <div class="col-12">
           <div class="chart-card">
-            <div class="chart-title d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-              <span><i class="fa-solid fa-chart-bar me-2 text-danger"></i> จำนวนเที่ยวรถ แยกตามชั่วโมงการออกเดินทาง (00:00 - 23:00)</span>
-              <div class="btn-group btn-group-sm" role="group" id="hourFilterBtnGroup">
-                <button type="button" class="btn btn-primary active py-1 px-2 fw-semibold" id="btnHourModeAll" onclick="setHourChartMode('all')">📊 ทั้งหมด (On Time + Late)</button>
-                <button type="button" class="btn btn-outline-danger py-1 px-2 fw-semibold" id="btnHourModeLate" onclick="setHourChartMode('late')">🔴 เฉพาะสาย (Late)</button>
-                <button type="button" class="btn btn-outline-success py-1 px-2 fw-semibold" id="btnHourModeOnTime" onclick="setHourChartMode('ontime')">🟢 เฉพาะตรงเวลา (On Time)</button>
-              </div>
-            </div>
-            <div class="flex-grow-1 position-relative" style="height: 290px;"><canvas id="barHourCanvas"></canvas></div>
+            <div class="chart-title"><i class="fa-solid fa-chart-bar me-2 text-danger"></i> จำนวนเที่ยวที่สาย แยกตามชั่วโมง (Late trips by hour of departure)</div>
+            <div class="flex-grow-1 position-relative" style="height: 280px;"><canvas id="barHourCanvas"></canvas></div>
           </div>
         </div>
       </div>
@@ -742,8 +735,8 @@
           if (str.includes('status') || str.includes('show on time') || str.includes('on time')) statIdx = idx;
           if (str.includes('destination') || str.includes('ปลายทาง') || str.includes('dest station')) destIdx = idx;
           if (str.includes('lh trip') || str.includes('trip number') || str.includes('trip id') || str.includes('shipment')) tripIdx = idx;
-          if (str.includes('vehicle type') || str.includes('vehicle')) vehIdx = idx;
-          if (str.includes('plate') || str.includes('license') || str.includes('ทะเบียน')) plateIdx = idx;
+          if ((str.includes('vehicle type') || str === 'vehicle' || str.includes('ประเภทรถ')) && !str.includes('plate') && !str.includes('number') && !str.includes('ทะเบียน')) vehIdx = idx;
+          if (str.includes('plate') || str.includes('license') || str.includes('ทะเบียน') || str.includes('vehicle plate')) plateIdx = idx;
           if (str.includes('driver') || str.includes('คนขับ')) driverIdx = idx;
           if (str.includes('origin') || str.includes('ต้นทาง')) origIdx = idx;
           if (str.includes('cut 0') || str.includes('cut0')) c0Idx = idx;
@@ -829,27 +822,35 @@
         }
       );
 
-      // 2. Dynamic Vehicle Pie
+      // 2. Dynamic Vehicle Pie (Late trips by vehicle type)
       const vehLateCounts = {};
-      records.filter(r => String(r.status || '').toLowerCase().includes('late')).forEach(r => {
-        const v = String(r.vehicle_type || 'Unknown').trim();
-        if (v) vehLateCounts[v] = (vehLateCounts[v] || 0) + 1;
+      const lateRecords = records.filter(r => String(r.status || '').toLowerCase().includes('late'));
+      lateRecords.forEach(r => {
+        let v = String(r.vehicle_type || 'Unknown').trim();
+        if (v && v !== '-' && v !== 'nan') {
+          vehLateCounts[v] = (vehLateCounts[v] || 0) + 1;
+        }
       });
       const vehLabels = Object.keys(vehLateCounts).sort((a, b) => vehLateCounts[b] - vehLateCounts[a]);
       const vehData = vehLabels.map(v => vehLateCounts[v]);
       const vehTotalLate = vehData.reduce((a, b) => a + b, 0) || 1;
       const vehDisplayLabels = vehLabels.map((v, i) => `${v} (${((vehData[i]/vehTotalLate)*100).toFixed(1)}%)`);
-      const vehColors = ['#ee4d2d', '#ff7a45', '#f5a623', '#c2661a', '#ffb199', '#d0311d', '#991b1b', '#451a03'];
+      const palette = [
+        '#ee4d2d', '#ff7a45', '#f5a623', '#fab005', '#12b886', 
+        '#228be6', '#7950f2', '#e64980', '#be4bdb', '#4c6ef5',
+        '#15aabf', '#40c057', '#82c91e', '#fd7e14', '#fa5252'
+      ];
+      const vehColors = vehLabels.map((_, i) => palette[i % palette.length]);
 
       createPieChart('pieVehicleCanvas',
         vehDisplayLabels.length ? vehDisplayLabels : ['No Late Trips'],
         vehData.length ? vehData : [1],
-        vehColors.slice(0, Math.max(1, vehLabels.length)),
+        vehColors.length ? vehColors : ['#ee4d2d'],
         (evt, elements) => {
           if (!elements || !elements.length) return;
           const veh = vehLabels[elements[0].index];
-          const subset = records.filter(r => String(r.vehicle_type || '').includes(veh));
-          openRawDataModal(`เที่ยวรถประเภท ${veh}`, subset);
+          const subset = lateRecords.filter(r => String(r.vehicle_type || '').trim() === veh);
+          openRawDataModal(`เที่ยวรถประเภท ${veh} ที่สาย (${subset.length.toLocaleString()} เที่ยว)`, subset);
         }
       );
 
@@ -939,66 +940,24 @@
       const peakCutSubEl = document.getElementById('peakCutSub');
       if (peakCutSubEl) peakCutSubEl.innerText = `${cutLate[topCutIdx]} จาก ${topCutTotal} เที่ยว (${topCutPct}% สาย)`;
 
-      // 5. Dynamic Departure Hour Bar Chart (All 24 Hours: 00:00 - 23:00)
-      const hourOnTime = new Array(24).fill(0);
+      // 5. Dynamic Departure Hour Bar Chart (Late Trips Only across 00:00 - 23:00)
       const hourLate = new Array(24).fill(0);
-      const hourTotal = new Array(24).fill(0);
 
-      records.forEach(r => {
+      lateRecords.forEach(r => {
         const hr = extractHourFromRecord(r);
-        if (hr >= 0 && hr < 24) {
-          const isLate = String(r.status || '').toLowerCase().includes('late');
-          if (isLate) hourLate[hr]++;
-          else hourOnTime[hr]++;
-          hourTotal[hr]++;
+        if (hr !== null && hr >= 0 && hr < 24) {
+          hourLate[hr]++;
         }
       });
 
-      const hourLabels = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0') + ':00');
-      
-      hourDataCache = {
-        hourLabels,
-        hourOnTime,
-        hourLate,
-        hourTotal,
-        records,
-        lateCount,
-        totalTrips: records.length
-      };
-
-      renderHourChart(currentHourChartMode || 'all');
-    }
-
-    let currentHourChartMode = 'all';
-    let hourDataCache = null;
-
-    function setHourChartMode(mode) {
-      currentHourChartMode = mode;
-      const bAll = document.getElementById('btnHourModeAll');
-      const bLate = document.getElementById('btnHourModeLate');
-      const bOnTime = document.getElementById('btnHourModeOnTime');
-
-      if (bAll) bAll.className = mode === 'all' ? 'btn btn-primary active py-1 px-2 fw-semibold' : 'btn btn-outline-primary py-1 px-2 fw-semibold';
-      if (bLate) bLate.className = mode === 'late' ? 'btn btn-danger active py-1 px-2 fw-semibold' : 'btn btn-outline-danger py-1 px-2 fw-semibold';
-      if (bOnTime) bOnTime.className = mode === 'ontime' ? 'btn btn-success active py-1 px-2 fw-semibold' : 'btn btn-outline-success py-1 px-2 fw-semibold';
-
-      renderHourChart(mode);
-    }
-
-    function renderHourChart(mode) {
-      if (!hourDataCache) return;
-      const { hourLabels, hourOnTime, hourLate, hourTotal, records, lateCount } = hourDataCache;
-
       let peakIdx = 0;
       let peakVal = 0;
-
-      if (mode === 'late') {
-        hourLate.forEach((cnt, i) => { if (cnt > peakVal) { peakVal = cnt; peakIdx = i; } });
-      } else if (mode === 'ontime') {
-        hourOnTime.forEach((cnt, i) => { if (cnt > peakVal) { peakVal = cnt; peakIdx = i; } });
-      } else {
-        hourTotal.forEach((cnt, i) => { if (cnt > peakVal) { peakVal = cnt; peakIdx = i; } });
-      }
+      hourLate.forEach((cnt, i) => {
+        if (cnt > peakVal) {
+          peakVal = cnt;
+          peakIdx = i;
+        }
+      });
 
       const peakHourValEl = document.getElementById('peakHour');
       if (peakHourValEl) {
@@ -1012,79 +971,42 @@
       }
       const peakHourSubEl = document.getElementById('peakHourSub');
       if (peakHourSubEl) {
-        if (mode === 'late') {
-          peakHourSubEl.innerText = peakVal > 0 ? `${peakVal} เที่ยวที่สายสูงสุดในชั่วโมงนี้ (จาก ${lateCount} เที่ยวที่สายทั้งหมด)` : 'ไม่มีเที่ยวรถล่าช้า';
-        } else if (mode === 'ontime') {
-          peakHourSubEl.innerText = peakVal > 0 ? `${peakVal} เที่ยวที่ตรงเวลาสูงสุดในชั่วโมงนี้` : 'ไม่มีเที่ยวรถตรงเวลา';
-        } else {
-          peakHourSubEl.innerText = peakVal > 0 ? `ช่วงพีคสุดมีเที่ยวรถออกเดินทาง ${peakVal} เที่ยวในชั่วโมงนี้ (สาย: ${hourLate[peakIdx]} / ตรงเวลา: ${hourOnTime[peakIdx]})` : 'ไม่มีข้อมูลเที่ยวรถ';
-        }
+        peakHourSubEl.innerText = peakVal > 0
+          ? `${peakVal.toLocaleString()} เที่ยวที่สายสูงสุดในชั่วโมงนี้ (จากเที่ยวที่สายทั้งหมด ${lateRecords.length.toLocaleString()} เที่ยว)`
+          : 'ไม่มีเที่ยวรถล่าช้า';
       }
+
+      const hourLabels = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0') + ':00');
+      const hourColors = hourLate.map((cnt, i) => (i === peakIdx && cnt > 0) ? '#d0311d' : '#f87171');
 
       const canvasId = 'barHourCanvas';
       const ctx = document.getElementById(canvasId).getContext('2d');
       if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
 
-      let datasets = [];
-      if (mode === 'all') {
-        datasets = [
-          {
-            label: 'ตรงเวลา (On Time)',
-            data: hourOnTime,
-            backgroundColor: '#10b981',
-            borderRadius: 4
-          },
-          {
-            label: 'สาย (Late)',
-            data: hourLate,
-            backgroundColor: '#ef4444',
-            borderRadius: 4
-          }
-        ];
-      } else if (mode === 'late') {
-        const barColors = hourLate.map((cnt, i) => (i === peakIdx && cnt > 0) ? '#d0311d' : '#f87171');
-        datasets = [{
-          label: 'สาย (Late)',
-          data: hourLate,
-          backgroundColor: barColors,
-          borderRadius: 4
-        }];
-      } else {
-        const barColors = hourOnTime.map((cnt, i) => (i === peakIdx && cnt > 0) ? '#059669' : '#34d399');
-        datasets = [{
-          label: 'ตรงเวลา (On Time)',
-          data: hourOnTime,
-          backgroundColor: barColors,
-          borderRadius: 4
-        }];
-      }
-
       chartInstances[canvasId] = new Chart(ctx, {
         type: 'bar',
         data: {
           labels: hourLabels,
-          datasets: datasets
+          datasets: [{
+            label: 'จำนวนเที่ยวที่สาย (Late)',
+            data: hourLate,
+            backgroundColor: hourColors,
+            borderRadius: 4
+          }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           animation: false,
           scales: {
-            x: { stacked: mode === 'all', grid: { display: false } },
-            y: { stacked: mode === 'all', beginAtZero: true }
+            x: { grid: { display: false } },
+            y: { beginAtZero: true, ticks: { precision: 0 } }
           },
           onClick: (evt, elements) => {
             if (!elements || !elements.length) return;
             const idx = elements[0].index;
-            const matchedRows = records.filter(r => {
-              const hr = extractHourFromRecord(r);
-              if (hr !== idx) return false;
-              if (mode === 'late') return String(r.status || '').toLowerCase().includes('late');
-              if (mode === 'ontime') return !String(r.status || '').toLowerCase().includes('late');
-              return true;
-            });
-            const modeText = mode === 'late' ? 'ที่สาย' : (mode === 'ontime' ? 'ที่ตรงเวลา' : 'ทั้งหมด');
-            openRawDataModal(`เที่ยวรถ${modeText}ช่วงเวลา ${hourLabels[idx]} (${matchedRows.length.toLocaleString()} เที่ยว)`, matchedRows);
+            const matchedRows = lateRecords.filter(r => extractHourFromRecord(r) === idx);
+            openRawDataModal(`เที่ยวรถที่สายช่วงเวลา ${hourLabels[idx]} (${matchedRows.length.toLocaleString()} เที่ยว)`, matchedRows);
           },
           onHover: (evt, elements) => {
             if (evt && evt.native && evt.native.target) {
@@ -1092,20 +1014,15 @@
             }
           },
           plugins: {
-            legend: {
-              display: mode === 'all',
-              position: 'top'
-            },
+            legend: { display: false },
             tooltip: {
               callbacks: {
                 title: (items) => `ช่วงเวลา ${items[0].label}`,
-                label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} เที่ยว`,
+                label: (ctx) => ` สาย (Late): ${ctx.parsed.y.toLocaleString()} เที่ยว`,
                 footer: (items) => {
                   const idx = items[0].dataIndex;
-                  const tot = hourTotal[idx];
-                  const ont = hourOnTime[idx];
-                  const lat = hourLate[idx];
-                  return `รวมชั่วโมงนี้: ${tot.toLocaleString()} เที่ยว (ตรงเวลา: ${ont} | สาย: ${lat})\n👉 คลิกเพื่อเปิดดู Raw Data ครบทุกเที่ยว`;
+                  const cnt = hourLate[idx];
+                  return `รวมสายในชั่วโมงนี้: ${cnt.toLocaleString()} เที่ยว\n👉 คลิกเพื่อเปิดดู Raw Data เที่ยวที่สายช่วงนี้`;
                 }
               }
             }
@@ -1327,19 +1244,82 @@
 
     function exportExcelWithCharts() {
       try {
+        const records = (rawTripRecords && rawTripRecords.length) ? rawTripRecords : [];
+        const totalTrips = records.length;
+        const lateRecords = records.filter(r => String(r.status || '').toLowerCase().includes('late'));
+        const lateCount = lateRecords.length;
+        const onTimeCount = totalTrips - lateCount;
+        const onTimePct = totalTrips ? ((onTimeCount / totalTrips) * 100).toFixed(2) : '0.00';
+        const latePct = totalTrips ? ((lateCount / totalTrips) * 100).toFixed(2) : '0.00';
+
         if (window.AuthGuard && window.AuthGuard.logExport) {
-          window.AuthGuard.logExport('LH_Trip_Executive_Report.xls', 50, 'ส่งออกไฟล์ Excel รายงาน LH Trip & OB Late พร้อมกราฟ');
+          window.AuthGuard.logExport('LH_Trip_Executive_Report.xls', totalTrips, 'ส่งออกไฟล์ Excel รายงาน LH Trip สรุปรายชั่วโมงและ Raw Data ครบถ้วน');
         }
-        const c1Img = document.getElementById('pieStatusCanvas').toDataURL('image/png');
-        const c2Img = document.getElementById('pieVehicleCanvas').toDataURL('image/png');
-        const c3Img = document.getElementById('pieOnTimeCanvas').toDataURL('image/png');
-        const c4Img = document.getElementById('barCutCanvas').toDataURL('image/png');
-        const c5Img = document.getElementById('barHourCanvas').toDataURL('image/png');
 
-        const lhTableHtml = document.getElementById('topHubLHTableEl').outerHTML;
-        const obTableHtml = document.getElementById('topHubOBTableEl').outerHTML;
+        // 1. Calculate Hourly Breakdown (เวลาไหน กี่ตัว)
+        const hourStats = [];
+        let grandHourOnTime = 0;
+        let grandHourLate = 0;
 
-        let excelContent = `<html xmlns:o="urn:schemas-microsoft-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        for (let h = 0; h < 24; h++) {
+          const startLabel = String(h).padStart(2, '0') + ':00';
+          const endLabel = String((h + 1) % 24).padStart(2, '0') + ':00';
+          const hRecords = records.filter(r => extractHourFromRecord(r) === h);
+          const hLate = hRecords.filter(r => String(r.status || '').toLowerCase().includes('late')).length;
+          const hOnTime = hRecords.length - hLate;
+          const hTotal = hRecords.length;
+          const hLatePct = hTotal ? ((hLate / hTotal) * 100).toFixed(1) : '0.0';
+
+          grandHourOnTime += hOnTime;
+          grandHourLate += hLate;
+
+          hourStats.push({
+            timeRange: `${startLabel} - ${endLabel}`,
+            onTime: hOnTime,
+            late: hLate,
+            total: hTotal,
+            latePct: `${hLatePct}%`
+          });
+        }
+
+        // 2. Calculate Vehicle Type Breakdown
+        const vehMap = {};
+        records.forEach(r => {
+          const v = String(r.vehicle_type || 'Unknown').trim() || 'Unknown';
+          if (!vehMap[v]) vehMap[v] = { total: 0, onTime: 0, late: 0 };
+          vehMap[v].total++;
+          if (String(r.status || '').toLowerCase().includes('late')) vehMap[v].late++;
+          else vehMap[v].onTime++;
+        });
+        const vehStats = Object.keys(vehMap)
+          .map(k => ({
+            vehType: k,
+            onTime: vehMap[k].onTime,
+            late: vehMap[k].late,
+            total: vehMap[k].total,
+            latePct: vehMap[k].total ? ((vehMap[k].late / vehMap[k].total) * 100).toFixed(1) + '%' : '0.0%'
+          }))
+          .sort((a, b) => b.total - a.total);
+
+        // 3. Top Hubs Data
+        const hubMap = {};
+        records.forEach(r => {
+          const dest = String(r.dest_station_name || 'Unknown Hub').trim() || 'Unknown Hub';
+          if (!hubMap[dest]) hubMap[dest] = { total: 0, late: 0 };
+          hubMap[dest].total++;
+          if (String(r.status || '').toLowerCase().includes('late')) hubMap[dest].late++;
+        });
+        const top50Hubs = Object.keys(hubMap)
+          .map(h => ({
+            hub: h,
+            total: hubMap[h].total,
+            late: hubMap[h].late,
+            pct: hubMap[h].total ? ((hubMap[h].late / hubMap[h].total) * 100).toFixed(1) + '%' : '0.0%'
+          }))
+          .sort((a, b) => b.late - a.late)
+          .slice(0, 50);
+
+        let excelContent = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <!--[if gte mso 9]>
@@ -1347,7 +1327,7 @@
     <x:ExcelWorkbook>
       <x:ExcelWorksheets>
         <x:ExcelWorksheet>
-          <x:Name>LH Trip Executive Dashboard</x:Name>
+          <x:Name>LH Trip Dashboard Report</x:Name>
           <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
         </x:ExcelWorksheet>
       </x:ExcelWorksheets>
@@ -1355,70 +1335,174 @@
   </xml>
   <![endif]-->
   <style>
-    body { font-family: Arial, sans-serif; background: #ffffff; color: #1e293b; padding: 20px; }
-    h2 { font-size: 20px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
-    p { font-size: 12px; color: #64748b; margin-top: 0; margin-bottom: 20px; }
-    table { border-collapse: collapse; width: 100%; margin-bottom: 25px; font-size: 12px; }
-    th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }
-    th { background-color: #0f172a; color: #ffffff; font-weight: bold; }
-    .kpi-table th { background-color: #f1f5f9; color: #64748b; font-size: 11px; text-transform: uppercase; }
-    .kpi-table td { font-size: 20px; font-weight: bold; text-align: center; }
-    .chart-section-header { background-color: #1e293b; color: #ffffff; padding: 10px; font-size: 14px; font-weight: bold; text-align: left; }
-    .chart-cell { text-align: center; padding: 20px; background: #ffffff; }
-    .chart-cell img { display: block; margin: 0 auto; max-width: 480px; height: auto; border: 1px solid #cbd5e1; border-radius: 6px; }
+    body { font-family: Tahoma, 'Segoe UI', Arial, sans-serif; background: #ffffff; color: #1e293b; padding: 20px; }
+    h2 { font-size: 18px; font-weight: bold; color: #0f172a; margin-bottom: 2px; }
+    .sub-title { font-size: 11px; color: #64748b; margin-bottom: 16px; }
+    .section-header { font-size: 13px; font-weight: bold; background-color: #0f172a; color: #ffffff; padding: 8px 12px; margin-top: 20px; margin-bottom: 6px; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; font-size: 12px; }
+    th, td { border: 1px solid #cbd5e1; padding: 6px 10px; }
+    th { background-color: #1e293b; color: #ffffff; font-weight: bold; text-align: center; }
+    .kpi-table th { background-color: #f1f5f9; color: #475569; font-size: 11px; text-transform: uppercase; }
+    .kpi-table td { font-size: 18px; font-weight: bold; text-align: center; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-danger { color: #d0311d; font-weight: bold; }
+    .text-success { color: #0f9d58; font-weight: bold; }
+    .bg-light-red { background-color: #fee2e2; }
+    .bg-light-green { background-color: #dcfce7; }
+    .bg-gray-total { background-color: #f8fafc; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h2>🚚 LH TRIP & OB LATE EXECUTIVE DASHBOARD REPORT</h2>
-  <p>รายงานสรุปภาพรวมพร้อมรูปภาพ Pie Charts & Bar Charts ครบถ้วน (ส่งออกเมื่อ: ${new Date().toLocaleString('th-TH')})</p>
+  <h2>🚚 LH TRIP & OB LATE EXECUTIVE REPORT (สรุปรายชั่วโมง + RAW DATA)</h2>
+  <div class="sub-title">ส่งออกข้อมูลเมื่อ: ${new Date().toLocaleString('th-TH')} | จำนวนข้อมูลดิบทั้งหมด (Raw Data): <b>${totalTrips.toLocaleString()}</b> เที่ยวรถ</div>
 
+  <!-- KPI SUMMARY CARDS -->
   <table class="kpi-table">
     <tr>
-      <th>TOTAL TRIPS</th>
-      <th>ON TIME (ตรงเวลา)</th>
-      <th>LATE (ล่าช้า)</th>
-      <th>ON-TIME RATE (% ตรงเวลา)</th>
+      <th>รวมเที่ยวรถทั้งหมด (TOTAL RAW DATA)</th>
+      <th>ตรงเวลา (ON TIME)</th>
+      <th>สาย (LATE)</th>
+      <th>อัตราตรงเวลา (ON-TIME RATE)</th>
+      <th>อัตราสาย (LATE RATE)</th>
     </tr>
     <tr>
-      <td style="color:#ee4d2d;">1,305</td>
-      <td style="color:#0f9d58;">966</td>
-      <td style="color:#d0311d;">336</td>
-      <td style="color:#b7791f;">74.2%</td>
+      <td style="color:#0f172a;">${totalTrips.toLocaleString()} เที่ยว</td>
+      <td style="color:#0f9d58;">${onTimeCount.toLocaleString()} เที่ยว</td>
+      <td style="color:#d0311d;">${lateCount.toLocaleString()} เที่ยว</td>
+      <td style="color:#0f9d58;">${onTimePct}%</td>
+      <td style="color:#d0311d;">${latePct}%</td>
     </tr>
   </table>
 
-  <h3 style="font-size:15px; color:#0f172a; margin-top:25px; margin-bottom:10px;">📊 VISUAL CHARTS & PIE CHARTS</h3>
-  
+  <!-- 1. HOURLY BREAKDOWN TABLE (เวลาไหน กี่ตัว) -->
+  <div class="section-header">🕒 สรุปจำนวนเที่ยวรถ แยกตามชั่วโมงการออกเดินทาง (เวลาไหน กี่ตัว: 00:00 - 23:00)</div>
   <table>
-    <tr><th class="chart-section-header">🥧 Chart 1: On Time vs Late (all trips)</th></tr>
-    <tr><td class="chart-cell"><img src="${c1Img}" width="450" height="260" alt="Pie Chart 1"></td></tr>
+    <thead>
+      <tr>
+        <th style="width: 180px;">ช่วงเวลาออกเดินทาง (Time Range)</th>
+        <th style="width: 140px;">ตรงเวลา (On Time)</th>
+        <th style="width: 140px;">สาย (Late)</th>
+        <th style="width: 160px;">รวมเที่ยวรถในชั่วโมงนี้ (Total)</th>
+        <th style="width: 140px;">อัตราสาย (% Late)</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${hourStats.map(h => `
+        <tr class="${h.late > 0 ? 'bg-light-red' : ''}">
+          <td class="text-center" style="font-weight:600;">${h.timeRange}</td>
+          <td class="text-center text-success">${h.onTime.toLocaleString()}</td>
+          <td class="text-center text-danger">${h.late.toLocaleString()}</td>
+          <td class="text-center" style="font-weight:600;">${h.total.toLocaleString()}</td>
+          <td class="text-center ${h.late > 0 ? 'text-danger' : ''}">${h.latePct}</td>
+        </tr>
+      `).join('')}
+      <tr class="bg-gray-total">
+        <td class="text-center">รวมทั้งสิ้น (Grand Total)</td>
+        <td class="text-center text-success">${grandHourOnTime.toLocaleString()}</td>
+        <td class="text-center text-danger">${grandHourLate.toLocaleString()}</td>
+        <td class="text-center">${(grandHourOnTime + grandHourLate).toLocaleString()}</td>
+        <td class="text-center">${totalTrips ? ((grandHourLate / totalTrips) * 100).toFixed(1) + '%' : '0.0%'}</td>
+      </tr>
+    </tbody>
   </table>
 
+  <!-- 2. VEHICLE BREAKDOWN TABLE -->
+  <div class="section-header">🚛 สรุปจำนวนเที่ยวรถ แยกตามประเภทรถ (Vehicle Type Breakdown)</div>
   <table>
-    <tr><th class="chart-section-header">🥧 Chart 2: รถแต่ละประเภท ที่สาย (Late trips by vehicle type)</th></tr>
-    <tr><td class="chart-cell"><img src="${c2Img}" width="450" height="260" alt="Pie Chart 2"></td></tr>
+    <thead>
+      <tr>
+        <th>ลำดับ</th>
+        <th>ประเภทรถ (Vehicle Type)</th>
+        <th>ตรงเวลา (On Time)</th>
+        <th>สาย (Late)</th>
+        <th>รวมเที่ยวทั้งหมด (Total)</th>
+        <th>อัตราสาย (% Late)</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${vehStats.map((v, i) => `
+        <tr>
+          <td class="text-center">${i + 1}</td>
+          <td style="font-weight:600;">${v.vehType}</td>
+          <td class="text-center text-success">${v.onTime.toLocaleString()}</td>
+          <td class="text-center text-danger">${v.late.toLocaleString()}</td>
+          <td class="text-center" style="font-weight:600;">${v.total.toLocaleString()}</td>
+          <td class="text-center text-danger">${v.latePct}</td>
+        </tr>
+      `).join('')}
+    </tbody>
   </table>
 
+  <!-- 3. TOP 50 LATE HUBS -->
+  <div class="section-header">🏆 Top 50 Hubs ปลายทางที่สายสูงสุด (Top 50 Late Hubs)</div>
   <table>
-    <tr><th class="chart-section-header">🥧 Chart 3: On Time Arrival vs LH Trip (RC / On time / OB Late / LH Late)</th></tr>
-    <tr><td class="chart-cell"><img src="${c3Img}" width="450" height="260" alt="Pie Chart 3"></td></tr>
+    <thead>
+      <tr>
+        <th style="width:60px;">อันดับ</th>
+        <th>Hub ปลายทาง (Destination)</th>
+        <th style="width:140px;">จำนวนเที่ยวที่สาย (Late)</th>
+        <th style="width:140px;">รวมเที่ยวทั้งหมด (Total)</th>
+        <th style="width:140px;">อัตราสาย (% Late)</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${top50Hubs.map((h, i) => `
+        <tr>
+          <td class="text-center">${i + 1}</td>
+          <td class="text-danger" style="font-weight:600;">${h.hub}</td>
+          <td class="text-center text-danger">${h.late.toLocaleString()}</td>
+          <td class="text-center">${h.total.toLocaleString()}</td>
+          <td class="text-center text-danger">${h.pct}</td>
+        </tr>
+      `).join('')}
+    </tbody>
   </table>
 
+  <!-- 4. COMPLETE RAW DATA TABLE -->
+  <div class="section-header">📋 ข้อมูลดิบทั้งหมด (Complete Raw Data - รวม ${totalTrips.toLocaleString()} เที่ยวรถ)</div>
   <table>
-    <tr><th class="chart-section-header">📊 Chart 4: On Time / Late แยกตาม Cut</th></tr>
-    <tr><td class="chart-cell"><img src="${c4Img}" width="450" height="260" alt="Bar Chart 4"></td></tr>
+    <thead>
+      <tr>
+        <th>NO.</th>
+        <th>LH TRIP NUMBER</th>
+        <th>TRIP CATEGORY</th>
+        <th>VEHICLE TYPE</th>
+        <th>VEHICLE PLATE</th>
+        <th>DRIVER</th>
+        <th>ต้นทาง (ORIGIN)</th>
+        <th>ปลายทาง (DESTINATION)</th>
+        <th>CUT 0</th>
+        <th>CUT 1</th>
+        <th>CUT 2</th>
+        <th>CUT 3</th>
+        <th>ACTUAL DEP CUT</th>
+        <th>STATUS</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${records.map((r, i) => {
+        let isLate = String(r.status || '').toLowerCase().includes('late');
+        return `
+        <tr class="${isLate ? 'bg-light-red' : ''}">
+          <td class="text-center">${i + 1}</td>
+          <td style="font-weight:600;">${r.shipment_id || '-'}</td>
+          <td>${r.trip_category || '-'}</td>
+          <td>${r.vehicle_type || '-'}</td>
+          <td>${r.vehicle_plate || '-'}</td>
+          <td>${r.driver || '-'}</td>
+          <td>${r.origin || 'SOCN'}</td>
+          <td style="font-weight:600;">${r.dest_station_name || '-'}</td>
+          <td class="text-center">${r.cut0 || '—'}</td>
+          <td class="text-center">${r.cut1 || '—'}</td>
+          <td class="text-center">${r.cut2 || '—'}</td>
+          <td class="text-center">${r.cut3 || '—'}</td>
+          <td class="text-center">${r.actual_dep_cut || '-'}</td>
+          <td class="text-center ${isLate ? 'text-danger' : 'text-success'}">${isLate ? 'Late' : 'On time'}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
   </table>
-
-  <table>
-    <tr><th class="chart-section-header">📊 Chart 5: จำนวนเที่ยวที่สาย แยกตามชั่วโมง (Late trips by hour of departure)</th></tr>
-    <tr><td class="chart-cell"><img src="${c5Img}" width="650" height="260" alt="Bar Chart 5"></td></tr>
-  </table>
-
-  <h3 style="font-size:15px; color:#0f172a; margin-top:25px;">🏆 Top 50 LH Late Hubs</h3>
-  ${lhTableHtml}
-
-  <h3 style="font-size:15px; color:#0f172a; margin-top:25px;">🏆 Top 50 OB Late Hubs</h3>
-  ${obTableHtml}
 </body>
 </html>`;
 
@@ -1426,11 +1510,11 @@
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'LH_TRIP_DASHBOARD_EXCEL_WITH_CHARTS_TOP_50.xls';
+        link.download = `LH_TRIP_REPORT_HOURLY_AND_RAW_DATA_${totalTrips}_TRIPS.xls`;
         link.click();
       } catch (err) {
         if (typeof Swal !== 'undefined') {
-          Swal.fire({ title: 'เกิดข้อผิดพลาดในการส่งออก Excel', text: err.message, icon: 'error', confirmButtonColor: '#dc2626', background: '#0d1b2a', color: '#fff' });
+          Swal.fire({ title: 'เกิดข้อผิดพลาดในการส่งออก Excel', text: err.message, icon: 'error', confirmButtonColor: '#dc2626' });
         } else {
           alert('เกิดข้อผิดพลาดในการส่งออก Excel: ' + err.message);
         }
@@ -1438,49 +1522,80 @@
     }
 
     function exportDashboardSummaryCSV() {
+      const records = (rawTripRecords && rawTripRecords.length) ? rawTripRecords : [];
+      const totalTrips = records.length;
+      const lateRecords = records.filter(r => String(r.status || '').toLowerCase().includes('late'));
+      const lateCount = lateRecords.length;
+      const onTimeCount = totalTrips - lateCount;
+      const onTimePct = totalTrips ? ((onTimeCount / totalTrips) * 100).toFixed(1) : '0.0';
+      const latePct = totalTrips ? ((lateCount / totalTrips) * 100).toFixed(1) : '0.0';
+
       if (window.AuthGuard && window.AuthGuard.logExport) {
-        window.AuthGuard.logExport('LH_TRIP_DASHBOARD_SUMMARY_TOP_50.csv', 50, 'ดาวน์โหลดรายงานสรุป Top 50 LH Late & OB Late');
+        window.AuthGuard.logExport('LH_TRIP_DASHBOARD_SUMMARY.csv', totalTrips, 'ดาวน์โหลดรายงานสรุปเวลาไหนกี่ตัว และ Raw Data');
       }
-      let csv = '\uFEFF=== LH TRIP DASHBOARD EXECUTIVE SUMMARY REPORT (TOP 50) ===\n\n';
-      csv += 'KPI SUMMARY\n';
-      csv += 'Total Trips,On Time,Late,On-Time Rate\n';
-      csv += '1305,966,336,74.2%\n\n';
 
-      csv += 'HIGHLIGHT CALLOUTS\n';
-      csv += 'Peak Late Hour,12:00 - 13:00 (114 late trips)\n';
-      csv += 'Peak Late Cut,Cut 1 (132 / 451 trips - 29% late)\n\n';
+      let csv = '\uFEFF=== LH TRIP DASHBOARD SUMMARY REPORT ===\n\n';
+      csv += '1. KPI SUMMARY (สรุปภาพรวม Raw Data ทั้งหมด)\n';
+      csv += 'Total Raw Data Trips,On Time,Late,On-Time Rate %,Late Rate %\n';
+      csv += `${totalTrips},${onTimeCount},${lateCount},${onTimePct}%,${latePct}%\n\n`;
 
-      csv += 'TOP 50 LH LATE HUBS\n';
-      csv += 'Rank,Hub (Destination),Zone,LH Late Count,Total Count,LH Late Rate %,Cut Breakdown\n';
-      [].forEach(r => {
-        csv += `${r.rank},"${r.hub}",Zone ${r.zone},${r.lateCount},${r.totalCount},${r.pct.toFixed(1)}%,"${r.cuts}"\n`;
+      csv += '2. HOURLY BREAKDOWN (เวลาไหน กี่ตัว: 00:00 - 23:00)\n';
+      csv += 'Time Range,On Time,Late,Total Trips,Late Rate %\n';
+      for (let h = 0; h < 24; h++) {
+        const startLabel = String(h).padStart(2, '0') + ':00';
+        const endLabel = String((h + 1) % 24).padStart(2, '0') + ':00';
+        const hRecords = records.filter(r => extractHourFromRecord(r) === h);
+        const hLate = hRecords.filter(r => String(r.status || '').toLowerCase().includes('late')).length;
+        const hOnTime = hRecords.length - hLate;
+        const hTotal = hRecords.length;
+        const hPct = hTotal ? ((hLate / hTotal) * 100).toFixed(1) : '0.0';
+        csv += `"${startLabel} - ${endLabel}",${hOnTime},${hLate},${hTotal},${hPct}%\n`;
+      }
+
+      csv += '\n3. VEHICLE TYPE BREAKDOWN (แยกตามประเภทรถ)\n';
+      csv += 'Vehicle Type,On Time,Late,Total Trips,Late Rate %\n';
+      const vehMap = {};
+      records.forEach(r => {
+        const v = String(r.vehicle_type || 'Unknown').trim() || 'Unknown';
+        if (!vehMap[v]) vehMap[v] = { total: 0, onTime: 0, late: 0 };
+        vehMap[v].total++;
+        if (String(r.status || '').toLowerCase().includes('late')) vehMap[v].late++;
+        else vehMap[v].onTime++;
+      });
+      Object.keys(vehMap).sort((a, b) => vehMap[b].total - vehMap[a].total).forEach(k => {
+        const v = vehMap[k];
+        const pct = v.total ? ((v.late / v.total) * 100).toFixed(1) : '0.0';
+        csv += `"${k}",${v.onTime},${v.late},${v.total},${pct}%\n`;
       });
 
-      csv += '\nTOP 50 OB LATE HUBS\n';
-      csv += 'Rank,Hub (Destination),Zone,OB Late Count,Total Count,OB Late Rate %,Cut Breakdown\n';
-      [].forEach(r => {
-        csv += `${r.rank},"${r.hub}",Zone ${r.zone},${r.lateCount},${r.totalCount},${r.pct.toFixed(1)}%,"${r.cuts}"\n`;
-      });
-
-      downloadCSVFile(csv, 'LH_TRIP_DASHBOARD_SUMMARY_TOP_50.csv');
+      downloadCSVFile(csv, `LH_TRIP_HOURLY_SUMMARY_${totalTrips}_TRIPS.csv`);
     }
 
     function exportFullRawDataCSV() {
-      if (!rawTripRecords || rawTripRecords.length === 0) {
-        rawTripRecords = [];
-      }
+      const records = (rawTripRecords && rawTripRecords.length) ? rawTripRecords : [];
       if (window.AuthGuard && window.AuthGuard.logExport) {
-        window.AuthGuard.logExport('LH_Trip_Full_RawData.csv', rawTripRecords.length, 'ดาวน์โหลดข้อมูลดิบ LH Trip เที่ยวรถทั้งหมด');
+        window.AuthGuard.logExport('LH_Trip_Full_RawData.csv', records.length, 'ดาวน์โหลดข้อมูลดิบ LH Trip เที่ยวรถทั้งหมด');
       }
       let csvContent = '\uFEFFNo,LH_Trip_Number,Trip_Category,Vehicle_Type,Vehicle_Plate,Driver,Origin,Destination,Cut_0,Cut_1,Cut_2,Cut_3,Actual_Dep_Cut,Status\n';
-      rawTripRecords.forEach((r, idx) => {
-        let shipId = r.shipment_id || `LTOQ9328WD${String(idx+1).padStart(4, '0')}`;
-        let dest = r.dest_station_name || 'AKRET-A - ปากเกร็ด';
-        let isLate = (r.status || '').toLowerCase().includes('late');
+      records.forEach((r, idx) => {
+        let shipId = (r.shipment_id || `TRIP_${idx+1}`).replace(/"/g, '""');
+        let category = (r.trip_category || '-').replace(/"/g, '""');
+        let vehType = (r.vehicle_type || '-').replace(/"/g, '""');
+        let vehPlate = (r.vehicle_plate || '-').replace(/"/g, '""');
+        let driver = (r.driver || '-').replace(/"/g, '""');
+        let origin = (r.origin || 'SOCN').replace(/"/g, '""');
+        let dest = (r.dest_station_name || '-').replace(/"/g, '""');
+        let cut0 = (r.cut0 || '—').replace(/"/g, '""');
+        let cut1 = (r.cut1 || '—').replace(/"/g, '""');
+        let cut2 = (r.cut2 || '—').replace(/"/g, '""');
+        let cut3 = (r.cut3 || '—').replace(/"/g, '""');
+        let actualDep = (r.actual_dep_cut || '-').replace(/"/g, '""');
+        let isLate = String(r.status || '').toLowerCase().includes('late');
         let st = isLate ? 'Late' : 'On time';
-        csvContent += `${idx + 1},"${shipId}","MIX SORT","6WH-6ล้อ[7.2m]","700-4883","[129448] Driver","SOCN","${dest}","—","—","11:00 AM","—","03/09/2026 06:45","${st}"\n`;
+
+        csvContent += `${idx + 1},"${shipId}","${category}","${vehType}","${vehPlate}","${driver}","${origin}","${dest}","${cut0}","${cut1}","${cut2}","${cut3}","${actualDep}","${st}"\n`;
       });
-      downloadCSVFile(csvContent, 'LH_TRIP_RAW_DATA_1305_ALL.csv');
+      downloadCSVFile(csvContent, `LH_TRIP_RAW_DATA_${records.length}_ALL.csv`);
     }
 
     function downloadCSVFile(csvContent, filename) {

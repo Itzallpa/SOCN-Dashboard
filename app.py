@@ -1789,7 +1789,8 @@ def process_table_sheet(df):
 
     veh_col = None
     for c in df_clean.columns:
-        if 'vehicle' in str(c).lower():
+        c_str = str(c).lower().replace("_", " ").strip()
+        if (any(k in c_str for k in ['vehicle type', 'ประเภทรถ']) or c_str == 'vehicle') and not any(k in c_str for k in ['plate', 'number', 'ทะเบียน']):
             veh_col = c
             break
     if not veh_col and len(df_clean.columns) > 3:
