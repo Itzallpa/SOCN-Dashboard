@@ -4046,7 +4046,6 @@ def delete_compare_or_upload_file():
     else:
         return jsonify({"success": False, "error": f"ไม่พบไฟล์ {safe_fn} บนเซิร์ฟเวอร์"}), 404
 
-@app.route("/api/compare-ob-bl", methods=["GET", "POST"])
 def load_and_prep_compare_df(file_path):
     if file_path.lower().endswith(('.xlsx', '.xls')):
         raw_df = read_dataframe(file_path)
