@@ -1392,7 +1392,7 @@
     h2 { font-size: 18px; font-weight: bold; color: #0f172a; margin-bottom: 2px; }
     .sub-title { font-size: 11px; color: #475569; margin-bottom: 16px; }
     table { border-collapse: collapse; width: 100%; margin-bottom: 22px; font-size: 12px; background-color: #ffffff; }
-    th { background-color: #0f172a !important; color: #ffffff !important; font-weight: bold; text-align: center; border: 1px solid #94a3b8; padding: 8px 10px; }
+    th { background-color: #f1f5f9 !important; color: #0f172a !important; font-weight: bold; text-align: center; border: 1px solid #cbd5e1; padding: 8px 10px; }
     td { border: 1px solid #cbd5e1; padding: 6px 10px; color: #0f172a !important; background-color: #ffffff; }
   </style>
 </head>
@@ -1403,18 +1403,18 @@
   <!-- KPI SUMMARY CARDS -->
   <table style="border-collapse:collapse; width:100%; margin-bottom:20px; border:1px solid #cbd5e1;">
     <tr>
-      <th style="background-color:#f1f5f9; color:#475569; font-size:11px; border:1px solid #cbd5e1; padding:8px;">รวมเที่ยวรถทั้งหมด (TOTAL RAW DATA)</th>
-      <th style="background-color:#f1f5f9; color:#475569; font-size:11px; border:1px solid #cbd5e1; padding:8px;">ตรงเวลา (ON TIME)</th>
-      <th style="background-color:#f1f5f9; color:#475569; font-size:11px; border:1px solid #cbd5e1; padding:8px;">สาย (LATE)</th>
-      <th style="background-color:#f1f5f9; color:#475569; font-size:11px; border:1px solid #cbd5e1; padding:8px;">อัตราตรงเวลา (ON-TIME RATE)</th>
-      <th style="background-color:#f1f5f9; color:#475569; font-size:11px; border:1px solid #cbd5e1; padding:8px;">อัตราสาย (LATE RATE)</th>
+      <th bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#0f172a; font-size:11px; border:1px solid #cbd5e1; padding:8px;"><font color="#0F172A"><b>รวมเที่ยวรถทั้งหมด (TOTAL RAW DATA)</b></font></th>
+      <th bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#0f172a; font-size:11px; border:1px solid #cbd5e1; padding:8px;"><font color="#0F172A"><b>ตรงเวลา (ON TIME)</b></font></th>
+      <th bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#0f172a; font-size:11px; border:1px solid #cbd5e1; padding:8px;"><font color="#0F172A"><b>สาย (LATE)</b></font></th>
+      <th bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#0f172a; font-size:11px; border:1px solid #cbd5e1; padding:8px;"><font color="#0F172A"><b>อัตราตรงเวลา (ON-TIME RATE)</b></font></th>
+      <th bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#0f172a; font-size:11px; border:1px solid #cbd5e1; padding:8px;"><font color="#0F172A"><b>อัตราสาย (LATE RATE)</b></font></th>
     </tr>
     <tr>
-      <td style="font-size:18px; font-weight:bold; text-align:center; color:#0f172a; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;">${totalTrips.toLocaleString()} เที่ยว</td>
-      <td style="font-size:18px; font-weight:bold; text-align:center; color:#15803d; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;">${onTimeCount.toLocaleString()} เที่ยว</td>
-      <td style="font-size:18px; font-weight:bold; text-align:center; color:#b91c1c; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;">${lateCount.toLocaleString()} เที่ยว</td>
-      <td style="font-size:18px; font-weight:bold; text-align:center; color:#15803d; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;">${onTimePct}%</td>
-      <td style="font-size:18px; font-weight:bold; text-align:center; color:#b91c1c; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;">${latePct}%</td>
+      <td style="font-size:18px; font-weight:bold; text-align:center; color:#0f172a; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;"><font color="#0F172A"><b>${totalTrips.toLocaleString()} เที่ยว</b></font></td>
+      <td style="font-size:18px; font-weight:bold; text-align:center; color:#15803d; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;"><font color="#15803D"><b>${onTimeCount.toLocaleString()} เที่ยว</b></font></td>
+      <td style="font-size:18px; font-weight:bold; text-align:center; color:#b91c1c; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;"><font color="#B91C1C"><b>${lateCount.toLocaleString()} เที่ยว</b></font></td>
+      <td style="font-size:18px; font-weight:bold; text-align:center; color:#15803d; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;"><font color="#15803D"><b>${onTimePct}%</b></font></td>
+      <td style="font-size:18px; font-weight:bold; text-align:center; color:#b91c1c; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;"><font color="#B91C1C"><b>${latePct}%</b></font></td>
     </tr>
   </table>
 
@@ -1422,18 +1422,18 @@
   <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
     <thead>
       <tr>
-        <th colspan="7" style="background-color:#1e293b; color:#ffffff; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #94a3b8;">
-          📊 จำนวนเที่ยวที่สาย แยกตามช่วงเวลา และประเภทรถ (4W, 4WJ, 6W, Semi trailer กี่คัน ในแต่ละชั่วโมง)
+        <th bgcolor="#DBEAFE" colspan="7" style="background-color:#dbeafe; color:#1e3a8a; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #93c5fd;">
+          <font color="#1E3A8A"><b>📊 จำนวนเที่ยวที่สาย แยกตามช่วงเวลา และประเภทรถ (4W, 4WJ, 6W, Semi trailer กี่คัน ในแต่ละชั่วโมง)</b></font>
         </th>
       </tr>
       <tr>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:190px;">ช่วงเวลาออกเดินทาง (Time Range)</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:110px;">4W</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:110px;">4WJ</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:110px;">6W</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:180px;">Semi trailer-รถพ่วงแม่ลูก</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:100px;">อื่นๆ (Other)</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:140px;">รวมเที่ยวที่สาย (Total Late)</th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:190px;"><font color="#0F172A"><b>ช่วงเวลาออกเดินทาง (Time Range)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:110px;"><font color="#0F172A"><b>4W</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:110px;"><font color="#0F172A"><b>4WJ</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:110px;"><font color="#0F172A"><b>6W</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:180px;"><font color="#0F172A"><b>Semi trailer-รถพ่วงแม่ลูก</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:100px;"><font color="#0F172A"><b>อื่นๆ (Other)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:140px;"><font color="#0F172A"><b>รวมเที่ยวที่สาย (Total Late)</b></font></th>
       </tr>
     </thead>
     <tbody>
@@ -1441,23 +1441,23 @@
         const rowBg = m.totalLate > 0 ? '#fff1f0' : '#ffffff';
         return `
         <tr style="background-color:${rowBg};">
-          <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${m.timeRange}</td>
-          <td style="background-color:${rowBg}; color:${m.c4W > 0 ? '#b91c1c' : '#64748b'}; font-weight:${m.c4W > 0 ? 'bold' : 'normal'}; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${m.c4W || 0}</td>
-          <td style="background-color:${rowBg}; color:${m.c4WJ > 0 ? '#b91c1c' : '#64748b'}; font-weight:${m.c4WJ > 0 ? 'bold' : 'normal'}; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${m.c4WJ || 0}</td>
-          <td style="background-color:${rowBg}; color:${m.c6W > 0 ? '#b91c1c' : '#64748b'}; font-weight:${m.c6W > 0 ? 'bold' : 'normal'}; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${m.c6W || 0}</td>
-          <td style="background-color:${rowBg}; color:${m.cSemi > 0 ? '#b91c1c' : '#64748b'}; font-weight:${m.cSemi > 0 ? 'bold' : 'normal'}; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${m.cSemi || 0}</td>
-          <td style="background-color:${rowBg}; color:${m.cOther > 0 ? '#b91c1c' : '#64748b'}; font-weight:${m.cOther > 0 ? 'bold' : 'normal'}; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${m.cOther || 0}</td>
-          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${m.totalLate.toLocaleString()}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#0F172A">${m.timeRange}</font></td>
+          <td style="background-color:${rowBg}; color:${m.c4W > 0 ? '#b91c1c' : '#64748b'}; font-weight:${m.c4W > 0 ? 'bold' : 'normal'}; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="${m.c4W > 0 ? '#B91C1C' : '#64748B'}">${m.c4W || 0}</font></td>
+          <td style="background-color:${rowBg}; color:${m.c4WJ > 0 ? '#b91c1c' : '#64748b'}; font-weight:${m.c4WJ > 0 ? 'bold' : 'normal'}; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="${m.c4WJ > 0 ? '#B91C1C' : '#64748B'}">${m.c4WJ || 0}</font></td>
+          <td style="background-color:${rowBg}; color:${m.c6W > 0 ? '#b91c1c' : '#64748b'}; font-weight:${m.c6W > 0 ? 'bold' : 'normal'}; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="${m.c6W > 0 ? '#B91C1C' : '#64748B'}">${m.c6W || 0}</font></td>
+          <td style="background-color:${rowBg}; color:${m.cSemi > 0 ? '#b91c1c' : '#64748b'}; font-weight:${m.cSemi > 0 ? 'bold' : 'normal'}; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="${m.cSemi > 0 ? '#B91C1C' : '#64748B'}">${m.cSemi || 0}</font></td>
+          <td style="background-color:${rowBg}; color:${m.cOther > 0 ? '#b91c1c' : '#64748b'}; font-weight:${m.cOther > 0 ? 'bold' : 'normal'}; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="${m.cOther > 0 ? '#B91C1C' : '#64748B'}">${m.cOther || 0}</font></td>
+          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${m.totalLate.toLocaleString()}</b></font></td>
         </tr>`;
       }).join('')}
-      <tr style="background-color:#f1f5f9; font-weight:bold;">
-        <td style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">รวมทั้งสิ้น (Grand Total)</td>
-        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grand4W.toLocaleString()}</td>
-        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grand4WJ.toLocaleString()}</td>
-        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grand6W.toLocaleString()}</td>
-        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grandSemi.toLocaleString()}</td>
-        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grandOther.toLocaleString()}</td>
-        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grandTotalLate.toLocaleString()}</td>
+      <tr style="background-color:#e2e8f0; font-weight:bold;">
+        <td bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#0f172a; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#0F172A"><b>รวมทั้งสิ้น (Grand Total)</b></font></td>
+        <td bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${grand4W.toLocaleString()}</b></font></td>
+        <td bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${grand4WJ.toLocaleString()}</b></font></td>
+        <td bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${grand6W.toLocaleString()}</b></font></td>
+        <td bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${grandSemi.toLocaleString()}</b></font></td>
+        <td bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${grandOther.toLocaleString()}</b></font></td>
+        <td bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${grandTotalLate.toLocaleString()}</b></font></td>
       </tr>
     </tbody>
   </table>
@@ -1466,16 +1466,16 @@
   <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
     <thead>
       <tr>
-        <th colspan="5" style="background-color:#1e293b; color:#ffffff; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #94a3b8;">
-          🕒 สรุปจำนวนเที่ยวรถ แยกตามชั่วโมงการออกเดินทาง (ตรงเวลา vs สาย: 00:00 - 23:00)
+        <th bgcolor="#DBEAFE" colspan="5" style="background-color:#dbeafe; color:#1e3a8a; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #93c5fd;">
+          <font color="#1E3A8A"><b>🕒 สรุปจำนวนเที่ยวรถ แยกตามชั่วโมงการออกเดินทาง (ตรงเวลา vs สาย: 00:00 - 23:00)</b></font>
         </th>
       </tr>
       <tr>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:200px;">ช่วงเวลาออกเดินทาง (Time Range)</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:140px;">ตรงเวลา (On Time)</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:140px;">สาย (Late)</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:160px;">รวมเที่ยวรถในชั่วโมงนี้ (Total)</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:140px;">อัตราสาย (% Late)</th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:200px;"><font color="#0F172A"><b>ช่วงเวลาออกเดินทาง (Time Range)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:140px;"><font color="#0F172A"><b>ตรงเวลา (On Time)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:140px;"><font color="#0F172A"><b>สาย (Late)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:160px;"><font color="#0F172A"><b>รวมเที่ยวรถในชั่วโมงนี้ (Total)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:140px;"><font color="#0F172A"><b>อัตราสาย (% Late)</b></font></th>
       </tr>
     </thead>
     <tbody>
@@ -1484,19 +1484,19 @@
         const lateTxtColor = h.late > 0 ? '#b91c1c' : '#475569';
         return `
         <tr style="background-color:${rowBg};">
-          <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.timeRange}</td>
-          <td style="background-color:${rowBg}; color:#15803d; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.onTime.toLocaleString()}</td>
-          <td style="background-color:${rowBg}; color:${lateTxtColor}; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.late.toLocaleString()}</td>
-          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.total.toLocaleString()}</td>
-          <td style="background-color:${rowBg}; color:${lateTxtColor}; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.latePct}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#0F172A">${h.timeRange}</font></td>
+          <td style="background-color:${rowBg}; color:#15803d; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#15803D">${h.onTime.toLocaleString()}</font></td>
+          <td style="background-color:${rowBg}; color:${lateTxtColor}; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="${lateTxtColor}"><b>${h.late.toLocaleString()}</b></font></td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#0F172A">${h.total.toLocaleString()}</font></td>
+          <td style="background-color:${rowBg}; color:${lateTxtColor}; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="${lateTxtColor}"><b>${h.latePct}</b></font></td>
         </tr>`;
       }).join('')}
-      <tr style="background-color:#f1f5f9; font-weight:bold;">
-        <td style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">รวมทั้งสิ้น (Grand Total)</td>
-        <td style="background-color:#f1f5f9; color:#15803d; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grandHourOnTime.toLocaleString()}</td>
-        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grandHourLate.toLocaleString()}</td>
-        <td style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${(grandHourOnTime + grandHourLate).toLocaleString()}</td>
-        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${totalTrips ? ((grandHourLate / totalTrips) * 100).toFixed(1) + '%' : '0.0%'}</td>
+      <tr style="background-color:#e2e8f0; font-weight:bold;">
+        <td bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#0f172a; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#0F172A"><b>รวมทั้งสิ้น (Grand Total)</b></font></td>
+        <td bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#15803d; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#15803D"><b>${grandHourOnTime.toLocaleString()}</b></font></td>
+        <td bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${grandHourLate.toLocaleString()}</b></font></td>
+        <td bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#0f172a; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#0F172A"><b>${(grandHourOnTime + grandHourLate).toLocaleString()}</b></font></td>
+        <td bgcolor="#E2E8F0" style="background-color:#e2e8f0; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${totalTrips ? ((grandHourLate / totalTrips) * 100).toFixed(1) + '%' : '0.0%'}</b></font></td>
       </tr>
     </tbody>
   </table>
@@ -1505,17 +1505,17 @@
   <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
     <thead>
       <tr>
-        <th colspan="6" style="background-color:#1e293b; color:#ffffff; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #94a3b8;">
-          🚛 สรุปจำนวนเที่ยวรถ แยกตามประเภทรถ (Vehicle Type Breakdown)
+        <th bgcolor="#DBEAFE" colspan="6" style="background-color:#dbeafe; color:#1e3a8a; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #93c5fd;">
+          <font color="#1E3A8A"><b>🚛 สรุปจำนวนเที่ยวรถ แยกตามประเภทรถ (Vehicle Type Breakdown)</b></font>
         </th>
       </tr>
       <tr>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:60px;">ลำดับ</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8;">ประเภทรถ (Vehicle Type)</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:130px;">ตรงเวลา (On Time)</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:130px;">สาย (Late)</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:150px;">รวมเที่ยวทั้งหมด (Total)</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:130px;">อัตราสาย (% Late)</th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:60px;"><font color="#0F172A"><b>ลำดับ</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1;"><font color="#0F172A"><b>ประเภทรถ (Vehicle Type)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:130px;"><font color="#0F172A"><b>ตรงเวลา (On Time)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:130px;"><font color="#0F172A"><b>สาย (Late)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:150px;"><font color="#0F172A"><b>รวมเที่ยวทั้งหมด (Total)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:130px;"><font color="#0F172A"><b>อัตราสาย (% Late)</b></font></th>
       </tr>
     </thead>
     <tbody>
@@ -1523,12 +1523,12 @@
         const rowBg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
         return `
         <tr style="background-color:${rowBg};">
-          <td style="background-color:${rowBg}; color:#0f172a; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${i + 1}</td>
-          <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; padding:6px 10px; border:1px solid #cbd5e1;">${v.vehType}</td>
-          <td style="background-color:${rowBg}; color:#15803d; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${v.onTime.toLocaleString()}</td>
-          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${v.late.toLocaleString()}</td>
-          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${v.total.toLocaleString()}</td>
-          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${v.latePct}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#0F172A">${i + 1}</font></td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#0F172A">${v.vehType}</font></td>
+          <td style="background-color:${rowBg}; color:#15803d; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#15803D">${v.onTime.toLocaleString()}</font></td>
+          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${v.late.toLocaleString()}</b></font></td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#0F172A">${v.total.toLocaleString()}</font></td>
+          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${v.latePct}</b></font></td>
         </tr>`;
       }).join('')}
     </tbody>
@@ -1538,16 +1538,16 @@
   <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
     <thead>
       <tr>
-        <th colspan="5" style="background-color:#1e293b; color:#ffffff; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #94a3b8;">
-          🏆 Top 50 Hubs ปลายทางที่สายสูงสุด (Top 50 Late Hubs)
+        <th bgcolor="#DBEAFE" colspan="5" style="background-color:#dbeafe; color:#1e3a8a; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #93c5fd;">
+          <font color="#1E3A8A"><b>🏆 Top 50 Hubs ปลายทางที่สายสูงสุด (Top 50 Late Hubs)</b></font>
         </th>
       </tr>
       <tr>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:60px;">อันดับ</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8;">Hub ปลายทาง (Destination)</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:160px;">จำนวนเที่ยวที่สาย (Late)</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:160px;">รวมเที่ยวทั้งหมด (Total)</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:140px;">อัตราสาย (% Late)</th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:60px;"><font color="#0F172A"><b>อันดับ</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1;"><font color="#0F172A"><b>Hub ปลายทาง (Destination)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:160px;"><font color="#0F172A"><b>จำนวนเที่ยวที่สาย (Late)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:160px;"><font color="#0F172A"><b>รวมเที่ยวทั้งหมด (Total)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:140px;"><font color="#0F172A"><b>อัตราสาย (% Late)</b></font></th>
       </tr>
     </thead>
     <tbody>
@@ -1555,11 +1555,11 @@
         const rowBg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
         return `
         <tr style="background-color:${rowBg};">
-          <td style="background-color:${rowBg}; color:#0f172a; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${i + 1}</td>
-          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; padding:6px 10px; border:1px solid #cbd5e1;">${h.hub}</td>
-          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.late.toLocaleString()}</td>
-          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.total.toLocaleString()}</td>
-          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.pct}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#0F172A">${i + 1}</font></td>
+          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${h.hub}</b></font></td>
+          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${h.late.toLocaleString()}</b></font></td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#0F172A">${h.total.toLocaleString()}</font></td>
+          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${h.pct}</b></font></td>
         </tr>`;
       }).join('')}
     </tbody>
@@ -1569,25 +1569,25 @@
   <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
     <thead>
       <tr>
-        <th colspan="14" style="background-color:#1e293b; color:#ffffff; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #94a3b8;">
-          📋 ข้อมูลดิบทั้งหมด (Complete Raw Data - รวม ${totalTrips.toLocaleString()} เที่ยวรถ)
+        <th bgcolor="#DBEAFE" colspan="14" style="background-color:#dbeafe; color:#1e3a8a; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #93c5fd;">
+          <font color="#1E3A8A"><b>📋 ข้อมูลดิบทั้งหมด (Complete Raw Data - รวม ${totalTrips.toLocaleString()} เที่ยวรถ)</b></font>
         </th>
       </tr>
       <tr>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:50px;">NO.</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:140px;">LH TRIP NUMBER</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:120px;">TRIP CATEGORY</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:130px;">VEHICLE TYPE</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:100px;">VEHICLE PLATE</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:160px;">DRIVER</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:90px;">ต้นทาง (ORIGIN)</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:160px;">ปลายทาง (DESTINATION)</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:80px;">CUT 0</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:80px;">CUT 1</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:80px;">CUT 2</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:80px;">CUT 3</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:130px;">ACTUAL DEP CUT</th>
-        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:100px;">STATUS</th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:50px;"><font color="#0F172A"><b>NO.</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:140px;"><font color="#0F172A"><b>LH TRIP NUMBER</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:120px;"><font color="#0F172A"><b>TRIP CATEGORY</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:130px;"><font color="#0F172A"><b>VEHICLE TYPE</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:100px;"><font color="#0F172A"><b>VEHICLE PLATE</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:160px;"><font color="#0F172A"><b>DRIVER</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:90px;"><font color="#0F172A"><b>ต้นทาง (ORIGIN)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:160px;"><font color="#0F172A"><b>ปลายทาง (DESTINATION)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:80px;"><font color="#0F172A"><b>CUT 0</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:80px;"><font color="#0F172A"><b>CUT 1</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:80px;"><font color="#0F172A"><b>CUT 2</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:80px;"><font color="#0F172A"><b>CUT 3</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:130px;"><font color="#0F172A"><b>ACTUAL DEP CUT</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:100px;"><font color="#0F172A"><b>STATUS</b></font></th>
       </tr>
     </thead>
     <tbody>
@@ -1599,20 +1599,20 @@
 
         return `
         <tr style="background-color:${rowBg};">
-          <td style="background-color:${rowBg}; color:#0f172a; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${i + 1}</td>
-          <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; padding:5px 8px; border:1px solid #cbd5e1;">${r.shipment_id || '-'}</td>
-          <td style="background-color:${rowBg}; color:#0f172a; padding:5px 8px; border:1px solid #cbd5e1;">${r.trip_category || '-'}</td>
-          <td style="background-color:${rowBg}; color:#0f172a; padding:5px 8px; border:1px solid #cbd5e1;">${r.vehicle_type || '-'}</td>
-          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; padding:5px 8px; border:1px solid #cbd5e1;">${r.vehicle_plate || '-'}</td>
-          <td style="background-color:${rowBg}; color:#0f172a; padding:5px 8px; border:1px solid #cbd5e1;">${r.driver || '-'}</td>
-          <td style="background-color:${rowBg}; color:#0f172a; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${r.origin || 'SOCN'}</td>
-          <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; padding:5px 8px; border:1px solid #cbd5e1;">${r.dest_station_name || '-'}</td>
-          <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${r.cut0 || '—'}</td>
-          <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${r.cut1 || '—'}</td>
-          <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${r.cut2 || '—'}</td>
-          <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${r.cut3 || '—'}</td>
-          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${r.actual_dep_cut || '-'}</td>
-          <td style="background-color:${statusBg}; color:${statusColor}; font-weight:bold; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${isLate ? 'Late' : 'On time'}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#0F172A">${i + 1}</font></td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#0F172A"><b>${r.shipment_id || '-'}</b></font></td>
+          <td style="background-color:${rowBg}; color:#0f172a; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#0F172A">${r.trip_category || '-'}</font></td>
+          <td style="background-color:${rowBg}; color:#0f172a; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#0F172A">${r.vehicle_type || '-'}</font></td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#0F172A">${r.vehicle_plate || '-'}</font></td>
+          <td style="background-color:${rowBg}; color:#0f172a; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#0F172A">${r.driver || '-'}</font></td>
+          <td style="background-color:${rowBg}; color:#0f172a; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#0F172A">${r.origin || 'SOCN'}</font></td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#0F172A"><b>${r.dest_station_name || '-'}</b></font></td>
+          <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#475569">${r.cut0 || '—'}</font></td>
+          <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#475569">${r.cut1 || '—'}</font></td>
+          <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#475569">${r.cut2 || '—'}</font></td>
+          <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#475569">${r.cut3 || '—'}</font></td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#0F172A">${r.actual_dep_cut || '-'}</font></td>
+          <td bgcolor="${statusBg}" style="background-color:${statusBg}; color:${statusColor}; font-weight:bold; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="${statusColor}"><b>${isLate ? 'Late' : 'On time'}</b></font></td>
         </tr>`;
       }).join('')}
     </tbody>

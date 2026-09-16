@@ -933,10 +933,10 @@ lh_trip_html = f"""<!DOCTYPE html>
     p {{ font-size: 12px; color: #64748b; margin-top: 0; margin-bottom: 20px; }}
     table {{ border-collapse: collapse; width: 100%; margin-bottom: 25px; font-size: 12px; }}
     th, td {{ border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }}
-    th {{ background-color: #0f172a; color: #ffffff; font-weight: bold; }}
-    .kpi-table th {{ background-color: #f1f5f9; color: #64748b; font-size: 11px; text-transform: uppercase; }}
+    th {{ background-color: #f1f5f9; color: #0f172a; font-weight: bold; }}
+    .kpi-table th {{ background-color: #e2e8f0; color: #0f172a; font-size: 11px; text-transform: uppercase; }}
     .kpi-table td {{ font-size: 20px; font-weight: bold; text-align: center; }}
-    .chart-section-header {{ background-color: #1e293b; color: #ffffff; padding: 10px; font-size: 14px; font-weight: bold; text-align: left; }}
+    .chart-section-header {{ background-color: #dbeafe; color: #1e3a8a; padding: 10px; font-size: 14px; font-weight: bold; text-align: left; }}
     .chart-cell {{ text-align: center; padding: 20px; background: #ffffff; }}
     .chart-cell img {{ display: block; margin: 0 auto; max-width: 480px; height: auto; border: 1px solid #cbd5e1; border-radius: 6px; }}
   </style>
