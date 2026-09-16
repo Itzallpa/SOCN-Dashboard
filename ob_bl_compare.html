@@ -347,18 +347,26 @@
 
           <!-- Table Controls -->
           <div class="d-flex align-items-center gap-2 flex-wrap">
-            <input type="text" id="tableSearchInput" class="form-control form-control-sm" placeholder="🔍 ค้นหา Tracking, สถานี..." style="width: 220px;" oninput="onFilterChanged()">
+            <input type="text" id="tableSearchInput" class="form-control form-control-sm" placeholder="🔍 ค้นหา Tracking, สถานี..." style="width: 190px;" oninput="onFilterChanged()">
             
-            <select id="stationFilterSelect" class="form-select form-select-sm" style="width: 170px;" onchange="onFilterChanged()">
+            <select id="stationFilterSelect" class="form-select form-select-sm" style="width: 150px;" onchange="onFilterChanged()">
               <option value="">ทุกสถานีปลายทาง</option>
             </select>
 
-            <select id="actionFilterSelect" class="form-select form-select-sm" style="width: 170px;" onchange="onFilterChanged()">
+            <select id="actionFilterSelect" class="form-select form-select-sm" style="width: 150px;" onchange="onFilterChanged()">
               <option value="">ทุกประเภท Action</option>
             </select>
 
-            <button class="btn btn-outline-success btn-sm fw-bold" onclick="exportDuplicateCSV()">
-              <i class="fa-solid fa-file-csv me-1"></i> Export CSV
+            <button class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="openRawDataModal()">
+              <i class="fa-solid fa-eye me-1"></i> ดู Raw Data
+            </button>
+
+            <button class="btn btn-success btn-sm fw-bold shadow-sm" onclick="exportFullServerCSV()" title="Export ข้อมูลพัสดุตกค้างซ้ำทั้งหมด 100% จากเซิร์ฟเวอร์">
+              <i class="fa-solid fa-cloud-arrow-down me-1"></i> Export ทั้งหมด (Server)
+            </button>
+
+            <button class="btn btn-outline-success btn-sm fw-bold" onclick="exportDuplicateCSV()" title="Export เฉพาะข้อมูลที่กรองอยู่">
+              <i class="fa-solid fa-file-csv me-1"></i> Export กรอง
             </button>
           </div>
         </div>
@@ -394,6 +402,86 @@
 
       </div>
 
+      <!-- Full Raw Data Modal -->
+      <div class="modal fade" id="compareRawDataModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+          <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header text-white p-3" style="background:#0f172a;">
+              <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-database text-primary fs-5"></i>
+                <div>
+                  <h5 class="modal-title fw-bold mb-0 text-white">ตาราง Raw Data พัสดุตกค้างซ้ำข้ามรอบ (Stuck Backlog Raw Data)</h5>
+                  <div class="text-slate-400 small" id="rawModalSubTitle">แสดงรายการพัสดุที่พบซ้ำในทั้งสองรอบเวลา</div>
+                </div>
+              </div>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3 bg-light">
+              <!-- Modal Filter Bar -->
+              <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <div class="input-group input-group-sm" style="width: 240px;">
+                    <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                    <input type="text" id="rawModalSearchInput" class="form-control" placeholder="ค้นหา Tracking, สถานี, ผู้ยิง..." oninput="onRawModalFilterChanged()">
+                  </div>
+                  <select id="rawModalStationSelect" class="form-select form-select-sm" style="width: 160px;" onchange="onRawModalFilterChanged()">
+                    <option value="">ทุกสถานีปลายทาง</option>
+                  </select>
+                  <select id="rawModalActionSelect" class="form-select form-select-sm" style="width: 160px;" onchange="onRawModalFilterChanged()">
+                    <option value="">ทุก Action Flag</option>
+                  </select>
+                  <select id="rawModalPageSizeSelect" class="form-select form-select-sm" style="width: 120px;" onchange="onRawModalPageSizeChanged()">
+                    <option value="50">50 แถว/หน้า</option>
+                    <option value="100">100 แถว/หน้า</option>
+                    <option value="250">250 แถว/หน้า</option>
+                    <option value="500">500 แถว/หน้า</option>
+                  </select>
+                </div>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-sm btn-success fw-bold shadow-sm" onclick="exportFullServerCSV()">
+                    <i class="fa-solid fa-cloud-arrow-down me-1"></i> Export ทั้งหมด (Server)
+                  </button>
+                  <button class="btn btn-sm btn-outline-success fw-bold" onclick="exportDuplicateCSV()">
+                    <i class="fa-solid fa-file-csv me-1"></i> Export กรอง
+                  </button>
+                </div>
+              </div>
+
+              <!-- Modal Table -->
+              <div class="table-responsive bg-white rounded border shadow-sm" style="max-height: 520px; overflow-y: auto;">
+                <table class="table table-sm table-hover table-bordered mb-0 align-middle">
+                  <thead class="table-light sticky-top">
+                    <tr>
+                      <th style="width: 50px;">#</th>
+                      <th>Shipment ID (Tracking)</th>
+                      <th>สถานีปลายทาง</th>
+                      <th>Action Flag</th>
+                      <th>Timestamp (File 1)</th>
+                      <th>Timestamp (File 2)</th>
+                      <th class="text-center">Day in SOC</th>
+                      <th>ผู้ดำเนินการ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rawModalTableBody">
+                    <tr><td colspan="8" class="text-center py-4 text-muted">ไม่มีข้อมูล</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Modal Pagination -->
+              <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2 small text-muted">
+                <div id="rawModalPaginationInfo">แสดง 0 ถึง 0 จาก 0 รายการ</div>
+                <div class="d-flex align-items-center gap-1" id="rawModalPaginationButtons"></div>
+              </div>
+            </div>
+            <div class="modal-footer p-2 bg-light d-flex justify-content-between">
+              <div class="text-muted small" id="rawModalFooterNote">💡 คลิกไอคอน Copy ข้าง Tracking ID เพื่อคัดลอกได้ทันที</div>
+              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Empty / Initial Guide State -->
@@ -425,8 +513,11 @@
     let stationChartInstance = null;
     let actionChartInstance = null;
 
-    // Cache for client-side fallback parsing
-    const localFileRowsCache = {};
+    // Raw Modal State
+    let rawModalFilteredRecords = [];
+    let rawModalCurrentPage = 1;
+    let rawModalPageSize = 50;
+    let rawModalInstance = null;
 
     window.addEventListener('DOMContentLoaded', () => {
       fetchCompareFileList();
@@ -441,88 +532,97 @@
       const p1 = safeFetchJson('/api/list-compare-files');
       const p2 = safeFetchJson('/api/list-files');
 
-      Promise.allSettled([p1, p2])
-        .then(results => {
-          let files = [];
+      Promise.all([p1, p2])
+        .then(([data1, data2]) => {
+          const files1 = (data1 && data1.files) ? data1.files : [];
+          const files2 = (data2 && data2.files) ? data2.files : [];
           
-          if (results[0].status === 'fulfilled' && results[0].value && results[0].value.success) {
-            files = results[0].value.files || [];
-          } else if (results[1].status === 'fulfilled' && results[1].value && results[1].value.success) {
-            files = results[1].value.files || [];
-          }
-
-          availableFiles = files;
-          populateFileDropdowns(files);
-
-          if (files.length >= 2) {
-            showStatus(`✅ พร้อมเปรียบเทียบข้อมูล (พบ ${files.length} ไฟล์ในระบบ)`, 'success');
-            if (autoSelectRecent) {
-              document.getElementById('fileSelect1').value = files[1].filename;
-              document.getElementById('fileSelect2').value = files[0].filename;
-              executeCompare();
+          const map = new Map();
+          files1.forEach(f => map.set(f.filename, f));
+          files2.forEach(f => {
+            if (!map.has(f.filename) && f.filename.toLowerCase().includes('backlog')) {
+              map.set(f.filename, f);
             }
-          } else if (files.length === 1) {
-            showStatus(`พบ 1 ไฟล์ในระบบ กรุณาอัปโหลดอีก 1 ไฟล์เพื่อเปรียบเทียบ`, 'info');
-          } else {
-            showStatus('พร้อมสำหรับอัปโหลดไฟล์รายงาน Outbound Backlog เข้าสู่ระบบ', 'info');
+          });
+
+          availableFiles = Array.from(map.values()).sort((a, b) => (b.mtime || 0) - (a.mtime || 0));
+          populateFileDropdowns();
+          showStatus(`โหลดรายชื่อไฟล์สำเร็จ พบ ${availableFiles.length} ไฟล์ใน Backlog Shipment`, 'success');
+
+          if (autoSelectRecent && availableFiles.length >= 2) {
+            document.getElementById('fileSelect1').value = availableFiles[1].filename;
+            document.getElementById('fileSelect2').value = availableFiles[0].filename;
+            executeCompare();
           }
         })
         .catch(err => {
           console.error(err);
-          showStatus('ไม่สามารถเชื่อมต่อรายชื่อไฟล์จากเซิร์ฟเวอร์ได้ กำลังทำงานในโหมด Browser Local', 'info');
+          showStatus('ไม่สามารถโหลดรายชื่อไฟล์ได้ กรุณาลองใหม่อีกครั้ง', 'error');
         });
     }
 
-    function populateFileDropdowns(files) {
-      const select1 = document.getElementById('fileSelect1');
-      const select2 = document.getElementById('fileSelect2');
+    function populateFileDropdowns() {
+      const s1 = document.getElementById('fileSelect1');
+      const s2 = document.getElementById('fileSelect2');
 
-      const val1 = select1.value;
-      const val2 = select2.value;
+      const v1 = s1.value;
+      const v2 = s2.value;
 
-      let optionsHtml = '<option value="">-- เลือกไฟล์รายงาน --</option>';
-      files.forEach(f => {
-        const sizeKb = f.size ? ` (${(f.size / 1024).toFixed(0)} KB)` : '';
-        optionsHtml += `<option value="${f.filename}">📄 ${f.filename}${sizeKb}</option>`;
+      let html1 = '<option value="">-- เลือกไฟล์รอบแรก (Base Snapshot) --</option>';
+      let html2 = '<option value="">-- เลือกไฟล์รอบสอง (Compare Snapshot) --</option>';
+
+      availableFiles.forEach(f => {
+        const sizeStr = f.size ? ` (${Math.round(f.size / 1024)} KB)` : '';
+        html1 += `<option value="${f.filename}">${f.filename}${sizeStr}</option>`;
+        html2 += `<option value="${f.filename}">${f.filename}${sizeStr}</option>`;
       });
 
-      select1.innerHTML = optionsHtml;
-      select2.innerHTML = optionsHtml;
+      s1.innerHTML = html1;
+      s2.innerHTML = html2;
 
-      if (val1 && files.some(f => f.filename === val1)) select1.value = val1;
-      if (val2 && files.some(f => f.filename === val2)) select2.value = val2;
-    }
+      if (v1 && Array.from(s1.options).some(o => o.value === v1)) s1.value = v1;
+      else if (availableFiles.length >= 2) s1.value = availableFiles[1].filename;
 
-    function onFileSelectionChanged() {
-      const f1 = document.getElementById('fileSelect1').value;
-      const f2 = document.getElementById('fileSelect2').value;
-
-      if (f1 && f2 && f1 !== f2) {
-        // Auto trigger or notify ready
-        showStatus(`พร้อมเปรียบเทียบระหว่าง "${f1}" และ "${f2}"`, 'info');
-      }
+      if (v2 && Array.from(s2.options).some(o => o.value === v2)) s2.value = v2;
+      else if (availableFiles.length >= 1) s2.value = availableFiles[0].filename;
     }
 
     function swapFiles() {
       const s1 = document.getElementById('fileSelect1');
       const s2 = document.getElementById('fileSelect2');
-      const tmp = s1.value;
+      const temp = s1.value;
       s1.value = s2.value;
-      s2.value = tmp;
+      s2.value = temp;
 
-      if (s1.value && s2.value && s1.value !== s2.value) {
+      if (s1.value && s2.value) {
         executeCompare();
       }
     }
 
     // =========================================================================
-    // 2. UPLOAD LOGIC (Chunked Upload directly to Backlog Shipment folder)
+    // 2. FILE UPLOAD (Chunked 1MB for Big Files)
     // =========================================================================
     async function handleFileUpload(file) {
       if (!file) return;
 
       const fn = file.name;
-      const CHUNK_SIZE = 1024 * 1024; // 1MB chunks (high stability across proxy & cloud preview)
+      const ext = fn.split('.').pop().toLowerCase();
+      if (!['csv', 'xlsx', 'xls'].includes(ext)) {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({
+            icon: 'warning',
+            title: 'รูปแบบไฟล์ไม่ถูกต้อง',
+            text: 'กรุณาอัปโหลดไฟล์ประเภท .csv, .xlsx หรือ .xls เท่านั้น',
+            background: '#0d1b2a',
+            color: '#ffffff'
+          });
+        } else {
+          alert('กรุณาอัปโหลดไฟล์ CSV หรือ Excel เท่านั้น');
+        }
+        return;
+      }
+
+      const CHUNK_SIZE = 1024 * 1024;
       const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
       showStatus(`กำลังอัปโหลด "${fn}" เข้าโฟลเดอร์ Backlog Shipment (0%)...`, 'loading');
@@ -596,7 +696,6 @@
       }
       showStatus(`✅ อัปโหลด "${filename}" เข้าสู่ Backlog Shipment สำเร็จ`, 'success');
       
-      // Auto refresh file list and auto-select
       fetchCompareFileList();
       setTimeout(() => {
         const s1 = document.getElementById('fileSelect1');
@@ -610,11 +709,12 @@
     }
 
     // =========================================================================
-    // 3. DELETE FILE LOGIC (Server-side Backlog Shipment deletion)
+    // 3. FILE DELETION
     // =========================================================================
-    function deleteSelectedFile(selectId) {
-      const selectEl = document.getElementById(selectId);
-      const filename = selectEl ? selectEl.value : '';
+    function deleteSelectedFile(selectIdOrSlot) {
+      let selectId = typeof selectIdOrSlot === 'number' ? (selectIdOrSlot === 1 ? 'fileSelect1' : 'fileSelect2') : (selectIdOrSlot || 'fileSelect1');
+      const select = document.getElementById(selectId);
+      const filename = select ? select.value : '';
 
       if (!filename) {
         if (typeof Swal !== 'undefined') {
@@ -625,54 +725,53 @@
         return;
       }
 
-      const runDelete = () => {
+      const confirmDelete = () => {
         showStatus(`กำลังลบไฟล์ "${filename}"...`, 'loading');
-        
         safeFetchJson('/api/delete-compare-file', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ filename: filename })
         })
-        .then(data => {
-          if (data.success) {
-            if (typeof Swal !== 'undefined') {
-              Swal.fire({ title: 'ลบไฟล์สำเร็จ!', text: `ลบไฟล์ "${filename}" ออกจากระบบเรียบร้อย`, icon: 'success', confirmButtonColor: '#10b981', background: '#0d1b2a', color: '#fff' });
+          .then(data => {
+            if (data.success) {
+              if (typeof Swal !== 'undefined') {
+                Swal.fire({ title: 'ลบไฟล์สำเร็จ!', text: `ลบไฟล์ "${filename}" ออกจากระบบเรียบร้อย`, icon: 'success', confirmButtonColor: '#10b981', background: '#0d1b2a', color: '#fff' });
+              }
+              showStatus(`ลบไฟล์ "${filename}" สำเร็จ`, 'success');
+              fetchCompareFileList();
+            } else {
+              showStatus(`ลบไฟล์ไม่สำเร็จ: ${data.error}`, 'error');
             }
-            showStatus(`✅ ลบไฟล์ "${filename}" เรียบร้อยแล้ว`, 'success');
-            fetchCompareFileList();
-          } else {
-            showStatus(`ไม่สามารถลบไฟล์ได้: ${data.error}`, 'error');
-          }
-        })
-        .catch(err => {
-          showStatus(`เกิดข้อผิดพลาดในการลบ: ${err.message}`, 'error');
-        });
+          })
+          .catch(err => {
+            showStatus(`เกิดข้อผิดพลาด: ${err.message}`, 'error');
+          });
       };
 
       if (typeof Swal !== 'undefined') {
         Swal.fire({
-          title: '⚠️ ยืนยันการลบไฟล์?',
-          html: `คุณต้องการลบไฟล์ <b>"${filename}"</b> ออกจากโฟลเดอร์ Backlog Shipment ใช่หรือไม่?`,
+          title: 'ยืนยันการลบไฟล์?',
+          text: `คุณต้องการลบไฟล์ "${filename}" ออกจากโฟลเดอร์ Backlog Shipment หรือไม่?`,
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#dc2626',
-          cancelButtonColor: '#64748b',
-          confirmButtonText: '<i class="fa-solid fa-trash me-1"></i> ยืนยันลบไฟล์',
+          cancelButtonColor: '#475569',
+          confirmButtonText: 'ใช่, ลบไฟล์นี้',
           cancelButtonText: 'ยกเลิก',
           background: '#0d1b2a',
           color: '#ffffff'
-        }).then(result => {
-          if (result.isConfirmed) runDelete();
+        }).then((result) => {
+          if (result.isConfirmed) confirmDelete();
         });
       } else {
-        if (confirm(`⚠️ ยืนยันการลบไฟล์ "${filename}" ออกจากระบบ?`)) {
-          runDelete();
+        if (confirm(`คุณต้องการลบไฟล์ "${filename}" หรือไม่?`)) {
+          confirmDelete();
         }
       }
     }
 
     // =========================================================================
-    // 4. COMPARISON LOGIC (Strictly Server-Side Backend Python Engine)
+    // 4. COMPARISON LOGIC
     // =========================================================================
     function executeCompare() {
       const file1 = document.getElementById('fileSelect1').value;
@@ -693,7 +792,6 @@
       const btn = document.getElementById('btnRunCompare');
       if (btn) btn.disabled = true;
 
-      // Call Backend Compare API
       safeFetchJson(`/api/compare-ob-bl?filename1=${encodeURIComponent(file1)}&filename2=${encodeURIComponent(file2)}`)
         .then(data => {
           if (btn) btn.disabled = false;
@@ -726,11 +824,9 @@
       compareResultData = data;
       filteredRecords = data.duplicates || [];
 
-      // Switch Visibility
       document.getElementById('initialGuideArea').style.display = 'none';
       document.getElementById('compareResultsArea').style.display = 'block';
 
-      // Update KPIs
       const stuckCount = data.duplicate_count || 0;
       const file1Ob = (data.file1 && data.file1.ob_rows) ? data.file1.ob_rows : (stuckCount || 1);
       const file2Ob = (data.file2 && data.file2.ob_rows) ? data.file2.ob_rows : 0;
@@ -745,14 +841,11 @@
       document.getElementById('kpiFile1Name').innerText = data.file1 ? `Base: ${data.file1.filename}` : 'File 1';
       document.getElementById('kpiFile2Name').innerText = data.file2 ? `Compare: ${data.file2.filename}` : 'File 2';
 
-      // Populate Filter Dropdowns
       populateTableFilters(data.station_breakdown, data.action_breakdown);
 
-      // Render Charts
       renderStationChart(data.station_breakdown);
       renderActionChart(data.action_breakdown);
 
-      // Render Table
       currentPage = 1;
       renderTablePage();
     }
@@ -761,7 +854,6 @@
       const stationSelect = document.getElementById('stationFilterSelect');
       const actionSelect = document.getElementById('actionFilterSelect');
 
-      // Station Options
       const stations = Object.keys(stationMap).sort((a, b) => stationMap[b] - stationMap[a]);
       let stHtml = '<option value="">ทุกสถานีปลายทาง</option>';
       stations.forEach(st => {
@@ -769,7 +861,6 @@
       });
       stationSelect.innerHTML = stHtml;
 
-      // Action Options
       const actions = Object.keys(actionMap).sort((a, b) => actionMap[b] - actionMap[a]);
       let actHtml = '<option value="">ทุกประเภท Action</option>';
       actions.forEach(act => {
@@ -778,7 +869,6 @@
       actionSelect.innerHTML = actHtml;
     }
 
-    // Chart: Top Stations
     function renderStationChart(stationMap = {}) {
       const ctx = document.getElementById('stationChart').getContext('2d');
       if (stationChartInstance) stationChartInstance.destroy();
@@ -798,7 +888,8 @@
             label: 'จำนวนพัสดุตกค้างซ้ำ (ชิ้น)',
             data: counts,
             backgroundColor: 'rgba(37, 99, 235, 0.85)',
-            hoverBackgroundColor: '#1d4ed8',
+            borderColor: '#2563eb',
+            borderWidth: 1,
             borderRadius: 6
           }]
         },
@@ -809,36 +900,47 @@
             legend: { display: false },
             tooltip: {
               callbacks: {
-                title: (items) => sorted[items[0].dataIndex][0],
-                label: (item) => ` ตกค้างซ้ำ: ${item.raw.toLocaleString()} ชิ้น`
+                title: (tooltipItems) => sorted[tooltipItems[0].dataIndex][0],
+                label: (context) => `ตกค้างซ้ำ: ${context.parsed.y.toLocaleString()} ชิ้น`
               }
             }
           },
           scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-            y: { beginAtZero: true, grid: { color: '#f1f5f9' } }
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 25 }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                font: { size: 10 },
+                callback: (val) => val.toLocaleString()
+              }
+            }
           }
         }
       });
     }
 
-    // Chart: Action Flags
     function renderActionChart(actionMap = {}) {
       const ctx = document.getElementById('actionChart').getContext('2d');
       if (actionChartInstance) actionChartInstance.destroy();
 
       const entries = Object.entries(actionMap).sort((a, b) => b[1] - a[1]);
-      const labels = entries.map(item => item[0]);
-      const counts = entries.map(item => item[1]);
+      const labels = entries.map(e => e[0]);
+      const data = entries.map(e => e[1]);
 
-      const colors = ['#3b82f6', '#f59e0b', '#ef4444', '#10b981', '#8b5cf6', '#64748b'];
+      const colors = [
+        '#3b82f6', '#f59e0b', '#ef4444', '#10b981', '#8b5cf6',
+        '#ec4899', '#06b6d4', '#64748b'
+      ];
 
       actionChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
           labels: labels,
           datasets: [{
-            data: counts,
+            data: data,
             backgroundColor: colors.slice(0, labels.length),
             borderWidth: 2,
             borderColor: '#ffffff'
@@ -851,30 +953,42 @@
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: (item) => ` ${item.label}: ${item.raw.toLocaleString()} ชิ้น`
+                label: (context) => {
+                  const total = data.reduce((a, b) => a + b, 0);
+                  const val = context.parsed;
+                  const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                  return ` ${context.label}: ${val.toLocaleString()} ชิ้น (${pct}%)`;
+                }
               }
             }
           },
-          cutout: '65%'
+          cutout: '68%'
         }
       });
 
-      // Legend list
-      const legEl = document.getElementById('actionLegendList');
-      legEl.innerHTML = entries.map((item, i) => `
-        <div class="d-flex justify-content-between align-items-center mb-1">
-          <span class="d-flex align-items-center gap-2">
-            <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${colors[i % colors.length]};"></span>
-            <span class="text-truncate" style="max-width: 170px;">${item[0]}</span>
-          </span>
-          <span class="fw-bold text-dark">${item[1].toLocaleString()}</span>
-        </div>
-      `).join('');
+      const legendEl = document.getElementById('actionLegendList');
+      if (legendEl) {
+        let legHtml = '<div class="d-flex flex-column gap-1 mt-1">';
+        entries.slice(0, 5).forEach((e, idx) => {
+          const color = colors[idx % colors.length];
+          const displayLabel = e[0].length > 22 ? e[0].slice(0, 20) + '...' : e[0];
+          legHtml += `
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="d-flex align-items-center text-truncate" style="max-width: 170px;">
+                <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${color}; margin-right:6px;"></span>
+                <span class="text-muted" title="${e[0]}">${displayLabel}</span>
+              </span>
+              <span class="fw-bold text-dark">${e[1].toLocaleString()}</span>
+            </div>
+          `;
+        });
+        legHtml += '</div>';
+        legendEl.innerHTML = legHtml;
+      }
     }
 
-    // Table Filtering & Pagination
     function onFilterChanged() {
-      const search = (document.getElementById('tableSearchInput').value || '').toLowerCase().trim();
+      const search = document.getElementById('tableSearchInput').value.trim().toLowerCase();
       const station = document.getElementById('stationFilterSelect').value;
       const action = document.getElementById('actionFilterSelect').value;
 
@@ -935,7 +1049,6 @@
         `;
       }).join('');
 
-      // Update Pagination UI
       document.getElementById('paginationInfo').innerText = `แสดง ${start + 1} ถึง ${end} จาก ${total.toLocaleString()} รายการ`;
 
       let btnsHtml = '';
@@ -966,8 +1079,162 @@
     }
 
     // =========================================================================
-    // 6. EXPORT CSV
+    // 6. RAW DATA MODAL
     // =========================================================================
+    function openRawDataModal() {
+      if (!compareResultData || !compareResultData.duplicates) {
+        alert('กรุณาประมวลผลเปรียบเทียบข้อมูลก่อนดู Raw Data');
+        return;
+      }
+
+      const totalStuck = (compareResultData.duplicate_count || 0).toLocaleString();
+      document.getElementById('rawModalSubTitle').innerText = `พบพัสดุตกค้างซ้ำทั้งหมด ${totalStuck} รายการ (แสดงตัวอย่าง Raw Data ในระบบ)`;
+
+      const stSelect = document.getElementById('rawModalStationSelect');
+      const stationMap = compareResultData.station_breakdown || {};
+      const stations = Object.keys(stationMap).sort((a, b) => stationMap[b] - stationMap[a]);
+      let stHtml = '<option value="">ทุกสถานีปลายทาง</option>';
+      stations.forEach(st => {
+        stHtml += `<option value="${st}">${st} (${stationMap[st].toLocaleString()})</option>`;
+      });
+      stSelect.innerHTML = stHtml;
+
+      const actSelect = document.getElementById('rawModalActionSelect');
+      const actionMap = compareResultData.action_breakdown || {};
+      const actions = Object.keys(actionMap).sort((a, b) => actionMap[b] - actionMap[a]);
+      let actHtml = '<option value="">ทุก Action Flag</option>';
+      actions.forEach(act => {
+        actHtml += `<option value="${act}">${act} (${actionMap[act].toLocaleString()})</option>`;
+      });
+      actSelect.innerHTML = actHtml;
+
+      document.getElementById('rawModalSearchInput').value = '';
+      stSelect.value = '';
+      actSelect.value = '';
+      rawModalFilteredRecords = compareResultData.duplicates || [];
+      rawModalCurrentPage = 1;
+      rawModalPageSize = parseInt(document.getElementById('rawModalPageSizeSelect').value, 10) || 50;
+
+      renderRawModalTable();
+
+      if (!rawModalInstance) {
+        rawModalInstance = new bootstrap.Modal(document.getElementById('compareRawDataModal'));
+      }
+      rawModalInstance.show();
+    }
+
+    function onRawModalFilterChanged() {
+      const search = (document.getElementById('rawModalSearchInput').value || '').trim().toLowerCase();
+      const station = document.getElementById('rawModalStationSelect').value;
+      const action = document.getElementById('rawModalActionSelect').value;
+      const all = (compareResultData && compareResultData.duplicates) || [];
+
+      rawModalFilteredRecords = all.filter(r => {
+        if (station && r.station !== station) return false;
+        if (action && r.action_flag !== action) return false;
+        if (search) {
+          const matchId = String(r.shipment_id || '').toLowerCase().includes(search);
+          const matchSt = String(r.station || '').toLowerCase().includes(search);
+          const matchOp = String(r.operator || '').toLowerCase().includes(search);
+          if (!matchId && !matchSt && !matchOp) return false;
+        }
+        return true;
+      });
+
+      rawModalCurrentPage = 1;
+      renderRawModalTable();
+    }
+
+    function onRawModalPageSizeChanged() {
+      rawModalPageSize = parseInt(document.getElementById('rawModalPageSizeSelect').value, 10) || 50;
+      rawModalCurrentPage = 1;
+      renderRawModalTable();
+    }
+
+    function renderRawModalTable() {
+      const tbody = document.getElementById('rawModalTableBody');
+      const total = rawModalFilteredRecords.length;
+
+      if (total === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูลตามเงื่อนไขที่ค้นหา</td></tr>';
+        document.getElementById('rawModalPaginationInfo').innerText = 'แสดง 0 จาก 0 รายการ';
+        document.getElementById('rawModalPaginationButtons').innerHTML = '';
+        return;
+      }
+
+      const totalPages = Math.ceil(total / rawModalPageSize);
+      if (rawModalCurrentPage > totalPages) rawModalCurrentPage = totalPages;
+
+      const start = (rawModalCurrentPage - 1) * rawModalPageSize;
+      const end = Math.min(start + rawModalPageSize, total);
+      const pageData = rawModalFilteredRecords.slice(start, end);
+
+      tbody.innerHTML = pageData.map((r, i) => {
+        const actionBadge = getActionBadge(r.action_flag);
+        return `
+          <tr>
+            <td class="text-muted small">${start + i + 1}</td>
+            <td class="fw-bold text-dark">
+              <span>${r.shipment_id || '-'}</span>
+              <button class="btn btn-link btn-sm p-0 ms-1 text-muted" onclick="navigator.clipboard.writeText('${r.shipment_id}')" title="คัดลอก Tracking">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </td>
+            <td><span class="fw-semibold">${r.station || '-'}</span></td>
+            <td>${actionBadge}</td>
+            <td class="small text-muted">${r.file1_timestamp || '-'}</td>
+            <td class="small text-primary fw-bold">${r.file2_timestamp || '-'}</td>
+            <td class="text-center"><span class="badge bg-light text-dark border">${r.day_in_soc || '-'}</span></td>
+            <td class="small text-muted">${r.operator || '-'}</td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('rawModalPaginationInfo').innerText = `แสดง ${start + 1} ถึง ${end} จาก ${total.toLocaleString()} รายการ`;
+
+      let btnsHtml = '';
+      if (rawModalCurrentPage > 1) {
+        btnsHtml += `<button class="btn btn-outline-secondary btn-sm px-2 py-0" onclick="goToRawModalPage(${rawModalCurrentPage - 1})">ก่อนหน้า</button>`;
+      }
+      btnsHtml += `<span class="px-2 fw-bold text-dark">หน้า ${rawModalCurrentPage} / ${totalPages}</span>`;
+      if (rawModalCurrentPage < totalPages) {
+        btnsHtml += `<button class="btn btn-outline-secondary btn-sm px-2 py-0" onclick="goToRawModalPage(${rawModalCurrentPage + 1})">ถัดไป</button>`;
+      }
+      document.getElementById('rawModalPaginationButtons').innerHTML = btnsHtml;
+    }
+
+    function goToRawModalPage(page) {
+      rawModalCurrentPage = page;
+      renderRawModalTable();
+    }
+
+    // =========================================================================
+    // 7. EXPORT CSV
+    // =========================================================================
+    function exportFullServerCSV() {
+      const file1 = document.getElementById('fileSelect1').value;
+      const file2 = document.getElementById('fileSelect2').value;
+
+      if (!file1 || !file2) {
+        alert('กรุณาเลือกไฟล์ที่ต้องการเปรียบเทียบก่อน');
+        return;
+      }
+
+      showStatus('⚡ กำลังดาวน์โหลดไฟล์ CSV รายการตกค้างซ้ำทั้งหมด 100% จากเซิร์ฟเวอร์...', 'loading');
+      const url = `/api/export-compare-ob-bl?filename1=${encodeURIComponent(file1)}&filename2=${encodeURIComponent(file2)}`;
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', '');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setTimeout(() => {
+        showStatus('✅ เริ่มดาวน์โหลดไฟล์ CSV รายการตกค้างซ้ำทั้งหมดเรียบร้อยแล้ว', 'success');
+      }, 1000);
+    }
+
     function exportDuplicateCSV() {
       if (!filteredRecords || filteredRecords.length === 0) {
         alert('ไม่มีข้อมูลสำหรับ Export');

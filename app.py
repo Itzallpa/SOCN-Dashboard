@@ -4047,6 +4047,88 @@ def delete_compare_or_upload_file():
         return jsonify({"success": False, "error": f"ไม่พบไฟล์ {safe_fn} บนเซิร์ฟเวอร์"}), 404
 
 @app.route("/api/compare-ob-bl", methods=["GET", "POST"])
+def load_and_prep_compare_df(file_path):
+    if file_path.lower().endswith(('.xlsx', '.xls')):
+        raw_df = read_dataframe(file_path)
+    else:
+        try:
+            raw_df = pd.read_csv(file_path, low_memory=False, on_bad_lines='skip', dtype=str, encoding='utf-8-sig')
+        except Exception:
+            try:
+                raw_df = pd.read_csv(file_path, low_memory=False, on_bad_lines='skip', dtype=str, encoding='cp874')
+            except Exception:
+                raw_df = read_dataframe(file_path)
+
+    total_file_rows = len(raw_df)
+    if total_file_rows == 0:
+        empty_df = pd.DataFrame(columns=["shipment_id", "action_flag", "timestamp", "day_in_soc", "station", "operator"])
+        return 0, 0, empty_df
+
+    col_map = {}
+    for col in raw_df.columns:
+        c_clean = str(col).strip().lower().replace("_", " ")
+        if ("shipment" in c_clean or "tracking" in c_clean or c_clean == "col 1") and "shipment_id" not in col_map:
+            col_map["shipment_id"] = col
+        if ("action" in c_clean or "flag" in c_clean) and "action_flag" not in col_map:
+            col_map["action_flag"] = col
+        if ("timestamp" in c_clean or "status time" in c_clean or ("time" in c_clean and "snap" not in c_clean)) and "timestamp" not in col_map:
+            col_map["timestamp"] = col
+        if ("day in soc" in c_clean or "day in hub" in c_clean or "aging" in c_clean or c_clean == "day") and "day_in_soc" not in col_map:
+            col_map["day_in_soc"] = col
+        if (("station" in c_clean and "soc" not in c_clean) or "awb" in c_clean) and "station" not in col_map:
+            col_map["station"] = col
+        if ("operator" in c_clean or "user" in c_clean) and "operator" not in col_map:
+            col_map["operator"] = col
+
+    cols = list(raw_df.columns)
+    if "shipment_id" not in col_map and len(cols) > 1: col_map["shipment_id"] = cols[1]
+    if "action_flag" not in col_map and len(cols) > 12: col_map["action_flag"] = cols[12]
+    if "timestamp" not in col_map and len(cols) > 7: col_map["timestamp"] = cols[7]
+    if "day_in_soc" not in col_map and len(cols) > 13: col_map["day_in_soc"] = cols[13]
+    if "station" not in col_map and len(cols) > 4: col_map["station"] = cols[4]
+    if "operator" not in col_map and len(cols) > 8: col_map["operator"] = cols[8]
+
+    s_col = col_map.get("shipment_id") or (cols[0] if cols else None)
+    
+    slim = pd.DataFrame()
+    slim["shipment_id"] = raw_df[s_col].astype(str).str.strip() if s_col in raw_df.columns else ""
+    slim = slim[slim["shipment_id"].ne("") & slim["shipment_id"].ne("nan") & slim["shipment_id"].ne("None")]
+
+    if "action_flag" in col_map and col_map["action_flag"] in raw_df.columns:
+        slim["action_flag"] = raw_df[col_map["action_flag"]].fillna('').astype(str).str.strip()
+    else:
+        slim["action_flag"] = "_03_pending_linehual_packed"
+
+    if "timestamp" in col_map and col_map["timestamp"] in raw_df.columns:
+        slim["timestamp"] = raw_df[col_map["timestamp"]].fillna('').astype(str).str.strip()
+    else:
+        slim["timestamp"] = ""
+
+    if "day_in_soc" in col_map and col_map["day_in_soc"] in raw_df.columns:
+        slim["day_in_soc"] = raw_df[col_map["day_in_soc"]].fillna('').astype(str).str.strip()
+    else:
+        slim["day_in_soc"] = "-"
+
+    if "station" in col_map and col_map["station"] in raw_df.columns:
+        slim["station"] = raw_df[col_map["station"]].fillna('').astype(str).str.strip()
+    else:
+        slim["station"] = "-"
+
+    if "operator" in col_map and col_map["operator"] in raw_df.columns:
+        slim["operator"] = raw_df[col_map["operator"]].fillna('').astype(str).str.strip()
+    else:
+        slim["operator"] = "-"
+
+    del raw_df
+
+    ob_pattern = r'_02_pending_packed|_03_pending_linehual_packed|_04_pending_reworked|packed|linehual|linehaul|rework|pending|skip'
+    is_ob_mask = slim["action_flag"].eq("") | slim["action_flag"].str.contains(ob_pattern, case=False, na=False, regex=True)
+    ob_df = slim[is_ob_mask].drop_duplicates(subset=["shipment_id"], keep="last")
+    del slim
+
+    return total_file_rows, len(ob_df), ob_df
+
+@app.route("/api/compare-ob-bl", methods=["GET", "POST"])
 def api_compare_ob_bl():
     req_json = request.get_json(silent=True) or {}
     file1 = (request.args.get("filename1") or req_json.get("filename1") or "").strip()
@@ -4068,89 +4150,6 @@ def api_compare_ob_bl():
 
     try:
         import gc
-
-        def load_and_prep_compare_df(file_path):
-            if file_path.lower().endswith(('.xlsx', '.xls')):
-                raw_df = read_dataframe(file_path)
-            else:
-                try:
-                    raw_df = pd.read_csv(file_path, low_memory=False, on_bad_lines='skip', dtype=str, encoding='utf-8-sig')
-                except Exception:
-                    try:
-                        raw_df = pd.read_csv(file_path, low_memory=False, on_bad_lines='skip', dtype=str, encoding='cp874')
-                    except Exception:
-                        raw_df = read_dataframe(file_path)
-
-            total_file_rows = len(raw_df)
-            if total_file_rows == 0:
-                empty_df = pd.DataFrame(columns=["shipment_id", "action_flag", "timestamp", "day_in_soc", "station", "operator"])
-                return 0, 0, empty_df
-
-            # Find matching column names
-            col_map = {}
-            for col in raw_df.columns:
-                c_clean = str(col).strip().lower().replace("_", " ")
-                if ("shipment" in c_clean or "tracking" in c_clean or c_clean == "col 1") and "shipment_id" not in col_map:
-                    col_map["shipment_id"] = col
-                if ("action" in c_clean or "flag" in c_clean) and "action_flag" not in col_map:
-                    col_map["action_flag"] = col
-                if ("timestamp" in c_clean or "status time" in c_clean or ("time" in c_clean and "snap" not in c_clean)) and "timestamp" not in col_map:
-                    col_map["timestamp"] = col
-                if ("day in soc" in c_clean or "day in hub" in c_clean or "aging" in c_clean or c_clean == "day") and "day_in_soc" not in col_map:
-                    col_map["day_in_soc"] = col
-                if (("station" in c_clean and "soc" not in c_clean) or "awb" in c_clean) and "station" not in col_map:
-                    col_map["station"] = col
-                if ("operator" in c_clean or "user" in c_clean) and "operator" not in col_map:
-                    col_map["operator"] = col
-
-            cols = list(raw_df.columns)
-            if "shipment_id" not in col_map and len(cols) > 1: col_map["shipment_id"] = cols[1]
-            if "action_flag" not in col_map and len(cols) > 12: col_map["action_flag"] = cols[12]
-            if "timestamp" not in col_map and len(cols) > 7: col_map["timestamp"] = cols[7]
-            if "day_in_soc" not in col_map and len(cols) > 13: col_map["day_in_soc"] = cols[13]
-            if "station" not in col_map and len(cols) > 4: col_map["station"] = cols[4]
-            if "operator" not in col_map and len(cols) > 8: col_map["operator"] = cols[8]
-
-            s_col = col_map.get("shipment_id") or (cols[0] if cols else None)
-            
-            slim = pd.DataFrame()
-            slim["shipment_id"] = raw_df[s_col].astype(str).str.strip() if s_col in raw_df.columns else ""
-            slim = slim[slim["shipment_id"].ne("") & slim["shipment_id"].ne("nan") & slim["shipment_id"].ne("None")]
-
-            if "action_flag" in col_map and col_map["action_flag"] in raw_df.columns:
-                slim["action_flag"] = raw_df[col_map["action_flag"]].fillna('').astype(str).str.strip()
-            else:
-                slim["action_flag"] = "_03_pending_linehual_packed"
-
-            if "timestamp" in col_map and col_map["timestamp"] in raw_df.columns:
-                slim["timestamp"] = raw_df[col_map["timestamp"]].fillna('').astype(str).str.strip()
-            else:
-                slim["timestamp"] = ""
-
-            if "day_in_soc" in col_map and col_map["day_in_soc"] in raw_df.columns:
-                slim["day_in_soc"] = raw_df[col_map["day_in_soc"]].fillna('').astype(str).str.strip()
-            else:
-                slim["day_in_soc"] = "-"
-
-            if "station" in col_map and col_map["station"] in raw_df.columns:
-                slim["station"] = raw_df[col_map["station"]].fillna('').astype(str).str.strip()
-            else:
-                slim["station"] = "-"
-
-            if "operator" in col_map and col_map["operator"] in raw_df.columns:
-                slim["operator"] = raw_df[col_map["operator"]].fillna('').astype(str).str.strip()
-            else:
-                slim["operator"] = "-"
-
-            del raw_df
-
-            ob_pattern = r'_02_pending_packed|_03_pending_linehual_packed|_04_pending_reworked|packed|linehual|linehaul|rework|pending|skip'
-            is_ob_mask = slim["action_flag"].eq("") | slim["action_flag"].str.contains(ob_pattern, case=False, na=False, regex=True)
-            ob_df = slim[is_ob_mask].drop_duplicates(subset=["shipment_id"], keep="last")
-            del slim
-
-            return total_file_rows, len(ob_df), ob_df
-
         total_rows1, ob_rows1, df1 = load_and_prep_compare_df(path1)
         total_rows2, ob_rows2, df2 = load_and_prep_compare_df(path2)
 
@@ -4198,6 +4197,63 @@ def api_compare_ob_bl():
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการเปรียบเทียบไฟล์: {str(e)}"}), 500
+
+@app.route("/api/export-compare-ob-bl", methods=["GET"])
+def api_export_compare_ob_bl():
+    file1 = (request.args.get("filename1") or "").strip()
+    file2 = (request.args.get("filename2") or "").strip()
+
+    if not file1 or not file2:
+        return jsonify({"success": False, "error": "กรุณาระบุชื่อไฟล์ทั้ง 2 ไฟล์"}), 400
+
+    path1 = os.path.join(BACKLOG_COMPARE_FOLDER, file1)
+    if not os.path.exists(path1): path1 = os.path.join(UPLOAD_FOLDER, file1)
+    if not os.path.exists(path1): path1 = os.path.join(BASE_DIR, file1)
+
+    path2 = os.path.join(BACKLOG_COMPARE_FOLDER, file2)
+    if not os.path.exists(path2): path2 = os.path.join(UPLOAD_FOLDER, file2)
+    if not os.path.exists(path2): path2 = os.path.join(BASE_DIR, file2)
+
+    if not os.path.exists(path1) or not os.path.exists(path2):
+        return jsonify({"success": False, "error": "ไม่พบไฟล์บนเซิร์ฟเวอร์"}), 404
+
+    try:
+        import gc
+        total_rows1, ob_rows1, df1 = load_and_prep_compare_df(path1)
+        total_rows2, ob_rows2, df2 = load_and_prep_compare_df(path2)
+
+        merged = pd.merge(df1, df2, on="shipment_id", suffixes=("_f1", "_f2"), how="inner")
+        
+        export_df = pd.DataFrame()
+        export_df["No"] = range(1, len(merged) + 1)
+        export_df["Shipment_ID"] = merged["shipment_id"]
+        export_df["Destination_Station"] = merged["station_f2"].where(merged["station_f2"].ne("") & merged["station_f2"].ne("-"), merged["station_f1"]).replace("", "-")
+        export_df["Action_Flag"] = merged["action_flag_f2"].where(merged["action_flag_f2"].ne("") & merged["action_flag_f2"].ne("-"), merged["action_flag_f1"]).replace("", "-")
+        export_df["Timestamp_File1"] = merged["timestamp_f1"].replace("", "-")
+        export_df["Timestamp_File2"] = merged["timestamp_f2"].replace("", "-")
+        export_df["Day_In_SOC"] = merged["day_in_soc_f2"].where(merged["day_in_soc_f2"].ne("") & merged["day_in_soc_f2"].ne("-"), merged["day_in_soc_f1"]).replace("", "-")
+        export_df["Operator"] = merged["operator_f2"].where(merged["operator_f2"].ne("") & merged["operator_f2"].ne("-"), merged["operator_f1"]).replace("", "-")
+
+        csv_buf = io.StringIO()
+        csv_buf.write('\ufeff')  # BOM for Excel
+        export_df.to_csv(csv_buf, index=False, encoding='utf-8')
+        csv_data = csv_buf.getvalue().encode('utf-8')
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"OB_BACKLOG_DUPLICATES_FULL_{len(merged)}_{timestamp}.csv"
+
+        del df1, df2, merged, export_df
+        gc.collect()
+
+        response = app.response_class(
+            response=csv_data,
+            status=200,
+            mimetype='text/csv; charset=utf-8'
+        )
+        response.headers["Content-Disposition"] = f"attachment; filename=\"{filename}\""
+        return response
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Error exporting CSV: {str(e)}"}), 500
 
 @app.route("/")
 def index_page():
