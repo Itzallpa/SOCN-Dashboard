@@ -384,7 +384,9 @@
           clearTimeout(timeoutId);
           if (data && data.success) {
             latestSyncedData = data;
-            if (data.rows && data.rows.length > 0) {
+            if (data.outboundRawRows && data.outboundRawRows.length > 0) {
+              rawTripRecords = data.outboundRawRows;
+            } else if (data.rows && data.rows.length > 0) {
               rawTripRecords = data.rows;
             }
             renderRealSummaryData(data);
@@ -627,9 +629,9 @@
       }
 
       const s = String(timeStr).trim();
-      if (!s) return null;
+      if (!s || s === '-' || s.toLowerCase() === 'nan') return null;
 
-      // 2. กรณีเป็น ISO Date String หรือ Date String แบบเต็ม
+      // 2. กรณีเป็น ISO Date String หรือ Date String แบบเต็ม (เช่น 2026-09-10T16:05:00)
       if (s.includes('T') || s.includes('GMT') || s.includes('Z')) {
         const d = new Date(s);
         if (!isNaN(d.getTime())) {
@@ -637,28 +639,30 @@
         }
       }
 
-      // 3. กรณีเป็นตัวเลขทศนิยมจาก Google Sheet (Decimal Time เช่น 0.54166 = 13:00)
-      if (!isNaN(s) && !isNaN(parseFloat(s))) {
-        const num = parseFloat(s);
+      // 3. ตัดวันที่ออกก่อนเสมอ เช่น "10/09/2026 16:05" -> "16:05", "10.09.2026 13.04" -> "13.04"
+      let cleanStr = s.replace(/\b\d{1,4}[/.-]\d{1,2}[/.-]\d{2,4}\b/g, '').trim();
+      cleanStr = cleanStr.replace(/น\.?/g, '').trim();
+
+      // 4. กรณีเป็นตัวเลขทศนิยมจาก Google Sheet (Decimal Time เช่น 0.54166 = 13:00)
+      if (!isNaN(cleanStr) && !isNaN(parseFloat(cleanStr)) && !cleanStr.includes(':')) {
+        const num = parseFloat(cleanStr);
         if (num >= 0 && num < 1) {
           return Math.floor(num * 24) % 24;
         }
-        if (num >= 0 && num <= 23) {
+        if (num >= 0 && num <= 23 && !s.includes('/') && !s.includes('-')) {
           return Math.floor(num);
         }
       }
 
-      // 4. ตัดคำว่า "น." ออก เช่น "13.00 น." -> "13.00"
-      let cleanStr = s.replace(/น\.?/g, '').trim();
-
-      // 5. รองรับทั้งแบบ : และ . (เช่น 13:00, 13.00, 01.30 PM, 13:30:00, 10/09/2026 17:49)
-      const timeMatch = cleanStr.match(/(\d{1,2})[:.](\d{2})(?:[:.]\d{2})?/);
+      // 5. ค้นหาเวลาในรูปแบบ HH:MM หรือ HH.MM พร้อมรองรับ AM/PM
+      const timeMatch = cleanStr.match(/(\d{1,2})[:.](\d{2})(?:[:.]\d{2})?(?:\s*(AM|PM|am|pm|บ่าย|เย็น|ค่ำ|เช้า))?/i);
       if (timeMatch) {
         let h = parseInt(timeMatch[1], 10);
         if (isNaN(h) || h < 0 || h > 23) return null;
 
-        const isPM = /p\.?m\.?|pm|บ่าย|เย็น|ค่ำ/i.test(cleanStr);
-        const isAM = /a\.?m\.?|am|เช้า/i.test(cleanStr);
+        const meridiem = (timeMatch[3] || '').toLowerCase();
+        const isPM = meridiem.includes('pm') || meridiem.includes('บ่าย') || meridiem.includes('เย็น') || meridiem.includes('ค่ำ');
+        const isAM = meridiem.includes('am') || meridiem.includes('เช้า');
 
         if (isPM) {
           if (h < 12) h += 12;
@@ -669,11 +673,16 @@
         return h;
       }
 
-      // 6. กรณีเป็นตัวเลขชั่วโมงโดดๆ เช่น "13"
-      const singleHourMatch = cleanStr.match(/^(\d{1,2})$/);
-      if (singleHourMatch) {
-        let h = parseInt(singleHourMatch[1], 10);
-        if (!isNaN(h) && h >= 0 && h <= 23) return h;
+      // 6. กรณีถ้า s เดิมมี : หรือ . แต่ cleanStr หาไม่เจอ ให้ค้นจาก s ตรงๆ
+      const rawTimeMatch = s.match(/(?:^|\s+|T)(\d{1,2})[:.](\d{2})(?:[:.]\d{2})?(?:\s*(AM|PM|am|pm))?/i);
+      if (rawTimeMatch) {
+        let h = parseInt(rawTimeMatch[1], 10);
+        if (!isNaN(h) && h >= 0 && h <= 23) {
+          const meridiem = (rawTimeMatch[3] || '').toLowerCase();
+          if (meridiem.includes('pm') && h < 12) h += 12;
+          else if (meridiem.includes('am') && h === 12) h = 0;
+          return h;
+        }
       }
 
       return null;
@@ -683,23 +692,23 @@
       if (!r) return null;
       const candidates = [
         r.actual_dep_cut,
-        r.actual_ops_date,
-        r.actual_dep,
+        r.com_time,
         r.actual_departure,
-        r.departure_time,
         r.dep_time,
-        r.time,
-        r.timestamp,
-        r.cut1,
-        r.cut2,
-        r.cut0
+        r.departure_time,
+        r.time
       ];
-      if (Array.isArray(r.cells)) candidates.push(...r.cells);
-      if (Array.isArray(r)) candidates.push(...r);
+
+      if (Array.isArray(r.cells)) {
+        if (r.cells[19]) candidates.push(r.cells[19]);
+        if (r.cells[34]) candidates.push(r.cells[34]);
+      }
 
       for (let val of candidates) {
-        const h = hourOf(val);
-        if (h !== null && h >= 0 && h <= 23) return h;
+        if (val !== undefined && val !== null && String(val).trim() !== '') {
+          const h = hourOf(val);
+          if (h !== null && h >= 0 && h <= 23) return h;
+        }
       }
       return null;
     }
@@ -726,12 +735,12 @@
       const lateSub = document.getElementById('kpiLateSub');
       if (lateSub) lateSub.innerText = `${latePct}% of trips (คลิกเพื่อดู Raw Data)`;
 
-      let depIdx = 19, statIdx = 14, destIdx = 7, tripIdx = 1, vehIdx = 3, plateIdx = 4, driverIdx = 5, origIdx = 6, c0Idx = 15, c1Idx = 16, c2Idx = 17, c3Idx = 18, zoneIdx = 26, catIdx = 2;
+      let depIdx = 19, statIdx = 21, destIdx = 7, tripIdx = 1, vehIdx = 3, plateIdx = 4, driverIdx = 5, origIdx = 6, c0Idx = 15, c1Idx = 16, c2Idx = 17, c3Idx = 18, zoneIdx = 26, catIdx = 2;
       
       if (Array.isArray(data.headers) && data.headers.length > 0) {
         data.headers.forEach((h, idx) => {
           const str = String(h || '').toLowerCase().trim().replace(/_/g, ' ');
-          if (str.includes('actual dep') || str.includes('dep cut') || str.includes('departure time') || str.includes('actual time') || str.includes('actual ops') || str.includes('เวลาออก')) depIdx = idx;
+          if ((str.includes('actual dep cut') || str.includes('dep cut') || str.includes('actual dep') || str.includes('departure time') || str.includes('dep time') || str.includes('เวลาออก') || str.includes('com time')) && !str.includes('ops date') && !str.includes('date only') && !str.includes('day')) depIdx = idx;
           if (str.includes('status') || str.includes('show on time') || str.includes('on time')) statIdx = idx;
           if (str.includes('destination') || str.includes('ปลายทาง') || str.includes('dest station')) destIdx = idx;
           if (str.includes('lh trip') || str.includes('trip number') || str.includes('trip id') || str.includes('shipment')) tripIdx = idx;

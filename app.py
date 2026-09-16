@@ -1834,8 +1834,12 @@ def process_table_sheet(df):
 
     for c in df_clean.columns:
         c_str = str(c).lower().replace("_", " ").strip()
-        if any(k in c_str for k in ['actual dep', 'dep cut', 'actual departure', 'actual time', 'actual ops', 'departure time', 'dep time', 'เวลาออกจริง', 'เวลาออก']) and not dep_col:
+        if any(k in c_str for k in ['actual dep cut', 'actual dep', 'dep cut', 'departure time', 'dep time', 'com time', 'เวลาออกจริง', 'เวลาออก']) and not any(k in c_str for k in ['ops date', 'actual ops', 'date only', 'day']):
             dep_col = c
+            break
+
+    for c in df_clean.columns:
+        c_str = str(c).lower().replace("_", " ").strip()
         if ('cut 0' in c_str or 'cut0' in c_str) and not cut0_col: cut0_col = c
         elif ('cut 1' in c_str or 'cut1' in c_str) and not cut1_col: cut1_col = c
         elif ('cut 2' in c_str or 'cut2' in c_str) and not cut2_col: cut2_col = c
