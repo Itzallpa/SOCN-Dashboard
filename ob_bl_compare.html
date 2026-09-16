@@ -262,11 +262,14 @@
       <div class="row g-3 mb-4">
         <!-- Stuck Count -->
         <div class="col-xl-3 col-md-6">
-          <div class="kpi-card kpi-danger">
+          <div class="kpi-card kpi-danger" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'" onclick="openRawDataModal()" title="คลิกเพื่อเปิดดูตาราง Raw Data พัสดุตกค้างซ้ำทั้งหมด">
             <i class="fa-solid fa-triangle-exclamation kpi-icon text-danger"></i>
-            <div class="kpi-title">พัสดุตกค้างสะสมซ้ำ (STUCK BACKLOG)</div>
+            <div class="kpi-title d-flex justify-content-between">
+              <span>พัสดุตกค้างสะสมซ้ำ (STUCK BACKLOG)</span>
+              <span class="badge bg-danger bg-opacity-25 text-danger border border-danger small py-0 px-1" style="font-size: 0.72rem;">คลิกดู Raw Data</span>
+            </div>
             <div class="kpi-value text-danger" id="kpiStuckCount">0</div>
-            <div class="kpi-subtext">พัสดุที่มีรหัสซ้ำกันทั้งใน File 1 และ File 2</div>
+            <div class="kpi-subtext">พัสดุที่มีรหัสซ้ำกันทั้งใน File 1 และ File 2 (คลิกเพื่อดู Raw Data)</div>
           </div>
         </div>
 
@@ -888,6 +891,7 @@
             label: 'จำนวนพัสดุตกค้างซ้ำ (ชิ้น)',
             data: counts,
             backgroundColor: 'rgba(37, 99, 235, 0.85)',
+            hoverBackgroundColor: '#1d4ed8',
             borderColor: '#2563eb',
             borderWidth: 1,
             borderRadius: 6
@@ -896,12 +900,24 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          onClick: (evt, elements) => {
+            if (elements && elements.length > 0) {
+              const index = elements[0].index;
+              const selectedStation = sorted[index][0];
+              const stSelect = document.getElementById('stationFilterSelect');
+              if (stSelect) {
+                stSelect.value = selectedStation;
+                onFilterChanged();
+                document.getElementById('duplicateTable').scrollIntoView({ behavior: 'smooth' });
+              }
+            }
+          },
           plugins: {
             legend: { display: false },
             tooltip: {
               callbacks: {
                 title: (tooltipItems) => sorted[tooltipItems[0].dataIndex][0],
-                label: (context) => `ตกค้างซ้ำ: ${context.parsed.y.toLocaleString()} ชิ้น`
+                label: (context) => `ตกค้างซ้ำ: ${context.parsed.y.toLocaleString()} ชิ้น (คลิกเพื่อดู Raw Data)`
               }
             }
           },
@@ -949,6 +965,18 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          onClick: (evt, elements) => {
+            if (elements && elements.length > 0) {
+              const index = elements[0].index;
+              const selectedAction = labels[index];
+              const actSelect = document.getElementById('actionFilterSelect');
+              if (actSelect) {
+                actSelect.value = selectedAction;
+                onFilterChanged();
+                document.getElementById('duplicateTable').scrollIntoView({ behavior: 'smooth' });
+              }
+            }
+          },
           plugins: {
             legend: { display: false },
             tooltip: {
@@ -957,7 +985,7 @@
                   const total = data.reduce((a, b) => a + b, 0);
                   const val = context.parsed;
                   const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
-                  return ` ${context.label}: ${val.toLocaleString()} ชิ้น (${pct}%)`;
+                  return ` ${context.label}: ${val.toLocaleString()} ชิ้น (${pct}%) - คลิกเพื่อกรอง`;
                 }
               }
             }
@@ -973,7 +1001,7 @@
           const color = colors[idx % colors.length];
           const displayLabel = e[0].length > 22 ? e[0].slice(0, 20) + '...' : e[0];
           legHtml += `
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-between align-items-center p-1 rounded" style="cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'" onclick="filterByAction('${e[0]}')" title="คลิกเพื่อกรองเฉพาะ ${e[0]}">
               <span class="d-flex align-items-center text-truncate" style="max-width: 170px;">
                 <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${color}; margin-right:6px;"></span>
                 <span class="text-muted" title="${e[0]}">${displayLabel}</span>
@@ -984,6 +1012,15 @@
         });
         legHtml += '</div>';
         legendEl.innerHTML = legHtml;
+      }
+    }
+
+    function filterByAction(act) {
+      const actSelect = document.getElementById('actionFilterSelect');
+      if (actSelect) {
+        actSelect.value = act;
+        onFilterChanged();
+        document.getElementById('duplicateTable').scrollIntoView({ behavior: 'smooth' });
       }
     }
 
