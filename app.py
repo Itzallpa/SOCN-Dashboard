@@ -4069,209 +4069,125 @@ def api_compare_ob_bl():
     try:
         import gc
 
-        def get_col_indices(headers):
-            idx = {}
-            for i, h in enumerate(headers):
-                h_lower = str(h).lower().replace("_", " ").strip()
-                if "shipment" in h_lower or "tracking" in h_lower or h_lower == "col 1":
-                    idx.setdefault("shipment_id", i)
-                if "action" in h_lower or "flag" in h_lower:
-                    idx.setdefault("action_flag", i)
-                if "timestamp" in h_lower or "status time" in h_lower or ("time" in h_lower and "snap" not in h_lower):
-                    idx.setdefault("latest_status_timestamp", i)
-                if "day in soc" in h_lower or "day in hub" in h_lower or "aging" in h_lower or h_lower == "day_in_soc" or h_lower == "day":
-                    idx.setdefault("day_in_soc", i)
-                if ("station" in h_lower and "soc" not in h_lower) or "awb" in h_lower:
-                    idx.setdefault("latest_awb_station_name", i)
-                if "operator" in h_lower or "user" in h_lower:
-                    idx.setdefault("latest_operator_name", i)
-            if "shipment_id" not in idx:
-                idx["shipment_id"] = 1 if len(headers) > 1 else 0
-            if "action_flag" not in idx and len(headers) > 12:
-                idx["action_flag"] = 12
-            if "latest_status_timestamp" not in idx and len(headers) > 7:
-                idx["latest_status_timestamp"] = 7
-            if "day_in_soc" not in idx and len(headers) > 13:
-                idx["day_in_soc"] = 13
-            if "latest_awb_station_name" not in idx and len(headers) > 4:
-                idx["latest_awb_station_name"] = 4
-            if "latest_operator_name" not in idx and len(headers) > 8:
-                idx["latest_operator_name"] = 8
-            return idx
-
-        def stream_file_iterator(file_path):
-            if file_path.lower().endswith((".xlsx", ".xls")):
-                import zipfile, xml.etree.ElementTree as ET
-                try:
-                    with zipfile.ZipFile(file_path, 'r') as z:
-                        strings = []
-                        if 'xl/sharedStrings.xml' in z.namelist():
-                            tree = ET.fromstring(z.read('xl/sharedStrings.xml'))
-                            for elem in tree.iter('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t'):
-                                strings.append(elem.text if elem.text else '')
-
-                        sheet_tree = ET.fromstring(z.read('xl/worksheets/sheet1.xml'))
-                        ns = {'s': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
-                        
-                        rows = []
-                        for row_elem in sheet_tree.findall('.//s:row', ns):
-                            row_vals = []
-                            for cell in row_elem.findall('s:c', ns):
-                                t = cell.get('t')
-                                v_elem = cell.find('s:v', ns)
-                                val = v_elem.text if v_elem is not None else ''
-                                if t == 's' and val != '':
-                                    try:
-                                        idx_val = int(val)
-                                        val = strings[idx_val] if idx_val < len(strings) else val
-                                    except ValueError:
-                                        pass
-                                row_vals.append(val)
-                            if row_vals and any(row_vals):
-                                rows.append(row_vals)
-                        if not rows:
-                            return [], iter([])
-                        headers = [str(h).strip() for h in rows[0]]
-                        return headers, iter(rows[1:])
-                except Exception:
-                    df = read_dataframe(file_path)
-                    headers = [str(c).strip() for c in df.columns]
-                    return headers, (df.iloc[i].fillna('').tolist() for i in range(len(df)))
+        def load_and_prep_compare_df(file_path):
+            if file_path.lower().endswith(('.xlsx', '.xls')):
+                raw_df = read_dataframe(file_path)
             else:
-                # High speed buffered CSV stream - supports all encodings with 1MB read buffer
-                def csv_row_generator(fp):
-                    try:
-                        f = open(fp, "r", encoding="utf-8-sig", errors="ignore", buffering=1024*1024)
-                    except Exception:
-                        f = open(fp, "r", encoding="cp874", errors="ignore", buffering=1024*1024)
-                    try:
-                        r = csv.reader(f)
-                        for row in r:
-                            if row and any(row):
-                                yield row
-                    finally:
-                        f.close()
-
-                gen = csv_row_generator(file_path)
                 try:
-                    headers = [str(c).strip() for c in next(gen)]
-                except StopIteration:
-                    headers = []
-                return headers, gen
+                    raw_df = pd.read_csv(file_path, low_memory=False, on_bad_lines='skip', dtype=str, encoding='utf-8-sig')
+                except Exception:
+                    try:
+                        raw_df = pd.read_csv(file_path, low_memory=False, on_bad_lines='skip', dtype=str, encoding='cp874')
+                    except Exception:
+                        raw_df = read_dataframe(file_path)
 
-        headers1, row_gen1 = stream_file_iterator(path1)
-        idx1 = get_col_indices(headers1)
-        s_idx1 = idx1.get("shipment_id", 1)
-        af_idx1 = idx1.get("action_flag", 12)
-        ts_idx1 = idx1.get("latest_status_timestamp", 7)
-        ds_idx1 = idx1.get("day_in_soc", 13)
-        st_idx1 = idx1.get("latest_awb_station_name", 4)
-        op_idx1 = idx1.get("latest_operator_name", 8)
+            total_file_rows = len(raw_df)
+            if total_file_rows == 0:
+                empty_df = pd.DataFrame(columns=["shipment_id", "action_flag", "timestamp", "day_in_soc", "station", "operator"])
+                return 0, 0, empty_df
 
-        ob_actions = {"_02_pending_packed", "_03_pending_linehual_packed", "_04_pending_reworked"}
-        ob_keywords = ("packed", "linehual", "linehaul", "rework", "pending", "skip")
+            # Find matching column names
+            col_map = {}
+            for col in raw_df.columns:
+                c_clean = str(col).strip().lower().replace("_", " ")
+                if ("shipment" in c_clean or "tracking" in c_clean or c_clean == "col 1") and "shipment_id" not in col_map:
+                    col_map["shipment_id"] = col
+                if ("action" in c_clean or "flag" in c_clean) and "action_flag" not in col_map:
+                    col_map["action_flag"] = col
+                if ("timestamp" in c_clean or "status time" in c_clean or ("time" in c_clean and "snap" not in c_clean)) and "timestamp" not in col_map:
+                    col_map["timestamp"] = col
+                if ("day in soc" in c_clean or "day in hub" in c_clean or "aging" in c_clean or c_clean == "day") and "day_in_soc" not in col_map:
+                    col_map["day_in_soc"] = col
+                if (("station" in c_clean and "soc" not in c_clean) or "awb" in c_clean) and "station" not in col_map:
+                    col_map["station"] = col
+                if ("operator" in c_clean or "user" in c_clean) and "operator" not in col_map:
+                    col_map["operator"] = col
 
-        dict1 = {}
-        total_rows1 = 0
-        total_ob1 = 0
+            cols = list(raw_df.columns)
+            if "shipment_id" not in col_map and len(cols) > 1: col_map["shipment_id"] = cols[1]
+            if "action_flag" not in col_map and len(cols) > 12: col_map["action_flag"] = cols[12]
+            if "timestamp" not in col_map and len(cols) > 7: col_map["timestamp"] = cols[7]
+            if "day_in_soc" not in col_map and len(cols) > 13: col_map["day_in_soc"] = cols[13]
+            if "station" not in col_map and len(cols) > 4: col_map["station"] = cols[4]
+            if "operator" not in col_map and len(cols) > 8: col_map["operator"] = cols[8]
 
-        for r in row_gen1:
-            total_rows1 += 1
-            r_len = len(r)
-            s_id = str(r[s_idx1]).strip() if r_len > s_idx1 else ""
-            if not s_id:
-                continue
+            s_col = col_map.get("shipment_id") or (cols[0] if cols else None)
+            
+            slim = pd.DataFrame()
+            slim["shipment_id"] = raw_df[s_col].astype(str).str.strip() if s_col in raw_df.columns else ""
+            slim = slim[slim["shipment_id"].ne("") & slim["shipment_id"].ne("nan") & slim["shipment_id"].ne("None")]
 
-            af = str(r[af_idx1]).strip() if r_len > af_idx1 else ""
-            af_lower = af.lower()
-            is_ob = (af in ob_actions) or any(k in af_lower for k in ob_keywords)
-            if not is_ob and af != "":
-                continue
+            if "action_flag" in col_map and col_map["action_flag"] in raw_df.columns:
+                slim["action_flag"] = raw_df[col_map["action_flag"]].fillna('').astype(str).str.strip()
+            else:
+                slim["action_flag"] = "_03_pending_linehual_packed"
 
-            ts = str(r[ts_idx1]).strip() if r_len > ts_idx1 else ""
-            ds = str(r[ds_idx1]).strip() if r_len > ds_idx1 else ""
-            st = str(r[st_idx1]).strip() if r_len > st_idx1 else ""
-            op = str(r[op_idx1]).strip() if r_len > op_idx1 else ""
+            if "timestamp" in col_map and col_map["timestamp"] in raw_df.columns:
+                slim["timestamp"] = raw_df[col_map["timestamp"]].fillna('').astype(str).str.strip()
+            else:
+                slim["timestamp"] = ""
 
-            # Store compact tuple: (ts, ds, st, op, af)
-            dict1[s_id] = (ts, ds, st, op, af or "_03_pending_linehual_packed")
-            total_ob1 += 1
+            if "day_in_soc" in col_map and col_map["day_in_soc"] in raw_df.columns:
+                slim["day_in_soc"] = raw_df[col_map["day_in_soc"]].fillna('').astype(str).str.strip()
+            else:
+                slim["day_in_soc"] = "-"
 
-        headers2, row_gen2 = stream_file_iterator(path2)
-        idx2 = get_col_indices(headers2)
-        s_idx2 = idx2.get("shipment_id", 1)
-        af_idx2 = idx2.get("action_flag", 12)
-        ts_idx2 = idx2.get("latest_status_timestamp", 7)
-        ds_idx2 = idx2.get("day_in_soc", 13)
-        st_idx2 = idx2.get("latest_awb_station_name", 4)
-        op_idx2 = idx2.get("latest_operator_name", 8)
+            if "station" in col_map and col_map["station"] in raw_df.columns:
+                slim["station"] = raw_df[col_map["station"]].fillna('').astype(str).str.strip()
+            else:
+                slim["station"] = "-"
 
-        total_rows2 = 0
-        total_ob2 = 0
-        duplicate_count = 0
+            if "operator" in col_map and col_map["operator"] in raw_df.columns:
+                slim["operator"] = raw_df[col_map["operator"]].fillna('').astype(str).str.strip()
+            else:
+                slim["operator"] = "-"
+
+            del raw_df
+
+            ob_pattern = r'_02_pending_packed|_03_pending_linehual_packed|_04_pending_reworked|packed|linehual|linehaul|rework|pending|skip'
+            is_ob_mask = slim["action_flag"].eq("") | slim["action_flag"].str.contains(ob_pattern, case=False, na=False, regex=True)
+            ob_df = slim[is_ob_mask].drop_duplicates(subset=["shipment_id"], keep="last")
+            del slim
+
+            return total_file_rows, len(ob_df), ob_df
+
+        total_rows1, ob_rows1, df1 = load_and_prep_compare_df(path1)
+        total_rows2, ob_rows2, df2 = load_and_prep_compare_df(path2)
+
+        # High-Speed Vectorized Inner Join
+        merged = pd.merge(df1, df2, on="shipment_id", suffixes=("_f1", "_f2"), how="inner")
+        duplicate_count = len(merged)
+
+        # Vectorized Grouping
+        st_series = merged["station_f2"].where(merged["station_f2"].ne("") & merged["station_f2"].ne("-"), merged["station_f1"]).replace("", "-")
+        station_counts = st_series.value_counts().to_dict()
+
+        act_series = merged["action_flag_f2"].where(merged["action_flag_f2"].ne("") & merged["action_flag_f2"].ne("-"), merged["action_flag_f1"]).replace("", "-")
+        action_counts = act_series.value_counts().to_dict()
+
+        # Extract top 5000 records for fast UI table render
+        sample_df = merged.head(5000)
         duplicate_list = []
-        station_counts = {}
-        action_counts = {}
-        seen_matched = set()
+        for r in sample_df.itertuples(index=False):
+            duplicate_list.append({
+                "shipment_id": r.shipment_id,
+                "action_flag": r.action_flag_f2 or r.action_flag_f1 or "-",
+                "station": r.station_f2 or r.station_f1 or "-",
+                "operator": r.operator_f2 or r.operator_f1 or "-",
+                "day_in_soc": r.day_in_soc_f2 or r.day_in_soc_f1 or "-",
+                "file1_timestamp": r.timestamp_f1 or "-",
+                "file2_timestamp": r.timestamp_f2 or "-"
+            })
 
-        for r in row_gen2:
-            total_rows2 += 1
-            r_len = len(r)
-            s_id = str(r[s_idx2]).strip() if r_len > s_idx2 else ""
-            if not s_id:
-                continue
-
-            af2 = str(r[af_idx2]).strip() if r_len > af_idx2 else ""
-            af2_lower = af2.lower()
-            is_ob2 = (af2 in ob_actions) or any(k in af2_lower for k in ob_keywords)
-            if not is_ob2 and af2 != "":
-                continue
-
-            total_ob2 += 1
-
-            item1 = dict1.get(s_id)
-            if item1 is not None and s_id not in seen_matched:
-                seen_matched.add(s_id)
-                duplicate_count += 1
-
-                ts1, ds1, st1, op1, af1 = item1
-                ts2 = str(r[ts_idx2]).strip() if r_len > ts_idx2 else ""
-                ds2 = str(r[ds_idx2]).strip() if r_len > ds_idx2 else ""
-                st2 = str(r[st_idx2]).strip() if r_len > st_idx2 else ""
-                op2 = str(r[op_idx2]).strip() if r_len > op_idx2 else ""
-
-                st = st2 or st1 or "-"
-                af = af2 or af1 or "-"
-                op = op2 or op1 or "-"
-                ds = ds2 or ds1 or "-"
-
-                station_counts[st] = station_counts.get(st, 0) + 1
-                action_counts[af] = action_counts.get(af, 0) + 1
-
-                if len(duplicate_list) < 5000:
-                    duplicate_list.append({
-                        "shipment_id": s_id,
-                        "action_flag": af,
-                        "station": st,
-                        "operator": op,
-                        "day_in_soc": ds,
-                        "file1_timestamp": ts1,
-                        "file2_timestamp": ts2
-                    })
-
-        # Free memory immediately
-        dict1.clear()
-        del dict1
-        seen_matched.clear()
-        del seen_matched
+        del df1, df2, merged, sample_df
         gc.collect()
 
         log_activity("COMPARE_OB_BL", f"Compared {file1} & {file2} — Found {duplicate_count} duplicate backlog shipments")
 
         return jsonify({
             "success": True,
-            "file1": { "filename": file1, "total_rows": total_rows1, "ob_rows": total_ob1 },
-            "file2": { "filename": file2, "total_rows": total_rows2, "ob_rows": total_ob2 },
+            "file1": { "filename": file1, "total_rows": total_rows1, "ob_rows": ob_rows1 },
+            "file2": { "filename": file2, "total_rows": total_rows2, "ob_rows": ob_rows2 },
             "duplicate_count": duplicate_count,
             "duplicates": duplicate_list,
             "station_breakdown": station_counts,
