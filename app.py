@@ -25,6 +25,14 @@ if sys.platform == "win32":
 
 warnings.filterwarnings("ignore")
 
+try:
+    csv.field_size_limit(sys.maxsize)
+except Exception:
+    try:
+        csv.field_size_limit(2147483647)
+    except Exception:
+        pass
+
 app = Flask(__name__, static_folder=".")
 app.secret_key = "socn_ops_portal_super_secret_key_2026"
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
