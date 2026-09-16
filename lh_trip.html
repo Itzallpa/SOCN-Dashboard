@@ -625,67 +625,90 @@
       }
     }
 
+    function hourOf(timeStr) {
+      if (timeStr == null || timeStr === '' || timeStr === '-') return null;
+
+      // 1. กรณีเป็นวัตถุ Date (JavaScript Date)
+      if (timeStr instanceof Date) {
+        return isNaN(timeStr.getTime()) ? null : timeStr.getHours();
+      }
+
+      const s = String(timeStr).trim();
+      if (!s) return null;
+
+      // 2. กรณีเป็น ISO Date String หรือ Date String แบบเต็ม
+      if (s.includes('T') || s.includes('GMT') || s.includes('Z')) {
+        const d = new Date(s);
+        if (!isNaN(d.getTime())) {
+          return d.getHours();
+        }
+      }
+
+      // 3. กรณีเป็นตัวเลขทศนิยมจาก Google Sheet (Decimal Time เช่น 0.54166 = 13:00)
+      if (!isNaN(s) && !isNaN(parseFloat(s))) {
+        const num = parseFloat(s);
+        if (num >= 0 && num < 1) {
+          return Math.floor(num * 24) % 24;
+        }
+        if (num >= 0 && num <= 23) {
+          return Math.floor(num);
+        }
+      }
+
+      // 4. ตัดคำว่า "น." ออก เช่น "13.00 น." -> "13.00"
+      let cleanStr = s.replace(/น\.?/g, '').trim();
+
+      // 5. รองรับทั้งแบบ : และ . (เช่น 13:00, 13.00, 01.30 PM, 13:30:00, 10/09/2026 17:49)
+      const timeMatch = cleanStr.match(/(\d{1,2})[:.](\d{2})(?:[:.]\d{2})?/);
+      if (timeMatch) {
+        let h = parseInt(timeMatch[1], 10);
+        if (isNaN(h) || h < 0 || h > 23) return null;
+
+        const isPM = /p\.?m\.?|pm|บ่าย|เย็น|ค่ำ/i.test(cleanStr);
+        const isAM = /a\.?m\.?|am|เช้า/i.test(cleanStr);
+
+        if (isPM) {
+          if (h < 12) h += 12;
+        } else if (isAM) {
+          if (h === 12) h = 0;
+        }
+
+        return h;
+      }
+
+      // 6. กรณีเป็นตัวเลขชั่วโมงโดดๆ เช่น "13"
+      const singleHourMatch = cleanStr.match(/^(\d{1,2})$/);
+      if (singleHourMatch) {
+        let h = parseInt(singleHourMatch[1], 10);
+        if (!isNaN(h) && h >= 0 && h <= 23) return h;
+      }
+
+      return null;
+    }
+
     function extractHourFromRecord(r) {
-      if (!r) return -1;
-      const candidates = [];
-      if (r.actual_dep_cut !== undefined && r.actual_dep_cut !== null) candidates.push(r.actual_dep_cut);
-      if (r.actual_ops_date !== undefined && r.actual_ops_date !== null) candidates.push(r.actual_ops_date);
-      if (r.actual_dep !== undefined && r.actual_dep !== null) candidates.push(r.actual_dep);
-      if (r.actual_departure !== undefined && r.actual_departure !== null) candidates.push(r.actual_departure);
-      if (r.departure_time !== undefined && r.departure_time !== null) candidates.push(r.departure_time);
-      if (r.dep_time !== undefined && r.dep_time !== null) candidates.push(r.dep_time);
-      if (r.time !== undefined && r.time !== null) candidates.push(r.time);
-      if (r.timestamp !== undefined && r.timestamp !== null) candidates.push(r.timestamp);
-      if (r.cut1 !== undefined && r.cut1 !== null) candidates.push(r.cut1);
-      if (r.cut2 !== undefined && r.cut2 !== null) candidates.push(r.cut2);
-      if (r.cut0 !== undefined && r.cut0 !== null) candidates.push(r.cut0);
-      
-      if (Array.isArray(r.cells)) {
-        for (let cell of r.cells) {
-          if (cell !== undefined && cell !== null && cell !== '') candidates.push(cell);
-        }
-      }
-      if (Array.isArray(r)) {
-        for (let cell of r) {
-          if (cell !== undefined && cell !== null && cell !== '') candidates.push(cell);
-        }
-      }
+      if (!r) return null;
+      const candidates = [
+        r.actual_dep_cut,
+        r.actual_ops_date,
+        r.actual_dep,
+        r.actual_departure,
+        r.departure_time,
+        r.dep_time,
+        r.time,
+        r.timestamp,
+        r.cut1,
+        r.cut2,
+        r.cut0
+      ];
+      if (Array.isArray(r.cells)) candidates.push(...r.cells);
+      if (Array.isArray(r)) candidates.push(...r);
 
       for (let val of candidates) {
-        if (val === undefined || val === null || val === '') continue;
-        
-        // Excel numerical fraction of day e.g. 0.5833 -> 14 (14:00)
-        if (typeof val === 'number' && val > 0 && val < 1) {
-          let hr = Math.floor(val * 24);
-          if (hr >= 0 && hr < 24) return hr;
-        }
-
-        const str = String(val).trim();
-        if (!str || str === '-' || str === '—' || str === 'nan' || str === 'null' || str === 'None') continue;
-
-        // Try regex match for time patterns:
-        // Examples: "14:35", "14.35", "02:35 PM", "2026-09-16 14:35:00", "14:35:00", "14.35 น.", "14:00", "02:00:00 PM"
-        const timeMatch = str.match(/(?:^|\s|T)(\d{1,2})[:.](\d{2})(?::\d{2})?(?:\s*(AM|PM|am|pm|น\.?))?/i);
-        if (timeMatch) {
-          let hr = parseInt(timeMatch[1], 10);
-          const ampm = (timeMatch[3] || '').toUpperCase();
-
-          if (ampm === 'PM' || ampm === 'P.M.') {
-            if (hr < 12) hr += 12;
-          } else if (ampm === 'AM' || ampm === 'A.M.') {
-            if (hr === 12) hr = 0;
-          } else if (str.toLowerCase().includes('pm') && !str.toLowerCase().includes('rpm')) {
-            if (hr < 12) hr += 12;
-          } else if (str.toLowerCase().includes('am')) {
-            if (hr === 12) hr = 0;
-          }
-
-          if (hr >= 0 && hr < 24) {
-            return hr;
-          }
-        }
+        const h = hourOf(val);
+        if (h !== null && h >= 0 && h <= 23) return h;
       }
-      return -1;
+      return null;
     }
 
     function renderLHData(data) {
