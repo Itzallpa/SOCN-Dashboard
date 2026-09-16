@@ -97,18 +97,64 @@ def load_users_db():
             "name": "Admin SOC",
             "email": "admin@spxexpress.com",
             "pass": "1234",
-            "role": "Admin",
-            "status": "approved",
-            "createdAt": "2026-09-03 00:00:00"
-        },
-        {
-            "id": "u2",
-            "name": "Ground Operator",
-            "email": "ground@spxexpress.com",
-            "pass": "1234",
             "role": "Ground",
             "status": "approved",
-            "createdAt": "2026-09-03 00:00:00"
+            "createdAt": "2026-09-03 00:00:00",
+            "updatedAt": "2026-09-08 01:57:38"
+        },
+        {
+            "id": "u_1788441071676",
+            "name": "Natakorn Panmanee",
+            "email": "guy.panmanee@spxexpress.com",
+            "pass": "1234",
+            "role": "Admin",
+            "status": "approved",
+            "createdAt": "2026-09-03 20:11:11"
+        },
+        {
+            "id": "u_1788529146167",
+            "name": "Aim",
+            "email": "aim.tiantong@spxexpress.com",
+            "pass": "1234",
+            "role": "Admin",
+            "status": "approved",
+            "createdAt": "2026-09-04 20:39:06"
+        },
+        {
+            "id": "u_1788441071676",
+            "name": "Men",
+            "email": "men.phuditde@spxexpress.com",
+            "pass": "1234",
+            "role": "Admin",
+            "status": "approved",
+            "createdAt": "2026-09-03 20:11:11"
+        },
+        {
+            "id": "u_1788808406690",
+            "name": "กาย",
+            "email": "guy.panmanee@gmail.com",
+            "pass": "1234",
+            "role": "Supervisor",
+            "status": "approved",
+            "createdAt": "2026-09-08 02:13:26"
+        },
+        {
+            "id": "u_1788892587582",
+            "name": "nulack",
+            "email": "nulack.promarpo@spxexpress.com",
+            "pass": "1234",
+            "role": "Supervisor",
+            "status": "approved",
+            "createdAt": "2026-09-09 01:36:27"
+        },
+        {
+            "id": "u_1788892947751",
+            "name": "Tom",
+            "email": "tom.disayach@spxexpress.com",
+            "pass": "1234",
+            "role": "Admin",
+            "status": "approved",
+            "createdAt": "2026-09-09 01:42:27"
         }
     ]
     save_users_db(default_users)
@@ -2284,10 +2330,30 @@ if not os.path.exists(VOLUME_FILE) and os.path.exists(os.path.join(BASE_DIR, "vo
 
 DEFAULT_VOLUME_DATA = {
     "history": [
-        {"date": "2026-09-01", "actual": 1814121},
-        {"date": "2026-08-30", "actual": 980457}
+        {"date": "Week 36 (31 ส.ค. - 06 ก.ย. 2026)", "actual": 11513758, "type": "weekly", "label": "รายสัปดาห์: Week 36 (31 ส.ค. - 06 ก.ย. 2026)"},
+        {"date": "Week 35 (24-30 Aug 2026)", "actual": 6860000, "type": "weekly", "label": "Week 35 (24-30 Aug 2026)"},
+        {"date": "2026-09-13", "actual": 920496, "type": "daily", "label": "รายวัน: 2026-09-13"},
+        {"date": "2026-09-12", "actual": 1662466, "type": "daily", "label": "รายวัน: 2026-09-12"},
+        {"date": "2026-09-11", "actual": 2090453, "type": "daily", "label": "รายวัน: 2026-09-11"},
+        {"date": "2026-09-10", "actual": 2314451, "type": "daily", "label": "รายวัน: 2026-09-10"},
+        {"date": "2026-09-09", "actual": 2174316, "type": "daily", "label": "รายวัน: 2026-09-09"},
+        {"date": "2026-09-08", "actual": 1797627, "type": "daily", "label": "รายวัน: 2026-09-08"},
+        {"date": "2026-09-07", "actual": 2034693, "type": "daily", "label": "รายวัน: 2026-09-07"},
+        {"date": "2026-09-06", "actual": 1013476, "type": "daily", "label": "รายวัน: 2026-09-06"},
+        {"date": "2026-09-05", "actual": 1495976, "type": "daily", "label": "รายวัน: 2026-09-05"},
+        {"date": "2026-09-04", "actual": 1600536, "type": "daily", "label": "รายวัน: 2026-09-04"},
+        {"date": "2026-09-03", "actual": 1744449, "type": "daily", "label": "รายวัน: 2026-09-03"},
+        {"date": "2026-09-02", "actual": 1755868, "type": "daily", "label": "รายวัน: 2026-09-02"},
+        {"date": "2026-09-01", "actual": 1814164, "type": "daily", "label": "รายวัน: 2026-09-01"},
+        {"date": "2026-08-31", "actual": 2089319, "type": "daily", "label": "รายวัน: 2026-08-31"},
+        {"date": "2026-08-30", "actual": 980457, "type": "daily", "label": "2026-08-30"}
     ],
-    "active": {"date": "2026-08-30", "actual": 980457}
+    "active": {
+        "date": "Week 36 (31 ส.ค. - 06 ก.ย. 2026)",
+        "actual": 11513758,
+        "type": "weekly",
+        "label": "รายสัปดาห์: Week 36 (31 ส.ค. - 06 ก.ย. 2026)"
+    }
 }
 
 def load_volume_data_from_file():
@@ -3993,66 +4059,13 @@ def api_compare_ob_bl():
         return jsonify({"success": False, "error": "ไม่พบไฟล์รายงานบนเซิร์ฟเวอร์ กรุณาตรวจสอบและอัปโหลดไฟล์ใหม่อีกครั้ง"}), 404
 
     try:
-        def parse_xlsx_fast(file_path):
-            import zipfile, xml.etree.ElementTree as ET
-            with zipfile.ZipFile(file_path, 'r') as z:
-                strings = []
-                if 'xl/sharedStrings.xml' in z.namelist():
-                    tree = ET.fromstring(z.read('xl/sharedStrings.xml'))
-                    for elem in tree.iter('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t'):
-                        strings.append(elem.text if elem.text else '')
-
-                sheet_tree = ET.fromstring(z.read('xl/worksheets/sheet1.xml'))
-                ns = {'s': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
-                
-                rows = []
-                for row_elem in sheet_tree.findall('.//s:row', ns):
-                    row_vals = []
-                    for cell in row_elem.findall('s:c', ns):
-                        t = cell.get('t')
-                        v_elem = cell.find('s:v', ns)
-                        val = v_elem.text if v_elem is not None else ''
-                        if t == 's' and val != '':
-                            try:
-                                idx_val = int(val)
-                                val = strings[idx_val] if idx_val < len(strings) else val
-                            except ValueError:
-                                pass
-                        row_vals.append(val)
-                    if row_vals and any(row_vals):
-                        rows.append(row_vals)
-                if not rows:
-                    return [], []
-                return [str(h).strip() for h in rows[0]], rows[1:]
-
-        def read_file_rows(file_path):
-            headers = []
-            rows = []
-            if file_path.lower().endswith((".xlsx", ".xls")):
-                try:
-                    headers, rows = parse_xlsx_fast(file_path)
-                except Exception:
-                    df = read_dataframe(file_path)
-                    headers = [str(c).strip() for c in df.columns]
-                    rows = df.fillna('').values.tolist()
-            else:
-                with open(file_path, "r", encoding="utf-8-sig", errors="ignore") as f:
-                    r = csv.reader(f)
-                    try:
-                        headers = [str(c).strip() for c in next(r)]
-                    except StopIteration:
-                        headers = []
-                    rows = [row for row in r if row and any(row)]
-            return headers, rows
-
-        headers1, rows1 = read_file_rows(path1)
-        headers2, rows2 = read_file_rows(path2)
+        import gc
 
         def get_col_indices(headers):
             idx = {}
             for i, h in enumerate(headers):
-                h_lower = h.lower().replace("_", " ").strip()
-                if "shipment" in h_lower or "tracking" in h_lower or h_lower == "col 1" or i == 1:
+                h_lower = str(h).lower().replace("_", " ").strip()
+                if "shipment" in h_lower or "tracking" in h_lower or h_lower == "col 1":
                     idx.setdefault("shipment_id", i)
                 if "action" in h_lower or "flag" in h_lower:
                     idx.setdefault("action_flag", i)
@@ -4064,88 +4077,195 @@ def api_compare_ob_bl():
                     idx.setdefault("latest_awb_station_name", i)
                 if "operator" in h_lower or "user" in h_lower:
                     idx.setdefault("latest_operator_name", i)
+            if "shipment_id" not in idx:
+                idx["shipment_id"] = 1 if len(headers) > 1 else 0
+            if "action_flag" not in idx and len(headers) > 12:
+                idx["action_flag"] = 12
+            if "latest_status_timestamp" not in idx and len(headers) > 7:
+                idx["latest_status_timestamp"] = 7
             if "day_in_soc" not in idx and len(headers) > 13:
                 idx["day_in_soc"] = 13
             if "latest_awb_station_name" not in idx and len(headers) > 4:
                 idx["latest_awb_station_name"] = 4
+            if "latest_operator_name" not in idx and len(headers) > 8:
+                idx["latest_operator_name"] = 8
             return idx
 
+        def stream_file_iterator(file_path):
+            if file_path.lower().endswith((".xlsx", ".xls")):
+                import zipfile, xml.etree.ElementTree as ET
+                try:
+                    with zipfile.ZipFile(file_path, 'r') as z:
+                        strings = []
+                        if 'xl/sharedStrings.xml' in z.namelist():
+                            tree = ET.fromstring(z.read('xl/sharedStrings.xml'))
+                            for elem in tree.iter('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t'):
+                                strings.append(elem.text if elem.text else '')
+
+                        sheet_tree = ET.fromstring(z.read('xl/worksheets/sheet1.xml'))
+                        ns = {'s': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
+                        
+                        rows = []
+                        for row_elem in sheet_tree.findall('.//s:row', ns):
+                            row_vals = []
+                            for cell in row_elem.findall('s:c', ns):
+                                t = cell.get('t')
+                                v_elem = cell.find('s:v', ns)
+                                val = v_elem.text if v_elem is not None else ''
+                                if t == 's' and val != '':
+                                    try:
+                                        idx_val = int(val)
+                                        val = strings[idx_val] if idx_val < len(strings) else val
+                                    except ValueError:
+                                        pass
+                                row_vals.append(val)
+                            if row_vals and any(row_vals):
+                                rows.append(row_vals)
+                        if not rows:
+                            return [], iter([])
+                        headers = [str(h).strip() for h in rows[0]]
+                        return headers, iter(rows[1:])
+                except Exception:
+                    df = read_dataframe(file_path)
+                    headers = [str(c).strip() for c in df.columns]
+                    return headers, (df.iloc[i].fillna('').tolist() for i in range(len(df)))
+            else:
+                # High speed buffered CSV stream - supports all encodings with 1MB read buffer
+                def csv_row_generator(fp):
+                    try:
+                        f = open(fp, "r", encoding="utf-8-sig", errors="ignore", buffering=1024*1024)
+                    except Exception:
+                        f = open(fp, "r", encoding="cp874", errors="ignore", buffering=1024*1024)
+                    try:
+                        r = csv.reader(f)
+                        for row in r:
+                            if row and any(row):
+                                yield row
+                    finally:
+                        f.close()
+
+                gen = csv_row_generator(file_path)
+                try:
+                    headers = [str(c).strip() for c in next(gen)]
+                except StopIteration:
+                    headers = []
+                return headers, gen
+
+        headers1, row_gen1 = stream_file_iterator(path1)
         idx1 = get_col_indices(headers1)
+        s_idx1 = idx1.get("shipment_id", 1)
+        af_idx1 = idx1.get("action_flag", 12)
+        ts_idx1 = idx1.get("latest_status_timestamp", 7)
+        ds_idx1 = idx1.get("day_in_soc", 13)
+        st_idx1 = idx1.get("latest_awb_station_name", 4)
+        op_idx1 = idx1.get("latest_operator_name", 8)
+
+        ob_actions = {"_02_pending_packed", "_03_pending_linehual_packed", "_04_pending_reworked"}
+        ob_keywords = ("packed", "linehual", "linehaul", "rework", "pending", "skip")
+
+        dict1 = {}
+        total_rows1 = 0
+        total_ob1 = 0
+
+        for r in row_gen1:
+            total_rows1 += 1
+            r_len = len(r)
+            s_id = str(r[s_idx1]).strip() if r_len > s_idx1 else ""
+            if not s_id:
+                continue
+
+            af = str(r[af_idx1]).strip() if r_len > af_idx1 else ""
+            af_lower = af.lower()
+            is_ob = (af in ob_actions) or any(k in af_lower for k in ob_keywords)
+            if not is_ob and af != "":
+                continue
+
+            ts = str(r[ts_idx1]).strip() if r_len > ts_idx1 else ""
+            ds = str(r[ds_idx1]).strip() if r_len > ds_idx1 else ""
+            st = str(r[st_idx1]).strip() if r_len > st_idx1 else ""
+            op = str(r[op_idx1]).strip() if r_len > op_idx1 else ""
+
+            # Store compact tuple: (ts, ds, st, op, af)
+            dict1[s_id] = (ts, ds, st, op, af or "_03_pending_linehual_packed")
+            total_ob1 += 1
+
+        headers2, row_gen2 = stream_file_iterator(path2)
         idx2 = get_col_indices(headers2)
+        s_idx2 = idx2.get("shipment_id", 1)
+        af_idx2 = idx2.get("action_flag", 12)
+        ts_idx2 = idx2.get("latest_status_timestamp", 7)
+        ds_idx2 = idx2.get("day_in_soc", 13)
+        st_idx2 = idx2.get("latest_awb_station_name", 4)
+        op_idx2 = idx2.get("latest_operator_name", 8)
 
-        ob_actions = ["_02_pending_packed", "_03_pending_linehual_packed", "_04_pending_reworked"]
-
-        def process_dataset(headers, rows, idx):
-            dict_out = {}
-            total_ob = 0
-            for r in rows:
-                if not r: continue
-                s_id = str(r[idx.get("shipment_id", 1)]).strip() if len(r) > idx.get("shipment_id", 1) else ""
-                if not s_id: continue
-
-                af = str(r[idx.get("action_flag", 12)]).strip() if len(r) > idx.get("action_flag", 12) else ""
-                af_lower = af.lower()
-                is_ob = (af in ob_actions) or any(k in af_lower for k in ["packed", "linehual", "linehaul", "rework", "pending", "skip"])
-                if not is_ob and af != "":
-                    continue
-
-                ts = str(r[idx.get("latest_status_timestamp", 7)]).strip() if len(r) > idx.get("latest_status_timestamp", 7) else ""
-                ds = str(r[idx.get("day_in_soc", 13)]).strip() if len(r) > idx.get("day_in_soc", 13) else ""
-                st = str(r[idx.get("latest_awb_station_name", 4)]).strip() if len(r) > idx.get("latest_awb_station_name", 4) else ""
-                op = str(r[idx.get("latest_operator_name", 8)]).strip() if len(r) > idx.get("latest_operator_name", 8) else ""
-
-                dict_out[s_id] = {
-                    "shipment_id": s_id,
-                    "action_flag": af or "_03_pending_linehual_packed",
-                    "latest_status_timestamp": ts,
-                    "day_in_soc": ds,
-                    "latest_awb_station_name": st,
-                    "latest_operator_name": op
-                }
-                total_ob += 1
-            return dict_out, total_ob
-
-        dict1, total_ob1 = process_dataset(headers1, rows1, idx1)
-        dict2, total_ob2 = process_dataset(headers2, rows2, idx2)
-
-        duplicate_ids = set(dict1.keys()).intersection(set(dict2.keys()))
-
+        total_rows2 = 0
+        total_ob2 = 0
+        duplicate_count = 0
         duplicate_list = []
         station_counts = {}
         action_counts = {}
+        seen_matched = set()
 
-        for s_id in duplicate_ids:
-            item1 = dict1[s_id]
-            item2 = dict2[s_id]
+        for r in row_gen2:
+            total_rows2 += 1
+            r_len = len(r)
+            s_id = str(r[s_idx2]).strip() if r_len > s_idx2 else ""
+            if not s_id:
+                continue
 
-            ts1 = item1["latest_status_timestamp"]
-            ts2 = item2["latest_status_timestamp"]
-            ds = item2["day_in_soc"] or item1["day_in_soc"] or "-"
-            st = item2["latest_awb_station_name"] or item1["latest_awb_station_name"] or "-"
-            op = item2["latest_operator_name"] or item1["latest_operator_name"] or "-"
-            af = item2["action_flag"] or item1["action_flag"] or "-"
+            af2 = str(r[af_idx2]).strip() if r_len > af_idx2 else ""
+            af2_lower = af2.lower()
+            is_ob2 = (af2 in ob_actions) or any(k in af2_lower for k in ob_keywords)
+            if not is_ob2 and af2 != "":
+                continue
 
-            station_counts[st] = station_counts.get(st, 0) + 1
-            action_counts[af] = action_counts.get(af, 0) + 1
+            total_ob2 += 1
 
-            duplicate_list.append({
-                "shipment_id": s_id,
-                "action_flag": af,
-                "station": st,
-                "operator": op,
-                "day_in_soc": ds,
-                "file1_timestamp": ts1,
-                "file2_timestamp": ts2
-            })
+            item1 = dict1.get(s_id)
+            if item1 is not None and s_id not in seen_matched:
+                seen_matched.add(s_id)
+                duplicate_count += 1
 
-        log_activity("COMPARE_OB_BL", f"Compared {file1} & {file2} — Found {len(duplicate_ids)} duplicate backlog shipments")
+                ts1, ds1, st1, op1, af1 = item1
+                ts2 = str(r[ts_idx2]).strip() if r_len > ts_idx2 else ""
+                ds2 = str(r[ds_idx2]).strip() if r_len > ds_idx2 else ""
+                st2 = str(r[st_idx2]).strip() if r_len > st_idx2 else ""
+                op2 = str(r[op_idx2]).strip() if r_len > op_idx2 else ""
+
+                st = st2 or st1 or "-"
+                af = af2 or af1 or "-"
+                op = op2 or op1 or "-"
+                ds = ds2 or ds1 or "-"
+
+                station_counts[st] = station_counts.get(st, 0) + 1
+                action_counts[af] = action_counts.get(af, 0) + 1
+
+                if len(duplicate_list) < 5000:
+                    duplicate_list.append({
+                        "shipment_id": s_id,
+                        "action_flag": af,
+                        "station": st,
+                        "operator": op,
+                        "day_in_soc": ds,
+                        "file1_timestamp": ts1,
+                        "file2_timestamp": ts2
+                    })
+
+        # Free memory immediately
+        dict1.clear()
+        del dict1
+        seen_matched.clear()
+        del seen_matched
+        gc.collect()
+
+        log_activity("COMPARE_OB_BL", f"Compared {file1} & {file2} — Found {duplicate_count} duplicate backlog shipments")
 
         return jsonify({
             "success": True,
-            "file1": { "filename": file1, "total_rows": len(rows1), "ob_rows": total_ob1 },
-            "file2": { "filename": file2, "total_rows": len(rows2), "ob_rows": total_ob2 },
-            "duplicate_count": len(duplicate_ids),
-            "duplicates": duplicate_list[:5000],
+            "file1": { "filename": file1, "total_rows": total_rows1, "ob_rows": total_ob1 },
+            "file2": { "filename": file2, "total_rows": total_rows2, "ob_rows": total_ob2 },
+            "duplicate_count": duplicate_count,
+            "duplicates": duplicate_list,
             "station_breakdown": station_counts,
             "action_breakdown": action_counts,
             "generatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")

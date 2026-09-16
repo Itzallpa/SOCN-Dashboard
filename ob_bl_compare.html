@@ -1028,12 +1028,17 @@
       `;
     }
 
-    function safeFetchJson(url, options = {}) {
-      return fetch(url, options)
-        .then(res => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.json();
-        });
+    async function safeFetchJson(url, options = {}) {
+      const res = await fetch(url, options);
+      if (!res.ok) {
+        let errMsg = `HTTP ${res.status}`;
+        try {
+          const errData = await res.json();
+          if (errData && errData.error) errMsg = errData.error;
+        } catch (_) {}
+        throw new Error(errMsg);
+      }
+      return res.json();
     }
   </script>
 </body>
