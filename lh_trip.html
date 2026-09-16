@@ -199,8 +199,15 @@
         </div>
         <div class="col-12">
           <div class="chart-card">
-            <div class="chart-title"><i class="fa-solid fa-chart-bar me-2 text-danger"></i> จำนวนเที่ยวที่สาย แยกตามชั่วโมง (Late trips by hour of departure)</div>
-            <div class="flex-grow-1 position-relative" style="height: 280px;"><canvas id="barHourCanvas"></canvas></div>
+            <div class="chart-title d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+              <span><i class="fa-solid fa-chart-bar me-2 text-danger"></i> จำนวนเที่ยวรถ แยกตามชั่วโมงการออกเดินทาง (00:00 - 23:00)</span>
+              <div class="btn-group btn-group-sm" role="group" id="hourFilterBtnGroup">
+                <button type="button" class="btn btn-primary active py-1 px-2 fw-semibold" id="btnHourModeAll" onclick="setHourChartMode('all')">📊 ทั้งหมด (On Time + Late)</button>
+                <button type="button" class="btn btn-outline-danger py-1 px-2 fw-semibold" id="btnHourModeLate" onclick="setHourChartMode('late')">🔴 เฉพาะสาย (Late)</button>
+                <button type="button" class="btn btn-outline-success py-1 px-2 fw-semibold" id="btnHourModeOnTime" onclick="setHourChartMode('ontime')">🟢 เฉพาะตรงเวลา (On Time)</button>
+              </div>
+            </div>
+            <div class="flex-grow-1 position-relative" style="height: 290px;"><canvas id="barHourCanvas"></canvas></div>
           </div>
         </div>
       </div>
@@ -910,29 +917,65 @@
       if (peakCutSubEl) peakCutSubEl.innerText = `${cutLate[topCutIdx]} จาก ${topCutTotal} เที่ยว (${topCutPct}% สาย)`;
 
       // 5. Dynamic Departure Hour Bar Chart (All 24 Hours: 00:00 - 23:00)
-      const hourCounts = new Array(24).fill(0);
-      records.filter(r => String(r.status || '').toLowerCase().includes('late')).forEach(r => {
+      const hourOnTime = new Array(24).fill(0);
+      const hourLate = new Array(24).fill(0);
+      const hourTotal = new Array(24).fill(0);
+
+      records.forEach(r => {
         const hr = extractHourFromRecord(r);
         if (hr >= 0 && hr < 24) {
-          hourCounts[hr]++;
+          const isLate = String(r.status || '').toLowerCase().includes('late');
+          if (isLate) hourLate[hr]++;
+          else hourOnTime[hr]++;
+          hourTotal[hr]++;
         }
       });
+
       const hourLabels = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0') + ':00');
       
+      hourDataCache = {
+        hourLabels,
+        hourOnTime,
+        hourLate,
+        hourTotal,
+        records,
+        lateCount,
+        totalTrips: records.length
+      };
+
+      renderHourChart(currentHourChartMode || 'all');
+    }
+
+    let currentHourChartMode = 'all';
+    let hourDataCache = null;
+
+    function setHourChartMode(mode) {
+      currentHourChartMode = mode;
+      const bAll = document.getElementById('btnHourModeAll');
+      const bLate = document.getElementById('btnHourModeLate');
+      const bOnTime = document.getElementById('btnHourModeOnTime');
+
+      if (bAll) bAll.className = mode === 'all' ? 'btn btn-primary active py-1 px-2 fw-semibold' : 'btn btn-outline-primary py-1 px-2 fw-semibold';
+      if (bLate) bLate.className = mode === 'late' ? 'btn btn-danger active py-1 px-2 fw-semibold' : 'btn btn-outline-danger py-1 px-2 fw-semibold';
+      if (bOnTime) bOnTime.className = mode === 'ontime' ? 'btn btn-success active py-1 px-2 fw-semibold' : 'btn btn-outline-success py-1 px-2 fw-semibold';
+
+      renderHourChart(mode);
+    }
+
+    function renderHourChart(mode) {
+      if (!hourDataCache) return;
+      const { hourLabels, hourOnTime, hourLate, hourTotal, records, lateCount } = hourDataCache;
+
       let peakIdx = 0;
       let peakVal = 0;
-      hourCounts.forEach((cnt, i) => { if (cnt > peakVal) { peakVal = cnt; peakIdx = i; } });
-      const barColors = hourCounts.map((cnt, i) => (i === peakIdx && cnt > 0) ? '#d0311d' : '#f6b8bf');
 
-      createBarChart('barHourCanvas', hourLabels, hourCounts, barColors, (evt, elements) => {
-        if (!elements || !elements.length) return;
-        const idx = elements[0].index;
-        const matchedRows = records.filter(r => {
-          if (!String(r.status || '').toLowerCase().includes('late')) return false;
-          return extractHourFromRecord(r) === idx;
-        });
-        openRawDataModal(`เที่ยวรถที่สายช่วงเวลา ${hourLabels[idx]} (${matchedRows.length} เที่ยว)`, matchedRows);
-      });
+      if (mode === 'late') {
+        hourLate.forEach((cnt, i) => { if (cnt > peakVal) { peakVal = cnt; peakIdx = i; } });
+      } else if (mode === 'ontime') {
+        hourOnTime.forEach((cnt, i) => { if (cnt > peakVal) { peakVal = cnt; peakIdx = i; } });
+      } else {
+        hourTotal.forEach((cnt, i) => { if (cnt > peakVal) { peakVal = cnt; peakIdx = i; } });
+      }
 
       const peakHourValEl = document.getElementById('peakHour');
       if (peakHourValEl) {
@@ -946,8 +989,106 @@
       }
       const peakHourSubEl = document.getElementById('peakHourSub');
       if (peakHourSubEl) {
-        peakHourSubEl.innerText = peakVal > 0 ? `${peakVal} เที่ยวที่ออกเดินทางสายในชั่วโมงนี้ (จาก ${lateCount} เที่ยวที่สายทั้งหมด)` : 'ไม่มีเที่ยวรถล่าช้าในช่วงเวลานี้';
+        if (mode === 'late') {
+          peakHourSubEl.innerText = peakVal > 0 ? `${peakVal} เที่ยวที่สายสูงสุดในชั่วโมงนี้ (จาก ${lateCount} เที่ยวที่สายทั้งหมด)` : 'ไม่มีเที่ยวรถล่าช้า';
+        } else if (mode === 'ontime') {
+          peakHourSubEl.innerText = peakVal > 0 ? `${peakVal} เที่ยวที่ตรงเวลาสูงสุดในชั่วโมงนี้` : 'ไม่มีเที่ยวรถตรงเวลา';
+        } else {
+          peakHourSubEl.innerText = peakVal > 0 ? `ช่วงพีคสุดมีเที่ยวรถออกเดินทาง ${peakVal} เที่ยวในชั่วโมงนี้ (สาย: ${hourLate[peakIdx]} / ตรงเวลา: ${hourOnTime[peakIdx]})` : 'ไม่มีข้อมูลเที่ยวรถ';
+        }
       }
+
+      const canvasId = 'barHourCanvas';
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+
+      let datasets = [];
+      if (mode === 'all') {
+        datasets = [
+          {
+            label: 'ตรงเวลา (On Time)',
+            data: hourOnTime,
+            backgroundColor: '#10b981',
+            borderRadius: 4
+          },
+          {
+            label: 'สาย (Late)',
+            data: hourLate,
+            backgroundColor: '#ef4444',
+            borderRadius: 4
+          }
+        ];
+      } else if (mode === 'late') {
+        const barColors = hourLate.map((cnt, i) => (i === peakIdx && cnt > 0) ? '#d0311d' : '#f87171');
+        datasets = [{
+          label: 'สาย (Late)',
+          data: hourLate,
+          backgroundColor: barColors,
+          borderRadius: 4
+        }];
+      } else {
+        const barColors = hourOnTime.map((cnt, i) => (i === peakIdx && cnt > 0) ? '#059669' : '#34d399');
+        datasets = [{
+          label: 'ตรงเวลา (On Time)',
+          data: hourOnTime,
+          backgroundColor: barColors,
+          borderRadius: 4
+        }];
+      }
+
+      chartInstances[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: hourLabels,
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          scales: {
+            x: { stacked: mode === 'all', grid: { display: false } },
+            y: { stacked: mode === 'all', beginAtZero: true }
+          },
+          onClick: (evt, elements) => {
+            if (!elements || !elements.length) return;
+            const idx = elements[0].index;
+            const matchedRows = records.filter(r => {
+              const hr = extractHourFromRecord(r);
+              if (hr !== idx) return false;
+              if (mode === 'late') return String(r.status || '').toLowerCase().includes('late');
+              if (mode === 'ontime') return !String(r.status || '').toLowerCase().includes('late');
+              return true;
+            });
+            const modeText = mode === 'late' ? 'ที่สาย' : (mode === 'ontime' ? 'ที่ตรงเวลา' : 'ทั้งหมด');
+            openRawDataModal(`เที่ยวรถ${modeText}ช่วงเวลา ${hourLabels[idx]} (${matchedRows.length.toLocaleString()} เที่ยว)`, matchedRows);
+          },
+          onHover: (evt, elements) => {
+            if (evt && evt.native && evt.native.target) {
+              evt.native.target.style.cursor = (elements && elements.length) ? 'pointer' : 'default';
+            }
+          },
+          plugins: {
+            legend: {
+              display: mode === 'all',
+              position: 'top'
+            },
+            tooltip: {
+              callbacks: {
+                title: (items) => `ช่วงเวลา ${items[0].label}`,
+                label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} เที่ยว`,
+                footer: (items) => {
+                  const idx = items[0].dataIndex;
+                  const tot = hourTotal[idx];
+                  const ont = hourOnTime[idx];
+                  const lat = hourLate[idx];
+                  return `รวมชั่วโมงนี้: ${tot.toLocaleString()} เที่ยว (ตรงเวลา: ${ont} | สาย: ${lat})\n👉 คลิกเพื่อเปิดดู Raw Data ครบทุกเที่ยว`;
+                }
+              }
+            }
+          }
+        }
+      });
     }
 
     function createPieChart(canvasId, labels, data, colors, clickHandler) {
