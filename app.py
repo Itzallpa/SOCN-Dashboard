@@ -4049,45 +4049,89 @@ def delete_compare_or_upload_file():
 def load_and_prep_compare_df(file_path):
     if file_path.lower().endswith(('.xlsx', '.xls')):
         raw_df = read_dataframe(file_path)
+        total_file_rows = len(raw_df)
     else:
-        try:
-            raw_df = pd.read_csv(file_path, low_memory=False, on_bad_lines='skip', dtype=str, encoding='utf-8-sig')
-        except Exception:
+        # Detect columns and encoding efficiently from the first few rows
+        sample_df = None
+        encoding_used = 'utf-8-sig'
+        for enc in ['utf-8-sig', 'cp874', 'utf-8', 'latin1']:
             try:
-                raw_df = pd.read_csv(file_path, low_memory=False, on_bad_lines='skip', dtype=str, encoding='cp874')
+                sample_df = pd.read_csv(file_path, nrows=5, encoding=enc, on_bad_lines='skip')
+                encoding_used = enc
+                break
             except Exception:
-                raw_df = read_dataframe(file_path)
+                continue
 
-    total_file_rows = len(raw_df)
+        col_map = {}
+        if sample_df is not None and len(sample_df.columns) > 0:
+            for col in sample_df.columns:
+                c_clean = str(col).strip().lower().replace("_", " ")
+                if ("shipment" in c_clean or "tracking" in c_clean or c_clean == "col 1") and "shipment_id" not in col_map:
+                    col_map["shipment_id"] = col
+                if ("action" in c_clean or "flag" in c_clean) and "action_flag" not in col_map:
+                    col_map["action_flag"] = col
+                if ("timestamp" in c_clean or "status time" in c_clean or ("time" in c_clean and "snap" not in c_clean)) and "timestamp" not in col_map:
+                    col_map["timestamp"] = col
+                if ("day in soc" in c_clean or "day in hub" in c_clean or "aging" in c_clean or c_clean == "day") and "day_in_soc" not in col_map:
+                    col_map["day_in_soc"] = col
+                if (("station" in c_clean and "soc" not in c_clean) or "awb" in c_clean) and "station" not in col_map:
+                    col_map["station"] = col
+                if ("operator" in c_clean or "user" in c_clean) and "operator" not in col_map:
+                    col_map["operator"] = col
+
+            cols = list(sample_df.columns)
+            if "shipment_id" not in col_map and len(cols) > 1: col_map["shipment_id"] = cols[1]
+            if "action_flag" not in col_map and len(cols) > 12: col_map["action_flag"] = cols[12]
+            if "timestamp" not in col_map and len(cols) > 7: col_map["timestamp"] = cols[7]
+            if "day_in_soc" not in col_map and len(cols) > 13: col_map["day_in_soc"] = cols[13]
+            if "station" not in col_map and len(cols) > 4: col_map["station"] = cols[4]
+            if "operator" not in col_map and len(cols) > 8: col_map["operator"] = cols[8]
+
+            use_cols = list(set([v for v in col_map.values() if v in sample_df.columns]))
+            if not use_cols:
+                use_cols = list(sample_df.columns[:10])
+
+            try:
+                raw_df = pd.read_csv(file_path, usecols=use_cols, low_memory=False, on_bad_lines='skip', dtype=str, encoding=encoding_used)
+            except Exception:
+                raw_df = pd.read_csv(file_path, low_memory=False, on_bad_lines='skip', dtype=str, encoding=encoding_used)
+        else:
+            try:
+                raw_df = read_dataframe(file_path)
+            except Exception:
+                raw_df = pd.DataFrame()
+
+        total_file_rows = len(raw_df)
+
     if total_file_rows == 0:
         empty_df = pd.DataFrame(columns=["shipment_id", "action_flag", "timestamp", "day_in_soc", "station", "operator"])
         return 0, 0, empty_df
 
-    col_map = {}
-    for col in raw_df.columns:
-        c_clean = str(col).strip().lower().replace("_", " ")
-        if ("shipment" in c_clean or "tracking" in c_clean or c_clean == "col 1") and "shipment_id" not in col_map:
-            col_map["shipment_id"] = col
-        if ("action" in c_clean or "flag" in c_clean) and "action_flag" not in col_map:
-            col_map["action_flag"] = col
-        if ("timestamp" in c_clean or "status time" in c_clean or ("time" in c_clean and "snap" not in c_clean)) and "timestamp" not in col_map:
-            col_map["timestamp"] = col
-        if ("day in soc" in c_clean or "day in hub" in c_clean or "aging" in c_clean or c_clean == "day") and "day_in_soc" not in col_map:
-            col_map["day_in_soc"] = col
-        if (("station" in c_clean and "soc" not in c_clean) or "awb" in c_clean) and "station" not in col_map:
-            col_map["station"] = col
-        if ("operator" in c_clean or "user" in c_clean) and "operator" not in col_map:
-            col_map["operator"] = col
+    if not col_map:
+        for col in raw_df.columns:
+            c_clean = str(col).strip().lower().replace("_", " ")
+            if ("shipment" in c_clean or "tracking" in c_clean or c_clean == "col 1") and "shipment_id" not in col_map:
+                col_map["shipment_id"] = col
+            if ("action" in c_clean or "flag" in c_clean) and "action_flag" not in col_map:
+                col_map["action_flag"] = col
+            if ("timestamp" in c_clean or "status time" in c_clean or ("time" in c_clean and "snap" not in c_clean)) and "timestamp" not in col_map:
+                col_map["timestamp"] = col
+            if ("day in soc" in c_clean or "day in hub" in c_clean or "aging" in c_clean or c_clean == "day") and "day_in_soc" not in col_map:
+                col_map["day_in_soc"] = col
+            if (("station" in c_clean and "soc" not in c_clean) or "awb" in c_clean) and "station" not in col_map:
+                col_map["station"] = col
+            if ("operator" in c_clean or "user" in c_clean) and "operator" not in col_map:
+                col_map["operator"] = col
 
-    cols = list(raw_df.columns)
-    if "shipment_id" not in col_map and len(cols) > 1: col_map["shipment_id"] = cols[1]
-    if "action_flag" not in col_map and len(cols) > 12: col_map["action_flag"] = cols[12]
-    if "timestamp" not in col_map and len(cols) > 7: col_map["timestamp"] = cols[7]
-    if "day_in_soc" not in col_map and len(cols) > 13: col_map["day_in_soc"] = cols[13]
-    if "station" not in col_map and len(cols) > 4: col_map["station"] = cols[4]
-    if "operator" not in col_map and len(cols) > 8: col_map["operator"] = cols[8]
+        cols = list(raw_df.columns)
+        if "shipment_id" not in col_map and len(cols) > 1: col_map["shipment_id"] = cols[1]
+        if "action_flag" not in col_map and len(cols) > 12: col_map["action_flag"] = cols[12]
+        if "timestamp" not in col_map and len(cols) > 7: col_map["timestamp"] = cols[7]
+        if "day_in_soc" not in col_map and len(cols) > 13: col_map["day_in_soc"] = cols[13]
+        if "station" not in col_map and len(cols) > 4: col_map["station"] = cols[4]
+        if "operator" not in col_map and len(cols) > 8: col_map["operator"] = cols[8]
 
-    s_col = col_map.get("shipment_id") or (cols[0] if cols else None)
+    s_col = col_map.get("shipment_id") or (list(raw_df.columns)[0] if len(raw_df.columns) > 0 else None)
     
     slim = pd.DataFrame()
     slim["shipment_id"] = raw_df[s_col].astype(str).str.strip() if s_col in raw_df.columns else ""
