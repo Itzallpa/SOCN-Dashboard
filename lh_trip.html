@@ -329,7 +329,21 @@
     const [] = [];
 
     document.addEventListener('DOMContentLoaded', () => {
-      // Auto sync live Google Sheet data on page load
+      // 1. Instantly render from cached data if available
+      try {
+        const cached = localStorage.getItem('LH_TRIP_CACHED_DATA');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && (parsed.outboundRawRows || parsed.rows || parsed.totalTrips)) {
+            latestSyncedData = parsed;
+            renderLHData(parsed);
+          }
+        }
+      } catch (e) {
+        console.warn('Cache load error:', e);
+      }
+
+      // 2. Fetch fresh live Google Sheet data in background
       syncAppsScriptDataToDashboard(EMBEDDED_PERSONAL_SHEET_URL);
     });
 
@@ -369,12 +383,15 @@
     function syncAppsScriptDataToDashboard(url) {
       const targetUrl = url || EMBEDDED_PERSONAL_SHEET_URL;
 
-      Swal.fire({
-        title: 'กำลัง Sync ข้อมูลสด...',
-        text: 'กำลังดึงข้อมูลและประมวลผลจาก Google Sheet เข้าสู่ Dashboard (อาจใช้เวลา 10-20 วินาที)',
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-      });
+      const hasCached = !!latestSyncedData;
+      if (!hasCached) {
+        Swal.fire({
+          title: 'กำลัง Sync ข้อมูลสด...',
+          text: 'กำลังดึงข้อมูลและประมวลผลจาก Google Sheet เข้าสู่ Dashboard (อาจใช้เวลา 5-10 วินาที)',
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading()
+        });
+      }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
@@ -384,6 +401,10 @@
           clearTimeout(timeoutId);
           if (data && data.success) {
             latestSyncedData = data;
+            try {
+              localStorage.setItem('LH_TRIP_CACHED_DATA', JSON.stringify(data));
+            } catch (e) { }
+
             if (data.outboundRawRows && data.outboundRawRows.length > 0) {
               rawTripRecords = data.outboundRawRows;
             } else if (data.rows && data.rows.length > 0) {
@@ -396,7 +417,7 @@
               icon: 'success',
               title: 'Sync สำเร็จ! 🚀',
               text: `ดึงข้อมูลสดสำเร็จ ${totalCount.toLocaleString()} รายการ`,
-              timer: 2000,
+              timer: 1800,
               showConfirmButton: false
             });
           } else {
@@ -845,19 +866,35 @@
       const lateOrders = lateRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
       const onTimeOrders = totalOrders - lateOrders;
 
-      document.getElementById('kpiTotal').innerHTML = `${Number(totalTrips).toLocaleString()} <span style="font-size:0.55em; font-weight:normal;" class="text-secondary">(📦 ${totalOrders.toLocaleString()} Orders)</span>`;
-      document.getElementById('kpiOnTime').innerHTML = `${Number(onTimeTrips).toLocaleString()} <span style="font-size:0.55em; font-weight:normal;" class="text-secondary">(${onTimeOrders.toLocaleString()} Orders)</span>`;
-      document.getElementById('kpiLate').innerHTML = `${Number(lateTrips).toLocaleString()} <span style="font-size:0.55em; font-weight:normal;" class="text-secondary">(${lateOrders.toLocaleString()} Orders)</span>`;
+      const ordersTotalBadge = totalOrders > 0 ? ` <span style="font-size:0.55em; font-weight:normal;" class="text-secondary">(📦 ${totalOrders.toLocaleString()} Orders)</span>` : '';
+      const onTimeOrdersBadge = totalOrders > 0 ? ` <span style="font-size:0.55em; font-weight:normal;" class="text-secondary">(${onTimeOrders.toLocaleString()} Orders)</span>` : '';
+      const lateOrdersBadge = totalOrders > 0 ? ` <span style="font-size:0.55em; font-weight:normal;" class="text-secondary">(${lateOrders.toLocaleString()} Orders)</span>` : '';
+
+      document.getElementById('kpiTotal').innerHTML = `${Number(totalTrips).toLocaleString()}${ordersTotalBadge}`;
+      document.getElementById('kpiOnTime').innerHTML = `${Number(onTimeTrips).toLocaleString()}${onTimeOrdersBadge}`;
+      document.getElementById('kpiLate').innerHTML = `${Number(lateTrips).toLocaleString()}${lateOrdersBadge}`;
       document.getElementById('kpiRate').innerText = rate;
 
       const subHeader = document.getElementById('headerSubtext');
-      if (subHeader) subHeader.innerText = `ระบบวิเคราะห์ข้อมูล LH Trip ${Number(totalTrips).toLocaleString()} เที่ยวรถ (📦 รวม ${totalOrders.toLocaleString()} Orders | Top 50 Hubs ครบถ้วน)`;
+      if (subHeader) {
+        subHeader.innerText = totalOrders > 0
+          ? `ระบบวิเคราะห์ข้อมูล LH Trip ${Number(totalTrips).toLocaleString()} เที่ยวรถ (📦 รวม ${totalOrders.toLocaleString()} Orders | Top 50 Hubs ครบถ้วน)`
+          : `ระบบวิเคราะห์ข้อมูล LH Trip ${Number(totalTrips).toLocaleString()} เที่ยวรถ (Top 50 Hubs ครบถ้วน)`;
+      }
 
       const onTimeSub = document.getElementById('kpiOnTimeSub');
-      if (onTimeSub) onTimeSub.innerText = `${onTimePct}% of trips | 📦 ${onTimeOrders.toLocaleString()} orders`;
+      if (onTimeSub) {
+        onTimeSub.innerText = totalOrders > 0
+          ? `${onTimePct}% of trips | 📦 ${onTimeOrders.toLocaleString()} orders`
+          : `${onTimePct}% of trips (คลิกเพื่อดู Raw Data)`;
+      }
 
       const lateSub = document.getElementById('kpiLateSub');
-      if (lateSub) lateSub.innerText = `${latePct}% of trips | 📦 ${lateOrders.toLocaleString()} orders`;
+      if (lateSub) {
+        lateSub.innerText = totalOrders > 0
+          ? `${latePct}% of trips | 📦 ${lateOrders.toLocaleString()} orders`
+          : `${latePct}% of trips (คลิกเพื่อดู Raw Data)`;
+      }
 
       renderAll5Charts(data);
       renderVerifiedTopHubTables();
