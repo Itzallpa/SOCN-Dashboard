@@ -1251,6 +1251,15 @@
       }).join('');
     }
 
+    function normalizeVehicleGroup(v) {
+      const s = String(v || '').toLowerCase();
+      if (s.includes('4wj') || s.includes('จัมโบ้')) return '4WJ';
+      if (s.includes('4w') || s.includes('4ล้อ')) return '4W';
+      if (s.includes('6w') || s.includes('6ล้อ')) return '6W';
+      if (s.includes('semi') || s.includes('พ่วง') || s.includes('trailer')) return 'Semi trailer-รถพ่วงแม่ลูก';
+      return 'อื่นๆ (Other)';
+    }
+
     function exportExcelWithCharts() {
       try {
         const records = (rawTripRecords && rawTripRecords.length) ? rawTripRecords : [];
@@ -1265,7 +1274,42 @@
           window.AuthGuard.logExport('LH_Trip_Executive_Report.xls', totalTrips, 'ส่งออกไฟล์ Excel รายงาน LH Trip สรุปรายชั่วโมงและ Raw Data ครบถ้วน');
         }
 
-        // 1. Calculate Hourly Breakdown (เวลาไหน กี่ตัว)
+        // 1. Calculate Hourly Late Breakdown by Vehicle Type (4W, 4WJ, 6W, Semi trailer)
+        const matrixStats = [];
+        let grand4W = 0, grand4WJ = 0, grand6W = 0, grandSemi = 0, grandOther = 0, grandTotalLate = 0;
+
+        for (let h = 0; h < 24; h++) {
+          const startLabel = String(h).padStart(2, '0') + ':00';
+          const endLabel = String((h + 1) % 24).padStart(2, '0') + ':00';
+          const hLateRecords = lateRecords.filter(r => extractHourFromRecord(r) === h);
+
+          let c4W = 0, c4WJ = 0, c6W = 0, cSemi = 0, cOther = 0;
+          hLateRecords.forEach(r => {
+            const grp = normalizeVehicleGroup(r.vehicle_type);
+            if (grp === '4W') c4W++;
+            else if (grp === '4WJ') c4WJ++;
+            else if (grp === '6W') c6W++;
+            else if (grp === 'Semi trailer-รถพ่วงแม่ลูก') cSemi++;
+            else cOther++;
+          });
+
+          const totalLateInHour = hLateRecords.length;
+
+          grand4W += c4W;
+          grand4WJ += c4WJ;
+          grand6W += c6W;
+          grandSemi += cSemi;
+          grandOther += cOther;
+          grandTotalLate += totalLateInHour;
+
+          matrixStats.push({
+            timeRange: `${startLabel} - ${endLabel}`,
+            c4W, c4WJ, c6W, cSemi, cOther,
+            totalLate: totalLateInHour
+          });
+        }
+
+        // 2. Calculate Hourly Breakdown (เวลาไหน กี่ตัว)
         const hourStats = [];
         let grandHourOnTime = 0;
         let grandHourLate = 0;
@@ -1291,7 +1335,7 @@
           });
         }
 
-        // 2. Calculate Vehicle Type Breakdown
+        // 3. Calculate Vehicle Type Breakdown
         const vehMap = {};
         records.forEach(r => {
           const v = String(r.vehicle_type || 'Unknown').trim() || 'Unknown';
@@ -1310,7 +1354,7 @@
           }))
           .sort((a, b) => b.total - a.total);
 
-        // 3. Top Hubs Data
+        // 4. Top Hubs Data
         const hubMap = {};
         records.forEach(r => {
           const dest = String(r.dest_station_name || 'Unknown Hub').trim() || 'Unknown Hub';
@@ -1374,12 +1418,56 @@
     </tr>
   </table>
 
-  <!-- 1. HOURLY BREAKDOWN TABLE (เวลาไหน กี่ตัว) -->
+  <!-- 1. HOURLY LATE MATRIX BY VEHICLE TYPE (4W, 4WJ, 6W, Semi trailer) -->
+  <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
+    <thead>
+      <tr>
+        <th colspan="7" style="background-color:#1e293b; color:#ffffff; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #94a3b8;">
+          📊 จำนวนเที่ยวที่สาย แยกตามช่วงเวลา และประเภทรถ (4W, 4WJ, 6W, Semi trailer กี่คัน ในแต่ละชั่วโมง)
+        </th>
+      </tr>
+      <tr>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:190px;">ช่วงเวลาออกเดินทาง (Time Range)</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:110px;">4W</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:110px;">4WJ</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:110px;">6W</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:180px;">Semi trailer-รถพ่วงแม่ลูก</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:100px;">อื่นๆ (Other)</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:140px;">รวมเที่ยวที่สาย (Total Late)</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${matrixStats.map(m => {
+        const rowBg = m.totalLate > 0 ? '#fff1f0' : '#ffffff';
+        return `
+        <tr style="background-color:${rowBg};">
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${m.timeRange}</td>
+          <td style="background-color:${rowBg}; color:${m.c4W > 0 ? '#b91c1c' : '#64748b'}; font-weight:${m.c4W > 0 ? 'bold' : 'normal'}; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${m.c4W || 0}</td>
+          <td style="background-color:${rowBg}; color:${m.c4WJ > 0 ? '#b91c1c' : '#64748b'}; font-weight:${m.c4WJ > 0 ? 'bold' : 'normal'}; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${m.c4WJ || 0}</td>
+          <td style="background-color:${rowBg}; color:${m.c6W > 0 ? '#b91c1c' : '#64748b'}; font-weight:${m.c6W > 0 ? 'bold' : 'normal'}; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${m.c6W || 0}</td>
+          <td style="background-color:${rowBg}; color:${m.cSemi > 0 ? '#b91c1c' : '#64748b'}; font-weight:${m.cSemi > 0 ? 'bold' : 'normal'}; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${m.cSemi || 0}</td>
+          <td style="background-color:${rowBg}; color:${m.cOther > 0 ? '#b91c1c' : '#64748b'}; font-weight:${m.cOther > 0 ? 'bold' : 'normal'}; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${m.cOther || 0}</td>
+          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${m.totalLate.toLocaleString()}</td>
+        </tr>`;
+      }).join('')}
+      <tr style="background-color:#f1f5f9; font-weight:bold;">
+        <td style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">รวมทั้งสิ้น (Grand Total)</td>
+        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grand4W.toLocaleString()}</td>
+        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grand4WJ.toLocaleString()}</td>
+        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grand6W.toLocaleString()}</td>
+        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grandSemi.toLocaleString()}</td>
+        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grandOther.toLocaleString()}</td>
+        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grandTotalLate.toLocaleString()}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 2. HOURLY BREAKDOWN TABLE (เวลาไหน กี่ตัว) -->
   <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
     <thead>
       <tr>
         <th colspan="5" style="background-color:#1e293b; color:#ffffff; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #94a3b8;">
-          🕒 สรุปจำนวนเที่ยวรถ แยกตามชั่วโมงการออกเดินทาง (เวลาไหน กี่ตัว: 00:00 - 23:00)
+          🕒 สรุปจำนวนเที่ยวรถ แยกตามชั่วโมงการออกเดินทาง (ตรงเวลา vs สาย: 00:00 - 23:00)
         </th>
       </tr>
       <tr>
@@ -1413,7 +1501,7 @@
     </tbody>
   </table>
 
-  <!-- 2. VEHICLE BREAKDOWN TABLE -->
+  <!-- 3. VEHICLE BREAKDOWN TABLE -->
   <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
     <thead>
       <tr>
@@ -1446,7 +1534,7 @@
     </tbody>
   </table>
 
-  <!-- 3. TOP 50 LATE HUBS -->
+  <!-- 4. TOP 50 LATE HUBS -->
   <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
     <thead>
       <tr>
@@ -1477,7 +1565,7 @@
     </tbody>
   </table>
 
-  <!-- 4. COMPLETE RAW DATA TABLE -->
+  <!-- 5. COMPLETE RAW DATA TABLE -->
   <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
     <thead>
       <tr>
@@ -1565,7 +1653,27 @@
       csv += 'Total Raw Data Trips,On Time,Late,On-Time Rate %,Late Rate %\n';
       csv += `${totalTrips},${onTimeCount},${lateCount},${onTimePct}%,${latePct}%\n\n`;
 
-      csv += '2. HOURLY BREAKDOWN (เวลาไหน กี่ตัว: 00:00 - 23:00)\n';
+      csv += '2. HOURLY LATE BY VEHICLE TYPE (จำนวนเที่ยวที่สาย แยกตามช่วงเวลา และประเภทรถ 4W, 4WJ, 6W, Semi trailer)\n';
+      csv += 'Time Range,4W,4WJ,6W,Semi trailer-รถพ่วงแม่ลูก,Other,Total Late\n';
+      for (let h = 0; h < 24; h++) {
+        const startLabel = String(h).padStart(2, '0') + ':00';
+        const endLabel = String((h + 1) % 24).padStart(2, '0') + ':00';
+        const hLateRecords = lateRecords.filter(r => extractHourFromRecord(r) === h);
+
+        let c4W = 0, c4WJ = 0, c6W = 0, cSemi = 0, cOther = 0;
+        hLateRecords.forEach(r => {
+          const grp = normalizeVehicleGroup(r.vehicle_type);
+          if (grp === '4W') c4W++;
+          else if (grp === '4WJ') c4WJ++;
+          else if (grp === '6W') c6W++;
+          else if (grp === 'Semi trailer-รถพ่วงแม่ลูก') cSemi++;
+          else cOther++;
+        });
+
+        csv += `"${startLabel} - ${endLabel}",${c4W},${c4WJ},${c6W},${cSemi},${cOther},${hLateRecords.length}\n`;
+      }
+
+      csv += '\n3. HOURLY BREAKDOWN (เวลาไหน กี่ตัว: 00:00 - 23:00)\n';
       csv += 'Time Range,On Time,Late,Total Trips,Late Rate %\n';
       for (let h = 0; h < 24; h++) {
         const startLabel = String(h).padStart(2, '0') + ':00';
@@ -1578,7 +1686,7 @@
         csv += `"${startLabel} - ${endLabel}",${hOnTime},${hLate},${hTotal},${hPct}%\n`;
       }
 
-      csv += '\n3. VEHICLE TYPE BREAKDOWN (แยกตามประเภทรถ)\n';
+      csv += '\n4. VEHICLE TYPE BREAKDOWN (แยกตามประเภทรถ)\n';
       csv += 'Vehicle Type,On Time,Late,Total Trips,Late Rate %\n';
       const vehMap = {};
       records.forEach(r => {
