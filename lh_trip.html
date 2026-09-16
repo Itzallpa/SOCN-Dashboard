@@ -1344,170 +1344,187 @@
   </xml>
   <![endif]-->
   <style>
-    body { font-family: Tahoma, 'Segoe UI', Arial, sans-serif; background: #ffffff; color: #1e293b; padding: 20px; }
+    body { font-family: Tahoma, 'Segoe UI', Arial, sans-serif; background-color: #ffffff; color: #0f172a; padding: 20px; }
     h2 { font-size: 18px; font-weight: bold; color: #0f172a; margin-bottom: 2px; }
-    .sub-title { font-size: 11px; color: #64748b; margin-bottom: 16px; }
-    .section-header { font-size: 13px; font-weight: bold; background-color: #0f172a; color: #ffffff; padding: 8px 12px; margin-top: 20px; margin-bottom: 6px; }
-    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; font-size: 12px; }
-    th, td { border: 1px solid #cbd5e1; padding: 6px 10px; }
-    th { background-color: #1e293b; color: #ffffff; font-weight: bold; text-align: center; }
-    .kpi-table th { background-color: #f1f5f9; color: #475569; font-size: 11px; text-transform: uppercase; }
-    .kpi-table td { font-size: 18px; font-weight: bold; text-align: center; }
-    .text-center { text-align: center; }
-    .text-right { text-align: right; }
-    .text-danger { color: #d0311d; font-weight: bold; }
-    .text-success { color: #0f9d58; font-weight: bold; }
-    .bg-light-red { background-color: #fee2e2; }
-    .bg-light-green { background-color: #dcfce7; }
-    .bg-gray-total { background-color: #f8fafc; font-weight: bold; }
+    .sub-title { font-size: 11px; color: #475569; margin-bottom: 16px; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 22px; font-size: 12px; background-color: #ffffff; }
+    th { background-color: #0f172a !important; color: #ffffff !important; font-weight: bold; text-align: center; border: 1px solid #94a3b8; padding: 8px 10px; }
+    td { border: 1px solid #cbd5e1; padding: 6px 10px; color: #0f172a !important; background-color: #ffffff; }
   </style>
 </head>
-<body>
-  <h2>🚚 LH TRIP & OB LATE EXECUTIVE REPORT (สรุปรายชั่วโมง + RAW DATA)</h2>
-  <div class="sub-title">ส่งออกข้อมูลเมื่อ: ${new Date().toLocaleString('th-TH')} | จำนวนข้อมูลดิบทั้งหมด (Raw Data): <b>${totalTrips.toLocaleString()}</b> เที่ยวรถ</div>
+<body style="background-color:#ffffff; color:#0f172a;">
+  <h2 style="font-size:18px; font-weight:bold; color:#0f172a; margin:0 0 4px 0;">🚚 LH TRIP & OB LATE EXECUTIVE REPORT (สรุปรายชั่วโมง + RAW DATA)</h2>
+  <div style="font-size:11px; color:#475569; margin-bottom:16px;">ส่งออกข้อมูลเมื่อ: ${new Date().toLocaleString('th-TH')} | ข้อมูลดิบทั้งหมด (Raw Data): <b style="color:#0f172a;">${totalTrips.toLocaleString()}</b> เที่ยวรถ</div>
 
   <!-- KPI SUMMARY CARDS -->
-  <table class="kpi-table">
+  <table style="border-collapse:collapse; width:100%; margin-bottom:20px; border:1px solid #cbd5e1;">
     <tr>
-      <th>รวมเที่ยวรถทั้งหมด (TOTAL RAW DATA)</th>
-      <th>ตรงเวลา (ON TIME)</th>
-      <th>สาย (LATE)</th>
-      <th>อัตราตรงเวลา (ON-TIME RATE)</th>
-      <th>อัตราสาย (LATE RATE)</th>
+      <th style="background-color:#f1f5f9; color:#475569; font-size:11px; border:1px solid #cbd5e1; padding:8px;">รวมเที่ยวรถทั้งหมด (TOTAL RAW DATA)</th>
+      <th style="background-color:#f1f5f9; color:#475569; font-size:11px; border:1px solid #cbd5e1; padding:8px;">ตรงเวลา (ON TIME)</th>
+      <th style="background-color:#f1f5f9; color:#475569; font-size:11px; border:1px solid #cbd5e1; padding:8px;">สาย (LATE)</th>
+      <th style="background-color:#f1f5f9; color:#475569; font-size:11px; border:1px solid #cbd5e1; padding:8px;">อัตราตรงเวลา (ON-TIME RATE)</th>
+      <th style="background-color:#f1f5f9; color:#475569; font-size:11px; border:1px solid #cbd5e1; padding:8px;">อัตราสาย (LATE RATE)</th>
     </tr>
     <tr>
-      <td style="color:#0f172a;">${totalTrips.toLocaleString()} เที่ยว</td>
-      <td style="color:#0f9d58;">${onTimeCount.toLocaleString()} เที่ยว</td>
-      <td style="color:#d0311d;">${lateCount.toLocaleString()} เที่ยว</td>
-      <td style="color:#0f9d58;">${onTimePct}%</td>
-      <td style="color:#d0311d;">${latePct}%</td>
+      <td style="font-size:18px; font-weight:bold; text-align:center; color:#0f172a; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;">${totalTrips.toLocaleString()} เที่ยว</td>
+      <td style="font-size:18px; font-weight:bold; text-align:center; color:#15803d; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;">${onTimeCount.toLocaleString()} เที่ยว</td>
+      <td style="font-size:18px; font-weight:bold; text-align:center; color:#b91c1c; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;">${lateCount.toLocaleString()} เที่ยว</td>
+      <td style="font-size:18px; font-weight:bold; text-align:center; color:#15803d; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;">${onTimePct}%</td>
+      <td style="font-size:18px; font-weight:bold; text-align:center; color:#b91c1c; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;">${latePct}%</td>
     </tr>
   </table>
 
   <!-- 1. HOURLY BREAKDOWN TABLE (เวลาไหน กี่ตัว) -->
-  <div class="section-header">🕒 สรุปจำนวนเที่ยวรถ แยกตามชั่วโมงการออกเดินทาง (เวลาไหน กี่ตัว: 00:00 - 23:00)</div>
-  <table>
+  <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
     <thead>
       <tr>
-        <th style="width: 180px;">ช่วงเวลาออกเดินทาง (Time Range)</th>
-        <th style="width: 140px;">ตรงเวลา (On Time)</th>
-        <th style="width: 140px;">สาย (Late)</th>
-        <th style="width: 160px;">รวมเที่ยวรถในชั่วโมงนี้ (Total)</th>
-        <th style="width: 140px;">อัตราสาย (% Late)</th>
+        <th colspan="5" style="background-color:#1e293b; color:#ffffff; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #94a3b8;">
+          🕒 สรุปจำนวนเที่ยวรถ แยกตามชั่วโมงการออกเดินทาง (เวลาไหน กี่ตัว: 00:00 - 23:00)
+        </th>
+      </tr>
+      <tr>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:200px;">ช่วงเวลาออกเดินทาง (Time Range)</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:140px;">ตรงเวลา (On Time)</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:140px;">สาย (Late)</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:160px;">รวมเที่ยวรถในชั่วโมงนี้ (Total)</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:140px;">อัตราสาย (% Late)</th>
       </tr>
     </thead>
     <tbody>
-      ${hourStats.map(h => `
-        <tr class="${h.late > 0 ? 'bg-light-red' : ''}">
-          <td class="text-center" style="font-weight:600;">${h.timeRange}</td>
-          <td class="text-center text-success">${h.onTime.toLocaleString()}</td>
-          <td class="text-center text-danger">${h.late.toLocaleString()}</td>
-          <td class="text-center" style="font-weight:600;">${h.total.toLocaleString()}</td>
-          <td class="text-center ${h.late > 0 ? 'text-danger' : ''}">${h.latePct}</td>
-        </tr>
-      `).join('')}
-      <tr class="bg-gray-total">
-        <td class="text-center">รวมทั้งสิ้น (Grand Total)</td>
-        <td class="text-center text-success">${grandHourOnTime.toLocaleString()}</td>
-        <td class="text-center text-danger">${grandHourLate.toLocaleString()}</td>
-        <td class="text-center">${(grandHourOnTime + grandHourLate).toLocaleString()}</td>
-        <td class="text-center">${totalTrips ? ((grandHourLate / totalTrips) * 100).toFixed(1) + '%' : '0.0%'}</td>
+      ${hourStats.map(h => {
+        const rowBg = h.late > 0 ? '#fff1f0' : '#ffffff';
+        const lateTxtColor = h.late > 0 ? '#b91c1c' : '#475569';
+        return `
+        <tr style="background-color:${rowBg};">
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.timeRange}</td>
+          <td style="background-color:${rowBg}; color:#15803d; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.onTime.toLocaleString()}</td>
+          <td style="background-color:${rowBg}; color:${lateTxtColor}; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.late.toLocaleString()}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.total.toLocaleString()}</td>
+          <td style="background-color:${rowBg}; color:${lateTxtColor}; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.latePct}</td>
+        </tr>`;
+      }).join('')}
+      <tr style="background-color:#f1f5f9; font-weight:bold;">
+        <td style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">รวมทั้งสิ้น (Grand Total)</td>
+        <td style="background-color:#f1f5f9; color:#15803d; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grandHourOnTime.toLocaleString()}</td>
+        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${grandHourLate.toLocaleString()}</td>
+        <td style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${(grandHourOnTime + grandHourLate).toLocaleString()}</td>
+        <td style="background-color:#f1f5f9; color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;">${totalTrips ? ((grandHourLate / totalTrips) * 100).toFixed(1) + '%' : '0.0%'}</td>
       </tr>
     </tbody>
   </table>
 
   <!-- 2. VEHICLE BREAKDOWN TABLE -->
-  <div class="section-header">🚛 สรุปจำนวนเที่ยวรถ แยกตามประเภทรถ (Vehicle Type Breakdown)</div>
-  <table>
+  <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
     <thead>
       <tr>
-        <th>ลำดับ</th>
-        <th>ประเภทรถ (Vehicle Type)</th>
-        <th>ตรงเวลา (On Time)</th>
-        <th>สาย (Late)</th>
-        <th>รวมเที่ยวทั้งหมด (Total)</th>
-        <th>อัตราสาย (% Late)</th>
+        <th colspan="6" style="background-color:#1e293b; color:#ffffff; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #94a3b8;">
+          🚛 สรุปจำนวนเที่ยวรถ แยกตามประเภทรถ (Vehicle Type Breakdown)
+        </th>
+      </tr>
+      <tr>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:60px;">ลำดับ</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8;">ประเภทรถ (Vehicle Type)</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:130px;">ตรงเวลา (On Time)</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:130px;">สาย (Late)</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:150px;">รวมเที่ยวทั้งหมด (Total)</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:130px;">อัตราสาย (% Late)</th>
       </tr>
     </thead>
     <tbody>
-      ${vehStats.map((v, i) => `
-        <tr>
-          <td class="text-center">${i + 1}</td>
-          <td style="font-weight:600;">${v.vehType}</td>
-          <td class="text-center text-success">${v.onTime.toLocaleString()}</td>
-          <td class="text-center text-danger">${v.late.toLocaleString()}</td>
-          <td class="text-center" style="font-weight:600;">${v.total.toLocaleString()}</td>
-          <td class="text-center text-danger">${v.latePct}</td>
-        </tr>
-      `).join('')}
+      ${vehStats.map((v, i) => {
+        const rowBg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
+        return `
+        <tr style="background-color:${rowBg};">
+          <td style="background-color:${rowBg}; color:#0f172a; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${i + 1}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; padding:6px 10px; border:1px solid #cbd5e1;">${v.vehType}</td>
+          <td style="background-color:${rowBg}; color:#15803d; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${v.onTime.toLocaleString()}</td>
+          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${v.late.toLocaleString()}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${v.total.toLocaleString()}</td>
+          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${v.latePct}</td>
+        </tr>`;
+      }).join('')}
     </tbody>
   </table>
 
   <!-- 3. TOP 50 LATE HUBS -->
-  <div class="section-header">🏆 Top 50 Hubs ปลายทางที่สายสูงสุด (Top 50 Late Hubs)</div>
-  <table>
+  <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
     <thead>
       <tr>
-        <th style="width:60px;">อันดับ</th>
-        <th>Hub ปลายทาง (Destination)</th>
-        <th style="width:140px;">จำนวนเที่ยวที่สาย (Late)</th>
-        <th style="width:140px;">รวมเที่ยวทั้งหมด (Total)</th>
-        <th style="width:140px;">อัตราสาย (% Late)</th>
+        <th colspan="5" style="background-color:#1e293b; color:#ffffff; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #94a3b8;">
+          🏆 Top 50 Hubs ปลายทางที่สายสูงสุด (Top 50 Late Hubs)
+        </th>
+      </tr>
+      <tr>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:60px;">อันดับ</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8;">Hub ปลายทาง (Destination)</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:160px;">จำนวนเที่ยวที่สาย (Late)</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:160px;">รวมเที่ยวทั้งหมด (Total)</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:140px;">อัตราสาย (% Late)</th>
       </tr>
     </thead>
     <tbody>
-      ${top50Hubs.map((h, i) => `
-        <tr>
-          <td class="text-center">${i + 1}</td>
-          <td class="text-danger" style="font-weight:600;">${h.hub}</td>
-          <td class="text-center text-danger">${h.late.toLocaleString()}</td>
-          <td class="text-center">${h.total.toLocaleString()}</td>
-          <td class="text-center text-danger">${h.pct}</td>
-        </tr>
-      `).join('')}
+      ${top50Hubs.map((h, i) => {
+        const rowBg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
+        return `
+        <tr style="background-color:${rowBg};">
+          <td style="background-color:${rowBg}; color:#0f172a; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${i + 1}</td>
+          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; padding:6px 10px; border:1px solid #cbd5e1;">${h.hub}</td>
+          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.late.toLocaleString()}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.total.toLocaleString()}</td>
+          <td style="background-color:${rowBg}; color:#b91c1c; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;">${h.pct}</td>
+        </tr>`;
+      }).join('')}
     </tbody>
   </table>
 
   <!-- 4. COMPLETE RAW DATA TABLE -->
-  <div class="section-header">📋 ข้อมูลดิบทั้งหมด (Complete Raw Data - รวม ${totalTrips.toLocaleString()} เที่ยวรถ)</div>
-  <table>
+  <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
     <thead>
       <tr>
-        <th>NO.</th>
-        <th>LH TRIP NUMBER</th>
-        <th>TRIP CATEGORY</th>
-        <th>VEHICLE TYPE</th>
-        <th>VEHICLE PLATE</th>
-        <th>DRIVER</th>
-        <th>ต้นทาง (ORIGIN)</th>
-        <th>ปลายทาง (DESTINATION)</th>
-        <th>CUT 0</th>
-        <th>CUT 1</th>
-        <th>CUT 2</th>
-        <th>CUT 3</th>
-        <th>ACTUAL DEP CUT</th>
-        <th>STATUS</th>
+        <th colspan="14" style="background-color:#1e293b; color:#ffffff; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #94a3b8;">
+          📋 ข้อมูลดิบทั้งหมด (Complete Raw Data - รวม ${totalTrips.toLocaleString()} เที่ยวรถ)
+        </th>
+      </tr>
+      <tr>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:50px;">NO.</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:140px;">LH TRIP NUMBER</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:120px;">TRIP CATEGORY</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:130px;">VEHICLE TYPE</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:100px;">VEHICLE PLATE</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:160px;">DRIVER</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:90px;">ต้นทาง (ORIGIN)</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:160px;">ปลายทาง (DESTINATION)</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:80px;">CUT 0</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:80px;">CUT 1</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:80px;">CUT 2</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:80px;">CUT 3</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:130px;">ACTUAL DEP CUT</th>
+        <th style="background-color:#0f172a; color:#ffffff; font-weight:bold; padding:8px; border:1px solid #94a3b8; width:100px;">STATUS</th>
       </tr>
     </thead>
     <tbody>
       ${records.map((r, i) => {
-        let isLate = String(r.status || '').toLowerCase().includes('late');
+        const isLate = String(r.status || '').toLowerCase().includes('late');
+        const rowBg = isLate ? '#fff1f0' : (i % 2 === 0 ? '#ffffff' : '#f8fafc');
+        const statusBg = isLate ? '#fee2e2' : '#dcfce7';
+        const statusColor = isLate ? '#b91c1c' : '#15803d';
+
         return `
-        <tr class="${isLate ? 'bg-light-red' : ''}">
-          <td class="text-center">${i + 1}</td>
-          <td style="font-weight:600;">${r.shipment_id || '-'}</td>
-          <td>${r.trip_category || '-'}</td>
-          <td>${r.vehicle_type || '-'}</td>
-          <td>${r.vehicle_plate || '-'}</td>
-          <td>${r.driver || '-'}</td>
-          <td>${r.origin || 'SOCN'}</td>
-          <td style="font-weight:600;">${r.dest_station_name || '-'}</td>
-          <td class="text-center">${r.cut0 || '—'}</td>
-          <td class="text-center">${r.cut1 || '—'}</td>
-          <td class="text-center">${r.cut2 || '—'}</td>
-          <td class="text-center">${r.cut3 || '—'}</td>
-          <td class="text-center">${r.actual_dep_cut || '-'}</td>
-          <td class="text-center ${isLate ? 'text-danger' : 'text-success'}">${isLate ? 'Late' : 'On time'}</td>
+        <tr style="background-color:${rowBg};">
+          <td style="background-color:${rowBg}; color:#0f172a; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${i + 1}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; padding:5px 8px; border:1px solid #cbd5e1;">${r.shipment_id || '-'}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; padding:5px 8px; border:1px solid #cbd5e1;">${r.trip_category || '-'}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; padding:5px 8px; border:1px solid #cbd5e1;">${r.vehicle_type || '-'}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; padding:5px 8px; border:1px solid #cbd5e1;">${r.vehicle_plate || '-'}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; padding:5px 8px; border:1px solid #cbd5e1;">${r.driver || '-'}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${r.origin || 'SOCN'}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; padding:5px 8px; border:1px solid #cbd5e1;">${r.dest_station_name || '-'}</td>
+          <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${r.cut0 || '—'}</td>
+          <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${r.cut1 || '—'}</td>
+          <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${r.cut2 || '—'}</td>
+          <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${r.cut3 || '—'}</td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${r.actual_dep_cut || '-'}</td>
+          <td style="background-color:${statusBg}; color:${statusColor}; font-weight:bold; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;">${isLate ? 'Late' : 'On time'}</td>
         </tr>`;
       }).join('')}
     </tbody>
