@@ -1818,6 +1818,47 @@ def process_table_sheet(df):
         for v_name, v_cnt in v_vc.items():
             veh_stats.append({"vehicle": str(v_name), "count": int(v_cnt)})
 
+    # Dynamically detect all specific columns
+    dep_col = None
+    cut0_col = None
+    cut1_col = None
+    cut2_col = None
+    cut3_col = None
+    plate_col = None
+    driver_col = None
+    origin_col = None
+    cat_col = None
+    region_col = None
+    zone_col = None
+
+    for c in df_clean.columns:
+        c_str = str(c).lower().replace("_", " ").strip()
+        if any(k in c_str for k in ['actual dep', 'dep cut', 'actual departure', 'actual time', 'actual ops', 'departure time', 'dep time', 'เวลาออกจริง', 'เวลาออก']) and not dep_col:
+            dep_col = c
+        if ('cut 0' in c_str or 'cut0' in c_str) and not cut0_col: cut0_col = c
+        elif ('cut 1' in c_str or 'cut1' in c_str) and not cut1_col: cut1_col = c
+        elif ('cut 2' in c_str or 'cut2' in c_str) and not cut2_col: cut2_col = c
+        elif ('cut 3' in c_str or 'cut3' in c_str) and not cut3_col: cut3_col = c
+        if any(k in c_str for k in ['plate', 'license', 'ทะเบียน']) and not plate_col: plate_col = c
+        if any(k in c_str for k in ['driver', 'คนขับ']) and not driver_col: driver_col = c
+        if any(k in c_str for k in ['origin', 'ต้นทาง', 'from']) and not origin_col: origin_col = c
+        if any(k in c_str for k in ['category', 'trip type', 'ประเภท']) and not cat_col: cat_col = c
+        if any(k in c_str for k in ['region', 'ภาค']) and not region_col: region_col = c
+        if any(k in c_str for k in ['zone', 'โซน']) and not zone_col: zone_col = c
+
+    # Fallback to column index positions if not found by name
+    if not dep_col and len(df_clean.columns) > 19: dep_col = df_clean.columns[19]
+    if not cut0_col and len(df_clean.columns) > 15: cut0_col = df_clean.columns[15]
+    if not cut1_col and len(df_clean.columns) > 16: cut1_col = df_clean.columns[16]
+    if not cut2_col and len(df_clean.columns) > 17: cut2_col = df_clean.columns[17]
+    if not cut3_col and len(df_clean.columns) > 18: cut3_col = df_clean.columns[18]
+    if not plate_col and len(df_clean.columns) > 4: plate_col = df_clean.columns[4]
+    if not driver_col and len(df_clean.columns) > 5: driver_col = df_clean.columns[5]
+    if not origin_col and len(df_clean.columns) > 6: origin_col = df_clean.columns[6]
+    if not cat_col and len(df_clean.columns) > 2: cat_col = df_clean.columns[2]
+    if not region_col and len(df_clean.columns) > 25: region_col = df_clean.columns[25]
+    if not zone_col and len(df_clean.columns) > 26: zone_col = df_clean.columns[26]
+
     raw_rows = []
     rows_cells = []
     headers = [str(c) for c in df.columns]
@@ -1826,27 +1867,28 @@ def process_table_sheet(df):
         cells = [str(val) if pd.notna(val) else '' for val in row]
         rows_cells.append({"cells": cells, "routeLink": ""})
         raw_rows.append({
-            "shipment_id": str(row.get(trip_col, '')),
-            "trip_category": str(row.get(df_clean.columns[2], '')) if len(df_clean.columns) > 2 else '',
+            "shipment_id": str(row.get(trip_col, '')) if trip_col else '',
+            "trip_category": str(row.get(cat_col, '')) if cat_col else '',
             "vehicle_type": str(row.get(veh_col, '')) if veh_col else '',
-            "vehicle_plate": str(row.get(df_clean.columns[4], '')) if len(df_clean.columns) > 4 else '',
-            "driver": str(row.get(df_clean.columns[5], '')) if len(df_clean.columns) > 5 else '',
-            "origin": str(row.get(df_clean.columns[6], '')) if len(df_clean.columns) > 6 else '',
+            "vehicle_plate": str(row.get(plate_col, '')) if plate_col else '',
+            "driver": str(row.get(driver_col, '')) if driver_col else '',
+            "origin": str(row.get(origin_col, '')) if origin_col else '',
             "dest_station_name": str(row.get(dest_col, '')) if dest_col else '',
-            "cut0": str(row.get(df_clean.columns[15], '')) if len(df_clean.columns) > 15 else '',
-            "cut1": str(row.get(df_clean.columns[16], '')) if len(df_clean.columns) > 16 else '',
-            "cut2": str(row.get(df_clean.columns[17], '')) if len(df_clean.columns) > 17 else '',
-            "actual_dep_cut": str(row.get(df_clean.columns[19], '')) if len(df_clean.columns) > 19 else '',
+            "cut0": str(row.get(cut0_col, '')) if cut0_col else '',
+            "cut1": str(row.get(cut1_col, '')) if cut1_col else '',
+            "cut2": str(row.get(cut2_col, '')) if cut2_col else '',
+            "cut3": str(row.get(cut3_col, '')) if cut3_col else '',
+            "actual_dep_cut": str(row.get(dep_col, '')) if dep_col else '',
             "status": str(row.get(status_col, '')) if status_col else '',
-            "region": str(row.get(df_clean.columns[25], '')) if len(df_clean.columns) > 25 else '',
-            "zone": str(row.get(df_clean.columns[26], '')) if len(df_clean.columns) > 26 else ''
+            "region": str(row.get(region_col, '')) if region_col else '',
+            "zone": str(row.get(zone_col, '')) if zone_col else ''
         })
 
     return {
         "success": True,
         "headers": headers,
         "rows": rows_cells,
-        "timestamp": "9/3/2026, 2:51:56 PM",
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "totalTrips": total_trips,
         "onTimeTrips": on_time,
         "lateTrips": late,

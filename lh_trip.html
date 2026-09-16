@@ -549,15 +549,15 @@
       }
 
       tbody.innerHTML = rows.map((r, i) => {
-        let shipId = r.shipment_id || `TRIP_${i+1}`;
-        let category = r.trip_category || 'MIX SORT';
-        let vehType = r.vehicle_type || '6WH-6ล้อ[7.2m]';
-        let vehPlate = r.vehicle_plate || '700-4883';
-        let driver = r.driver || '[129448] Driver';
-        let origin = r.origin || 'SOCN';
-        let dest = r.dest_station_name || 'AKRET-A - ปากเกร็ด';
-        let actualDep = r.actual_dep_cut || '03/09/2026 06:45';
-        let isLate = (r.status || '').toLowerCase().includes('late');
+        let shipId = r.shipment_id || (r.cells ? r.cells[1] : '') || `TRIP_${i+1}`;
+        let category = r.trip_category || (r.cells ? r.cells[2] : '') || '-';
+        let vehType = r.vehicle_type || (r.cells ? r.cells[3] : '') || '-';
+        let vehPlate = r.vehicle_plate || (r.cells ? r.cells[4] : '') || '-';
+        let driver = r.driver || (r.cells ? r.cells[5] : '') || '-';
+        let origin = r.origin || (r.cells ? r.cells[6] : '') || 'SOCN';
+        let dest = r.dest_station_name || (r.cells ? r.cells[7] : '') || '-';
+        let actualDep = r.actual_dep_cut || r.actual_ops_date || r.dep_time || (r.cells ? r.cells[19] : '') || '-';
+        let isLate = String(r.status || (r.cells ? r.cells[14] || r.cells[21] : '')).toLowerCase().includes('late');
         let badge = isLate ? '<span class="badge bg-danger">🔴 Late</span>' : '<span class="badge bg-success">🟢 On time</span>';
 
         return `
@@ -581,7 +581,9 @@
       const filtered = currentModalRows.filter(r => {
         const shipId = (r.shipment_id || '').toLowerCase();
         const st = (r.dest_station_name || '').toLowerCase();
-        return !query || shipId.includes(query) || st.includes(query);
+        const drv = (r.driver || '').toLowerCase();
+        const dep = (r.actual_dep_cut || r.actual_ops_date || '').toLowerCase();
+        return !query || shipId.includes(query) || st.includes(query) || drv.includes(query) || dep.includes(query);
       });
       renderModalTableRows(filtered);
     }
@@ -590,10 +592,16 @@
       if (!currentModalRows || currentModalRows.length === 0) return;
       let csv = '\uFEFFNo,LH_Trip_Number,Trip_Category,Vehicle_Type,Vehicle_Plate,Driver,Origin,Destination,Actual_Dep,Status\n';
       currentModalRows.forEach((r, i) => {
-        let shipId = r.shipment_id || `TRIP_${i+1}`;
-        let dest = r.dest_station_name || 'Destination Hub';
-        let isLate = (r.status || '').toLowerCase().includes('late');
-        csv += `${i + 1},"${shipId}","MIX SORT","6WH-6ล้อ[7.2m]","700-4883","[129448] Driver","SOCN","${dest}","03/09/2026 06:45","${isLate ? 'Late' : 'On time'}"\n`;
+        let shipId = (r.shipment_id || `TRIP_${i+1}`).replace(/"/g, '""');
+        let category = (r.trip_category || '-').replace(/"/g, '""');
+        let vehType = (r.vehicle_type || '-').replace(/"/g, '""');
+        let vehPlate = (r.vehicle_plate || '-').replace(/"/g, '""');
+        let driver = (r.driver || '-').replace(/"/g, '""');
+        let origin = (r.origin || 'SOCN').replace(/"/g, '""');
+        let dest = (r.dest_station_name || '-').replace(/"/g, '""');
+        let actualDep = (r.actual_dep_cut || r.actual_ops_date || '-').replace(/"/g, '""');
+        let isLate = String(r.status || '').toLowerCase().includes('late');
+        csv += `${i + 1},"${shipId}","${category}","${vehType}","${vehPlate}","${driver}","${origin}","${dest}","${actualDep}","${isLate ? 'Late' : 'On time'}"\n`;
       });
       downloadCSVFile(csv, 'LH_TRIP_FILTERED_MODAL_RAW_DATA.csv');
     }
@@ -608,6 +616,69 @@
         renderLHData(latestSyncedData);
         return;
       }
+    }
+
+    function extractHourFromRecord(r) {
+      if (!r) return -1;
+      const candidates = [];
+      if (r.actual_dep_cut !== undefined && r.actual_dep_cut !== null) candidates.push(r.actual_dep_cut);
+      if (r.actual_ops_date !== undefined && r.actual_ops_date !== null) candidates.push(r.actual_ops_date);
+      if (r.actual_dep !== undefined && r.actual_dep !== null) candidates.push(r.actual_dep);
+      if (r.actual_departure !== undefined && r.actual_departure !== null) candidates.push(r.actual_departure);
+      if (r.departure_time !== undefined && r.departure_time !== null) candidates.push(r.departure_time);
+      if (r.dep_time !== undefined && r.dep_time !== null) candidates.push(r.dep_time);
+      if (r.time !== undefined && r.time !== null) candidates.push(r.time);
+      if (r.timestamp !== undefined && r.timestamp !== null) candidates.push(r.timestamp);
+      if (r.cut1 !== undefined && r.cut1 !== null) candidates.push(r.cut1);
+      if (r.cut2 !== undefined && r.cut2 !== null) candidates.push(r.cut2);
+      if (r.cut0 !== undefined && r.cut0 !== null) candidates.push(r.cut0);
+      
+      if (Array.isArray(r.cells)) {
+        for (let cell of r.cells) {
+          if (cell !== undefined && cell !== null && cell !== '') candidates.push(cell);
+        }
+      }
+      if (Array.isArray(r)) {
+        for (let cell of r) {
+          if (cell !== undefined && cell !== null && cell !== '') candidates.push(cell);
+        }
+      }
+
+      for (let val of candidates) {
+        if (val === undefined || val === null || val === '') continue;
+        
+        // Excel numerical fraction of day e.g. 0.5833 -> 14 (14:00)
+        if (typeof val === 'number' && val > 0 && val < 1) {
+          let hr = Math.floor(val * 24);
+          if (hr >= 0 && hr < 24) return hr;
+        }
+
+        const str = String(val).trim();
+        if (!str || str === '-' || str === '—' || str === 'nan' || str === 'null' || str === 'None') continue;
+
+        // Try regex match for time patterns:
+        // Examples: "14:35", "14.35", "02:35 PM", "2026-09-16 14:35:00", "14:35:00", "14.35 น.", "14:00", "02:00:00 PM"
+        const timeMatch = str.match(/(?:^|\s|T)(\d{1,2})[:.](\d{2})(?::\d{2})?(?:\s*(AM|PM|am|pm|น\.?))?/i);
+        if (timeMatch) {
+          let hr = parseInt(timeMatch[1], 10);
+          const ampm = (timeMatch[3] || '').toUpperCase();
+
+          if (ampm === 'PM' || ampm === 'P.M.') {
+            if (hr < 12) hr += 12;
+          } else if (ampm === 'AM' || ampm === 'A.M.') {
+            if (hr === 12) hr = 0;
+          } else if (str.toLowerCase().includes('pm') && !str.toLowerCase().includes('rpm')) {
+            if (hr < 12) hr += 12;
+          } else if (str.toLowerCase().includes('am')) {
+            if (hr === 12) hr = 0;
+          }
+
+          if (hr >= 0 && hr < 24) {
+            return hr;
+          }
+        }
+      }
+      return -1;
     }
 
     function renderLHData(data) {
@@ -632,22 +703,66 @@
       const lateSub = document.getElementById('kpiLateSub');
       if (lateSub) lateSub.innerText = `${latePct}% of trips (คลิกเพื่อดู Raw Data)`;
 
+      let depIdx = 19, statIdx = 14, destIdx = 7, tripIdx = 1, vehIdx = 3, plateIdx = 4, driverIdx = 5, origIdx = 6, c0Idx = 15, c1Idx = 16, c2Idx = 17, c3Idx = 18, zoneIdx = 26, catIdx = 2;
+      
+      if (Array.isArray(data.headers) && data.headers.length > 0) {
+        data.headers.forEach((h, idx) => {
+          const str = String(h || '').toLowerCase().trim().replace(/_/g, ' ');
+          if (str.includes('actual dep') || str.includes('dep cut') || str.includes('departure time') || str.includes('actual time') || str.includes('actual ops') || str.includes('เวลาออก')) depIdx = idx;
+          if (str.includes('status') || str.includes('show on time') || str.includes('on time')) statIdx = idx;
+          if (str.includes('destination') || str.includes('ปลายทาง') || str.includes('dest station')) destIdx = idx;
+          if (str.includes('lh trip') || str.includes('trip number') || str.includes('trip id') || str.includes('shipment')) tripIdx = idx;
+          if (str.includes('vehicle type') || str.includes('vehicle')) vehIdx = idx;
+          if (str.includes('plate') || str.includes('license') || str.includes('ทะเบียน')) plateIdx = idx;
+          if (str.includes('driver') || str.includes('คนขับ')) driverIdx = idx;
+          if (str.includes('origin') || str.includes('ต้นทาง')) origIdx = idx;
+          if (str.includes('cut 0') || str.includes('cut0')) c0Idx = idx;
+          if (str.includes('cut 1') || str.includes('cut1')) c1Idx = idx;
+          if (str.includes('cut 2') || str.includes('cut2')) c2Idx = idx;
+          if (str.includes('cut 3') || str.includes('cut3')) c3Idx = idx;
+          if (str.includes('zone') || str.includes('โซน')) zoneIdx = idx;
+          if (str.includes('category') || str.includes('trip type')) catIdx = idx;
+        });
+      }
+
       rawTripRecords = (data.outboundRawRows && data.outboundRawRows.length) ? data.outboundRawRows :
         (data.rows && data.rows.length ? data.rows.map(r => {
           const c = r.cells || r;
+          const getItem = (primaryIdx, fallbackIndices, fallbackKeys) => {
+            if (Array.isArray(c)) {
+              if (c[primaryIdx] !== undefined && c[primaryIdx] !== null && String(c[primaryIdx]).trim() !== '') {
+                return String(c[primaryIdx]).trim();
+              }
+              for (let fIdx of fallbackIndices) {
+                if (c[fIdx] !== undefined && c[fIdx] !== null && String(c[fIdx]).trim() !== '') {
+                  return String(c[fIdx]).trim();
+                }
+              }
+            } else if (typeof c === 'object' && c !== null) {
+              for (let k of fallbackKeys) {
+                if (c[k] !== undefined && c[k] !== null && String(c[k]).trim() !== '') {
+                  return String(c[k]).trim();
+                }
+              }
+            }
+            return '';
+          };
+
           return {
-            shipment_id: Array.isArray(c) ? c[1] || c[0] || '' : c.shipment_id || '',
-            trip_category: Array.isArray(c) ? c[2] || '' : c.trip_category || '',
-            vehicle_type: Array.isArray(c) ? c[3] || '' : c.vehicle_type || '',
-            vehicle_plate: Array.isArray(c) ? c[4] || '' : c.vehicle_plate || '',
-            driver: Array.isArray(c) ? c[5] || '' : c.driver || '',
-            origin: Array.isArray(c) ? c[6] || '' : c.origin || '',
-            dest_station_name: Array.isArray(c) ? c[7] || '' : c.dest_station_name || '',
-            cut0: Array.isArray(c) ? c[15] || '' : c.cut0 || '',
-            cut1: Array.isArray(c) ? c[16] || '' : c.cut1 || '',
-            cut2: Array.isArray(c) ? c[17] || '' : c.cut2 || '',
-            actual_dep_cut: Array.isArray(c) ? c[19] || '' : c.actual_dep_cut || '',
-            status: Array.isArray(c) ? c[21] || c[14] || '' : c.status || ''
+            shipment_id: getItem(tripIdx, [1, 0], ['shipment_id', 'trip_number', 'lh_trip']),
+            trip_category: getItem(catIdx, [2], ['trip_category', 'category']),
+            vehicle_type: getItem(vehIdx, [3], ['vehicle_type', 'vehicle']),
+            vehicle_plate: getItem(plateIdx, [4], ['vehicle_plate', 'plate']),
+            driver: getItem(driverIdx, [5], ['driver', 'driver_name']),
+            origin: getItem(origIdx, [6], ['origin']),
+            dest_station_name: getItem(destIdx, [7], ['dest_station_name', 'destination']),
+            cut0: getItem(c0Idx, [15], ['cut0', 'cut_0']),
+            cut1: getItem(c1Idx, [16], ['cut1', 'cut_1']),
+            cut2: getItem(c2Idx, [17], ['cut2', 'cut_2']),
+            cut3: getItem(c3Idx, [18], ['cut3', 'cut_3']),
+            actual_dep_cut: getItem(depIdx, [19, 13, 14, 20, 18], ['actual_dep_cut', 'actual_departure', 'actual_ops_date', 'dep_time', 'time']),
+            status: getItem(statIdx, [21, 14, 13], ['status', 'show_on_time']),
+            zone: getItem(zoneIdx, [26, 25], ['zone', 'region'])
           };
         }) : []);
 
@@ -657,24 +772,8 @@
     }
 
     function renderAll5Charts(data) {
-      const records = (data && data.outboundRawRows && data.outboundRawRows.length) ? data.outboundRawRows :
-        (data && data.rows && data.rows.length ? data.rows.map(r => {
-          const c = r.cells || r;
-          return {
-            shipment_id: Array.isArray(c) ? c[1] || c[0] || '' : c.shipment_id || '',
-            trip_category: Array.isArray(c) ? c[2] || '' : c.trip_category || '',
-            vehicle_type: Array.isArray(c) ? c[3] || '' : c.vehicle_type || '',
-            vehicle_plate: Array.isArray(c) ? c[4] || '' : c.vehicle_plate || '',
-            driver: Array.isArray(c) ? c[5] || '' : c.driver || '',
-            origin: Array.isArray(c) ? c[6] || '' : c.origin || '',
-            dest_station_name: Array.isArray(c) ? c[7] || '' : c.dest_station_name || '',
-            cut0: Array.isArray(c) ? c[15] || '' : c.cut0 || '',
-            cut1: Array.isArray(c) ? c[16] || '' : c.cut1 || '',
-            cut2: Array.isArray(c) ? c[17] || '' : c.cut2 || '',
-            actual_dep_cut: Array.isArray(c) ? c[19] || '' : c.actual_dep_cut || '',
-            status: Array.isArray(c) ? c[21] || c[14] || '' : c.status || ''
-          };
-        }) : rawTripRecords);
+      const records = (rawTripRecords && rawTripRecords.length) ? rawTripRecords : 
+        ((data && data.outboundRawRows && data.outboundRawRows.length) ? data.outboundRawRows : []);
 
       // 1. Dynamic Status Pie (On Time vs Late)
       let onTimeCount = data && data.onTimeTrips ? data.onTimeTrips : 0;
@@ -810,18 +909,12 @@
       const peakCutSubEl = document.getElementById('peakCutSub');
       if (peakCutSubEl) peakCutSubEl.innerText = `${cutLate[topCutIdx]} จาก ${topCutTotal} เที่ยว (${topCutPct}% สาย)`;
 
-      // 5. Dynamic Departure Hour Bar Chart (24 Hours matching Dashboard.html.txt)
+      // 5. Dynamic Departure Hour Bar Chart (All 24 Hours: 00:00 - 23:00)
       const hourCounts = new Array(24).fill(0);
       records.filter(r => String(r.status || '').toLowerCase().includes('late')).forEach(r => {
-        const depStr = String(r.actual_dep_cut || r.actual_ops_date || '');
-        const match = depStr.match(/(\d{1,2}):(\d{2})/);
-        if (match) {
-          let hr = parseInt(match[1], 10);
-          if (depStr.toLowerCase().includes('pm') && hr < 12) hr += 12;
-          if (depStr.toLowerCase().includes('am') && hr === 12) hr = 0;
-          if (hr >= 0 && hr < 24) {
-            hourCounts[hr]++;
-          }
+        const hr = extractHourFromRecord(r);
+        if (hr >= 0 && hr < 24) {
+          hourCounts[hr]++;
         }
       });
       const hourLabels = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0') + ':00');
@@ -834,16 +927,11 @@
       createBarChart('barHourCanvas', hourLabels, hourCounts, barColors, (evt, elements) => {
         if (!elements || !elements.length) return;
         const idx = elements[0].index;
-        openRawDataModal(`เที่ยวรถที่สายช่วงเวลา ${hourLabels[idx]}`, records.filter(r => {
+        const matchedRows = records.filter(r => {
           if (!String(r.status || '').toLowerCase().includes('late')) return false;
-          const depStr = String(r.actual_dep_cut || r.actual_ops_date || '');
-          const match = depStr.match(/(\d{1,2}):(\d{2})/);
-          if (!match) return false;
-          let hr = parseInt(match[1], 10);
-          if (depStr.toLowerCase().includes('pm') && hr < 12) hr += 12;
-          if (depStr.toLowerCase().includes('am') && hr === 12) hr = 0;
-          return hr === idx;
-        }));
+          return extractHourFromRecord(r) === idx;
+        });
+        openRawDataModal(`เที่ยวรถที่สายช่วงเวลา ${hourLabels[idx]} (${matchedRows.length} เที่ยว)`, matchedRows);
       });
 
       const peakHourValEl = document.getElementById('peakHour');
