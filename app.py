@@ -1864,6 +1864,25 @@ def process_table_sheet(df):
     if not region_col and len(df_clean.columns) > 25: region_col = df_clean.columns[25]
     if not zone_col and len(df_clean.columns) > 26: zone_col = df_clean.columns[26]
 
+    # Detect Outbound and Inbound order & weight columns (Column Y = Outbound(order), Column Z = Outbound(weight)(KG))
+    ob_order_col = None
+    ob_weight_col = None
+    ob_to_col = None
+
+    for c in df_clean.columns:
+        c_str = str(c).lower().replace("_", " ").strip()
+        if ('outbound(order' in c_str or 'outbound (order' in c_str or 'outbound order' in c_str or 'ob order' in c_str or ('outbound' in c_str and 'order' in c_str)) and not ob_order_col:
+            ob_order_col = c
+        elif ('outbound(weight' in c_str or 'outbound weight' in c_str or ('outbound' in c_str and 'weight' in c_str)) and not ob_weight_col:
+            ob_weight_col = c
+        elif ('outbound(to' in c_str or 'outbound to' in c_str or ('outbound' in c_str and 'to' in c_str)) and not ob_to_col:
+            ob_to_col = c
+
+    # Fallback to column index Y (24), Z (25), X (23) if not found by name
+    if not ob_order_col and len(df_clean.columns) > 24: ob_order_col = df_clean.columns[24]
+    if not ob_weight_col and len(df_clean.columns) > 25: ob_weight_col = df_clean.columns[25]
+    if not ob_to_col and len(df_clean.columns) > 23: ob_to_col = df_clean.columns[23]
+
     raw_rows = []
     rows_cells = []
     headers = [str(c) for c in df.columns]
@@ -1871,6 +1890,31 @@ def process_table_sheet(df):
     for idx, row in df_clean.iterrows():
         cells = [str(val) if pd.notna(val) else '' for val in row]
         rows_cells.append({"cells": cells, "routeLink": ""})
+
+        # Parse numeric outbound_order and outbound_weight safely from Column Y and Z
+        raw_ob_order = row.get(ob_order_col, '') if ob_order_col else ''
+        raw_ob_weight = row.get(ob_weight_col, '') if ob_weight_col else ''
+
+        parsed_ob_order = 0
+        if pd.notna(raw_ob_order) and str(raw_ob_order).strip():
+            try:
+                clean_num_str = str(raw_ob_order).replace(',', '').strip()
+                p = float(clean_num_str)
+                if not pd.isna(p):
+                    parsed_ob_order = int(p) if p.is_integer() else p
+            except Exception:
+                parsed_ob_order = 0
+
+        parsed_ob_weight = 0.0
+        if pd.notna(raw_ob_weight) and str(raw_ob_weight).strip():
+            try:
+                clean_wt_str = str(raw_ob_weight).replace(',', '').strip()
+                p = float(clean_wt_str)
+                if not pd.isna(p):
+                    parsed_ob_weight = round(p, 2)
+            except Exception:
+                parsed_ob_weight = 0.0
+
         raw_rows.append({
             "shipment_id": str(row.get(trip_col, '')) if trip_col else '',
             "trip_category": str(row.get(cat_col, '')) if cat_col else '',
@@ -1879,6 +1923,9 @@ def process_table_sheet(df):
             "driver": str(row.get(driver_col, '')) if driver_col else '',
             "origin": str(row.get(origin_col, '')) if origin_col else '',
             "dest_station_name": str(row.get(dest_col, '')) if dest_col else '',
+            "outbound_order": parsed_ob_order,
+            "outbound_weight": parsed_ob_weight,
+            "outbound_to": str(row.get(ob_to_col, '')) if ob_to_col else '',
             "cut0": str(row.get(cut0_col, '')) if cut0_col else '',
             "cut1": str(row.get(cut1_col, '')) if cut1_col else '',
             "cut2": str(row.get(cut2_col, '')) if cut2_col else '',
@@ -1889,20 +1936,49 @@ def process_table_sheet(df):
             "zone": str(row.get(zone_col, '')) if zone_col else ''
         })
 
+    # Group and merge rows by shipment_id taking the first row with outbound data
+    merged_rows_map = {}
+    for r in raw_rows:
+        s_id = r.get("shipment_id", "").strip()
+        if not s_id:
+            merged_rows_map[id(r)] = r
+            continue
+        if s_id not in merged_rows_map:
+            merged_rows_map[s_id] = dict(r)
+        else:
+            existing = merged_rows_map[s_id]
+            if (r.get("outbound_order") or 0) > (existing.get("outbound_order") or 0):
+                existing["outbound_order"] = r.get("outbound_order")
+            if (r.get("outbound_weight") or 0) > (existing.get("outbound_weight") or 0):
+                existing["outbound_weight"] = r.get("outbound_weight")
+
+    unique_raw_rows = list(merged_rows_map.values())
+    unique_total_trips = len(unique_raw_rows)
+    unique_late_trips = sum(1 for r in unique_raw_rows if "late" in str(r.get("status", "")).lower())
+    unique_on_time_trips = unique_total_trips - unique_late_trips
+    unique_rate = round((unique_on_time_trips / unique_total_trips * 100), 1) if unique_total_trips > 0 else 0.0
+
+    total_orders = sum(r.get("outbound_order", 0) for r in unique_raw_rows)
+    late_orders = sum(r.get("outbound_order", 0) for r in unique_raw_rows if "late" in str(r.get("status", "")).lower())
+    on_time_orders = total_orders - late_orders
+
     return {
         "success": True,
         "headers": headers,
         "rows": rows_cells,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "totalTrips": total_trips,
-        "onTimeTrips": on_time,
-        "lateTrips": late,
-        "onTimeRate": f"{rate}%",
-        "totalLate": late,
+        "totalTrips": unique_total_trips,
+        "totalOrders": total_orders,
+        "onTimeTrips": unique_on_time_trips,
+        "onTimeOrders": on_time_orders,
+        "lateTrips": unique_late_trips,
+        "lateOrders": late_orders,
+        "onTimeRate": f"{unique_rate}%",
+        "totalLate": unique_late_trips,
         "ranking": ranking,
         "top10": top10,
         "vehicleStats": veh_stats,
-        "outboundRawRows": raw_rows
+        "outboundRawRows": unique_raw_rows
     }
 
 
