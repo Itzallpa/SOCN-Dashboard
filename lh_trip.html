@@ -280,11 +280,11 @@
           <table class="table table-sm table-hover table-bordered align-middle text-nowrap" id="fullDataTable">
             <thead class="table-dark" style="position: sticky; top: 0; z-index: 10;">
               <tr>
-                <th>NO.</th><th>LH TRIP NUMBER</th><th>TRIP CATEGORY</th><th>VEHICLE TYPE</th><th>VEHICLE PLATE</th><th>DRIVER</th><th>ต้นทาง (ORIGIN)</th><th>ปลายทาง (DESTINATION)</th><th>📦 OUTBOUND (ORDER)</th><th>⚖️ WEIGHT (KG)</th><th>CUT 0</th><th>CUT 1</th><th>CUT 2</th><th>CUT 3</th><th>ACTUAL DEP CUT</th><th>SHOW ON TIME/LATE</th>
+                <th>NO.</th><th>LH TRIP NUMBER</th><th>TRIP CATEGORY</th><th>VEHICLE TYPE</th><th>VEHICLE PLATE</th><th>DRIVER</th><th>ต้นทาง (ORIGIN)</th><th>ปลายทาง (DESTINATION)</th><th>📦 OUTBOUND (ORDER)</th><th>⚖️ WEIGHT (KG)</th><th>STANDBY TIME</th><th>ASSIGN TIME</th><th>CUT 0</th><th>CUT 1</th><th>CUT 2</th><th>CUT 3</th><th>ACTUAL DEP CUT</th><th>RMK</th><th>SHOW ON TIME/LATE</th>
               </tr>
             </thead>
             <tbody id="fullTableBody">
-              <tr><td colspan="16" class="text-center py-4 text-muted">กำลังโหลดข้อมูลตาราง LH Trip Table View...</td></tr>
+              <tr><td colspan="19" class="text-center py-4 text-muted">กำลังโหลดข้อมูลตาราง LH Trip Table View...</td></tr>
             </tbody>
           </table>
         </div>
@@ -313,11 +313,11 @@
             <table class="table table-sm table-hover table-bordered align-middle text-nowrap" id="modalDataTable">
               <thead class="table-dark">
                 <tr>
-                  <th>NO.</th><th>LH TRIP NUMBER</th><th>TRIP CATEGORY</th><th>VEHICLE TYPE</th><th>VEHICLE PLATE</th><th>DRIVER</th><th>ต้นทาง</th><th>ปลายทาง (DESTINATION)</th><th>📦 OUTBOUND (ORDER)</th><th>ACTUAL DEP</th><th>STATUS</th>
+                  <th>NO.</th><th>LH TRIP NUMBER</th><th>TRIP CATEGORY</th><th>VEHICLE TYPE</th><th>VEHICLE PLATE</th><th>DRIVER</th><th>ต้นทาง</th><th>ปลายทาง (DESTINATION)</th><th>📦 OUTBOUND (ORDER)</th><th>STANDBY</th><th>ASSIGN</th><th>ACTUAL DEP</th><th>RMK</th><th>STATUS</th>
                 </tr>
               </thead>
               <tbody id="modalTableBody">
-                <tr><td colspan="11" class="text-center py-3 text-muted">กำลังโหลดข้อมูล...</td></tr>
+                <tr><td colspan="14" class="text-center py-3 text-muted">กำลังโหลดข้อมูล...</td></tr>
               </tbody>
             </table>
           </div>
@@ -557,7 +557,7 @@
     function renderModalTableRows(rows) {
       const tbody = document.getElementById('modalTableBody');
       if (!rows || rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" class="text-center py-4 text-muted">ไม่พบข้อมูลในกลุ่มนี้</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" class="text-center py-4 text-muted">ไม่พบข้อมูลในกลุ่มนี้</td></tr>';
         return;
       }
 
@@ -570,8 +570,11 @@
         let origin = r.origin || (r.cells ? r.cells[6] : '') || 'SOCN';
         let dest = r.dest_station_name || (r.cells ? r.cells[7] : '') || '-';
         let obOrders = Number(r.outbound_order || 0).toLocaleString();
-        let actualDep = r.actual_dep_cut || r.actual_ops_date || r.dep_time || (r.cells ? r.cells[19] : '') || '-';
-        let isLate = String(r.status || (r.cells ? r.cells[14] || r.cells[21] : '')).toLowerCase().includes('late');
+        let standby = r.standby_time || (r.cells ? r.cells[19] : '') || '-';
+        let assign = r.assign_time || (r.cells ? r.cells[20] : '') || '-';
+        let actualDep = r.actual_dep_cut || (r.cells ? r.cells[21] || r.cells[19] : '') || '-';
+        let rmk = r.rmk || (r.cells ? r.cells[24] : '') || '-';
+        let isLate = String(r.status || (r.cells ? r.cells[23] || r.cells[21] || r.cells[14] : '')).toLowerCase().includes('late');
         let badge = isLate ? '<span class="badge bg-danger">🔴 Late</span>' : '<span class="badge bg-success">🟢 On time</span>';
 
         return `
@@ -585,7 +588,10 @@
           <td>${origin}</td>
           <td class="fw-bold">${dest}</td>
           <td class="fw-bold text-primary text-end pe-3">${obOrders}</td>
+          <td>${standby}</td>
+          <td>${assign}</td>
           <td>${actualDep}</td>
+          <td class="${rmk && rmk !== '-' ? 'text-danger fw-bold' : 'text-muted'}">${rmk}</td>
           <td>${badge}</td>
         </tr>`;
       }).join('');
@@ -598,14 +604,15 @@
         const st = (r.dest_station_name || '').toLowerCase();
         const drv = (r.driver || '').toLowerCase();
         const dep = (r.actual_dep_cut || r.actual_ops_date || '').toLowerCase();
-        return !query || shipId.includes(query) || st.includes(query) || drv.includes(query) || dep.includes(query);
+        const rmk = (r.rmk || '').toLowerCase();
+        return !query || shipId.includes(query) || st.includes(query) || drv.includes(query) || dep.includes(query) || rmk.includes(query);
       });
       renderModalTableRows(filtered);
     }
 
     function exportModalCSV() {
       if (!currentModalRows || currentModalRows.length === 0) return;
-      let csv = '\uFEFFNo,LH_Trip_Number,Trip_Category,Vehicle_Type,Vehicle_Plate,Driver,Origin,Destination,Outbound_Orders,Actual_Dep,Status\n';
+      let csv = '\uFEFFNo,LH_Trip_Number,Trip_Category,Vehicle_Type,Vehicle_Plate,Driver,Origin,Destination,Outbound_Orders,Standby_Time,Assign_Time,Actual_Dep,RMK,Status\n';
       currentModalRows.forEach((r, i) => {
         let shipId = (r.shipment_id || `TRIP_${i+1}`).replace(/"/g, '""');
         let category = (r.trip_category || '-').replace(/"/g, '""');
@@ -615,9 +622,12 @@
         let origin = (r.origin || 'SOCN').replace(/"/g, '""');
         let dest = (r.dest_station_name || '-').replace(/"/g, '""');
         let obOrders = Number(r.outbound_order || 0);
-        let actualDep = (r.actual_dep_cut || r.actual_ops_date || '-').replace(/"/g, '""');
-        let isLate = String(r.status || '').toLowerCase().includes('late');
-        csv += `${i + 1},"${shipId}","${category}","${vehType}","${vehPlate}","${driver}","${origin}","${dest}",${obOrders},"${actualDep}","${isLate ? 'Late' : 'On time'}"\n`;
+        let standby = (r.standby_time || (r.cells ? r.cells[19] : '') || '-').replace(/"/g, '""');
+        let assign = (r.assign_time || (r.cells ? r.cells[20] : '') || '-').replace(/"/g, '""');
+        let actualDep = (r.actual_dep_cut || (r.cells ? r.cells[21] || r.cells[19] : '') || '-').replace(/"/g, '""');
+        let rmk = (r.rmk || (r.cells ? r.cells[24] : '') || '-').replace(/"/g, '""');
+        let isLate = String(r.status || (r.cells ? r.cells[23] || r.cells[21] || r.cells[14] : '')).toLowerCase().includes('late');
+        csv += `${i + 1},"${shipId}","${category}","${vehType}","${vehPlate}","${driver}","${origin}","${dest}",${obOrders},"${standby}","${assign}","${actualDep}","${rmk}","${isLate ? 'Late' : 'On time'}"\n`;
       });
       downloadCSVFile(csv, 'LH_TRIP_FILTERED_MODAL_RAW_DATA.csv');
     }
@@ -728,14 +738,20 @@
     }
 
     function renderLHData(data) {
-      let depIdx = 19, statIdx = 21, destIdx = 7, tripIdx = 1, vehIdx = 3, plateIdx = 4, driverIdx = 5, origIdx = 6, c0Idx = 15, c1Idx = 16, c2Idx = 17, c3Idx = 18, zoneIdx = 26, catIdx = 2;
+      let depIdx = 21, statIdx = 23, destIdx = 7, tripIdx = 1, vehIdx = 3, plateIdx = 4, driverIdx = 5, origIdx = 6;
+      let standbyIdx = 19, assignIdx = 20, rmkIdx = 24, intentIdx = 25;
+      let c0Idx = 15, c1Idx = 16, c2Idx = 17, c3Idx = 18, zoneIdx = 27, regionIdx = 26, catIdx = 2;
       let obOrderIdx = 28, obWeightIdx = 29, obToIdx = 23;
       
       if (Array.isArray(data.headers) && data.headers.length > 0) {
         data.headers.forEach((h, idx) => {
           const str = String(h || '').toLowerCase().trim().replace(/_/g, ' ');
+          if (str.includes('standby') && !str.includes('assign')) standbyIdx = idx;
+          if (str.includes('assign') && !str.includes('standby')) assignIdx = idx;
           if ((str.includes('actual dep cut') || str.includes('dep cut') || str.includes('actual dep') || str.includes('departure time') || str.includes('dep time') || str.includes('เวลาออก') || str.includes('com time')) && !str.includes('ops date') && !str.includes('date only') && !str.includes('day')) depIdx = idx;
-          if (str.includes('status') || str.includes('show on time') || str.includes('on time')) statIdx = idx;
+          if (str === 'rmk' || str.includes('remark') || str.includes('หมายเหตุ')) rmkIdx = idx;
+          if (str.includes('intent') || str.includes('intentional')) intentIdx = idx;
+          if (str.includes('status') || str.includes('show on time') || str.includes('on time/late') || str === 'show on time/late') statIdx = idx;
           if (str.includes('destination') || str.includes('ปลายทาง') || str.includes('dest station')) destIdx = idx;
           if (str.includes('lh trip') || str.includes('trip number') || str.includes('trip id') || str.includes('shipment')) tripIdx = idx;
           if ((str.includes('vehicle type') || str === 'vehicle' || str.includes('ประเภทรถ')) && !str.includes('plate') && !str.includes('number') && !str.includes('ทะเบียน')) vehIdx = idx;
@@ -747,6 +763,7 @@
           if (str.includes('cut 2') || str.includes('cut2')) c2Idx = idx;
           if (str.includes('cut 3') || str.includes('cut3')) c3Idx = idx;
           if (str.includes('zone') || str.includes('โซน')) zoneIdx = idx;
+          if (str.includes('region') || str.includes('ภาค')) regionIdx = idx;
           if (str.includes('category') || str.includes('trip type')) catIdx = idx;
           if (str.includes('outbound(order') || str.includes('outbound (order') || str.includes('outbound order') || str.includes('outbound_order') || str === 'ob order' || str === 'ob(order)' || (str.includes('outbound') && str.includes('order')) || str === 'col 28' || str === 'col_28' || str === 'ac') obOrderIdx = idx;
           if (str.includes('outbound(weight') || str.includes('outbound weight') || (str.includes('outbound') && str.includes('weight')) || str === 'col 29' || str === 'col_29' || str === 'ad') obWeightIdx = idx;
@@ -805,13 +822,18 @@
             outbound_order: parsedObOrder,
             outbound_weight: parsedObWeight,
             outbound_to: rawObTo,
+            standby_time: getItem(standbyIdx, [19], ['standby_time', 'standby']),
+            assign_time: getItem(assignIdx, [20], ['assign_time', 'assign']),
             cut0: getItem(c0Idx, [15], ['cut0', 'cut_0']),
             cut1: getItem(c1Idx, [16], ['cut1', 'cut_1']),
             cut2: getItem(c2Idx, [17], ['cut2', 'cut_2']),
             cut3: getItem(c3Idx, [18], ['cut3', 'cut_3']),
-            actual_dep_cut: getItem(depIdx, [19, 13, 14, 20, 18], ['actual_dep_cut', 'actual_departure', 'actual_ops_date', 'dep_time', 'time']),
-            status: getItem(statIdx, [21, 14, 13], ['status', 'show_on_time']),
-            zone: getItem(zoneIdx, [26, 25], ['zone', 'region'])
+            actual_dep_cut: getItem(depIdx, [21, 19, 13, 14, 20, 18], ['actual_dep_cut', 'actual_departure', 'actual_ops_date', 'dep_time', 'time']),
+            rmk: getItem(rmkIdx, [24, 22], ['rmk', 'remark', 'reason']),
+            intentional: getItem(intentIdx, [25, 23], ['intentional', 'intent']),
+            status: getItem(statIdx, [23, 21, 14, 13], ['status', 'show_on_time', 'show on time/late']),
+            region: getItem(regionIdx, [26, 25], ['region']),
+            zone: getItem(zoneIdx, [27, 26, 25], ['zone', 'region'])
           };
         }) : []);
 
@@ -948,12 +970,18 @@
       let otaOnTime = 0, otaLhLate = 0, otaObLate = 0, otaRc = 0;
       records.forEach(r => {
         const isLate = String(r.status || '').toLowerCase().includes('late');
+        const rmk = String(r.rmk || '').toLowerCase().trim();
         const cat = String(r.trip_category || '').toLowerCase();
         const dest = String(r.dest_station_name || '').toLowerCase();
         const zone = String(r.zone || '').toLowerCase();
+
         if (!isLate) {
           otaOnTime++;
-        } else if (dest.includes('rc') || zone.includes('return') || cat.includes('rc')) {
+        } else if (rmk.includes('ob late') || rmk === 'ob late') {
+          otaObLate++;
+        } else if (rmk.includes('lh late') || rmk === 'lh late') {
+          otaLhLate++;
+        } else if (rmk.includes('rc') || dest.includes('rc') || zone.includes('return') || cat.includes('rc')) {
           otaRc++;
         } else if (cat.includes('timetable') || cat.includes('รถหลัก') || cat.includes('main')) {
           otaLhLate++;
@@ -1370,7 +1398,7 @@
       document.getElementById('pillLateCount').innerText = `Late ${lateCnt.toLocaleString()}`;
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="14" class="text-center py-4 text-muted">ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหา</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="19" class="text-center py-4 text-muted">ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหา</td></tr>';
         return;
       }
 
@@ -1384,11 +1412,14 @@
         let dest = r.dest_station_name || 'AKRET-A - ปากเกร็ด';
         let obOrders = Number(r.outbound_order || 0).toLocaleString();
         let obWeight = Number(r.outbound_weight || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        let cut0 = r.cut0 || '06:00 AM';
+        let standby = r.standby_time || (r.cells ? r.cells[19] : '') || '-';
+        let assign = r.assign_time || (r.cells ? r.cells[20] : '') || '-';
+        let cut0 = r.cut0 || '—';
         let cut1 = r.cut1 || '—';
         let cut2 = r.cut2 || '—';
         let cut3 = r.cut3 || '—';
-        let actualDep = r.actual_dep_cut || '03/09/2026 06:45';
+        let actualDep = r.actual_dep_cut || (r.cells ? r.cells[21] || r.cells[19] : '') || '-';
+        let rmk = r.rmk || (r.cells ? r.cells[24] : '') || '-';
         let isLate = (r.status || '').toLowerCase().includes('late');
         let badge = isLate ? '<span class="badge bg-danger">🔴 Late</span>' : '<span class="badge bg-success">🟢 On time</span>';
 
@@ -1404,11 +1435,14 @@
           <td class="fw-bold">${dest}</td>
           <td class="fw-bold text-primary text-end pe-3">${obOrders}</td>
           <td class="text-end pe-3 text-secondary">${obWeight}</td>
+          <td>${standby}</td>
+          <td>${assign}</td>
           <td>${cut0}</td>
           <td>${cut1}</td>
           <td>${cut2}</td>
           <td>${cut3}</td>
           <td>${actualDep}</td>
+          <td class="${rmk && rmk !== '-' ? 'text-danger fw-bold' : 'text-muted'}">${rmk}</td>
           <td>${badge}</td>
         </tr>`;
       }).join('');
@@ -1961,7 +1995,7 @@
   <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
     <thead>
       <tr>
-        <th bgcolor="#DBEAFE" colspan="16" style="background-color:#dbeafe; color:#1e3a8a; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #93c5fd;">
+        <th bgcolor="#DBEAFE" colspan="19" style="background-color:#dbeafe; color:#1e3a8a; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #93c5fd;">
           <font color="#1E3A8A"><b>📋 7. ข้อมูลดิบทั้งหมด (Complete Raw Data - รวม ${totalTrips.toLocaleString()} เที่ยวรถ)</b></font>
         </th>
       </tr>
@@ -1976,11 +2010,14 @@
         <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:160px;"><font color="#0F172A"><b>ปลายทาง (DESTINATION)</b></font></th>
         <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:110px;"><font color="#0F172A"><b>📦 OUTBOUND (ORDER)</b></font></th>
         <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:110px;"><font color="#0F172A"><b>⚖️ WEIGHT (KG)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:85px;"><font color="#0F172A"><b>STANDBY TIME</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:85px;"><font color="#0F172A"><b>ASSIGN TIME</b></font></th>
         <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:75px;"><font color="#0F172A"><b>CUT 0</b></font></th>
         <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:75px;"><font color="#0F172A"><b>CUT 1</b></font></th>
         <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:75px;"><font color="#0F172A"><b>CUT 2</b></font></th>
         <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:75px;"><font color="#0F172A"><b>CUT 3</b></font></th>
         <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:130px;"><font color="#0F172A"><b>ACTUAL DEP CUT</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:100px;"><font color="#0F172A"><b>RMK</b></font></th>
         <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:95px;"><font color="#0F172A"><b>STATUS</b></font></th>
       </tr>
     </thead>
@@ -2005,11 +2042,14 @@
           <td style="background-color:${rowBg}; color:#0f172a; font-weight:bold; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#0F172A"><b>${r.dest_station_name || '-'}</b></font></td>
           <td style="background-color:${rowBg}; color:#1d4ed8; font-weight:bold; text-align:right; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#1D4ED8">${obOrd.toLocaleString()}</font></td>
           <td style="background-color:${rowBg}; color:#475569; text-align:right; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#475569">${obWt ? obWt.toFixed(2) : '-'}</font></td>
+          <td style="background-color:${rowBg}; color:#0f172a; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#0F172A">${r.standby_time || '-'}</font></td>
+          <td style="background-color:${rowBg}; color:#0f172a; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#0F172A">${r.assign_time || '-'}</font></td>
           <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#475569">${r.cut0 || '—'}</font></td>
           <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#475569">${r.cut1 || '—'}</font></td>
           <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#475569">${r.cut2 || '—'}</font></td>
           <td style="background-color:${rowBg}; color:#475569; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#475569">${r.cut3 || '—'}</font></td>
           <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="#0F172A">${r.actual_dep_cut || '-'}</font></td>
+          <td style="background-color:${rowBg}; color:${r.rmk && r.rmk !== '-' ? '#b91c1c' : '#475569'}; font-weight:${r.rmk && r.rmk !== '-' ? 'bold' : 'normal'}; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="${r.rmk && r.rmk !== '-' ? '#B91C1C' : '#475569'}">${r.rmk || '-'}</font></td>
           <td bgcolor="${statusBg}" style="background-color:${statusBg}; color:${statusColor}; font-weight:bold; text-align:center; padding:5px 8px; border:1px solid #cbd5e1;"><font color="${statusColor}"><b>${isLate ? 'Late' : 'On time'}</b></font></td>
         </tr>`;
       }).join('')}
@@ -2126,7 +2166,7 @@
       if (window.AuthGuard && window.AuthGuard.logExport) {
         window.AuthGuard.logExport('LH_Trip_Full_RawData.csv', records.length, 'ดาวน์โหลดข้อมูลดิบ LH Trip เที่ยวรถทั้งหมด');
       }
-      let csvContent = '\uFEFFNo,LH_Trip_Number,Trip_Category,Vehicle_Type,Vehicle_Plate,Driver,Origin,Destination,Outbound_Orders,Outbound_Weight_KG,Cut_0,Cut_1,Cut_2,Cut_3,Actual_Dep_Cut,Status\n';
+      let csvContent = '\uFEFFNo,LH_Trip_Number,Trip_Category,Vehicle_Type,Vehicle_Plate,Driver,Origin,Destination,Outbound_Orders,Outbound_Weight_KG,Standby_Time,Assign_Time,Cut_0,Cut_1,Cut_2,Cut_3,Actual_Dep_Cut,RMK,Status\n';
       records.forEach((r, idx) => {
         let shipId = (r.shipment_id || `TRIP_${idx+1}`).replace(/"/g, '""');
         let category = (r.trip_category || '-').replace(/"/g, '""');
@@ -2137,15 +2177,18 @@
         let dest = (r.dest_station_name || '-').replace(/"/g, '""');
         let obOrders = Number(r.outbound_order || 0);
         let obWeight = Number(r.outbound_weight || 0);
+        let standby = (r.standby_time || '-').replace(/"/g, '""');
+        let assign = (r.assign_time || '-').replace(/"/g, '""');
         let cut0 = (r.cut0 || '—').replace(/"/g, '""');
         let cut1 = (r.cut1 || '—').replace(/"/g, '""');
         let cut2 = (r.cut2 || '—').replace(/"/g, '""');
         let cut3 = (r.cut3 || '—').replace(/"/g, '""');
         let actualDep = (r.actual_dep_cut || '-').replace(/"/g, '""');
+        let rmk = (r.rmk || '-').replace(/"/g, '""');
         let isLate = String(r.status || '').toLowerCase().includes('late');
         let st = isLate ? 'Late' : 'On time';
 
-        csvContent += `${idx + 1},"${shipId}","${category}","${vehType}","${vehPlate}","${driver}","${origin}","${dest}",${obOrders},${obWeight},"${cut0}","${cut1}","${cut2}","${cut3}","${actualDep}","${st}"\n`;
+        csvContent += `${idx + 1},"${shipId}","${category}","${vehType}","${vehPlate}","${driver}","${origin}","${dest}",${obOrders},${obWeight},"${standby}","${assign}","${cut0}","${cut1}","${cut2}","${cut3}","${actualDep}","${rmk}","${st}"\n`;
       });
       downloadCSVFile(csvContent, `LH_TRIP_RAW_DATA_${records.length}_ALL.csv`);
     }

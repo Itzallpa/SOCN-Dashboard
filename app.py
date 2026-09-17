@@ -1833,12 +1833,19 @@ def process_table_sheet(df):
     cat_col = None
     region_col = None
     zone_col = None
+    standby_col = None
+    assign_col = None
+    rmk_col = None
+    intent_col = None
 
     for c in df_clean.columns:
         c_str = str(c).lower().replace("_", " ").strip()
-        if any(k in c_str for k in ['actual dep cut', 'actual dep', 'dep cut', 'departure time', 'dep time', 'com time', 'เวลาออกจริง', 'เวลาออก']) and not any(k in c_str for k in ['ops date', 'actual ops', 'date only', 'day']):
+        if ('standby' in c_str) and not standby_col: standby_col = c
+        elif ('assign' in c_str) and not assign_col: assign_col = c
+        elif any(k in c_str for k in ['actual dep cut', 'actual dep', 'dep cut', 'departure time', 'dep time', 'com time', 'เวลาออกจริง', 'เวลาออก']) and not any(k in c_str for k in ['ops date', 'actual ops', 'date only', 'day', 'schedule']) and not dep_col:
             dep_col = c
-            break
+        elif (c_str == 'rmk' or 'remark' in c_str or 'หมายเหตุ' in c_str or 'reason' in c_str) and not rmk_col: rmk_col = c
+        elif ('intent' in c_str or 'intentional' in c_str) and not intent_col: intent_col = c
 
     for c in df_clean.columns:
         c_str = str(c).lower().replace("_", " ").strip()
@@ -1854,7 +1861,18 @@ def process_table_sheet(df):
         if any(k in c_str for k in ['zone', 'โซน']) and not zone_col: zone_col = c
 
     # Fallback to column index positions if not found by name
-    if not dep_col and len(df_clean.columns) > 19: dep_col = df_clean.columns[19]
+    if not standby_col and len(df_clean.columns) > 19: standby_col = df_clean.columns[19]
+    if not assign_col and len(df_clean.columns) > 20: assign_col = df_clean.columns[20]
+    if not dep_col and len(df_clean.columns) > 21: dep_col = df_clean.columns[21]
+    elif not dep_col and len(df_clean.columns) > 19: dep_col = df_clean.columns[19]
+    if not rmk_col and len(df_clean.columns) > 24: rmk_col = df_clean.columns[24]
+    elif not rmk_col and len(df_clean.columns) > 22: rmk_col = df_clean.columns[22]
+    if not intent_col and len(df_clean.columns) > 25: intent_col = df_clean.columns[25]
+    elif not intent_col and len(df_clean.columns) > 23: intent_col = df_clean.columns[23]
+    if not status_col and len(df_clean.columns) > 23: status_col = df_clean.columns[23]
+    elif not status_col and len(df_clean.columns) > 21: status_col = df_clean.columns[21]
+    elif not status_col and len(df_clean.columns) > 14: status_col = df_clean.columns[14]
+
     if not cut0_col and len(df_clean.columns) > 15: cut0_col = df_clean.columns[15]
     if not cut1_col and len(df_clean.columns) > 16: cut1_col = df_clean.columns[16]
     if not cut2_col and len(df_clean.columns) > 17: cut2_col = df_clean.columns[17]
@@ -1863,8 +1881,10 @@ def process_table_sheet(df):
     if not driver_col and len(df_clean.columns) > 5: driver_col = df_clean.columns[5]
     if not origin_col and len(df_clean.columns) > 6: origin_col = df_clean.columns[6]
     if not cat_col and len(df_clean.columns) > 2: cat_col = df_clean.columns[2]
-    if not region_col and len(df_clean.columns) > 25: region_col = df_clean.columns[25]
-    if not zone_col and len(df_clean.columns) > 26: zone_col = df_clean.columns[26]
+    if not region_col and len(df_clean.columns) > 26: region_col = df_clean.columns[26]
+    elif not region_col and len(df_clean.columns) > 25: region_col = df_clean.columns[25]
+    if not zone_col and len(df_clean.columns) > 27: zone_col = df_clean.columns[27]
+    elif not zone_col and len(df_clean.columns) > 26: zone_col = df_clean.columns[26]
 
     # Detect Outbound and Inbound order & weight columns (Column AC = index 28 / Column Y = index 24)
     ob_order_col = None
@@ -1947,6 +1967,12 @@ def process_table_sheet(df):
             "driver": str(row.get(driver_col, '')) if driver_col else '',
             "origin": str(row.get(origin_col, '')) if origin_col else '',
             "dest_station_name": str(row.get(dest_col, '')) if dest_col else '',
+            "standby_time": str(row.get(standby_col, '')) if standby_col else '',
+            "assign_time": str(row.get(assign_col, '')) if assign_col else '',
+            "actual_dep_cut": str(row.get(dep_col, '')) if dep_col else '',
+            "status": str(row.get(status_col, '')) if status_col else '',
+            "rmk": str(row.get(rmk_col, '')) if rmk_col else '',
+            "intentional": str(row.get(intent_col, '')) if intent_col else '',
             "outbound_order": parsed_ob_order,
             "outbound_weight": parsed_ob_weight,
             "outbound_to": str(row.get(ob_to_col, '')) if ob_to_col else '',
@@ -1954,8 +1980,6 @@ def process_table_sheet(df):
             "cut1": str(row.get(cut1_col, '')) if cut1_col else '',
             "cut2": str(row.get(cut2_col, '')) if cut2_col else '',
             "cut3": str(row.get(cut3_col, '')) if cut3_col else '',
-            "actual_dep_cut": str(row.get(dep_col, '')) if dep_col else '',
-            "status": str(row.get(status_col, '')) if status_col else '',
             "region": str(row.get(region_col, '')) if region_col else '',
             "zone": str(row.get(zone_col, '')) if zone_col else ''
         })
