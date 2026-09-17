@@ -741,7 +741,7 @@
       let depIdx = 21, statIdx = 23, destIdx = 7, tripIdx = 1, vehIdx = 3, plateIdx = 4, driverIdx = 5, origIdx = 6;
       let standbyIdx = 19, assignIdx = 20, rmkIdx = 24, intentIdx = 25;
       let c0Idx = 15, c1Idx = 16, c2Idx = 17, c3Idx = 18, zoneIdx = 27, regionIdx = 26, catIdx = 2;
-      let obOrderIdx = 28, obWeightIdx = 29, obToIdx = 23;
+      let obOrderIdx = 30, obWeightIdx = 31, obToIdx = 29;
       
       if (Array.isArray(data.headers) && data.headers.length > 0) {
         data.headers.forEach((h, idx) => {
@@ -765,8 +765,8 @@
           if (str.includes('zone') || str.includes('โซน')) zoneIdx = idx;
           if (str.includes('region') || str.includes('ภาค')) regionIdx = idx;
           if (str.includes('category') || str.includes('trip type')) catIdx = idx;
-          if (str.includes('outbound(order') || str.includes('outbound (order') || str.includes('outbound order') || str.includes('outbound_order') || str === 'ob order' || str === 'ob(order)' || (str.includes('outbound') && str.includes('order')) || str === 'col 28' || str === 'col_28' || str === 'ac') obOrderIdx = idx;
-          if (str.includes('outbound(weight') || str.includes('outbound weight') || (str.includes('outbound') && str.includes('weight')) || str === 'col 29' || str === 'col_29' || str === 'ad') obWeightIdx = idx;
+          if (str.includes('outbound(order') || str.includes('outbound (order') || str.includes('outbound order') || str.includes('outbound_order') || str === 'ob order' || str === 'ob(order)' || (str.includes('outbound') && str.includes('order')) || str === 'col 30' || str === 'col_30' || str === 'col 28' || str === 'col_28' || str === 'ae' || str === 'ac') obOrderIdx = idx;
+          if (str.includes('outbound(weight') || str.includes('outbound weight') || (str.includes('outbound') && str.includes('weight')) || str === 'col 31' || str === 'col_31' || str === 'col 29' || str === 'col_29' || str === 'af' || str === 'ad') obWeightIdx = idx;
           if (str.includes('outbound(to') || str.includes('outbound to') || (str.includes('outbound') && str.includes('to'))) obToIdx = idx;
         });
       }
@@ -774,7 +774,7 @@
       const mappedList = (data.outboundRawRows && data.outboundRawRows.length) ? data.outboundRawRows :
         (data.rows && data.rows.length ? data.rows.map(r => {
           const c = r.cells || r;
-          const isInvalidVal = (val) => val === undefined || val === null || String(val).trim() === '' || String(val).trim() === '#REF!' || String(val).trim().toLowerCase() === 'nan';
+          const isInvalidVal = (val) => val === undefined || val === null || String(val).trim() === '' || String(val).trim() === '#REF!' || String(val).trim() === '#N/A' || String(val).trim().toLowerCase() === 'nan';
 
           const getItem = (primaryIdx, fallbackIndices, fallbackKeys) => {
             if (Array.isArray(c)) {
@@ -796,19 +796,30 @@
             return '';
           };
 
-          const rawObOrder = getItem(obOrderIdx, [28, 24], ['outbound_order', 'outbound(order)', 'outbound (order)', 'orders', 'order_count', 'col_28', 'col_24', 'col 28', 'col 24', 'ac']);
-          const rawObWeight = getItem(obWeightIdx, [29, 25], ['outbound_weight', 'outbound(weight)(kg)', 'outbound(weight)', 'weight', 'col_29', 'col_25', 'ad']);
-          const rawObTo = getItem(obToIdx, [23], ['outbound_to', 'outbound(to)']);
+          const rawObOrder = getItem(obOrderIdx, [30, 28, 24, 31], ['outbound_order', 'outbound(order)', 'outbound (order)', 'orders', 'order_count', 'col_30', 'col_28', 'col_24', 'ae', 'ac']);
+          const rawObWeight = getItem(obWeightIdx, [31, 29, 25], ['outbound_weight', 'outbound(weight)(kg)', 'outbound(weight)', 'weight', 'col_31', 'col_29', 'col_25', 'af', 'ad']);
+          const rawObTo = getItem(obToIdx, [29, 23], ['outbound_to', 'outbound(to)']);
 
           let parsedObOrder = 0;
           if (rawObOrder) {
             const p = parseFloat(String(rawObOrder).replace(/,/g, '').trim());
-            if (!isNaN(p)) parsedObOrder = p;
+            if (!isNaN(p) && p > 0) parsedObOrder = p;
+          }
+          if (!parsedObOrder && Array.isArray(c)) {
+            for (let testIdx of [30, 28, 24, 31]) {
+              if (c[testIdx] !== undefined && c[testIdx] !== null) {
+                const testP = parseFloat(String(c[testIdx]).replace(/,/g, '').trim());
+                if (!isNaN(testP) && testP > 0) {
+                  parsedObOrder = testP;
+                  break;
+                }
+              }
+            }
           }
           let parsedObWeight = 0;
           if (rawObWeight) {
             const p = parseFloat(String(rawObWeight).replace(/,/g, '').trim());
-            if (!isNaN(p)) parsedObWeight = p;
+            if (!isNaN(p) && p > 0) parsedObWeight = p;
           }
 
           return {

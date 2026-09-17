@@ -1900,21 +1900,28 @@ def process_table_sheet(df):
         elif ('outbound(to' in c_str or 'outbound to' in c_str or ('outbound' in c_str and 'to' in c_str)) and not ob_to_col:
             ob_to_col = c
 
-    # Fallback to column index: prioritize Column AC (28), then Column Y (24)
+    # Fallback to column index: prioritize Column AE (30), Column AC (28), Column Y (24)
     if not ob_order_col:
-        if len(df_clean.columns) > 28:
+        if len(df_clean.columns) > 30:
+            ob_order_col = df_clean.columns[30]
+        elif len(df_clean.columns) > 28:
             ob_order_col = df_clean.columns[28]
         elif len(df_clean.columns) > 24:
             ob_order_col = df_clean.columns[24]
 
     if not ob_weight_col:
-        if len(df_clean.columns) > 29:
+        if len(df_clean.columns) > 31:
+            ob_weight_col = df_clean.columns[31]
+        elif len(df_clean.columns) > 29:
             ob_weight_col = df_clean.columns[29]
         elif len(df_clean.columns) > 25:
             ob_weight_col = df_clean.columns[25]
 
-    if not ob_to_col and len(df_clean.columns) > 23:
-        ob_to_col = df_clean.columns[23]
+    if not ob_to_col:
+        if len(df_clean.columns) > 29:
+            ob_to_col = df_clean.columns[29]
+        elif len(df_clean.columns) > 23:
+            ob_to_col = df_clean.columns[23]
 
     raw_rows = []
     rows_cells = []
@@ -1924,40 +1931,44 @@ def process_table_sheet(df):
         cells = [str(val) if pd.notna(val) else '' for val in row]
         rows_cells.append({"cells": cells, "routeLink": ""})
 
-        # Parse numeric outbound_order and outbound_weight safely from Column AC (28) or Column Y (24)
-        raw_ob_order = row.get(ob_order_col, '') if ob_order_col else ''
-        if (pd.isna(raw_ob_order) or str(raw_ob_order).strip() in ['', '0', '0.0', 'nan', 'NaN', '#REF!']):
-            if len(row) > 28 and pd.notna(row.iloc[28]) and str(row.iloc[28]).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!']:
-                raw_ob_order = row.iloc[28]
-            elif len(row) > 24 and pd.notna(row.iloc[24]) and str(row.iloc[24]).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!']:
-                raw_ob_order = row.iloc[24]
-
-        raw_ob_weight = row.get(ob_weight_col, '') if ob_weight_col else ''
-        if (pd.isna(raw_ob_weight) or str(raw_ob_weight).strip() in ['', '0', '0.0', 'nan', 'NaN', '#REF!']):
-            if len(row) > 29 and pd.notna(row.iloc[29]) and str(row.iloc[29]).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!']:
-                raw_ob_weight = row.iloc[29]
-            elif len(row) > 25 and pd.notna(row.iloc[25]) and str(row.iloc[25]).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!']:
-                raw_ob_weight = row.iloc[25]
-
+        # Parse numeric outbound_order safely from Column AE (30), AC (28), or Y (24)
         parsed_ob_order = 0
-        if pd.notna(raw_ob_order) and str(raw_ob_order).strip():
-            try:
-                clean_num_str = str(raw_ob_order).replace(',', '').strip()
-                p = float(clean_num_str)
-                if not pd.isna(p):
-                    parsed_ob_order = int(p) if p.is_integer() else p
-            except Exception:
-                parsed_ob_order = 0
+        raw_ob_order = row.get(ob_order_col, '') if ob_order_col else ''
+        for order_idx in [30, 28, 24, 31]:
+            candidate = ''
+            if pd.notna(raw_ob_order) and str(raw_ob_order).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!', '#N/A', '-']:
+                candidate = raw_ob_order
+            elif len(row) > order_idx and pd.notna(row.iloc[order_idx]) and str(row.iloc[order_idx]).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!', '#N/A', '-']:
+                candidate = row.iloc[order_idx]
+
+            if candidate:
+                try:
+                    clean_num_str = str(candidate).replace(',', '').strip()
+                    p = float(clean_num_str)
+                    if not pd.isna(p) and p > 0:
+                        parsed_ob_order = int(p) if p.is_integer() else p
+                        break
+                except Exception:
+                    pass
 
         parsed_ob_weight = 0.0
-        if pd.notna(raw_ob_weight) and str(raw_ob_weight).strip():
-            try:
-                clean_wt_str = str(raw_ob_weight).replace(',', '').strip()
-                p = float(clean_wt_str)
-                if not pd.isna(p):
-                    parsed_ob_weight = round(p, 2)
-            except Exception:
-                parsed_ob_weight = 0.0
+        raw_ob_weight = row.get(ob_weight_col, '') if ob_weight_col else ''
+        for weight_idx in [31, 29, 25]:
+            candidate_wt = ''
+            if pd.notna(raw_ob_weight) and str(raw_ob_weight).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!', '#N/A', '-']:
+                candidate_wt = raw_ob_weight
+            elif len(row) > weight_idx and pd.notna(row.iloc[weight_idx]) and str(row.iloc[weight_idx]).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!', '#N/A', '-']:
+                candidate_wt = row.iloc[weight_idx]
+
+            if candidate_wt:
+                try:
+                    clean_wt_str = str(candidate_wt).replace(',', '').strip()
+                    p = float(clean_wt_str)
+                    if not pd.isna(p) and p > 0:
+                        parsed_ob_weight = round(p, 2)
+                        break
+                except Exception:
+                    pass
 
         raw_rows.append({
             "shipment_id": str(row.get(trip_col, '')) if trip_col else '',
