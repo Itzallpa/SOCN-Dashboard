@@ -2837,7 +2837,6 @@
 </body>
 </html>`;
 
-        const opsDateStr = getOpsDateForExport();
         const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
