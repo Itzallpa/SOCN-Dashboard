@@ -32,10 +32,16 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    var rawData = e.postData ? e.postData.contents : "";
+    var rawData = "";
+    if (e && e.parameter && e.parameter.payload) {
+      rawData = e.parameter.payload;
+    } else if (e && e.postData && e.postData.contents) {
+      rawData = e.postData.contents;
+    }
+    
     var payload = {};
     try {
-      payload = JSON.parse(rawData);
+      payload = typeof rawData === 'object' ? rawData : JSON.parse(rawData);
     } catch(err) {
       return ContentService.createTextOutput(JSON.stringify({
         success: false,
