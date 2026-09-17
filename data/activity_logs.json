@@ -1,37 +1,7 @@
 [
   {
-    "id": "d5e5b8e7",
-    "timestamp": "2026-09-17 16:05:51",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "SYNC_GOOGLE_SHEET",
-    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
-    "ip": "203.156.13.114"
-  },
-  {
-    "id": "96a2fe0c",
-    "timestamp": "2026-09-17 16:05:40",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "SYNC_GOOGLE_SHEET",
-    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
-    "ip": "203.156.13.114"
-  },
-  {
-    "id": "f1dc63f6",
-    "timestamp": "2026-09-17 15:50:25",
-    "email": "guest",
-    "name": "Guest",
-    "role": "Ground",
-    "action": "SYNC_GOOGLE_SHEET",
-    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
-    "ip": "127.0.0.1"
-  },
-  {
-    "id": "59e7dba7",
-    "timestamp": "2026-09-17 15:49:14",
+    "id": "1b42a2c9",
+    "timestamp": "2026-09-17 16:55:18",
     "email": "guy.panmanee@spxexpress.com",
     "name": "Natakorn Panmanee",
     "role": "Admin",
@@ -40,38 +10,8 @@
     "ip": "203.156.13.114"
   },
   {
-    "id": "e7765a7d",
-    "timestamp": "2026-09-17 15:49:14",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "DATA_EXPORT",
-    "details": "📤 ดาวน์โหลด/ส่งออกข้อมูล: LH_Trip_Executive_Report.xls (1892 รายการ) - ส่งออกไฟล์ Excel รายงาน LH Trip สรุปรายชั่วโมงและ Raw Data ครบถ้วน",
-    "ip": "203.156.13.114"
-  },
-  {
-    "id": "ecc64e20",
-    "timestamp": "2026-09-17 15:48:52",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "SYNC_GOOGLE_SHEET",
-    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
-    "ip": "203.156.13.114"
-  },
-  {
-    "id": "8ff12c04",
-    "timestamp": "2026-09-17 15:43:46",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "SYNC_GOOGLE_SHEET",
-    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
-    "ip": "203.156.13.114"
-  },
-  {
-    "id": "6f993a31",
-    "timestamp": "2026-09-17 15:43:42",
+    "id": "704f5f9b",
+    "timestamp": "2026-09-17 16:54:58",
     "email": "guy.panmanee@spxexpress.com",
     "name": "Natakorn Panmanee",
     "role": "Admin",
@@ -80,8 +20,8 @@
     "ip": "203.156.13.114"
   },
   {
-    "id": "ef2fea11",
-    "timestamp": "2026-09-17 15:43:41",
+    "id": "f9be59b6",
+    "timestamp": "2026-09-17 16:54:58",
     "email": "guy.panmanee@spxexpress.com",
     "name": "Natakorn Panmanee",
     "role": "Admin",
@@ -90,13 +30,26 @@
     "ip": "203.156.13.114"
   },
   {
-    "id": "deadf94a",
-    "timestamp": "2026-09-17 15:43:29",
+    "id": "f47074d7",
+    "timestamp": "2026-09-17 16:53:54",
     "email": "guest",
     "name": "Guest",
     "role": "Ground",
     "action": "SYNC_GOOGLE_SHEET",
     "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "37160185",
+    "timestamp": "2026-09-17 16:29:57",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "IDLE_AUTO_LOGOUT",
+    "details": "ไม่มีการใช้งานเกิน 1 ชั่วโมง (Idle Timeout)",
+    "ip": "203.156.13.114"
+  }
+]โมง (Idle Timeout)",
     "ip": "203.156.13.114"
   }
 ]

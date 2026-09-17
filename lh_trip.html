@@ -13,15 +13,23 @@
   <style>
     body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding-bottom: 30px; }
     .card-custom { background: #ffffff; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; padding: 18px; }
-    .kpi-card { border-radius: 12px; background: #ffffff; border-left: 5px solid #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.04); padding: 14px 18px; }
+    .kpi-card { border-radius: 12px; background: #ffffff; border-left: 5px solid #cbd5e1; box-shadow: 0 4px 14px rgba(0,0,0,0.06); padding: 16px 20px; transition: transform 0.2s, box-shadow 0.2s; }
+    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.1); }
     .kpi-orange { border-left-color: #ee4d2d; }
     .kpi-green { border-left-color: #0f9d58; }
     .kpi-red { border-left-color: #d0311d; }
-    .kpi-amber { border-left-color: #b7791f; }
-    .kpi-title { font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
-    .kpi-value { font-size: 1.9rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
-    .kpi-subtext { font-size: 0.76rem; color: #64748b; margin-top: 4px; }
+    .kpi-amber { border-left-color: #f59e0b; }
+    .kpi-title { font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
+    .kpi-value { font-size: 2.1rem; font-weight: 800; color: #0f172a; line-height: 1.1; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .kpi-subtext { font-size: 0.82rem; color: #64748b; margin-top: 6px; font-weight: 500; }
     
+    .late-hub-card { background: #ffffff; border-radius: 14px; border: 1px solid #fee2e2; box-shadow: 0 4px 16px rgba(220, 38, 38, 0.06); padding: 20px; margin-bottom: 20px; }
+    .late-subcard { background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; padding: 16px; height: 100%; transition: all 0.2s; display: flex; flex-direction: column; justify-content: space-between; }
+    .late-subcard:hover { background: #ffffff; box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
+    .late-subcard.ob-card { border-left: 5px solid #dc2626; background: #fffbfb; }
+    .late-subcard.lh-card { border-left: 5px solid #f59e0b; background: #fffdfa; }
+    .late-subcard.geo-card { border-left: 5px solid #3b82f6; background: #f8fbff; }
+
     .callout-card { background: #ffffff; border-radius: 12px; border-left: 5px solid #b7791f; box-shadow: 0 4px 12px rgba(0,0,0,0.04); padding: 14px 18px; }
     .callout-title { font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
     .callout-value { font-size: 1.35rem; font-weight: 800; color: #0f172a; margin-top: 2px; }
@@ -107,34 +115,190 @@
 
     <!-- SECTION 1: DASHBOARD VIEW -->
     <div id="viewDashboardSection" style="display: block;">
-      <!-- 4 KPI Summary Cards -->
+      <!-- 4 KPI Summary Cards (Expanded & Rich Data) -->
       <div class="row g-3 mb-3">
         <div class="col-md-3" style="cursor:pointer;" onclick="openAllTripsModal()">
           <div class="kpi-card kpi-orange">
-            <div class="kpi-title">TOTAL TRIPS (เที่ยวรถทั้งหมด)</div>
-            <div class="kpi-value text-danger" id="kpiTotal">--</div>
-            <div class="kpi-subtext">คลิกเพื่อดู Raw Data เที่ยวรถทั้งหมด</div>
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <div class="kpi-title">TOTAL TRIPS (เที่ยวรถทั้งหมด)</div>
+              <span class="badge bg-danger bg-opacity-10 text-danger fw-bold" style="font-size:0.7rem;"><i class="fa-solid fa-truck me-1"></i> ภาพรวม</span>
+            </div>
+            <div class="kpi-value text-slate-800" id="kpiTotal">
+              -- <span class="fs-6 text-muted fw-normal">Trips</span>
+            </div>
+            <div class="kpi-subtext d-flex justify-content-between align-items-center" id="kpiTotalSub">
+              <span>📦 <b id="kpiTotalOrders">--</b> Orders</span>
+              <span>⚖️ <b id="kpiTotalWeight">--</b> Tons</span>
+            </div>
           </div>
         </div>
+
         <div class="col-md-3" style="cursor:pointer;" onclick="openOnTimeModal()">
           <div class="kpi-card kpi-green">
-            <div class="kpi-title">ON TIME (ตรงเวลา)</div>
-            <div class="kpi-value text-success" id="kpiOnTime">--</div>
-            <div class="kpi-subtext" id="kpiOnTimeSub">-- of trips (คลิกเพื่อดู Raw Data)</div>
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <div class="kpi-title">ON TIME (ตรงเวลา)</div>
+              <span class="badge bg-success bg-opacity-10 text-success fw-bold" style="font-size:0.7rem;"><i class="fa-solid fa-circle-check me-1"></i> ตรงเวลา</span>
+            </div>
+            <div class="kpi-value text-success" id="kpiOnTime">
+              -- <span class="fs-6 text-muted fw-normal" id="kpiOnTimePctBadge">(--%)</span>
+            </div>
+            <div class="kpi-subtext d-flex justify-content-between align-items-center" id="kpiOnTimeSub">
+              <span>📦 <b id="kpiOnTimeOrders">--</b> Orders</span>
+              <span class="text-success fw-bold">🟢 ตรงเวลาสมบูรณ์</span>
+            </div>
           </div>
         </div>
+
         <div class="col-md-3" style="cursor:pointer;" onclick="openAllLateModal()">
           <div class="kpi-card kpi-red">
-            <div class="kpi-title">LATE (ล่าช้า)</div>
-            <div class="kpi-value text-danger" id="kpiLate">--</div>
-            <div class="kpi-subtext" id="kpiLateSub">-- of trips (คลิกเพื่อดู Raw Data)</div>
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <div class="kpi-title">LATE (ล่าช้าทั้งหมด)</div>
+              <span class="badge bg-danger bg-opacity-10 text-danger fw-bold" style="font-size:0.7rem;"><i class="fa-solid fa-circle-exclamation me-1"></i> ล่าช้า</span>
+            </div>
+            <div class="kpi-value text-danger" id="kpiLate">
+              -- <span class="fs-6 text-muted fw-normal" id="kpiLatePctBadge">(--%)</span>
+            </div>
+            <div class="kpi-subtext" id="kpiLateSub">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span>📦 <b id="kpiLateOrders">--</b> Orders</span>
+                <span class="text-danger fw-bold" id="kpiLateOrderPct">--%</span>
+              </div>
+              <div class="d-flex gap-1 mt-1">
+                <span class="badge bg-danger" id="kpiBadgeObLate" style="font-size:0.75rem;">🔴 OB Late: --</span>
+                <span class="badge bg-warning text-dark" id="kpiBadgeLhLate" style="font-size:0.75rem;">🟡 LH Late: --</span>
+              </div>
+            </div>
           </div>
         </div>
+
         <div class="col-md-3">
           <div class="kpi-card kpi-amber">
-            <div class="kpi-title">ON-TIME RATE (% ตรงเวลา)</div>
-            <div class="kpi-value text-warning" id="kpiRate">--%</div>
-            <div class="kpi-subtext">อัตราการตรงเวลาภาพรวมแบบ Live</div>
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <div class="kpi-title">ON-TIME RATE (% ตรงเวลา)</div>
+              <span class="badge bg-warning bg-opacity-10 text-warning-emphasis fw-bold" style="font-size:0.7rem;"><i class="fa-solid fa-gauge-high me-1"></i> SLA</span>
+            </div>
+            <div class="kpi-value text-warning-emphasis" id="kpiRate">
+              --%
+            </div>
+            <div class="kpi-subtext d-flex justify-content-between align-items-center" id="kpiRateSub">
+              <span>📦 Order SLA: <b id="kpiOrderSlaRate">--%</b></span>
+              <span class="text-muted small">🎯 เป้าหมาย: ≥95%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXECUTIVE LATE IMPACT & ROOT CAUSE HUB (Detailed Breakdown) -->
+      <div class="late-hub-card mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold mb-0 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> สรุปเจาะลึกเฉพาะเที่ยวรถที่สาย (Executive Late Breakdown & Impact Analysis)</h5>
+            <div class="small text-muted">วิเคราะห์ละเอียดแยกระหว่าง OB Late (ฝั่งคลังโหลด) vs LH Late (ฝั่งรถขนส่ง) พร้อมจำนวน Orders และพื้นที่ที่ได้รับผลกระทบ</div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-danger btn-sm fw-bold" onclick="openAllLateModal()"><i class="fa-solid fa-list-check me-1"></i> ดู Raw Data สายทั้งหมด (555 เที่ยว)</button>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <!-- Column 1: OB Late -->
+          <div class="col-lg-4 col-md-6">
+            <div class="late-subcard ob-card">
+              <div>
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <span class="badge bg-danger fs-6 fw-bold">🔴 OB Late (สายฝั่ง Outbound)</span>
+                  <span class="badge bg-light text-danger border fw-bold" id="obLatePctShare">64.7% ของที่สาย</span>
+                </div>
+                <div class="d-flex align-items-baseline gap-2 mb-2">
+                  <span class="display-6 fw-bold text-danger" id="hubObLateCount">359</span>
+                  <span class="text-muted fw-bold">เที่ยวรถ</span>
+                </div>
+                <div class="p-2 bg-white rounded border mb-2 small">
+                  <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted"><i class="fa-solid fa-box text-danger me-1"></i> ยอดพัสดุที่กระทบ:</span>
+                    <span class="fw-bold text-dark" id="hubObLateOrders">244,928 Orders</span>
+                  </div>
+                  <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted"><i class="fa-solid fa-scale-balanced me-1"></i> สัดส่วนออเดอร์สาย:</span>
+                    <span class="fw-bold text-danger" id="hubObLateOrderPct">65.3%</span>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span class="text-muted"><i class="fa-solid fa-bullseye me-1"></i> Intentional / Non-Int:</span>
+                    <span class="fw-bold text-slate-700" id="hubObLateIntent">215 / 144</span>
+                  </div>
+                </div>
+                <div class="small text-muted mb-2" id="hubObLateZoneBreakdown">
+                  <b>โซนหลัก:</b> Zone A: 128 | Zone C: 121 | Zone B: 110
+                </div>
+              </div>
+              <button class="btn btn-danger btn-sm fw-bold w-100 mt-2" onclick="openOBLateModal()"><i class="fa-solid fa-eye me-1"></i> ดูเฉพาะ 359 ทริป OB Late</button>
+            </div>
+          </div>
+
+          <!-- Column 2: LH Late -->
+          <div class="col-lg-4 col-md-6">
+            <div class="late-subcard lh-card">
+              <div>
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <span class="badge bg-warning text-dark fs-6 fw-bold">🟡 LH Late (สายฝั่ง Linehaul)</span>
+                  <span class="badge bg-light text-dark border fw-bold" id="lhLatePctShare">35.3% ของที่สาย</span>
+                </div>
+                <div class="d-flex align-items-baseline gap-2 mb-2">
+                  <span class="display-6 fw-bold text-warning-emphasis" id="hubLhLateCount">196</span>
+                  <span class="text-muted fw-bold">เที่ยวรถ</span>
+                </div>
+                <div class="p-2 bg-white rounded border mb-2 small">
+                  <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted"><i class="fa-solid fa-box text-warning me-1"></i> ยอดพัสดุที่กระทบ:</span>
+                    <span class="fw-bold text-dark" id="hubLhLateOrders">130,136 Orders</span>
+                  </div>
+                  <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted"><i class="fa-solid fa-scale-balanced me-1"></i> สัดส่วนออเดอร์สาย:</span>
+                    <span class="fw-bold text-warning-emphasis" id="hubLhLateOrderPct">34.7%</span>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span class="text-muted"><i class="fa-solid fa-bullseye me-1"></i> Intentional / Non-Int:</span>
+                    <span class="fw-bold text-slate-700" id="hubLhLateIntent">109 / 87</span>
+                  </div>
+                </div>
+                <div class="small text-muted mb-2" id="hubLhLateZoneBreakdown">
+                  <b>โซนหลัก:</b> Zone A: 78 | Zone C: 67 | Zone B: 51
+                </div>
+              </div>
+              <button class="btn btn-warning text-dark btn-sm fw-bold w-100 mt-2" onclick="openLHLateModal()"><i class="fa-solid fa-eye me-1"></i> ดูเฉพาะ 196 ทริป LH Late</button>
+            </div>
+          </div>
+
+          <!-- Column 3: Geographic & Zone Breakdown -->
+          <div class="col-lg-4 col-md-12">
+            <div class="late-subcard geo-card">
+              <div>
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <span class="badge bg-primary fs-6 fw-bold">📍 พื้นที่ & โซนที่กระทบ (Geo & Zone)</span>
+                  <span class="badge bg-light text-primary border fw-bold">สรุปภาพรวม</span>
+                </div>
+                <div class="p-2 bg-white rounded border mb-2 small">
+                  <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
+                    <span><b>🏞️ UPC (ต่างจังหวัด):</b> <span id="hubUpcLateTrips">379</span> เที่ยว</span>
+                    <button class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold" style="font-size:0.75rem;" onclick="openRegionLateModal('UPC')">ดู 379 ทริป</button>
+                  </div>
+                  <div class="text-muted small mb-2" id="hubUpcLateOrdersSub">📦 248,320 Orders (66.2% ของที่สาย)</div>
+                  
+                  <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
+                    <span><b>🏙️ GBKK (กทม./ปริมณฑล):</b> <span id="hubGbkkLateTrips">175</span> เที่ยว</span>
+                    <button class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold" style="font-size:0.75rem;" onclick="openRegionLateModal('GBKK')">ดู 175 ทริป</button>
+                  </div>
+                  <div class="text-muted small mb-1" id="hubGbkkLateOrdersSub">📦 126,744 Orders (33.8% ของที่สาย)</div>
+                </div>
+                <div class="small p-2 bg-light rounded text-slate-700 mb-2" id="hubZoneLateSummary">
+                  <b>📍 สรุปสายรายโซน:</b> Zone A: <b>206</b> | Zone C: <b>188</b> | Zone B: <b>160</b>
+                </div>
+              </div>
+              <div class="d-flex gap-2 mt-2">
+                <button class="btn btn-outline-primary btn-sm fw-bold w-50" onclick="openRegionLateModal('UPC')"><i class="fa-solid fa-map-location-dot me-1"></i> UPC Late</button>
+                <button class="btn btn-outline-primary btn-sm fw-bold w-50" onclick="openRegionLateModal('GBKK')"><i class="fa-solid fa-city me-1"></i> GBKK Late</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -551,13 +715,28 @@
       openRawDataModal('เที่ยวรถที่สายทั้งหมด (All Late Trips)', lateRows.length ? lateRows : []);
     }
 
+    function openOBLateModal() {
+      const obRows = rawTripRecords.filter(r => (r.rmk || '').toLowerCase().includes('ob late') || ((r.status || '').toLowerCase().includes('late') && !(r.rmk || '').toLowerCase().includes('lh late')));
+      openRawDataModal('เที่ยวรถที่สายฝั่ง Outbound (🔴 OB Late)', obRows.length ? obRows : []);
+    }
+
+    function openLHLateModal() {
+      const lhRows = rawTripRecords.filter(r => (r.rmk || '').toLowerCase().includes('lh late'));
+      openRawDataModal('เที่ยวรถที่สายฝั่ง Linehaul (🟡 LH Late)', lhRows.length ? lhRows : []);
+    }
+
+    function openRegionLateModal(region) {
+      const regionRows = rawTripRecords.filter(r => (r.status || '').toLowerCase().includes('late') && (r.region || '').toUpperCase().includes(region.toUpperCase()));
+      openRawDataModal(`เที่ยวรถที่สายในพื้นที่ ${region} (${regionRows.length.toLocaleString()} เที่ยว)`, regionRows.length ? regionRows : []);
+    }
+
     function openOnTimeModal() {
       const onTimeRows = rawTripRecords.filter(r => !(r.status || '').toLowerCase().includes('late'));
       openRawDataModal('เที่ยวรถที่ตรงเวลาทั้งหมด (All On-Time Trips)', onTimeRows.length ? onTimeRows : []);
     }
 
     function openAllTripsModal() {
-      openRawDataModal('เที่ยวรถทั้งหมดในระบบ (All 1,305 Trips)', rawTripRecords);
+      openRawDataModal(`เที่ยวรถทั้งหมดในระบบ (All ${rawTripRecords.length.toLocaleString()} Trips)`, rawTripRecords);
     }
 
     function renderModalTableRows(rows) {
@@ -913,39 +1092,99 @@
       const latePct = totalTrips ? ((lateTrips / totalTrips) * 100).toFixed(1) : '0.0';
       const rate = totalTrips ? `${onTimePct}%` : '0.0%';
 
-      const obLateCount = rawTripRecords.filter(r => String(r.rmk || '').toLowerCase().includes('ob late')).length;
-      const lhLateCount = rawTripRecords.filter(r => String(r.rmk || '').toLowerCase().includes('lh late')).length;
+      const obLateRecords = rawTripRecords.filter(r => (r.rmk || '').toLowerCase().includes('ob late') || ((r.status || '').toLowerCase().includes('late') && !(r.rmk || '').toLowerCase().includes('lh late')));
+      const lhLateRecords = rawTripRecords.filter(r => (r.rmk || '').toLowerCase().includes('lh late'));
+
+      const obLateCount = obLateRecords.length;
+      const lhLateCount = lhLateRecords.length;
 
       const totalOrders = rawTripRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
       const lateOrders = lateRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
       const onTimeOrders = totalOrders - lateOrders;
+      const orderOnTimePct = totalOrders ? ((onTimeOrders / totalOrders) * 100).toFixed(1) : '0.0';
+      const orderLatePct = totalOrders ? ((lateOrders / totalOrders) * 100).toFixed(1) : '0.0';
 
-      const ordersTotalBadge = totalOrders > 0 ? ` <span style="font-size:0.55em; font-weight:normal;" class="text-secondary">(📦 ${totalOrders.toLocaleString()} Orders)</span>` : '';
-      const onTimeOrdersBadge = totalOrders > 0 ? ` <span style="font-size:0.55em; font-weight:normal;" class="text-secondary">(${onTimeOrders.toLocaleString()} Orders)</span>` : '';
-      const lateOrdersBadge = totalOrders > 0 ? ` <span style="font-size:0.55em; font-weight:normal;" class="text-secondary">(${lateOrders.toLocaleString()} Orders)</span>` : '';
+      const obLateOrders = obLateRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
+      const lhLateOrders = lhLateRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
 
-      document.getElementById('kpiTotal').innerHTML = `${Number(totalTrips).toLocaleString()}${ordersTotalBadge}`;
-      document.getElementById('kpiOnTime').innerHTML = `${Number(onTimeTrips).toLocaleString()}${onTimeOrdersBadge}`;
-      document.getElementById('kpiLate').innerHTML = `${Number(lateTrips).toLocaleString()}${lateOrdersBadge}`;
-      document.getElementById('kpiRate').innerText = rate;
+      const obLateTripShare = lateTrips ? ((obLateCount / lateTrips) * 100).toFixed(1) : '0.0';
+      const lhLateTripShare = lateTrips ? ((lhLateCount / lateTrips) * 100).toFixed(1) : '0.0';
+
+      const obLateOrderShare = lateOrders ? ((obLateOrders / lateOrders) * 100).toFixed(1) : '0.0';
+      const lhLateOrderShare = lateOrders ? ((lhLateOrders / lateOrders) * 100).toFixed(1) : '0.0';
+
+      const obLateIntent = obLateRecords.filter(r => (r.intentional || '').toLowerCase().includes('intentional') && !(r.intentional || '').toLowerCase().includes('non')).length;
+      const obLateNonIntent = obLateRecords.length - obLateIntent;
+
+      const lhLateIntent = lhLateRecords.filter(r => (r.intentional || '').toLowerCase().includes('intentional') && !(r.intentional || '').toLowerCase().includes('non')).length;
+      const lhLateNonIntent = lhLateRecords.length - lhLateIntent;
+
+      // Geographic and Zone
+      const upcLateRecords = lateRecords.filter(r => (r.region || '').toUpperCase().includes('UPC'));
+      const gbkkLateRecords = lateRecords.filter(r => (r.region || '').toUpperCase().includes('GBKK'));
+      const upcLateOrders = upcLateRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
+      const gbkkLateOrders = gbkkLateRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
+      const upcOrderShare = lateOrders ? ((upcLateOrders / lateOrders) * 100).toFixed(1) : '0.0';
+      const gbkkOrderShare = lateOrders ? ((gbkkLateOrders / lateOrders) * 100).toFixed(1) : '0.0';
+
+      const zoneALate = lateRecords.filter(r => (r.zone || '').toUpperCase() === 'A').length;
+      const zoneBLate = lateRecords.filter(r => (r.zone || '').toUpperCase() === 'B').length;
+      const zoneCLate = lateRecords.filter(r => (r.zone || '').toUpperCase() === 'C').length;
+
+      const obZoneA = obLateRecords.filter(r => (r.zone || '').toUpperCase() === 'A').length;
+      const obZoneB = obLateRecords.filter(r => (r.zone || '').toUpperCase() === 'B').length;
+      const obZoneC = obLateRecords.filter(r => (r.zone || '').toUpperCase() === 'C').length;
+
+      const lhZoneA = lhLateRecords.filter(r => (r.zone || '').toUpperCase() === 'A').length;
+      const lhZoneB = lhLateRecords.filter(r => (r.zone || '').toUpperCase() === 'B').length;
+      const lhZoneC = lhLateRecords.filter(r => (r.zone || '').toUpperCase() === 'C').length;
+
+      const totalWeightKg = rawTripRecords.reduce((sum, r) => sum + (Number(r.outbound_weight) || 0), 0);
+      const totalWeightTons = (totalWeightKg / 1000).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+      // Update 4 KPI Cards
+      document.getElementById('kpiTotal').innerHTML = `${Number(totalTrips).toLocaleString()} <span class="fs-6 text-muted fw-normal">Trips</span>`;
+      if (document.getElementById('kpiTotalOrders')) document.getElementById('kpiTotalOrders').innerText = totalOrders.toLocaleString();
+      if (document.getElementById('kpiTotalWeight')) document.getElementById('kpiTotalWeight').innerText = totalWeightTons;
+
+      document.getElementById('kpiOnTime').innerHTML = `${Number(onTimeTrips).toLocaleString()} <span class="fs-6 text-muted fw-normal">(${onTimePct}%)</span>`;
+      if (document.getElementById('kpiOnTimeOrders')) document.getElementById('kpiOnTimeOrders').innerText = onTimeOrders.toLocaleString();
+
+      document.getElementById('kpiLate').innerHTML = `${Number(lateTrips).toLocaleString()} <span class="fs-6 text-muted fw-normal">(${latePct}%)</span>`;
+      if (document.getElementById('kpiLateOrders')) document.getElementById('kpiLateOrders').innerText = lateOrders.toLocaleString();
+      if (document.getElementById('kpiLateOrderPct')) document.getElementById('kpiLateOrderPct').innerText = `${orderLatePct}% ของออเดอร์`;
+      if (document.getElementById('kpiBadgeObLate')) document.getElementById('kpiBadgeObLate').innerText = `🔴 OB Late: ${obLateCount.toLocaleString()} (${obLateOrders.toLocaleString()} Ord)`;
+      if (document.getElementById('kpiBadgeLhLate')) document.getElementById('kpiBadgeLhLate').innerText = `🟡 LH Late: ${lhLateCount.toLocaleString()} (${lhLateOrders.toLocaleString()} Ord)`;
+
+      document.getElementById('kpiRate').innerText = `${onTimePct}%`;
+      if (document.getElementById('kpiOrderSlaRate')) document.getElementById('kpiOrderSlaRate').innerText = `${orderOnTimePct}%`;
+
+      // Update Executive Late Hub
+      if (document.getElementById('obLatePctShare')) document.getElementById('obLatePctShare').innerText = `${obLateTripShare}% ของที่สาย`;
+      if (document.getElementById('hubObLateCount')) document.getElementById('hubObLateCount').innerText = obLateCount.toLocaleString();
+      if (document.getElementById('hubObLateOrders')) document.getElementById('hubObLateOrders').innerText = `${obLateOrders.toLocaleString()} Orders`;
+      if (document.getElementById('hubObLateOrderPct')) document.getElementById('hubObLateOrderPct').innerText = `${obLateOrderShare}%`;
+      if (document.getElementById('hubObLateIntent')) document.getElementById('hubObLateIntent').innerText = `${obLateIntent} / ${obLateNonIntent}`;
+      if (document.getElementById('hubObLateZoneBreakdown')) document.getElementById('hubObLateZoneBreakdown').innerHTML = `<b>โซนหลัก:</b> Zone A: <b>${obZoneA}</b> | Zone C: <b>${obZoneC}</b> | Zone B: <b>${obZoneB}</b>`;
+
+      if (document.getElementById('lhLatePctShare')) document.getElementById('lhLatePctShare').innerText = `${lhLateTripShare}% ของที่สาย`;
+      if (document.getElementById('hubLhLateCount')) document.getElementById('hubLhLateCount').innerText = lhLateCount.toLocaleString();
+      if (document.getElementById('hubLhLateOrders')) document.getElementById('hubLhLateOrders').innerText = `${lhLateOrders.toLocaleString()} Orders`;
+      if (document.getElementById('hubLhLateOrderPct')) document.getElementById('hubLhLateOrderPct').innerText = `${lhLateOrderShare}%`;
+      if (document.getElementById('hubLhLateIntent')) document.getElementById('hubLhLateIntent').innerText = `${lhLateIntent} / ${lhLateNonIntent}`;
+      if (document.getElementById('hubLhLateZoneBreakdown')) document.getElementById('hubLhLateZoneBreakdown').innerHTML = `<b>โซนหลัก:</b> Zone A: <b>${lhZoneA}</b> | Zone C: <b>${lhZoneC}</b> | Zone B: <b>${lhZoneB}</b>`;
+
+      if (document.getElementById('hubUpcLateTrips')) document.getElementById('hubUpcLateTrips').innerText = upcLateRecords.length.toLocaleString();
+      if (document.getElementById('hubUpcLateOrdersSub')) document.getElementById('hubUpcLateOrdersSub').innerText = `📦 ${upcLateOrders.toLocaleString()} Orders (${upcOrderShare}% ของที่สาย)`;
+      if (document.getElementById('hubGbkkLateTrips')) document.getElementById('hubGbkkLateTrips').innerText = gbkkLateRecords.length.toLocaleString();
+      if (document.getElementById('hubGbkkLateOrdersSub')) document.getElementById('hubGbkkLateOrdersSub').innerText = `📦 ${gbkkLateOrders.toLocaleString()} Orders (${gbkkOrderShare}% ของที่สาย)`;
+      if (document.getElementById('hubZoneLateSummary')) document.getElementById('hubZoneLateSummary').innerHTML = `<b>📍 สรุปสายรายโซน:</b> Zone A: <b>${zoneALate}</b> | Zone C: <b>${zoneCLate}</b> | Zone B: <b>${zoneBLate}</b>`;
 
       const subHeader = document.getElementById('headerSubtext');
       if (subHeader) {
         subHeader.innerText = totalOrders > 0
           ? `ระบบวิเคราะห์ข้อมูล LH Trip ${Number(totalTrips).toLocaleString()} เที่ยวรถ (📦 รวม ${totalOrders.toLocaleString()} Orders | OB Late ${obLateCount} / LH Late ${lhLateCount})`
           : `ระบบวิเคราะห์ข้อมูล LH Trip ${Number(totalTrips).toLocaleString()} เที่ยวรถ (แสดงอันดับ Top 50 Hubs ครบถ้วนตามต้องการ)`;
-      }
-
-      const onTimeSub = document.getElementById('kpiOnTimeSub');
-      if (onTimeSub) {
-        onTimeSub.innerText = totalOrders > 0
-          ? `${onTimePct}% of trips | 📦 ${onTimeOrders.toLocaleString()} orders`
-          : `${onTimePct}% of trips (คลิกเพื่อดู Raw Data)`;
-      }
-
-      const lateSub = document.getElementById('kpiLateSub');
-      if (lateSub) {
-        lateSub.innerHTML = `${latePct}% | <span class="badge bg-danger">OB Late: ${obLateCount}</span> <span class="badge bg-warning text-dark">LH Late: ${lhLateCount}</span>`;
       }
 
       renderAll5Charts(data);
