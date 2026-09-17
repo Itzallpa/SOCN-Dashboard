@@ -1970,6 +1970,22 @@
       return 'อื่นๆ (Other)';
     }
 
+    function getOpsDateForExport() {
+      let baseDate = new Date();
+      if (currentLoadedDate && currentLoadedDate !== 'live') {
+        const parts = currentLoadedDate.split('-');
+        if (parts.length === 3) {
+          baseDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        }
+      }
+      // วันที่ - 1 วัน ให้ตรงกับ Ops Date
+      baseDate.setDate(baseDate.getDate() - 1);
+      const yyyy = baseDate.getFullYear();
+      const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(baseDate.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
     function exportExcelWithCharts() {
       try {
         const records = (rawTripRecords && rawTripRecords.length) ? rawTripRecords : [];
@@ -1985,8 +2001,9 @@
         const lateOrders = lateRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
         const onTimeOrders = totalOrders - lateOrders;
 
+        const opsDateStr = getOpsDateForExport();
         if (window.AuthGuard && window.AuthGuard.logExport) {
-          window.AuthGuard.logExport('LH_Trip_Executive_Report.xls', totalTrips, 'ส่งออกไฟล์ Excel รายงาน LH Trip สรุปรายชั่วโมงและ Raw Data ครบถ้วน');
+          window.AuthGuard.logExport(`Dashboard Charts - ${opsDateStr}.xls`, totalTrips, 'ส่งออกไฟล์ Excel รายงาน Dashboard Charts ตามรอบ Ops Date');
         }
 
         // 1. Calculate Hourly Late Breakdown by Vehicle Type + Orders
@@ -2731,12 +2748,12 @@
 </body>
 </html>`;
 
-        const dateSuffix = (currentLoadedDate && currentLoadedDate !== 'live') ? `_${currentLoadedDate}` : '';
+        const opsDateStr = getOpsDateForExport();
         const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `LH_TRIP_REPORT${dateSuffix}_HOURLY_AND_RAW_DATA_${totalTrips}_TRIPS.xls`;
+        link.download = `Dashboard Charts - ${opsDateStr}.xls`;
         link.click();
       } catch (err) {
         if (typeof Swal !== 'undefined') {
@@ -2760,10 +2777,10 @@
       const lateOrders = lateRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
       const onTimeOrders = totalOrders - lateOrders;
 
-      const dateSuffix = (currentLoadedDate && currentLoadedDate !== 'live') ? `_${currentLoadedDate}` : '';
+      const opsDateStr = getOpsDateForExport();
 
       if (window.AuthGuard && window.AuthGuard.logExport) {
-        window.AuthGuard.logExport(`LH_TRIP_DASHBOARD_SUMMARY${dateSuffix}.csv`, totalTrips, 'ดาวน์โหลดรายงานสรุปเวลาไหนกี่ตัว และ Raw Data');
+        window.AuthGuard.logExport(`Dashboard Charts - ${opsDateStr}.csv`, totalTrips, 'ดาวน์โหลดรายงานสรุปเวลาไหนกี่ตัว และ Raw Data');
       }
 
       let csv = '\uFEFF=== LH TRIP DASHBOARD SUMMARY REPORT ===\n\n';
@@ -2848,14 +2865,14 @@
         csv += `"${k}",${v.onTime},${v.onTimeOrders},${v.late},${v.lateOrders},${v.total},${v.totalOrders},${pct}%\n`;
       });
 
-      downloadCSVFile(csv, `LH_TRIP_HOURLY_SUMMARY${dateSuffix}_${totalTrips}_TRIPS.csv`);
+      downloadCSVFile(csv, `Dashboard Charts - ${opsDateStr}.csv`);
     }
 
     function exportFullRawDataCSV() {
       const records = (rawTripRecords && rawTripRecords.length) ? rawTripRecords : [];
-      const dateSuffix = (currentLoadedDate && currentLoadedDate !== 'live') ? `_${currentLoadedDate}` : '';
+      const opsDateStr = getOpsDateForExport();
       if (window.AuthGuard && window.AuthGuard.logExport) {
-        window.AuthGuard.logExport(`LH_Trip_Full_RawData${dateSuffix}.csv`, records.length, 'ดาวน์โหลดข้อมูลดิบ LH Trip เที่ยวรถทั้งหมด');
+        window.AuthGuard.logExport(`Dashboard Charts - Raw Data - ${opsDateStr}.csv`, records.length, 'ดาวน์โหลดข้อมูลดิบ LH Trip เที่ยวรถทั้งหมด');
       }
       let csvContent = '\uFEFFNo,LH_Trip_Number,Trip_Category,Vehicle_Type,Vehicle_Plate,Driver,Origin,Destination,Outbound_Orders,Outbound_Weight_KG,Standby_Time,Assign_Time,Cut_0,Cut_1,Cut_2,Cut_3,Actual_Dep_Cut,RMK,Status\n';
       records.forEach((r, idx) => {
@@ -2881,7 +2898,7 @@
 
         csvContent += `${idx + 1},"${shipId}","${category}","${vehType}","${vehPlate}","${driver}","${origin}","${dest}",${obOrders},${obWeight},"${standby}","${assign}","${cut0}","${cut1}","${cut2}","${cut3}","${actualDep}","${rmk}","${st}"\n`;
       });
-      downloadCSVFile(csvContent, `LH_TRIP_RAW_DATA${dateSuffix}_${records.length}_ALL.csv`);
+      downloadCSVFile(csvContent, `Dashboard Charts - Raw Data - ${opsDateStr}.csv`);
     }
 
     function downloadCSVFile(csvContent, filename) {
