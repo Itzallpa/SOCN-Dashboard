@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-12 14:52:45",
+  "updatedAt": "2026-09-17 21:39:44",
   "hourlyTarget": 45000,
   "hourlyMinimum": 40000,
   "hourlyMinimumPct": 90,
@@ -120,7 +120,7 @@
     "enabled": true,
     "folderId": "1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1",
     "folderUrl": "https://drive.google.com/drive/folders/1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1",
-    "appsScriptUrl": "",
+    "appsScriptUrl": "https://script.google.com/a/macros/spxexpress.com/s/AKfycbzk8JXsWiwUcfiaHEZVBthiFuTP1s_cLuaOCjPHhtjmcRNU3xxHl6i8rpuyq_s2UE0O/exec",
     "autoUpload1400": true
   }
 }

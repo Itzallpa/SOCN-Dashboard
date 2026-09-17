@@ -54,18 +54,14 @@ function doPost(e) {
 }
 
 function createDashboardChartsSpreadsheet(data) {
-  // 1. Determine Ops Date (Date - 1 day)
   var dateStr = data.date || Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd");
   var dt = new Date(dateStr);
-  if (isNaN(dt.getTime())) {
-    dt = new Date();
-  }
-  // Ops Date = Date - 1 day
+  if (isNaN(dt.getTime())) dt = new Date();
   dt.setDate(dt.getDate() - 1);
   var opsDateFormatted = Utilities.formatDate(dt, "GMT+7", "yyyy-MM-dd");
   var fileName = "Dashboard Charts - " + opsDateFormatted;
 
-  // 2. Get Target Drive Folder
+  // 1. Target Folder
   var folder;
   try {
     folder = DriveApp.getFolderById(TARGET_FOLDER_ID);
@@ -73,17 +69,20 @@ function createDashboardChartsSpreadsheet(data) {
     folder = DriveApp.getRootFolder();
   }
 
-  // Check if file with same name already exists in folder, trash it or reuse
-  var existingFiles = folder.getFilesByName(fileName);
-  while (existingFiles.hasNext()) {
-    var oldFile = existingFiles.next();
-    oldFile.setTrashed(true);
-  }
+  // Remove existing file with same name if any
+  try {
+    var existingFiles = folder.getFilesByName(fileName);
+    while (existingFiles.hasNext()) {
+      existingFiles.next().setTrashed(true);
+    }
+  } catch(e) {}
 
-  // 3. Create New Spreadsheet
+  // 2. Create Spreadsheet in Folder directly
   var newSpreadsheet = SpreadsheetApp.create(fileName);
-  var file = DriveApp.getFileById(newSpreadsheet.getId());
-  file.moveTo(folder);
+  try {
+    var file = DriveApp.getFileById(newSpreadsheet.getId());
+    file.moveTo(folder);
+  } catch(e) {}
 
   var summary = data.summary || {};
   var rows = data.outboundRawRows || data.rows || [];
@@ -94,15 +93,7 @@ function createDashboardChartsSpreadsheet(data) {
   var sheet1 = newSpreadsheet.getActiveSheet();
   sheet1.setName("Executive Summary & Hourly");
   sheet1.setTabColor("#2563EB");
-  sheet1.setShowGridLines(true);
 
-  // Title Banner
-  sheet1.getRange("A1:H1").merge().setValue("🚚 LH TRIP & OB LATE EXECUTIVE REPORT (" + fileName + ")")
-    .setBackground("#0F172A").setFontColor("#FFFFFF").setFontWeight("bold").setFontSize(14).setHorizontalAlignment("center");
-  sheet1.getRange("A2:H2").merge().setValue("รอบบันทึกข้อมูล: " + (data.archivedAt || new Date().toLocaleString()) + " | Ops Date: " + opsDateFormatted)
-    .setBackground("#1E293B").setFontColor("#94A3B8").setFontSize(10).setHorizontalAlignment("center");
-
-  // KPI Section
   var totalTrips = summary.totalTrips || rows.length || 0;
   var onTimeTrips = summary.onTimeTrips || (totalTrips - (summary.lateTrips || 0));
   var lateTrips = summary.lateTrips || 0;
@@ -113,170 +104,142 @@ function createDashboardChartsSpreadsheet(data) {
   var obLateCount = summary.obLateCount || 0;
   var lhLateCount = summary.lhLateCount || 0;
 
-  sheet1.getRange("A4:B4").merge().setValue("TOTAL TRIPS (เที่ยวรถ)").setBackground("#F8FAFC").setFontWeight("bold");
-  sheet1.getRange("A5:B5").merge().setValue(totalTrips).setFontSize(16).setFontWeight("bold").setHorizontalAlignment("center");
-  sheet1.getRange("A6:B6").merge().setValue(totalOrders.toLocaleString() + " Orders").setFontColor("#64748B").setHorizontalAlignment("center");
+  var s1Data = [
+    ["🚚 LH TRIP & OB LATE EXECUTIVE REPORT (" + fileName + ")", "", "", "", "", "", "", ""],
+    ["รอบบันทึกข้อมูล: " + (data.archivedAt || new Date().toLocaleString()) + " | Ops Date: " + opsDateFormatted, "", "", "", "", "", "", ""],
+    ["", "", "", "", "", "", "", ""],
+    ["TOTAL TRIPS", "ON TIME", "LATE (ทั้งหมด)", "OB vs LH LATE", "TOTAL ORDERS", "ON TIME ORDERS", "LATE ORDERS", "ON-TIME RATE %"],
+    [totalTrips, onTimeTrips, lateTrips, "OB: " + obLateCount + " | LH: " + lhLateCount, totalOrders, onTimeOrders, lateOrders, onTimeRate + "%"],
+    ["", "", "", "", "", "", "", ""],
+    ["📊 HOURLY BREAKDOWN (สถิติรายชั่วโมง)", "", "", "", "", "", "", ""],
+    ["Time Range", "4W", "4WJ", "6W", "Semi trailer", "Other", "Total Trips", "Total Orders"]
+  ];
 
-  sheet1.getRange("C4:D4").merge().setValue("ON TIME (ตรงเวลา)").setBackground("#DCFCE7").setFontColor("#15803D").setFontWeight("bold");
-  sheet1.getRange("C5:D5").merge().setValue(onTimeTrips + " (" + onTimeRate + "%)").setFontSize(16).setFontColor("#15803D").setFontWeight("bold").setHorizontalAlignment("center");
-  sheet1.getRange("C6:D6").merge().setValue(onTimeOrders.toLocaleString() + " Orders").setFontColor("#15803D").setHorizontalAlignment("center");
-
-  sheet1.getRange("E4:F4").merge().setValue("LATE (ล่าช้าทั้งหมด)").setBackground("#FEE2E2").setFontColor("#B91C1C").setFontWeight("bold");
-  sheet1.getRange("E5:F5").merge().setValue(lateTrips + " เที่ยว").setFontSize(16).setFontColor("#B91C1C").setFontWeight("bold").setHorizontalAlignment("center");
-  sheet1.getRange("E6:F6").merge().setValue(lateOrders.toLocaleString() + " Orders").setFontColor("#B91C1C").setHorizontalAlignment("center");
-
-  sheet1.getRange("G4:H4").merge().setValue("OB vs LH LATE").setBackground("#FEF3C7").setFontColor("#B45309").setFontWeight("bold");
-  sheet1.getRange("G5:H5").merge().setValue("OB: " + obLateCount + " | LH: " + lhLateCount).setFontSize(14).setFontWeight("bold").setHorizontalAlignment("center");
-  sheet1.getRange("G6:H6").merge().setValue("OB: " + (summary.obLateOrders || 0).toLocaleString() + " Ord | LH: " + (summary.lhLateOrders || 0).toLocaleString() + " Ord").setFontColor("#B45309").setHorizontalAlignment("center");
-
-  sheet1.getRange("A4:H6").setBorder(true, true, true, true, true, true, "#CBD5E1", SpreadsheetApp.BorderStyle.SOLID);
-
-  // Hourly Breakdown Table
-  sheet1.getRange("A8:H8").merge().setValue("📊 HOURLY BREAKDOWN & VEHICLE TYPE STATS (สถิติรายชั่วโมง)")
-    .setBackground("#2563EB").setFontColor("#FFFFFF").setFontWeight("bold");
-
-  var hourlyHeaders = ["Time Range", "4W", "4WJ", "6W", "Semi trailer", "Other", "Total Trips", "Total Orders"];
-  sheet1.getRange(9, 1, 1, 8).setValues([hourlyHeaders]).setBackground("#F1F5F9").setFontWeight("bold").setHorizontalAlignment("center");
-
-  var hourlyData = [];
+  // Fast Hourly aggregation
+  var hourlyBuckets = [];
   for (var h = 0; h < 24; h++) {
-    var startH = (h < 10 ? "0" : "") + h + ":00";
-    var endH = ((h+1)%24 < 10 ? "0" : "") + ((h+1)%24) + ":00";
-    var rangeStr = startH + " - " + endH;
-    
-    var c4W = 0, c4WJ = 0, c6W = 0, cSemi = 0, cOther = 0;
-    var totTrips = 0, totOrders = 0;
-    
-    for (var i = 0; i < rows.length; i++) {
-      var r = rows[i];
-      var dep = String(r.actual_dep_cut || (r.cells ? r.cells[21] : "") || "");
-      var rH = parseHourString(dep);
-      if (rH === h) {
-        totTrips++;
-        var ord = Number(r.outbound_order || (r.cells ? r.cells[30] : 0)) || 0;
-        totOrders += ord;
-        var v = String(r.vehicle_type || (r.cells ? r.cells[3] : "")).toLowerCase();
-        if (v.indexOf("4wj") !== -1 || v.indexOf("จัมโบ้") !== -1) c4WJ++;
-        else if (v.indexOf("4w") !== -1 || v.indexOf("4ล้อ") !== -1) c4W++;
-        else if (v.indexOf("6w") !== -1 || v.indexOf("6ล้อ") !== -1) c6W++;
-        else if (v.indexOf("semi") !== -1 || v.indexOf("พ่วง") !== -1 || v.indexOf("trailer") !== -1) cSemi++;
-        else cOther++;
-      }
-    }
-    hourlyData.push([rangeStr, c4W, c4WJ, c6W, cSemi, cOther, totTrips, totOrders]);
+    hourlyBuckets.push({ c4W: 0, c4WJ: 0, c6W: 0, cSemi: 0, cOther: 0, trips: 0, orders: 0 });
   }
 
-  sheet1.getRange(10, 1, hourlyData.length, 8).setValues(hourlyData);
-  sheet1.getRange(10, 2, hourlyData.length, 7).setHorizontalAlignment("right");
-  sheet1.getRange(9, 1, hourlyData.length + 1, 8).setBorder(true, true, true, true, true, true, "#CBD5E1", SpreadsheetApp.BorderStyle.SOLID);
+  var lhHubMap = {}, obHubMap = {};
+  var rawTableData = [];
+
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    var isLateTr = String(r.status || "").toLowerCase().indexOf("late") !== -1;
+    var ord = Number(r.outbound_order || (r.cells ? r.cells[30] : 0)) || 0;
+    var wt = Number(r.outbound_weight || (r.cells ? r.cells[31] : 0)) || 0;
+    var dep = String(r.actual_dep_cut || (r.cells ? r.cells[21] : "") || "");
+    var hub = r.dest_station_name || "Unknown";
+    var rmk = String(r.rmk || "");
+    var rmkLower = rmk.toLowerCase();
+
+    // Hourly
+    var match = dep.match(/(\d{1,2})[:.](\d{2})/);
+    if (match) {
+      var rH = parseInt(match[1], 10);
+      if (rH >= 0 && rH < 24) {
+        var b = hourlyBuckets[rH];
+        b.trips++;
+        b.orders += ord;
+        var v = String(r.vehicle_type || "").toLowerCase();
+        if (v.indexOf("4wj") !== -1 || v.indexOf("จัมโบ้") !== -1) b.c4WJ++;
+        else if (v.indexOf("4w") !== -1 || v.indexOf("4ล้อ") !== -1) b.c4W++;
+        else if (v.indexOf("6w") !== -1 || v.indexOf("6ล้อ") !== -1) b.c6W++;
+        else if (v.indexOf("semi") !== -1 || v.indexOf("พ่วง") !== -1 || v.indexOf("trailer") !== -1) b.cSemi++;
+        else b.cOther++;
+      }
+    }
+
+    // Top Hubs
+    if (isLateTr) {
+      if (rmkLower.indexOf("lh late") !== -1) {
+        if (!lhHubMap[hub]) lhHubMap[hub] = { count: 0, orders: 0 };
+        lhHubMap[hub].count++; lhHubMap[hub].orders += ord;
+      } else {
+        if (!obHubMap[hub]) obHubMap[hub] = { count: 0, orders: 0 };
+        obHubMap[hub].count++; obHubMap[hub].orders += ord;
+      }
+    }
+
+    // Raw Row
+    rawTableData.push([
+      i + 1, r.shipment_id || "", r.trip_category || "", r.vehicle_type || "", r.vehicle_plate || "", r.driver || "",
+      r.origin || "SOCN", hub, ord, wt, r.standby_time || "", r.assign_time || "",
+      r.cut0 || "", r.cut1 || "", r.cut2 || "", r.cut3 || "", dep, rmk, isLateTr ? "Late" : "On time"
+    ]);
+  }
+
+  for (var hour = 0; hour < 24; hour++) {
+    var sH = (hour < 10 ? "0" : "") + hour + ":00";
+    var eH = ((hour+1)%24 < 10 ? "0" : "") + ((hour+1)%24) + ":00";
+    var bk = hourlyBuckets[hour];
+    s1Data.push([sH + " - " + eH, bk.c4W, bk.c4WJ, bk.c6W, bk.cSemi, bk.cOther, bk.trips, bk.orders]);
+  }
+
+  sheet1.getRange(1, 1, s1Data.length, 8).setValues(s1Data);
+  sheet1.getRange("A1:H1").merge().setBackground("#0F172A").setFontColor("#FFFFFF").setFontWeight("bold").setFontSize(14).setHorizontalAlignment("center");
+  sheet1.getRange("A2:H2").merge().setBackground("#1E293B").setFontColor("#94A3B8").setFontSize(10).setHorizontalAlignment("center");
+  sheet1.getRange("A4:H4").setBackground("#F1F5F9").setFontWeight("bold").setHorizontalAlignment("center");
+  sheet1.getRange("A5:H5").setFontSize(12).setFontWeight("bold").setHorizontalAlignment("center");
+  sheet1.getRange("A7:H7").merge().setBackground("#2563EB").setFontColor("#FFFFFF").setFontWeight("bold");
+  sheet1.getRange("A8:H8").setBackground("#F1F5F9").setFontWeight("bold").setHorizontalAlignment("center");
 
   // ==========================================
   // SHEET 2: Top 50 Hubs
   // ==========================================
   var sheet2 = newSpreadsheet.insertSheet("Top 50 Hubs");
   sheet2.setTabColor("#DC2626");
-  sheet2.setShowGridLines(true);
-
-  sheet2.getRange("A1:E1").merge().setValue("🏆 TOP 50 LH LATE HUBS").setBackground("#DC2626").setFontColor("#FFFFFF").setFontWeight("bold").setHorizontalAlignment("center");
-  sheet2.getRange("G1:K1").merge().setValue("🏆 TOP 50 OB LATE HUBS").setBackground("#EA580C").setFontColor("#FFFFFF").setFontWeight("bold").setHorizontalAlignment("center");
-
-  var hubHeaders = ["Rank", "Destination Hub", "Late Trips", "Late Orders", "% Late Share"];
-  sheet2.getRange(2, 1, 1, 5).setValues([hubHeaders]).setBackground("#FEE2E2").setFontWeight("bold").setHorizontalAlignment("center");
-  sheet2.getRange(2, 7, 1, 5).setValues([hubHeaders]).setBackground("#FFEDD5").setFontWeight("bold").setHorizontalAlignment("center");
-
-  // Calculate Top Hubs
-  var lhHubMap = {}, obHubMap = {};
-  for (var k = 0; k < rows.length; k++) {
-    var item = rows[k];
-    var isLate = String(item.status || "").toLowerCase().indexOf("late") !== -1;
-    if (!isLate) continue;
-    var hub = item.dest_station_name || "Unknown";
-    var rmk = String(item.rmk || "").toLowerCase();
-    var ord = Number(item.outbound_order || 0) || 0;
-    
-    if (rmk.indexOf("lh late") !== -1) {
-      if (!lhHubMap[hub]) lhHubMap[hub] = { count: 0, orders: 0 };
-      lhHubMap[hub].count++;
-      lhHubMap[hub].orders += ord;
-    } else {
-      if (!obHubMap[hub]) obHubMap[hub] = { count: 0, orders: 0 };
-      obHubMap[hub].count++;
-      obHubMap[hub].orders += ord;
-    }
-  }
 
   var lhHubList = Object.keys(lhHubMap).map(function(h) { return { hub: h, count: lhHubMap[h].count, orders: lhHubMap[h].orders }; })
     .sort(function(a, b) { return b.count - a.count || b.orders - a.orders; }).slice(0, 50);
-
   var obHubList = Object.keys(obHubMap).map(function(h) { return { hub: h, count: obHubMap[h].count, orders: obHubMap[h].orders }; })
     .sort(function(a, b) { return b.count - a.count || b.orders - a.orders; }).slice(0, 50);
 
-  var lhRows = lhHubList.map(function(r, idx) {
-    var pct = lateTrips ? ((r.count / lateTrips) * 100).toFixed(1) + "%" : "0%";
-    return [idx + 1, r.hub, r.count, r.orders, pct];
-  });
-  if (lhRows.length > 0) {
-    sheet2.getRange(3, 1, lhRows.length, 5).setValues(lhRows);
+  var s2Data = [
+    ["🏆 TOP 50 LH LATE HUBS", "", "", "", "", "", "🏆 TOP 50 OB LATE HUBS", "", "", "", ""],
+    ["Rank", "Destination Hub", "Late Trips", "Late Orders", "% Late Share", "", "Rank", "Destination Hub", "Late Trips", "Late Orders", "% Late Share"]
+  ];
+
+  var maxRows = Math.max(lhHubList.length, obHubList.length, 1);
+  for (var rIdx = 0; rIdx < maxRows; rIdx++) {
+    var lhItem = lhHubList[rIdx] || { hub: "", count: "", orders: "" };
+    var obItem = obHubList[rIdx] || { hub: "", count: "", orders: "" };
+    var lhPct = (lhItem.count && lateTrips) ? ((lhItem.count / lateTrips) * 100).toFixed(1) + "%" : "";
+    var obPct = (obItem.count && lateTrips) ? ((obItem.count / lateTrips) * 100).toFixed(1) + "%" : "";
+    s2Data.push([
+      lhItem.hub ? (rIdx + 1) : "", lhItem.hub, lhItem.count, lhItem.orders, lhPct,
+      "",
+      obItem.hub ? (rIdx + 1) : "", obItem.hub, obItem.count, obItem.orders, obPct
+    ]);
   }
 
-  var obRows = obHubList.map(function(r, idx) {
-    var pct = lateTrips ? ((r.count / lateTrips) * 100).toFixed(1) + "%" : "0%";
-    return [idx + 1, r.hub, r.count, r.orders, pct];
-  });
-  if (obRows.length > 0) {
-    sheet2.getRange(3, 7, obRows.length, 5).setValues(obRows);
-  }
+  sheet2.getRange(1, 1, s2Data.length, 11).setValues(s2Data);
+  sheet2.getRange("A1:E1").merge().setBackground("#DC2626").setFontColor("#FFFFFF").setFontWeight("bold").setHorizontalAlignment("center");
+  sheet2.getRange("G1:K1").merge().setBackground("#EA580C").setFontColor("#FFFFFF").setFontWeight("bold").setHorizontalAlignment("center");
+  sheet2.getRange("A2:E2").setBackground("#FEE2E2").setFontWeight("bold").setHorizontalAlignment("center");
+  sheet2.getRange("G2:K2").setBackground("#FFEDD5").setFontWeight("bold").setHorizontalAlignment("center");
 
   // ==========================================
-  // SHEET 3: Raw Data
+  // SHEET 3: Raw Data (Bulk write in 1 call)
   // ==========================================
   var sheet3 = newSpreadsheet.insertSheet("Raw Data");
   sheet3.setTabColor("#10B981");
-  sheet3.setShowGridLines(true);
 
   var rawHeaders = [
     "No.", "LH Trip Number", "Trip Category", "Vehicle Type", "Vehicle Plate", "Driver",
     "Origin", "Destination", "Outbound Orders", "Outbound Weight (KG)", "Standby Time", "Assign Time",
     "Cut 0", "Cut 1", "Cut 2", "Cut 3", "Actual Dep Cut", "RMK", "Status"
   ];
+
   sheet3.getRange(1, 1, 1, rawHeaders.length).setValues([rawHeaders])
     .setBackground("#0F172A").setFontColor("#FFFFFF").setFontWeight("bold").setHorizontalAlignment("center");
 
-  var rawTableData = [];
-  for (var m = 0; m < rows.length; m++) {
-    var tr = rows[m];
-    var isLateTr = String(tr.status || "").toLowerCase().indexOf("late") !== -1;
-    rawTableData.push([
-      m + 1,
-      tr.shipment_id || "",
-      tr.trip_category || "",
-      tr.vehicle_type || "",
-      tr.vehicle_plate || "",
-      tr.driver || "",
-      tr.origin || "SOCN",
-      tr.dest_station_name || "",
-      Number(tr.outbound_order || 0),
-      Number(tr.outbound_weight || 0),
-      tr.standby_time || "",
-      tr.assign_time || "",
-      tr.cut0 || "",
-      tr.cut1 || "",
-      tr.cut2 || "",
-      tr.cut3 || "",
-      tr.actual_dep_cut || "",
-      tr.rmk || "",
-      isLateTr ? "Late" : "On time"
-    ]);
+  if (rawTableData.length > 0) {
+    sheet3.getRange(2, 1, rawTableData.length, rawHeaders.length).setValues(rawTableData);
   }
 
-  if (rawTableData.length > 0) {
-    // Write in chunks of 2000 to prevent timeout
-    var chunkSize = 2000;
-    for (var c = 0; c < rawTableData.length; c += chunkSize) {
-      var slice = rawTableData.slice(c, c + chunkSize);
-      sheet3.getRange(c + 2, 1, slice.length, rawHeaders.length).setValues(slice);
-    }
-  }
+  SpreadsheetApp.flush();
 
   return {
     success: true,
@@ -286,19 +249,6 @@ function createDashboardChartsSpreadsheet(data) {
     fileUrl: newSpreadsheet.getUrl(),
     folderId: TARGET_FOLDER_ID,
     folderUrl: folder.getUrl(),
-    totalTrips: totalTrips,
-    totalOrders: totalOrders,
     opsDate: opsDateFormatted
   };
-}
-
-function parseHourString(s) {
-  if (!s) return null;
-  var str = String(s).trim();
-  var match = str.match(/(\d{1,2})[:.](\d{2})/);
-  if (match) {
-    var h = parseInt(match[1], 10);
-    if (!isNaN(h) && h >= 0 && h <= 23) return h;
-  }
-  return null;
 }

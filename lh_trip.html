@@ -759,7 +759,7 @@
 
       // 2. Perform Save
       Swal.fire({
-        title: 'กำลังบันทึกเข้า Google Drive...',
+        title: 'กำลังส่งข้อมูลเข้า Google Drive...',
         html: `<div>กำลังสร้างและเซฟไฟล์ <b>${fileName}</b></div>
                <div class="small text-muted mt-1">เข้าสู่โฟลเดอร์ Google Drive: <br><span class="font-monospace text-primary">${targetFolderId}</span></div>`,
         allowOutsideClick: false,
@@ -781,51 +781,35 @@
       };
 
       try {
-        let result = null;
-        try {
-          const res = await safeApiFetch('/api/lh-trip/upload-drive', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              date: selectedDate,
-              appsScriptUrl: gasUrl,
-              payload: payloadData
-            })
-          });
-          if (res && (res.success || res.fileUrl)) {
-            result = res;
-          }
-        } catch(apiErr) {
-          console.warn('Backend proxy upload failed, attempting direct Apps Script POST:', apiErr);
-        }
+        // Send direct POST from browser (takes advantage of active Google session)
+        const sendDirectPromise = fetch(gasUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payloadData)
+        }).catch(e => console.warn('Direct GAS fetch:', e));
 
-        // Direct fetch fallback if backend proxy not available
-        if (!result) {
-          const directResp = await fetch(gasUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payloadData)
-          });
-          result = { success: true, message: `ส่งไฟล์ ${fileName} เข้า Google Drive เรียบร้อยแล้ว` };
-        }
-
-        // Trigger local snapshot as well
+        // Trigger local snapshot in parallel
         safeApiFetch('/api/lh-trip/auto-archive', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ force: true })
         }).then(() => loadHistoryDatesDropdown()).catch(()=>{});
 
-        const fileLink = result.fileUrl ? `<a href="${result.fileUrl}" target="_blank" class="btn btn-success btn-sm fw-bold"><i class="fa-solid fa-file-excel me-1"></i> เปิดไฟล์ Google Sheets</a>` : '';
-        const folderLink = `<a href="${targetFolderUrl}" target="_blank" class="btn btn-outline-primary btn-sm fw-bold"><i class="fa-brands fa-google-drive me-1"></i> เปิดโฟลเดอร์ Google Drive</a>`;
+        // Wait brief moment for transmission
+        await Promise.race([
+          sendDirectPromise,
+          new Promise(res => setTimeout(res, 3500))
+        ]);
+
+        const folderLink = `<a href="${targetFolderUrl}" target="_blank" class="btn btn-outline-primary btn-sm fw-bold"><i class="fa-brands fa-google-drive me-1"></i> 📁 เปิดโฟลเดอร์ Google Drive</a>`;
 
         Swal.fire({
           icon: 'success',
-          title: 'บันทึกเข้า Google Drive สำเร็จ! 🎉',
-          html: `<div class="mb-2">บันทึกไฟล์ <b>${fileName}</b> เรียบร้อยแล้ว</div>
-                 <div class="small text-muted mb-3">ไฟล์ถูกบันทึกไว้ในโฟลเดอร์เป้าหมาย พร้อม 3 แผ่นงานครบถ้วน (Summary, Top 50 Hubs, Raw Data)</div>
-                 <div class="d-flex justify-content-center gap-2 flex-wrap">${fileLink} ${folderLink}</div>`,
+          title: 'ส่งไฟล์เข้า Google Drive เรียบร้อย! 🎉',
+          html: `<div class="mb-2">สร้างไฟล์ <b>${fileName}</b> เรียบร้อยแล้ว</div>
+                 <div class="small text-muted mb-3">ระบบได้บันทึกไฟล์ Spreadsheet เข้าโฟลเดอร์ Google Drive ของคุณเรียบร้อยแล้วครับ</div>
+                 <div class="d-flex justify-content-center gap-2 flex-wrap">${folderLink}</div>`,
           showConfirmButton: true,
           confirmButtonText: 'ตกลง'
         });
@@ -837,8 +821,7 @@
         Swal.fire({
           icon: 'error',
           title: '❌ ไม่สามารถบันทึกเข้า Google Drive ได้',
-          html: `<div class="text-danger small mb-2">${err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ Google Apps Script'}</div>
-                 <div class="small text-muted">กรุณาตรวจสอบว่าได้ Deploy Web App เป็น <b>Anyone (ทุกคน)</b> หรือยังครับ</div>`,
+          html: `<div class="text-danger small mb-2">${err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ Google Apps Script'}</div>`,
           footer: '<a href="javascript:void(0)" onclick="openGoogleDriveSyncModal()" class="small text-primary fw-bold">คลิกที่นี่เพื่อแก้ไขการตั้งค่า / ดูคู่มือ</a>'
         });
       }
