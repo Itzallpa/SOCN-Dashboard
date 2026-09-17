@@ -1,7 +1,7 @@
 [
   {
-    "id": "1b42a2c9",
-    "timestamp": "2026-09-17 16:55:18",
+    "id": "fe77465a",
+    "timestamp": "2026-09-17 17:04:17",
     "email": "guy.panmanee@spxexpress.com",
     "name": "Natakorn Panmanee",
     "role": "Admin",
@@ -10,46 +10,16 @@
     "ip": "203.156.13.114"
   },
   {
-    "id": "704f5f9b",
-    "timestamp": "2026-09-17 16:54:58",
+    "id": "23ddcab2",
+    "timestamp": "2026-09-17 17:03:43",
     "email": "guy.panmanee@spxexpress.com",
     "name": "Natakorn Panmanee",
     "role": "Admin",
-    "action": "LOGIN",
-    "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Admin)",
-    "ip": "203.156.13.114"
-  },
-  {
-    "id": "f9be59b6",
-    "timestamp": "2026-09-17 16:54:58",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "USER_LOGIN",
-    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
-    "ip": "203.156.13.114"
-  },
-  {
-    "id": "f47074d7",
-    "timestamp": "2026-09-17 16:53:54",
-    "email": "guest",
-    "name": "Guest",
-    "role": "Ground",
     "action": "SYNC_GOOGLE_SHEET",
     "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
     "ip": "203.156.13.114"
-  },
-  {
-    "id": "37160185",
-    "timestamp": "2026-09-17 16:29:57",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "IDLE_AUTO_LOGOUT",
-    "details": "ไม่มีการใช้งานเกิน 1 ชั่วโมง (Idle Timeout)",
-    "ip": "203.156.13.114"
   }
-]โมง (Idle Timeout)",
+]b9cML2ExI/pub?output=csv",
     "ip": "203.156.13.114"
   }
 ]

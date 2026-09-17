@@ -2020,28 +2020,102 @@
           }))
           .sort((a, b) => b.total - a.total);
 
-        // 6. Top 50 Hubs Data + Orders
-        const hubMap = {};
+        // Executive Late Analysis
+        const obLateRecords = lateRecords.filter(r => (r.rmk || '').toLowerCase().includes('ob late') || ((r.status || '').toLowerCase().includes('late') && !(r.rmk || '').toLowerCase().includes('lh late')));
+        const lhLateRecords = lateRecords.filter(r => (r.rmk || '').toLowerCase().includes('lh late'));
+
+        const obLateCount = obLateRecords.length;
+        const lhLateCount = lhLateRecords.length;
+
+        const obLateOrders = obLateRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
+        const lhLateOrders = lhLateRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
+
+        const obLateTripShare = lateCount ? ((obLateCount / lateCount) * 100).toFixed(1) : '0.0';
+        const lhLateTripShare = lateCount ? ((lhLateCount / lateCount) * 100).toFixed(1) : '0.0';
+
+        const obLateOrderShare = lateOrders ? ((obLateOrders / lateOrders) * 100).toFixed(1) : '0.0';
+        const lhLateOrderShare = lateOrders ? ((lhLateOrders / lateOrders) * 100).toFixed(1) : '0.0';
+
+        const obLateIntent = obLateRecords.filter(r => (r.intentional || '').toLowerCase().includes('intentional') && !(r.intentional || '').toLowerCase().includes('non')).length;
+        const obLateNonIntent = obLateRecords.length - obLateIntent;
+
+        const lhLateIntent = lhLateRecords.filter(r => (r.intentional || '').toLowerCase().includes('intentional') && !(r.intentional || '').toLowerCase().includes('non')).length;
+        const lhLateNonIntent = lhLateRecords.length - lhLateIntent;
+
+        const upcLateRecords = lateRecords.filter(r => (r.region || '').toUpperCase().includes('UPC'));
+        const gbkkLateRecords = lateRecords.filter(r => (r.region || '').toUpperCase().includes('GBKK'));
+        const upcLateOrders = upcLateRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
+        const gbkkLateOrders = gbkkLateRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
+        const upcOrderShare = lateOrders ? ((upcLateOrders / lateOrders) * 100).toFixed(1) : '0.0';
+        const gbkkOrderShare = lateOrders ? ((gbkkLateOrders / lateOrders) * 100).toFixed(1) : '0.0';
+
+        const zoneALate = lateRecords.filter(r => (r.zone || '').toUpperCase() === 'A').length;
+        const zoneBLate = lateRecords.filter(r => (r.zone || '').toUpperCase() === 'B').length;
+        const zoneCLate = lateRecords.filter(r => (r.zone || '').toUpperCase() === 'C').length;
+
+        const obZoneA = obLateRecords.filter(r => (r.zone || '').toUpperCase() === 'A').length;
+        const obZoneB = obLateRecords.filter(r => (r.zone || '').toUpperCase() === 'B').length;
+        const obZoneC = obLateRecords.filter(r => (r.zone || '').toUpperCase() === 'C').length;
+
+        const lhZoneA = lhLateRecords.filter(r => (r.zone || '').toUpperCase() === 'A').length;
+        const lhZoneB = lhLateRecords.filter(r => (r.zone || '').toUpperCase() === 'B').length;
+        const lhZoneC = lhLateRecords.filter(r => (r.zone || '').toUpperCase() === 'C').length;
+
+        // Top 50 LH Late Hubs
+        const lhHubMap = {};
         records.forEach(r => {
           const dest = String(r.dest_station_name || 'Unknown Hub').trim() || 'Unknown Hub';
-          const ord = Number(r.outbound_order) || 0;
-          if (!hubMap[dest]) hubMap[dest] = { total: 0, late: 0, totalOrders: 0, lateOrders: 0 };
-          hubMap[dest].total++;
-          hubMap[dest].totalOrders += ord;
-          if (String(r.status || '').toLowerCase().includes('late')) {
-            hubMap[dest].late++;
-            hubMap[dest].lateOrders += ord;
+          const rmk = String(r.rmk || '').toLowerCase().trim();
+          const isLate = String(r.status || '').toLowerCase().includes('late');
+          const cat = String(r.trip_category || '').toLowerCase();
+          const ord = Number(r.outbound_order || 0);
+          if (!lhHubMap[dest]) lhHubMap[dest] = { total: 0, late: 0, totalOrders: 0, lateOrders: 0 };
+          lhHubMap[dest].total++;
+          lhHubMap[dest].totalOrders += ord;
+          if (isLate && (rmk.includes('lh late') || cat.includes('timetable') || cat.includes('main'))) {
+            lhHubMap[dest].late++;
+            lhHubMap[dest].lateOrders += ord;
           }
         });
-        const top50Hubs = Object.keys(hubMap)
+        const top50LHHubs = Object.keys(lhHubMap)
           .map(h => ({
             hub: h,
-            total: hubMap[h].total,
-            late: hubMap[h].late,
-            totalOrders: hubMap[h].totalOrders,
-            lateOrders: hubMap[h].lateOrders,
-            pct: hubMap[h].total ? ((hubMap[h].late / hubMap[h].total) * 100).toFixed(1) + '%' : '0.0%'
+            total: lhHubMap[h].total,
+            late: lhHubMap[h].late,
+            totalOrders: lhHubMap[h].totalOrders,
+            lateOrders: lhHubMap[h].lateOrders,
+            pct: lhHubMap[h].total ? ((lhHubMap[h].late / lhHubMap[h].total) * 100).toFixed(1) + '%' : '0.0%'
           }))
+          .filter(h => h.late > 0)
+          .sort((a, b) => b.late - a.late)
+          .slice(0, 50);
+
+        // Top 50 OB Late Hubs
+        const obHubMap = {};
+        records.forEach(r => {
+          const dest = String(r.dest_station_name || 'Unknown Hub').trim() || 'Unknown Hub';
+          const rmk = String(r.rmk || '').toLowerCase().trim();
+          const isLate = String(r.status || '').toLowerCase().includes('late');
+          const cat = String(r.trip_category || '').toLowerCase();
+          const ord = Number(r.outbound_order || 0);
+          if (!obHubMap[dest]) obHubMap[dest] = { total: 0, late: 0, totalOrders: 0, lateOrders: 0 };
+          obHubMap[dest].total++;
+          obHubMap[dest].totalOrders += ord;
+          if (isLate && !(rmk.includes('lh late') || cat.includes('timetable') || cat.includes('main'))) {
+            obHubMap[dest].late++;
+            obHubMap[dest].lateOrders += ord;
+          }
+        });
+        const top50OBHubs = Object.keys(obHubMap)
+          .map(h => ({
+            hub: h,
+            total: obHubMap[h].total,
+            late: obHubMap[h].late,
+            totalOrders: obHubMap[h].totalOrders,
+            lateOrders: obHubMap[h].lateOrders,
+            pct: obHubMap[h].total ? ((obHubMap[h].late / obHubMap[h].total) * 100).toFixed(1) + '%' : '0.0%'
+          }))
+          .filter(h => h.late > 0)
           .sort((a, b) => b.late - a.late)
           .slice(0, 50);
 
@@ -2089,6 +2163,59 @@
       <td style="font-size:16px; font-weight:bold; text-align:center; color:#15803d; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;"><font color="#15803D"><b>${onTimePct}%</b></font></td>
       <td style="font-size:16px; font-weight:bold; text-align:center; color:#b91c1c; background-color:#ffffff; border:1px solid #cbd5e1; padding:12px;"><font color="#B91C1C"><b>${latePct}%</b></font></td>
     </tr>
+  </table>
+
+  <!-- EXECUTIVE LATE BREAKDOWN TABLE (OB LATE VS LH LATE + GEO & ZONE) -->
+  <table style="border-collapse:collapse; width:100%; margin-bottom:24px; border:1px solid #fca5a5;">
+    <thead>
+      <tr>
+        <th bgcolor="#FEE2E2" colspan="6" style="background-color:#fee2e2; color:#991b1b; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #fca5a5;">
+          <font color="#991B1B"><b>🚨 สรุปเจาะลึกเฉพาะเที่ยวรถที่สาย (EXECUTIVE LATE BREAKDOWN & IMPACT ANALYSIS - รวม ${lateCount.toLocaleString()} เที่ยว | ${lateOrders.toLocaleString()} Orders)</b></font>
+        </th>
+      </tr>
+      <tr>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:200px;"><font color="#0F172A"><b>กลุ่มสาเหตุ / พื้นที่</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:120px;"><font color="#0F172A"><b>จำนวนเที่ยวที่สาย</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:110px;"><font color="#0F172A"><b>สัดส่วนเที่ยว (% Share)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:140px;"><font color="#0F172A"><b>📦 ยอด Orders ที่กระทบ</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:120px;"><font color="#0F172A"><b>สัดส่วนออเดอร์ (% Share)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1;"><font color="#0F172A"><b>รายละเอียด (Intentional / Zone)</b></font></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="background-color:#fff1f0;">
+        <td style="color:#b91c1c; font-weight:bold; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>🔴 OB Late (สายฝั่ง Outbound/คลัง)</b></font></td>
+        <td style="color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${obLateCount.toLocaleString()}</b></font></td>
+        <td style="color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C">${obLateTripShare}%</font></td>
+        <td style="color:#b91c1c; font-weight:bold; text-align:right; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C"><b>${obLateOrders.toLocaleString()}</b></font></td>
+        <td style="color:#b91c1c; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B91C1C">${obLateOrderShare}%</font></td>
+        <td style="color:#0f172a; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#0F172A">Intentional: <b>${obLateIntent}</b> / Non-Int: <b>${obLateNonIntent}</b> | Zone A: <b>${obZoneA}</b>, C: <b>${obZoneC}</b>, B: <b>${obZoneB}</b></font></td>
+      </tr>
+      <tr style="background-color:#fffdfa;">
+        <td style="color:#b45309; font-weight:bold; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B45309"><b>🟡 LH Late (สายฝั่ง Linehaul/ขนส่ง)</b></font></td>
+        <td style="color:#b45309; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B45309"><b>${lhLateCount.toLocaleString()}</b></font></td>
+        <td style="color:#b45309; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B45309">${lhLateTripShare}%</font></td>
+        <td style="color:#b45309; font-weight:bold; text-align:right; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B45309"><b>${lhLateOrders.toLocaleString()}</b></font></td>
+        <td style="color:#b45309; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#B45309">${lhLateOrderShare}%</font></td>
+        <td style="color:#0f172a; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#0F172A">Intentional: <b>${lhLateIntent}</b> / Non-Int: <b>${lhLateNonIntent}</b> | Zone A: <b>${lhZoneA}</b>, C: <b>${lhZoneC}</b>, B: <b>${lhZoneB}</b></font></td>
+      </tr>
+      <tr style="background-color:#f8fafc;">
+        <td style="color:#1e40af; font-weight:bold; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#1E40AF"><b>🏞️ UPC (สายในพื้นที่ต่างจังหวัด)</b></font></td>
+        <td style="color:#1e40af; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#1E40AF">${upcLateRecords.length.toLocaleString()}</font></td>
+        <td style="color:#1e40af; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#1E40AF">${lateCount ? ((upcLateRecords.length / lateCount) * 100).toFixed(1) : 0}%</font></td>
+        <td style="color:#1e40af; font-weight:bold; text-align:right; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#1E40AF">${upcLateOrders.toLocaleString()}</font></td>
+        <td style="color:#1e40af; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#1E40AF">${upcOrderShare}%</font></td>
+        <td style="color:#0f172a; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#0F172A">กระจายตาม Hub ต่างจังหวัดทั่วประเทศ</font></td>
+      </tr>
+      <tr style="background-color:#f8fafc;">
+        <td style="color:#1e40af; font-weight:bold; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#1E40AF"><b>🏙️ GBKK (สายในกรุงเทพฯ และปริมณฑล)</b></font></td>
+        <td style="color:#1e40af; font-weight:bold; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#1E40AF">${gbkkLateRecords.length.toLocaleString()}</font></td>
+        <td style="color:#1e40af; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#1E40AF">${lateCount ? ((gbkkLateRecords.length / lateCount) * 100).toFixed(1) : 0}%</font></td>
+        <td style="color:#1e40af; font-weight:bold; text-align:right; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#1E40AF">${gbkkLateOrders.toLocaleString()}</font></td>
+        <td style="color:#1e40af; text-align:center; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#1E40AF">${gbkkOrderShare}%</font></td>
+        <td style="color:#0f172a; padding:8px 10px; border:1px solid #cbd5e1;"><font color="#0F172A">กระจายตาม Hub กรุงเทพฯ และปริมณฑล</font></td>
+      </tr>
+    </tbody>
   </table>
 
   <!-- 1. HOURLY LATE MATRIX BY VEHICLE TYPE + ORDERS -->
@@ -2314,25 +2441,58 @@
     </tbody>
   </table>
 
-  <!-- 6. TOP 50 LATE HUBS + ORDERS -->
+  <!-- 6A. TOP 50 LH LATE HUBS -->
   <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
     <thead>
       <tr>
-        <th bgcolor="#DBEAFE" colspan="6" style="background-color:#dbeafe; color:#1e3a8a; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #93c5fd;">
-          <font color="#1E3A8A"><b>🏆 6. Top 50 Hubs ปลายทางที่สายสูงสุด (Top 50 Late Hubs)</b></font>
+        <th bgcolor="#FEF3C7" colspan="6" style="background-color:#fef3c7; color:#92400e; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #fde68a;">
+          <font color="#92400E"><b>🏆 6A. Top 50 Hubs ที่ LH Late สูงสุด (Top 50 LH Late Hubs - ฝั่งขนส่ง Linehaul)</b></font>
         </th>
       </tr>
       <tr>
         <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:50px;"><font color="#0F172A"><b>อันดับ</b></font></th>
         <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1;"><font color="#0F172A"><b>Hub ปลายทาง (Destination)</b></font></th>
-        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:140px;"><font color="#0F172A"><b>จำนวนเที่ยวสาย (Late)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:140px;"><font color="#0F172A"><b>จำนวนเที่ยว LH Late</b></font></th>
         <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:150px;"><font color="#0F172A"><b>📦 พัสดุที่สาย (Late Orders)</b></font></th>
         <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:140px;"><font color="#0F172A"><b>รวมเที่ยวทั้งหมด (Total)</b></font></th>
-        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:120px;"><font color="#0F172A"><b>อัตราสาย (% Late)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:120px;"><font color="#0F172A"><b>อัตราสาย (% LH Late)</b></font></th>
       </tr>
     </thead>
     <tbody>
-      ${top50Hubs.map((h, i) => {
+      ${top50LHHubs.map((h, i) => {
+        const rowBg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
+        return `
+        <tr style="background-color:${rowBg};">
+          <td style="background-color:${rowBg}; color:#0f172a; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#0F172A">${i + 1}</font></td>
+          <td style="background-color:${rowBg}; color:#b45309; font-weight:bold; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#B45309"><b>${h.hub}</b></font></td>
+          <td style="background-color:${rowBg}; color:#b45309; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#B45309"><b>${h.late.toLocaleString()}</b></font></td>
+          <td style="background-color:${rowBg}; color:#b45309; font-weight:bold; text-align:right; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#B45309"><b>${h.lateOrders.toLocaleString()}</b></font></td>
+          <td style="background-color:${rowBg}; color:#0f172a; font-weight:600; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#0F172A">${h.total.toLocaleString()}</font></td>
+          <td style="background-color:${rowBg}; color:#b45309; font-weight:bold; text-align:center; padding:6px 10px; border:1px solid #cbd5e1;"><font color="#B45309"><b>${h.pct}</b></font></td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+
+  <!-- 6B. TOP 50 OB LATE HUBS -->
+  <table style="border-collapse:collapse; width:100%; margin-bottom:24px;">
+    <thead>
+      <tr>
+        <th bgcolor="#FEE2E2" colspan="6" style="background-color:#fee2e2; color:#991b1b; font-size:13px; font-weight:bold; padding:10px 12px; text-align:left; border:1px solid #fca5a5;">
+          <font color="#991B1B"><b>🏆 6B. Top 50 Hubs ที่ OB Late สูงสุด (Top 50 OB Late Hubs - ฝั่งคลัง Outbound)</b></font>
+        </th>
+      </tr>
+      <tr>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:50px;"><font color="#0F172A"><b>อันดับ</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1;"><font color="#0F172A"><b>Hub ปลายทาง (Destination)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:140px;"><font color="#0F172A"><b>จำนวนเที่ยว OB Late</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:150px;"><font color="#0F172A"><b>📦 พัสดุที่สาย (Late Orders)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:140px;"><font color="#0F172A"><b>รวมเที่ยวทั้งหมด (Total)</b></font></th>
+        <th bgcolor="#F1F5F9" style="background-color:#f1f5f9; color:#0f172a; font-weight:bold; padding:8px; border:1px solid #cbd5e1; width:120px;"><font color="#0F172A"><b>อัตราสาย (% OB Late)</b></font></th>
+      </tr>
+    </thead>
+    <tbody>
+      ${top50OBHubs.map((h, i) => {
         const rowBg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
         return `
         <tr style="background-color:${rowBg};">
@@ -2451,7 +2611,21 @@
       csv += 'Total Trips,Total Outbound Orders,On Time Trips,On Time Orders,Late Trips,Late Orders,On-Time Rate %,Late Rate %\n';
       csv += `${totalTrips},${totalOrders},${onTimeCount},${onTimeOrders},${lateCount},${lateOrders},${onTimePct}%,${latePct}%\n\n`;
 
-      csv += '2. HOURLY LATE BY VEHICLE TYPE (จำนวนเที่ยวที่สาย แยกตามช่วงเวลา และประเภทรถ 4W, 4WJ, 6W, Semi trailer + Late Orders)\n';
+      const obLateRecs = lateRecords.filter(r => (r.rmk || '').toLowerCase().includes('ob late') || (!(r.rmk || '').toLowerCase().includes('lh late')));
+      const lhLateRecs = lateRecords.filter(r => (r.rmk || '').toLowerCase().includes('lh late'));
+      const obLateOrd = obLateRecs.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
+      const lhLateOrd = lhLateRecs.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
+      const upcLateRecs = lateRecords.filter(r => (r.region || '').toUpperCase().includes('UPC'));
+      const gbkkLateRecs = lateRecords.filter(r => (r.region || '').toUpperCase().includes('GBKK'));
+
+      csv += '2. EXECUTIVE LATE BREAKDOWN (สรุปเจาะลึกเฉพาะเที่ยวรถที่สาย OB Late vs LH Late)\n';
+      csv += 'Category,Late Trips,Late Orders,% of Late Trips,% of Late Orders\n';
+      csv += `OB Late (Outbound/คลัง),${obLateRecs.length},${obLateOrd},${lateCount ? ((obLateRecs.length/lateCount)*100).toFixed(1) : 0}%,${lateOrders ? ((obLateOrd/lateOrders)*100).toFixed(1) : 0}%\n`;
+      csv += `LH Late (Linehaul/ขนส่ง),${lhLateRecs.length},${lhLateOrd},${lateCount ? ((lhLateRecs.length/lateCount)*100).toFixed(1) : 0}%,${lateOrders ? ((lhLateOrd/lateOrders)*100).toFixed(1) : 0}%\n`;
+      csv += `UPC Late (ต่างจังหวัด),${upcLateRecs.length},${upcLateRecs.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0)},${lateCount ? ((upcLateRecs.length/lateCount)*100).toFixed(1) : 0}%,-\n`;
+      csv += `GBKK Late (กทม./ปริมณฑล),${gbkkLateRecs.length},${gbkkLateRecs.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0)},${lateCount ? ((gbkkLateRecs.length/lateCount)*100).toFixed(1) : 0}%,-\n\n`;
+
+      csv += '3. HOURLY LATE BY VEHICLE TYPE (จำนวนเที่ยวที่สาย แยกตามช่วงเวลา และประเภทรถ 4W, 4WJ, 6W, Semi trailer + Late Orders)\n';
       csv += 'Time Range,4W,4WJ,6W,Semi trailer-รถพ่วงแม่ลูก,Other,Total Late Trips,Total Late Orders\n';
       for (let h = 0; h < 24; h++) {
         const startLabel = String(h).padStart(2, '0') + ':00';
