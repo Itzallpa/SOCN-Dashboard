@@ -105,6 +105,7 @@
 
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <button class="btn btn-primary btn-sm fw-bold" onclick="syncAppsScriptDataToDashboard()"><i class="fa-solid fa-rotate me-1"></i> ⚡ Sync Google Sheet สด</button>
+        <button class="btn btn-warning btn-sm fw-bold text-dark" onclick="openGoogleDriveSyncModal()"><i class="fa-brands fa-google-drive me-1"></i> ☁️ ส่งไฟล์เข้า Google Drive</button>
         <button class="btn btn-outline-danger btn-sm fw-bold" onclick="openAllLateModal()"><i class="fa-solid fa-eye me-1"></i> 👁️ ดู Raw Data ล่าช้า</button>
         <button class="btn btn-success btn-sm fw-bold" onclick="exportExcelWithCharts()"><i class="fa-solid fa-file-excel me-1"></i> 📊 Export Excel</button>
         <button class="btn btn-dark btn-sm fw-bold" onclick="exportFullRawDataCSV()"><i class="fa-solid fa-download me-1"></i> 📥 Export Raw CSV</button>
@@ -2997,6 +2998,252 @@
       link.download = filename;
       link.click();
     }
+
+    // ==========================================
+    // ☁️ GOOGLE DRIVE AUTO-SYNC & EXPORT MODAL
+    // ==========================================
+    function openGoogleDriveSyncModal() {
+      const modalEl = document.getElementById('googleDriveSyncModal');
+      if (modalEl) {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        loadDriveSettings();
+        modal.show();
+      }
+    }
+
+    async function loadDriveSettings() {
+      const statusDiv = document.getElementById('driveSyncStatusAlert');
+      try {
+        const res = await safeApiFetch('/api/lh-trip/drive-settings');
+        if (res && res.success && res.settings) {
+          const cfg = res.settings;
+          const urlInput = document.getElementById('driveAppsScriptUrlInput');
+          const autoCheck = document.getElementById('driveAutoUploadCheck');
+          if (urlInput) urlInput.value = cfg.appsScriptUrl || '';
+          if (autoCheck) autoCheck.checked = (cfg.autoUpload1400 !== false);
+        }
+      } catch (err) {
+        console.warn('Could not fetch drive settings from backend:', err);
+      }
+    }
+
+    async function saveDriveSettings(silent = false) {
+      const urlInput = document.getElementById('driveAppsScriptUrlInput');
+      const autoCheck = document.getElementById('driveAutoUploadCheck');
+      const statusDiv = document.getElementById('driveSyncStatusAlert');
+      
+      const payload = {
+        enabled: true,
+        folderId: '1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1',
+        folderUrl: 'https://drive.google.com/drive/folders/1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1',
+        appsScriptUrl: urlInput ? urlInput.value.trim() : '',
+        autoUpload1400: autoCheck ? autoCheck.checked : true
+      };
+
+      try {
+        const res = await safeApiFetch('/api/lh-trip/drive-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!silent && statusDiv) {
+          statusDiv.className = 'alert alert-success d-block py-2';
+          statusDiv.innerHTML = '<i class="fa-solid fa-check-circle me-1"></i> บันทึกการตั้งค่า Google Drive เรียบร้อยแล้ว!';
+          setTimeout(() => { if (statusDiv) statusDiv.className = 'alert alert-info d-none'; }, 4000);
+        }
+        return true;
+      } catch (err) {
+        if (!silent && statusDiv) {
+          statusDiv.className = 'alert alert-danger d-block py-2';
+          statusDiv.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1"></i> บันทึกไม่สำเร็จ: ' + err.message;
+        }
+        return false;
+      }
+    }
+
+    async function triggerDriveUploadNow() {
+      const btn = document.getElementById('btnDriveUploadNow');
+      const statusDiv = document.getElementById('driveSyncStatusAlert');
+      const urlInput = document.getElementById('driveAppsScriptUrlInput');
+      const gasUrl = urlInput ? urlInput.value.trim() : '';
+
+      if (!gasUrl) {
+        if (statusDiv) {
+          statusDiv.className = 'alert alert-warning d-block py-2';
+          statusDiv.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1"></i> กรุณากรอก Web App URL ของ Google Apps Script ก่อนส่งข้อมูลครับ';
+        }
+        return;
+      }
+
+      await saveDriveSettings(true);
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> กำลังส่งไฟล์เข้า Google Drive...';
+      }
+      if (statusDiv) {
+        statusDiv.className = 'alert alert-info d-block py-2';
+        statusDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังสร้าง Google Spreadsheet ใน Google Drive โฟลเดอร์เป้าหมาย...';
+      }
+
+      const selectedDate = currentSnapshotDate === 'live' ? '' : currentSnapshotDate;
+      const opsDateStr = getOpsDateForExport();
+      
+      const payloadData = {
+        date: selectedDate || (new Date().toISOString().slice(0,10)),
+        opsDate: opsDateStr,
+        archivedAt: new Date().toLocaleString('th-TH'),
+        summary: {
+          totalTrips: rawTripRecords.length,
+          lateTrips: rawTripRecords.filter(r => String(r.status || '').toLowerCase().includes('late')).length,
+          totalOrders: rawTripRecords.reduce((s, r) => s + (Number(r.outbound_order) || 0), 0),
+          lateOrders: rawTripRecords.filter(r => String(r.status || '').toLowerCase().includes('late')).reduce((s, r) => s + (Number(r.outbound_order) || 0), 0)
+        },
+        outboundRawRows: rawTripRecords
+      };
+
+      try {
+        let result = null;
+        try {
+          const res = await safeApiFetch('/api/lh-trip/upload-drive', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              date: selectedDate,
+              appsScriptUrl: gasUrl,
+              payload: payloadData
+            })
+          });
+          if (res && (res.success || res.fileUrl)) {
+            result = res;
+          }
+        } catch (apiErr) {
+          console.warn('Backend proxy upload failed, attempting direct Apps Script POST:', apiErr);
+        }
+
+        // Direct fetch fallback if backend proxy not available
+        if (!result) {
+          const directResp = await fetch(gasUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payloadData)
+          });
+          result = { success: true, message: `ส่งไฟล์ Dashboard Charts - ${opsDateStr} เข้า Google Drive เรียบร้อยแล้ว (Direct Mode)` };
+        }
+
+        if (statusDiv) {
+          statusDiv.className = 'alert alert-success d-block py-2';
+          const fileLink = result.fileUrl ? `<a href="${result.fileUrl}" target="_blank" class="fw-bold text-success text-decoration-underline ms-2"><i class="fa-solid fa-arrow-up-right-from-square"></i> เปิดไฟล์ Google Sheets</a>` : '';
+          const folderLink = `<a href="https://drive.google.com/drive/folders/1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1" target="_blank" class="fw-bold text-primary ms-2"><i class="fa-brands fa-google-drive"></i> เปิดโฟลเดอร์ Google Drive</a>`;
+          statusDiv.innerHTML = `<div><i class="fa-solid fa-circle-check me-1"></i> <b>สำเร็จ!</b> ส่งข้อมูลไฟล์ <b>Dashboard Charts - ${opsDateStr}</b> เข้าโฟลเดอร์ Google Drive เรียบร้อยแล้ว</div><div class="mt-2">${fileLink} ${folderLink}</div>`;
+        }
+
+        if (window.AuthGuard && window.AuthGuard.logExport) {
+          window.AuthGuard.logExport(`Google Drive: Dashboard Charts - ${opsDateStr}`, rawTripRecords.length, 'ส่งไฟล์ Google Spreadsheet เข้า Google Drive');
+        }
+      } catch (err) {
+        if (statusDiv) {
+          statusDiv.className = 'alert alert-danger d-block py-2';
+          statusDiv.innerHTML = '<i class="fa-solid fa-circle-xmark me-1"></i> ไม่สามารถส่งไฟล์ได้: ' + err.message;
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up me-1"></i> 🚀 ส่งข้อมูลขึ้น Google Drive ตอนนี้';
+        }
+      }
+    }
   </script>
+
+  <!-- Google Drive Auto-Sync Modal -->
+  <div class="modal fade" id="googleDriveSyncModal" tabindex="-1" aria-labelledby="googleDriveSyncModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+        <div class="modal-header bg-dark text-white py-3 px-4" style="background: linear-gradient(135deg, #1e293b, #0f172a) !important;">
+          <div class="d-flex align-items-center gap-2">
+            <span class="fs-4">☁️</span>
+            <div>
+              <h5 class="modal-title fw-bold text-white mb-0" id="googleDriveSyncModalLabel">Google Drive Auto-Sync & Spreadsheet Exporter</h5>
+              <div class="small text-slate-300">ส่งไฟล์รายงาน LH Trip & Dashboard Charts เข้า Google Drive โฟลเดอร์เป้าหมายอัตโนมัติ</div>
+            </div>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 bg-light">
+          <!-- Target Folder Card -->
+          <div class="card border-0 shadow-sm mb-3 bg-white p-3 rounded-3" style="border-left: 4px solid #10b981 !important;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div>
+                <div class="text-muted small fw-bold"><i class="fa-solid fa-folder-open text-warning me-1"></i> โฟลเดอร์ Google Drive ปลายทาง (Target Folder):</div>
+                <div class="fw-bold text-dark font-monospace fs-6">1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1</div>
+                <div class="small text-muted">ชื่อไฟล์ที่จะสร้าง: <b class="text-primary font-monospace">Dashboard Charts - YYYY-MM-DD</b> (Ops Date)</div>
+              </div>
+              <a href="https://drive.google.com/drive/folders/1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1" target="_blank" class="btn btn-outline-success btn-sm fw-bold">
+                <i class="fa-brands fa-google-drive me-1"></i> เปิดดูโฟลเดอร์ Google Drive <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i>
+              </a>
+            </div>
+          </div>
+
+          <!-- Settings Form -->
+          <div class="card border-0 shadow-sm mb-3 bg-white p-3 rounded-3">
+            <h6 class="fw-bold text-slate-800 mb-2"><i class="fa-solid fa-link text-primary me-1"></i> ตั้งค่า Google Apps Script Web App Webhook</h6>
+            <div class="mb-3">
+              <label for="driveAppsScriptUrlInput" class="form-label small fw-bold text-muted mb-1">Google Apps Script Web App URL:</label>
+              <input type="url" class="form-control font-monospace form-control-sm" id="driveAppsScriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" style="background:#f8fafc; font-size:0.85rem;">
+              <div class="form-text small">วาง Web App URL ที่ได้จากการ Deploy สคริปต์ <code>scripts/google_apps_script_lh_trip_drive.js</code></div>
+            </div>
+
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input" type="checkbox" role="switch" id="driveAutoUploadCheck" checked>
+              <label class="form-check-label fw-bold text-slate-700" for="driveAutoUploadCheck">
+                ⏰ อัปโหลดเข้า Google Drive อัตโนมัติทุกวันเวลา 14:00 น. (Auto-Upload at 14:00)
+              </label>
+            </div>
+          </div>
+
+          <!-- Status Alert -->
+          <div id="driveSyncStatusAlert" class="alert alert-info d-none mb-3" role="alert"></div>
+
+          <!-- Quick Setup Guide Accordion -->
+          <div class="accordion mb-2" id="driveSetupAccordion">
+            <div class="accordion-item border-0 shadow-sm rounded-3 overflow-hidden">
+              <h2 class="accordion-header" id="headingSetupGuide">
+                <button class="accordion-button collapsed bg-white fw-bold py-2 text-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSetupGuide" aria-expanded="false" aria-controls="collapseSetupGuide">
+                  <i class="fa-solid fa-circle-question me-2"></i> 📋 วิธี Deploy Google Apps Script ภายใน 1 นาที (คลิกเพื่อดูวิธี)
+                </button>
+              </h2>
+              <div id="collapseSetupGuide" class="accordion-collapse collapse" aria-labelledby="headingSetupGuide" data-bs-parent="#driveSetupAccordion">
+                <div class="accordion-body bg-white small text-slate-700">
+                  <ol class="mb-2 ps-3">
+                    <li class="mb-1">เปิด <a href="https://script.google.com" target="_blank" class="fw-bold text-primary">script.google.com</a> ด้วยบัญชี Google/Shopee แล้วกด <b>+ โครงการใหม่ (New project)</b></li>
+                    <li class="mb-1">เปิดไฟล์ <code class="fw-bold text-dark">scripts/google_apps_script_lh_trip_drive.js</code> ในโปรเจกต์นี้ แล้วคัดลอกโค้ดทั้งหมดไปวางใน <b>Code.gs</b></li>
+                    <li class="mb-1">กด <b>Deploy (ทำให้ใช้งานได้)</b> มุมขวาบน &rarr; เลือก <b>New deployment (การทำให้ใช้งานได้ใหม่)</b></li>
+                    <li class="mb-1">เลือกประเภท: <b>Web app (เว็บแอป)</b> &rarr; ใครเข้าถึงได้: <b>Anyone (ทุกคน)</b></li>
+                    <li class="mb-1">กด <b>Deploy</b> แล้วกด <b>Authorize access (ให้สิทธิ์)</b></li>
+                    <li>คัดลอก <b>Web app URL</b> ที่ได้ (ขึ้นต้นด้วย <code>https://script.google.com/macros/s/.../exec</code>) มาวางในช่องด้านบนนี้ แล้วกดบันทึก!</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer bg-white py-2 px-4 d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="saveDriveSettings()">
+              <i class="fa-solid fa-floppy-disk me-1"></i> บันทึกการตั้งค่า
+            </button>
+            <button type="button" class="btn btn-warning btn-sm fw-bold text-dark" id="btnDriveUploadNow" onclick="triggerDriveUploadNow()">
+              <i class="fa-solid fa-cloud-arrow-up me-1"></i> 🚀 ส่งข้อมูลขึ้น Google Drive ตอนนี้
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

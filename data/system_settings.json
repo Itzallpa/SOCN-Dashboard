@@ -115,5 +115,12 @@
     "autoSync": true,
     "intervalMinutes": 5,
     "updatedAt": "2026-09-09 19:25:21"
+  },
+  "lhTripDriveSync": {
+    "enabled": true,
+    "folderId": "1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1",
+    "folderUrl": "https://drive.google.com/drive/folders/1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1",
+    "appsScriptUrl": "",
+    "autoUpload1400": true
   }
 }

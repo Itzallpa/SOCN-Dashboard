@@ -6666,17 +6666,102 @@ def fetch_and_archive_lh_trip_snapshot(date_str=None, force=False, custom_url=No
             json.dump(index_data, f, ensure_ascii=False, indent=2)
             
         log_activity("AUTO_ARCHIVE_LH_TRIP", f"⏰ บันทึกข้อมูล LH Trip อัตโนมัติรอบ 14:00 น. วันที่ {date_str} ({total_trips:,} เที่ยวรถ | {int(total_orders):,} Orders)")
+
+        # Auto-upload to Google Drive folder via Google Apps Script if configured
+        drive_sync_res = None
+        settings = load_system_settings()
+        drive_cfg = settings.get("lhTripDriveSync", {})
+        if drive_cfg.get("enabled", True) and drive_cfg.get("autoUpload1400", True) and drive_cfg.get("appsScriptUrl"):
+            drive_sync_res = upload_lh_trip_to_google_drive(payload, custom_gas_url=drive_cfg.get("appsScriptUrl"))
         
         return {
             "success": True,
             "message": f"บันทึกข้อมูล LH Trip รอบ 14:00 น. ประจำวันที่ {date_str} สำเร็จ ({total_trips:,} เที่ยวรถ)",
             "summary": summary,
-            "file": target_file
+            "file": target_file,
+            "driveSync": drive_sync_res
         }
     except Exception as e:
         import traceback
         traceback.print_exc()
         return {"success": False, "error": str(e)}
+
+
+def upload_lh_trip_to_google_drive(payload, custom_gas_url=None):
+    """
+    Upload LH Trip snapshot to Google Drive Folder (1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1)
+    named 'Dashboard Charts - YYYY-MM-DD' via Google Apps Script Web App webhook.
+    """
+    settings = load_system_settings()
+    drive_cfg = settings.get("lhTripDriveSync", {})
+    gas_url = (custom_gas_url or drive_cfg.get("appsScriptUrl") or "").strip()
+    
+    if not gas_url:
+        return {"success": False, "error": "ยังไม่ได้ระบุ Google Apps Script Web App URL ในระบบ"}
+        
+    try:
+        # Google Apps Script Web App redirects (302), requests will follow redirects automatically
+        resp = requests.post(gas_url, json=payload, headers={"Content-Type": "application/json"}, timeout=90, allow_redirects=True)
+        if resp.status_code == 200:
+            try:
+                res_data = resp.json()
+                log_activity("GOOGLE_DRIVE_SYNC_LH_TRIP", f"☁️ ส่งข้อมูลเข้า Google Drive สำเร็จ: {res_data.get('fileName')} (Folder: {drive_cfg.get('folderId')})")
+                return res_data
+            except Exception:
+                return {"success": True, "message": "ส่งข้อมูลเข้า Google Apps Script สำเร็จ (Raw Response)", "raw": resp.text[:300]}
+        else:
+            return {"success": False, "error": f"Google Apps Script HTTP Error: {resp.status_code} - {resp.text[:200]}"}
+    except Exception as e:
+        return {"success": False, "error": f"เกิดข้อผิดพลาดในการเชื่อมต่อ Google Drive: {str(e)}"}
+
+
+@app.route("/api/lh-trip/drive-settings", methods=["GET", "POST"])
+def lh_trip_drive_settings_api():
+    settings = load_system_settings()
+    if request.method == "POST":
+        req = request.get_json(silent=True) or {}
+        drive_cfg = settings.get("lhTripDriveSync", {})
+        drive_cfg["enabled"] = bool(req.get("enabled", drive_cfg.get("enabled", True)))
+        drive_cfg["folderId"] = req.get("folderId", drive_cfg.get("folderId", "1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1"))
+        drive_cfg["folderUrl"] = req.get("folderUrl", f"https://drive.google.com/drive/folders/{drive_cfg['folderId']}")
+        drive_cfg["appsScriptUrl"] = (req.get("appsScriptUrl") or "").strip()
+        drive_cfg["autoUpload1400"] = bool(req.get("autoUpload1400", True))
+        settings["lhTripDriveSync"] = drive_cfg
+        save_system_settings(settings)
+        log_activity("UPDATE_DRIVE_SETTINGS", "⚙️ อัปเดตการตั้งค่า Google Drive Auto-Sync สำหรับ LH Trip")
+        return jsonify({"success": True, "message": "บันทึกการตั้งค่า Google Drive สำเร็จ", "settings": drive_cfg})
+        
+    return jsonify({"success": True, "settings": settings.get("lhTripDriveSync", {})})
+
+
+@app.route("/api/lh-trip/upload-drive", methods=["POST"])
+def upload_lh_trip_to_drive_api():
+    req = request.get_json(silent=True) or {}
+    date_str = req.get("date")
+    custom_url = req.get("appsScriptUrl")
+    payload = req.get("payload")
+    
+    if not payload:
+        # Load from file
+        if not date_str or date_str == "live":
+            target_file = os.path.join(LH_TRIP_HISTORY_DIR, "lh_trip_latest.json")
+        else:
+            target_file = os.path.join(LH_TRIP_HISTORY_DIR, f"lh_trip_{date_str}.json")
+            
+        if not os.path.exists(target_file):
+            # Try fetching latest
+            res = fetch_and_archive_lh_trip_snapshot(date_str=date_str or datetime.now().strftime("%Y-%m-%d"), force=True)
+            if not res.get("success"):
+                return jsonify({"success": False, "error": f"ไม่พบข้อมูลและไม่สามารถดึงข้อมูลได้: {res.get('error')}"}), 400
+                
+        try:
+            with open(target_file, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+        except Exception as e:
+            return jsonify({"success": False, "error": f"ไม่สามารถเปิดไฟล์ข้อมูลได้: {str(e)}"}), 500
+            
+    res = upload_lh_trip_to_google_drive(payload, custom_gas_url=custom_url)
+    return jsonify(res)
 
 
 @app.route("/api/lh-trip/history-dates", methods=["GET"])
