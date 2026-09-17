@@ -1970,29 +1970,37 @@ def process_table_sheet(df):
                 except Exception:
                     pass
 
+        def clean_val(v):
+            if pd.isna(v) or v is None:
+                return ''
+            s = str(v).strip()
+            if s.lower() in ['nan', 'none', 'null', '#ref!', '#n/a']:
+                return ''
+            return s
+
         raw_rows.append({
-            "shipment_id": str(row.get(trip_col, '')) if trip_col else '',
-            "trip_category": str(row.get(cat_col, '')) if cat_col else '',
-            "vehicle_type": str(row.get(veh_col, '')) if veh_col else '',
-            "vehicle_plate": str(row.get(plate_col, '')) if plate_col else '',
-            "driver": str(row.get(driver_col, '')) if driver_col else '',
-            "origin": str(row.get(origin_col, '')) if origin_col else '',
-            "dest_station_name": str(row.get(dest_col, '')) if dest_col else '',
-            "standby_time": str(row.get(standby_col, '')) if standby_col else '',
-            "assign_time": str(row.get(assign_col, '')) if assign_col else '',
-            "actual_dep_cut": str(row.get(dep_col, '')) if dep_col else '',
-            "status": str(row.get(status_col, '')) if status_col else '',
-            "rmk": str(row.get(rmk_col, '')) if rmk_col else '',
-            "intentional": str(row.get(intent_col, '')) if intent_col else '',
+            "shipment_id": clean_val(row.get(trip_col, '')),
+            "trip_category": clean_val(row.get(cat_col, '')),
+            "vehicle_type": clean_val(row.get(veh_col, '')),
+            "vehicle_plate": clean_val(row.get(plate_col, '')),
+            "driver": clean_val(row.get(driver_col, '')),
+            "origin": clean_val(row.get(origin_col, '')) or 'SOCN',
+            "dest_station_name": clean_val(row.get(dest_col, '')),
+            "standby_time": clean_val(row.get(standby_col, '')),
+            "assign_time": clean_val(row.get(assign_col, '')),
+            "actual_dep_cut": clean_val(row.get(dep_col, '')),
+            "status": clean_val(row.get(status_col, '')),
+            "rmk": clean_val(row.get(rmk_col, '')),
+            "intentional": clean_val(row.get(intent_col, '')),
             "outbound_order": parsed_ob_order,
             "outbound_weight": parsed_ob_weight,
-            "outbound_to": str(row.get(ob_to_col, '')) if ob_to_col else '',
-            "cut0": str(row.get(cut0_col, '')) if cut0_col else '',
-            "cut1": str(row.get(cut1_col, '')) if cut1_col else '',
-            "cut2": str(row.get(cut2_col, '')) if cut2_col else '',
-            "cut3": str(row.get(cut3_col, '')) if cut3_col else '',
-            "region": str(row.get(region_col, '')) if region_col else '',
-            "zone": str(row.get(zone_col, '')) if zone_col else ''
+            "outbound_to": clean_val(row.get(ob_to_col, '')),
+            "cut0": clean_val(row.get(cut0_col, '')),
+            "cut1": clean_val(row.get(cut1_col, '')),
+            "cut2": clean_val(row.get(cut2_col, '')),
+            "cut3": clean_val(row.get(cut3_col, '')),
+            "region": clean_val(row.get(region_col, '')),
+            "zone": clean_val(row.get(zone_col, ''))
         })
 
     # Group and merge rows by shipment_id taking the first row with outbound data
@@ -2010,12 +2018,18 @@ def process_table_sheet(df):
                 existing["outbound_order"] = r.get("outbound_order")
             if (r.get("outbound_weight") or 0) > (existing.get("outbound_weight") or 0):
                 existing["outbound_weight"] = r.get("outbound_weight")
+            for k in ["standby_time", "assign_time", "actual_dep_cut", "rmk", "intentional", "status", "cut0", "cut1", "cut2", "cut3", "region", "zone", "trip_category", "vehicle_type", "vehicle_plate", "driver", "dest_station_name"]:
+                if not existing.get(k) and r.get(k):
+                    existing[k] = r.get(k)
 
     unique_raw_rows = list(merged_rows_map.values())
     unique_total_trips = len(unique_raw_rows)
     unique_late_trips = sum(1 for r in unique_raw_rows if "late" in str(r.get("status", "")).lower())
     unique_on_time_trips = unique_total_trips - unique_late_trips
     unique_rate = round((unique_on_time_trips / unique_total_trips * 100), 1) if unique_total_trips > 0 else 0.0
+
+    ob_late_trips = sum(1 for r in unique_raw_rows if "ob late" in str(r.get("rmk", "")).lower())
+    lh_late_trips = sum(1 for r in unique_raw_rows if "lh late" in str(r.get("rmk", "")).lower())
 
     total_orders = sum(r.get("outbound_order", 0) for r in unique_raw_rows)
     late_orders = sum(r.get("outbound_order", 0) for r in unique_raw_rows if "late" in str(r.get("status", "")).lower())
@@ -2032,6 +2046,8 @@ def process_table_sheet(df):
         "onTimeOrders": on_time_orders,
         "lateTrips": unique_late_trips,
         "lateOrders": late_orders,
+        "obLateTrips": ob_late_trips,
+        "lhLateTrips": lh_late_trips,
         "onTimeRate": f"{unique_rate}%",
         "totalLate": unique_late_trips,
         "ranking": ranking,

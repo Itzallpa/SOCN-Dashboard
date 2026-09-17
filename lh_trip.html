@@ -262,11 +262,17 @@
 
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
           <div class="d-flex gap-2 flex-wrap">
-            <input type="text" id="fullTableSearch" class="form-control form-control-sm" style="width: 280px;" placeholder="🔍 ค้นหา Trip Number, ทะเบียน, พนักงาน, ปลายทาง..." onkeyup="filterFullTable()">
-            <select id="fullTableStatusFilter" class="form-select form-select-sm" style="width: 150px;" onchange="filterFullTable()">
+            <input type="text" id="fullTableSearch" class="form-control form-control-sm" style="width: 250px;" placeholder="🔍 ค้นหา Trip Number, ทะเบียน, คนขับ, ปลายทาง, RMK..." onkeyup="filterFullTable()">
+            <select id="fullTableStatusFilter" class="form-select form-select-sm" style="width: 140px;" onchange="filterFullTable()">
               <option value="">-- ทุกสถานะ --</option>
-              <option value="on time">On time</option>
-              <option value="late">Late</option>
+              <option value="on time">🟢 On time</option>
+              <option value="late">🔴 Late</option>
+            </select>
+            <select id="fullTableRmkFilter" class="form-select form-select-sm" style="width: 140px;" onchange="filterFullTable()">
+              <option value="">-- ทุก RMK --</option>
+              <option value="OB Late">🔴 OB Late</option>
+              <option value="LH Late">🟡 LH Late</option>
+              <option value="On Time">🟢 On Time</option>
             </select>
           </div>
           <div class="d-flex gap-2">
@@ -570,10 +576,31 @@
         let origin = r.origin || (r.cells ? r.cells[6] : '') || 'SOCN';
         let dest = r.dest_station_name || (r.cells ? r.cells[7] : '') || '-';
         let obOrders = Number(r.outbound_order || 0).toLocaleString();
-        let standby = r.standby_time || (r.cells ? r.cells[19] : '') || '-';
-        let assign = r.assign_time || (r.cells ? r.cells[20] : '') || '-';
-        let actualDep = r.actual_dep_cut || (r.cells ? r.cells[21] || r.cells[19] : '') || '-';
-        let rmk = r.rmk || (r.cells ? r.cells[24] : '') || '-';
+
+        let rawStandby = r.standby_time || (r.cells ? r.cells[19] : '');
+        let standby = (rawStandby && String(rawStandby).toLowerCase() !== 'nan' && String(rawStandby).trim() !== '-') ? String(rawStandby).trim() : '';
+        let standbyHtml = standby ? `<span class="badge bg-light text-dark border font-monospace">${standby}</span>` : '<span class="text-muted">-</span>';
+
+        let rawAssign = r.assign_time || (r.cells ? r.cells[20] : '');
+        let assign = (rawAssign && String(rawAssign).toLowerCase() !== 'nan' && String(rawAssign).trim() !== '-') ? String(rawAssign).trim() : '';
+        let assignHtml = assign ? `<span class="badge bg-light text-dark border font-monospace">${assign}</span>` : '<span class="text-muted">-</span>';
+
+        let rawDep = r.actual_dep_cut || (r.cells ? r.cells[21] || r.cells[19] : '');
+        let actualDep = (rawDep && String(rawDep).toLowerCase() !== 'nan' && String(rawDep).trim() !== '-') ? String(rawDep).trim() : '-';
+
+        let rawRmk = r.rmk || (r.cells ? r.cells[24] : '');
+        let rmk = (rawRmk && String(rawRmk).toLowerCase() !== 'nan' && String(rawRmk).trim() !== '-') ? String(rawRmk).trim() : '';
+        let rmkHtml = '<span class="text-muted">-</span>';
+        if (rmk) {
+          if (rmk.toLowerCase().includes('ob late')) {
+            rmkHtml = `<span class="badge bg-danger fw-bold">🔴 ${rmk}</span>`;
+          } else if (rmk.toLowerCase().includes('lh late')) {
+            rmkHtml = `<span class="badge bg-warning text-dark fw-bold">🟡 ${rmk}</span>`;
+          } else {
+            rmkHtml = `<span class="badge bg-secondary">${rmk}</span>`;
+          }
+        }
+
         let isLate = String(r.status || (r.cells ? r.cells[23] || r.cells[21] || r.cells[14] : '')).toLowerCase().includes('late');
         let badge = isLate ? '<span class="badge bg-danger">🔴 Late</span>' : '<span class="badge bg-success">🟢 On time</span>';
 
@@ -588,10 +615,10 @@
           <td>${origin}</td>
           <td class="fw-bold">${dest}</td>
           <td class="fw-bold text-primary text-end pe-3">${obOrders}</td>
-          <td>${standby}</td>
-          <td>${assign}</td>
+          <td>${standbyHtml}</td>
+          <td>${assignHtml}</td>
           <td>${actualDep}</td>
-          <td class="${rmk && rmk !== '-' ? 'text-danger fw-bold' : 'text-muted'}">${rmk}</td>
+          <td>${rmkHtml}</td>
           <td>${badge}</td>
         </tr>`;
       }).join('');
@@ -603,9 +630,12 @@
         const shipId = (r.shipment_id || '').toLowerCase();
         const st = (r.dest_station_name || '').toLowerCase();
         const drv = (r.driver || '').toLowerCase();
+        const plate = (r.vehicle_plate || '').toLowerCase();
         const dep = (r.actual_dep_cut || r.actual_ops_date || '').toLowerCase();
         const rmk = (r.rmk || '').toLowerCase();
-        return !query || shipId.includes(query) || st.includes(query) || drv.includes(query) || dep.includes(query) || rmk.includes(query);
+        const standby = (r.standby_time || '').toLowerCase();
+        const assign = (r.assign_time || '').toLowerCase();
+        return !query || shipId.includes(query) || st.includes(query) || drv.includes(query) || plate.includes(query) || dep.includes(query) || rmk.includes(query) || standby.includes(query) || assign.includes(query);
       });
       renderModalTableRows(filtered);
     }
@@ -866,6 +896,11 @@
           if (r.outbound_weight > (existing.outbound_weight || 0)) {
             existing.outbound_weight = r.outbound_weight;
           }
+          for (let k of ["standby_time", "assign_time", "actual_dep_cut", "rmk", "intentional", "status", "cut0", "cut1", "cut2", "cut3", "region", "zone", "trip_category", "vehicle_type", "vehicle_plate", "driver", "dest_station_name"]) {
+            if ((!existing[k] || existing[k] === 'nan' || existing[k] === '-') && (r[k] && r[k] !== 'nan' && r[k] !== '-')) {
+              existing[k] = r[k];
+            }
+          }
         }
       });
       rawTripRecords = Array.from(mergedMap.values());
@@ -877,6 +912,9 @@
       const onTimePct = totalTrips ? ((onTimeTrips / totalTrips) * 100).toFixed(1) : '0.0';
       const latePct = totalTrips ? ((lateTrips / totalTrips) * 100).toFixed(1) : '0.0';
       const rate = totalTrips ? `${onTimePct}%` : '0.0%';
+
+      const obLateCount = rawTripRecords.filter(r => String(r.rmk || '').toLowerCase().includes('ob late')).length;
+      const lhLateCount = rawTripRecords.filter(r => String(r.rmk || '').toLowerCase().includes('lh late')).length;
 
       const totalOrders = rawTripRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
       const lateOrders = lateRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
@@ -894,7 +932,7 @@
       const subHeader = document.getElementById('headerSubtext');
       if (subHeader) {
         subHeader.innerText = totalOrders > 0
-          ? `ระบบวิเคราะห์ข้อมูล LH Trip ${Number(totalTrips).toLocaleString()} เที่ยวรถ (📦 รวม ${totalOrders.toLocaleString()} Orders | Top 50 Hubs ครบถ้วน)`
+          ? `ระบบวิเคราะห์ข้อมูล LH Trip ${Number(totalTrips).toLocaleString()} เที่ยวรถ (📦 รวม ${totalOrders.toLocaleString()} Orders | OB Late ${obLateCount} / LH Late ${lhLateCount})`
           : `ระบบวิเคราะห์ข้อมูล LH Trip ${Number(totalTrips).toLocaleString()} เที่ยวรถ (แสดงอันดับ Top 50 Hubs ครบถ้วนตามต้องการ)`;
       }
 
@@ -907,9 +945,7 @@
 
       const lateSub = document.getElementById('kpiLateSub');
       if (lateSub) {
-        lateSub.innerText = totalOrders > 0
-          ? `${latePct}% of trips | 📦 ${lateOrders.toLocaleString()} orders`
-          : `${latePct}% of trips (คลิกเพื่อดู Raw Data)`;
+        lateSub.innerHTML = `${latePct}% | <span class="badge bg-danger">OB Late: ${obLateCount}</span> <span class="badge bg-warning text-dark">LH Late: ${lhLateCount}</span>`;
       }
 
       renderAll5Charts(data);
@@ -1326,55 +1362,92 @@
       if (!lhBody || !obBody) return;
 
       const records = (rawTripRecords && rawTripRecords.length) ? rawTripRecords : [];
-      const hubMap = {};
+      const lhHubMap = {};
+      const obHubMap = {};
 
       records.forEach(r => {
         const dest = String(r.dest_station_name || r.dest || 'Unknown Hub').trim();
         if (!dest) return;
-        if (!hubMap[dest]) hubMap[dest] = { total: 0, late: 0 };
-        hubMap[dest].total++;
-        if (String(r.status || '').toLowerCase().includes('late')) hubMap[dest].late++;
+        const rmk = String(r.rmk || '').toLowerCase().trim();
+        const isLate = String(r.status || '').toLowerCase().includes('late');
+        const cat = String(r.trip_category || '').toLowerCase();
+        const ord = Number(r.outbound_order || 0);
+
+        if (isLate) {
+          if (rmk.includes('lh late') || cat.includes('timetable') || cat.includes('main')) {
+            if (!lhHubMap[dest]) lhHubMap[dest] = { total: 0, late: 0, orders: 0, lateOrders: 0 };
+            lhHubMap[dest].late++;
+            lhHubMap[dest].lateOrders += ord;
+          } else {
+            if (!obHubMap[dest]) obHubMap[dest] = { total: 0, late: 0, orders: 0, lateOrders: 0 };
+            obHubMap[dest].late++;
+            obHubMap[dest].lateOrders += ord;
+          }
+        }
+        if (!lhHubMap[dest]) lhHubMap[dest] = { total: 0, late: 0, orders: 0, lateOrders: 0 };
+        lhHubMap[dest].total++;
+        lhHubMap[dest].orders += ord;
+
+        if (!obHubMap[dest]) obHubMap[dest] = { total: 0, late: 0, orders: 0, lateOrders: 0 };
+        obHubMap[dest].total++;
+        obHubMap[dest].orders += ord;
       });
 
-      const sortedHubs = Object.keys(hubMap)
+      const top50LH = Object.keys(lhHubMap)
         .map(h => ({
           hub: h,
-          totalCount: hubMap[h].total,
-          lateCount: hubMap[h].late,
-          pct: hubMap[h].total ? (hubMap[h].late / hubMap[h].total) * 100 : 0
+          totalCount: lhHubMap[h].total,
+          lateCount: lhHubMap[h].late,
+          lateOrders: lhHubMap[h].lateOrders,
+          pct: lhHubMap[h].total ? (lhHubMap[h].late / lhHubMap[h].total) * 100 : 0
         }))
-        .sort((a, b) => b.lateCount - a.lateCount || b.pct - a.pct);
+        .filter(h => h.lateCount > 0)
+        .sort((a, b) => b.lateCount - a.lateCount || b.pct - a.pct)
+        .slice(0, 50);
 
-      if (sortedHubs.length === 0) return;
+      const top50OB = Object.keys(obHubMap)
+        .map(h => ({
+          hub: h,
+          totalCount: obHubMap[h].total,
+          lateCount: obHubMap[h].late,
+          lateOrders: obHubMap[h].lateOrders,
+          pct: obHubMap[h].total ? (obHubMap[h].late / obHubMap[h].total) * 100 : 0
+        }))
+        .filter(h => h.lateCount > 0)
+        .sort((a, b) => b.lateCount - a.lateCount || b.pct - a.pct)
+        .slice(0, 50);
 
-      const top50 = sortedHubs.slice(0, 50).map((r, i) => ({ ...r, rank: i + 1, zone: 'A', cuts: `Late: ${r.lateCount}` }));
-
-      lhBody.innerHTML = top50.map(r => `
-        <tr style="cursor:pointer;" onclick="openHubModal('${r.hub.replace(/'/g, "\\'")}')">
-          <td class="fw-bold">${r.rank}</td>
+      lhBody.innerHTML = top50LH.length ? top50LH.map((r, i) => `
+        <tr style="cursor:pointer;" onclick="openHubModal('${r.hub.replace(/'/g, "\\'")}', 'lh')">
+          <td class="fw-bold">${i + 1}</td>
           <td class="fw-bold text-danger">${r.hub} <i class="fa-solid fa-up-right-from-square fs-8 text-muted ms-1"></i></td>
           <td><span class="badge bg-secondary">Zone A</span></td>
           <td class="text-center fw-bold text-danger">${r.lateCount} <span class="text-muted fw-normal fs-7">/ ${r.totalCount}</span></td>
           <td class="text-center fw-bold">${r.pct.toFixed(1)}%</td>
-          <td><span class="cut-badge cut0">${r.cuts}</span></td>
+          <td><span class="cut-badge cut0">LH Late (${r.lateOrders ? r.lateOrders.toLocaleString() + ' orders' : r.lateCount + ' เที่ยว'})</span></td>
         </tr>
-      `).join('');
+      `).join('') : '<tr><td colspan="6" class="text-center py-3 text-muted">ไม่พบข้อมูล LH Late</td></tr>';
 
-      obBody.innerHTML = top50.map(r => `
-        <tr style="cursor:pointer;" onclick="openHubModal('${r.hub.replace(/'/g, "\\'")}')">
-          <td class="fw-bold">${r.rank}</td>
+      obBody.innerHTML = top50OB.length ? top50OB.map((r, i) => `
+        <tr style="cursor:pointer;" onclick="openHubModal('${r.hub.replace(/'/g, "\\'")}', 'ob')">
+          <td class="fw-bold">${i + 1}</td>
           <td class="fw-bold text-warning">${r.hub} <i class="fa-solid fa-up-right-from-square fs-8 text-muted ms-1"></i></td>
           <td><span class="badge bg-secondary">Zone A</span></td>
           <td class="text-center fw-bold text-warning">${r.lateCount} <span class="text-muted fw-normal fs-7">/ ${r.totalCount}</span></td>
           <td class="text-center fw-bold">${r.pct.toFixed(1)}%</td>
-          <td><span class="cut-badge cut1">${r.cuts}</span></td>
+          <td><span class="cut-badge cut1">OB Late (${r.lateOrders ? r.lateOrders.toLocaleString() + ' orders' : r.lateCount + ' เที่ยว'})</span></td>
         </tr>
-      `).join('');
+      `).join('') : '<tr><td colspan="6" class="text-center py-3 text-muted">ไม่พบข้อมูล OB Late</td></tr>';
     }
 
-    function openHubModal(hubName) {
-      const subset = rawTripRecords.filter(r => (r.dest_station_name || '').includes(hubName.split(' ')[0]));
-      openRawDataModal(`เที่ยวรถปลายทาง Hub ${hubName}`, subset.length ? subset : [].filter(r => r.dest_station_name.includes(hubName.split(' ')[0])));
+    function openHubModal(hubName, filterType) {
+      let subset = rawTripRecords.filter(r => (r.dest_station_name || '').includes(hubName.split(' ')[0]));
+      if (filterType === 'lh') {
+        subset = subset.filter(r => String(r.rmk || '').toLowerCase().includes('lh late') || (String(r.status || '').toLowerCase().includes('late') && String(r.trip_category || '').toLowerCase().includes('timetable')));
+      } else if (filterType === 'ob') {
+        subset = subset.filter(r => String(r.rmk || '').toLowerCase().includes('ob late') || (String(r.status || '').toLowerCase().includes('late') && !String(r.rmk || '').toLowerCase().includes('lh late')));
+      }
+      openRawDataModal(`เที่ยวรถปลายทาง Hub ${hubName} (${filterType ? filterType.toUpperCase() + ' Late' : 'ทั้งหมด'})`, subset);
     }
 
     function renderFullTable() {
@@ -1387,6 +1460,7 @@
     function filterFullTable() {
       const query = (document.getElementById('fullTableSearch').value || '').toLowerCase().trim();
       const statusFilter = (document.getElementById('fullTableStatusFilter').value || '').toLowerCase().trim();
+      const rmkFilter = (document.getElementById('fullTableRmkFilter') ? document.getElementById('fullTableRmkFilter').value : '').toLowerCase().trim();
       const tbody = document.getElementById('fullTableBody');
 
       if (!rawTripRecords || rawTripRecords.length === 0) {
@@ -1396,9 +1470,19 @@
       const filtered = rawTripRecords.filter(r => {
         const shipId = (r.shipment_id || '').toLowerCase();
         const st = (r.dest_station_name || '').toLowerCase();
+        const drv = (r.driver || '').toLowerCase();
+        const plate = (r.vehicle_plate || '').toLowerCase();
+        const rmk = (r.rmk || '').toLowerCase();
         const status = (r.status || '').toLowerCase();
 
-        return (!query || shipId.includes(query) || st.includes(query)) && (!statusFilter || status.includes(statusFilter));
+        const matchQuery = !query || shipId.includes(query) || st.includes(query) || drv.includes(query) || plate.includes(query) || rmk.includes(query);
+        const matchStatus = !statusFilter || status.includes(statusFilter);
+        let matchRmk = true;
+        if (rmkFilter === 'ob late') matchRmk = rmk.includes('ob late');
+        else if (rmkFilter === 'lh late') matchRmk = rmk.includes('lh late');
+        else if (rmkFilter === 'on time') matchRmk = !status.includes('late');
+
+        return matchQuery && matchStatus && matchRmk;
       });
 
       let onTimeCnt = filtered.filter(r => !(r.status || '').toLowerCase().includes('late')).length;
@@ -1423,14 +1507,36 @@
         let dest = r.dest_station_name || 'AKRET-A - ปากเกร็ด';
         let obOrders = Number(r.outbound_order || 0).toLocaleString();
         let obWeight = Number(r.outbound_weight || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        let standby = r.standby_time || (r.cells ? r.cells[19] : '') || '-';
-        let assign = r.assign_time || (r.cells ? r.cells[20] : '') || '-';
+
+        let rawStandby = r.standby_time || (r.cells ? r.cells[19] : '');
+        let standby = (rawStandby && String(rawStandby).toLowerCase() !== 'nan' && String(rawStandby).trim() !== '-') ? String(rawStandby).trim() : '';
+        let standbyHtml = standby ? `<span class="badge bg-light text-dark border font-monospace">${standby}</span>` : '<span class="text-muted">-</span>';
+
+        let rawAssign = r.assign_time || (r.cells ? r.cells[20] : '');
+        let assign = (rawAssign && String(rawAssign).toLowerCase() !== 'nan' && String(rawAssign).trim() !== '-') ? String(rawAssign).trim() : '';
+        let assignHtml = assign ? `<span class="badge bg-light text-dark border font-monospace">${assign}</span>` : '<span class="text-muted">-</span>';
+
         let cut0 = r.cut0 || '—';
         let cut1 = r.cut1 || '—';
         let cut2 = r.cut2 || '—';
         let cut3 = r.cut3 || '—';
-        let actualDep = r.actual_dep_cut || (r.cells ? r.cells[21] || r.cells[19] : '') || '-';
-        let rmk = r.rmk || (r.cells ? r.cells[24] : '') || '-';
+
+        let rawDep = r.actual_dep_cut || (r.cells ? r.cells[21] || r.cells[19] : '');
+        let actualDep = (rawDep && String(rawDep).toLowerCase() !== 'nan' && String(rawDep).trim() !== '-') ? String(rawDep).trim() : '-';
+
+        let rawRmk = r.rmk || (r.cells ? r.cells[24] : '');
+        let rmk = (rawRmk && String(rawRmk).toLowerCase() !== 'nan' && String(rawRmk).trim() !== '-') ? String(rawRmk).trim() : '';
+        let rmkHtml = '<span class="text-muted">-</span>';
+        if (rmk) {
+          if (rmk.toLowerCase().includes('ob late')) {
+            rmkHtml = `<span class="badge bg-danger fw-bold">🔴 ${rmk}</span>`;
+          } else if (rmk.toLowerCase().includes('lh late')) {
+            rmkHtml = `<span class="badge bg-warning text-dark fw-bold">🟡 ${rmk}</span>`;
+          } else {
+            rmkHtml = `<span class="badge bg-secondary">${rmk}</span>`;
+          }
+        }
+
         let isLate = (r.status || '').toLowerCase().includes('late');
         let badge = isLate ? '<span class="badge bg-danger">🔴 Late</span>' : '<span class="badge bg-success">🟢 On time</span>';
 
@@ -1446,14 +1552,14 @@
           <td class="fw-bold">${dest}</td>
           <td class="fw-bold text-primary text-end pe-3">${obOrders}</td>
           <td class="text-end pe-3 text-secondary">${obWeight}</td>
-          <td>${standby}</td>
-          <td>${assign}</td>
+          <td>${standbyHtml}</td>
+          <td>${assignHtml}</td>
           <td>${cut0}</td>
           <td>${cut1}</td>
           <td>${cut2}</td>
           <td>${cut3}</td>
           <td>${actualDep}</td>
-          <td class="${rmk && rmk !== '-' ? 'text-danger fw-bold' : 'text-muted'}">${rmk}</td>
+          <td>${rmkHtml}</td>
           <td>${badge}</td>
         </tr>`;
       }).join('');
