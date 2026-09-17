@@ -111,6 +111,29 @@
       </div>
     </div>
 
+    <!-- 14:00 Auto-Save & Historical Snapshot Control Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-2 px-3 rounded-3 shadow-sm border flex-wrap gap-2" style="border-left: 4px solid #2563eb !important;">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-2 py-2" style="font-size:0.85rem;">
+          <i class="fa-solid fa-clock-rotate-left me-1"></i> 📅 เลือกดูข้อมูลย้อนหลัง (Daily Snapshot):
+        </span>
+        <select class="form-select form-select-sm fw-bold border-primary text-slate-800" id="snapshotDateSelect" onchange="onSnapshotDateChange(this.value)" style="min-width: 270px; max-width: 340px; background-color: #f8fafc;">
+          <option value="live">🟢 ข้อมูลสดล่าสุด (Live Google Sheet)</option>
+        </select>
+        <span class="badge bg-success bg-opacity-10 text-success fw-bold px-2 py-2 border border-success border-opacity-25" id="autoSaveBadge" title="ระบบแบ็กกราวด์จะทำการบันทึกข้อมูลทุกวันเวลา 14:00 น. โดยอัตโนมัติ">
+          <i class="fa-solid fa-robot me-1"></i> ⏰ Auto-Archive: ทุกวัน 14:00 น. (อัตโนมัติ)
+        </span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-outline-primary btn-sm fw-semibold" onclick="triggerManualSnapshot()" title="สั่งบันทึก Snapshot ข้อมูล ณ ตอนนี้ทันที">
+          <i class="fa-solid fa-camera me-1"></i> ⚡ บันทึก Snapshot ตอนนี้
+        </button>
+        <button class="btn btn-light btn-sm text-muted border" onclick="loadHistoryDatesDropdown()" title="รีเฟรชรายการประวัติ">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
+      </div>
+    </div>
+
     <div id="lhStatusMsg" class="mb-3"></div>
 
     <!-- SECTION 1: DASHBOARD VIEW -->
@@ -509,12 +532,146 @@
     const [] = [];
     const [] = [];
 
+    let currentLoadedDate = 'live';
+
     document.addEventListener('DOMContentLoaded', () => {
+      // Load available archived snapshot dates
+      loadHistoryDatesDropdown();
       // Auto sync live Google Sheet data on page load
       syncAppsScriptDataToDashboard(EMBEDDED_PERSONAL_SHEET_URL);
     });
 
     const EMBEDDED_PERSONAL_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv';
+
+    function loadHistoryDatesDropdown() {
+      fetch('/api/lh-trip/history-dates')
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.success && Array.isArray(data.dates)) {
+            const select = document.getElementById('snapshotDateSelect');
+            if (!select) return;
+            
+            let html = '<option value="live">🟢 ข้อมูลสดล่าสุด (Live Google Sheet)</option>';
+            data.dates.forEach(item => {
+              const dStr = item.date || item;
+              const trips = item.totalTrips ? ` (${Number(item.totalTrips).toLocaleString()} เที่ยว)` : '';
+              const timeStr = item.archivedAt ? ` [บันทึก ${item.archivedAt.split(' ')[1] || '14:00'}]` : ' [รอบ 14:00 น.]';
+              html += `<option value="${dStr}">📅 ${dStr}${timeStr}${trips}</option>`;
+            });
+            select.innerHTML = html;
+            select.value = currentLoadedDate;
+          }
+        })
+        .catch(err => console.warn('Could not load history dates:', err));
+    }
+
+    function onSnapshotDateChange(val) {
+      if (!val || val === 'live') {
+        currentLoadedDate = 'live';
+        const banner = document.getElementById('lhStatusMsg');
+        if (banner) banner.innerHTML = '';
+        syncAppsScriptDataToDashboard(EMBEDDED_PERSONAL_SHEET_URL);
+      } else {
+        currentLoadedDate = val;
+        loadHistoricalSnapshot(val);
+      }
+    }
+
+    function loadHistoricalSnapshot(dateStr) {
+      Swal.fire({
+        title: `กำลังโหลด Snapshot ${dateStr}...`,
+        text: 'กำลังดึงข้อมูลประวัติรอบ 14:00 น. จากระบบ Archive',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      fetch(`/api/lh-trip/history?date=${encodeURIComponent(dateStr)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.success) {
+            latestSyncedData = data;
+            if (data.outboundRawRows && data.outboundRawRows.length > 0) {
+              rawTripRecords = data.outboundRawRows;
+            } else if (data.rows && data.rows.length > 0) {
+              rawTripRecords = data.rows;
+            }
+            renderRealSummaryData(data);
+            if (typeof switchView === 'function') switchView('dashboard');
+            
+            const banner = document.getElementById('lhStatusMsg');
+            if (banner) {
+              banner.innerHTML = `
+                <div class="alert alert-warning border-warning d-flex justify-content-between align-items-center py-2 px-3 shadow-sm rounded-3">
+                  <div>
+                    <i class="fa-solid fa-history fa-lg me-2 text-warning-emphasis"></i>
+                    <strong>📌 กำลังแสดงข้อมูลประวัติ Snapshot ประจำวันที่ ${dateStr}</strong> 
+                    <span class="text-muted ms-2">(บันทึกข้อมูลเมื่อ: ${data.archivedAt || '14:00:00 น.'} | ${(data.totalTrips || rawTripRecords.length).toLocaleString()} เที่ยวรถ)</span>
+                  </div>
+                  <button class="btn btn-sm btn-outline-dark fw-bold" onclick="onSnapshotDateChange('live')">
+                    <i class="fa-solid fa-rotate-left me-1"></i> กลับสู่ข้อมูลสด (Live)
+                  </button>
+                </div>
+              `;
+            }
+
+            Swal.fire({
+              icon: 'success',
+              title: `โหลดข้อมูล ${dateStr} สำเร็จ!`,
+              text: `ดึงข้อมูลประวัติ 14:00 น. สำเร็จ (${(data.totalTrips || rawTripRecords.length).toLocaleString()} เที่ยวรถ)`,
+              timer: 1800,
+              showConfirmButton: false
+            });
+          } else {
+            Swal.fire('❌ ไม่พบข้อมูล', data.error || 'เกิดข้อผิดพลาดในการโหลดข้อมูลประวัติ', 'error');
+          }
+        })
+        .catch(err => {
+          Swal.fire('❌ โหลดข้อมูลไม่สำเร็จ', err.message || 'Network Error', 'error');
+        });
+    }
+
+    function triggerManualSnapshot() {
+      Swal.fire({
+        title: 'บันทึก Snapshot ตอนนี้?',
+        text: 'ระบบจะทำการดึงข้อมูลล่าสุดจาก Google Sheet และบันทึกเป็น Snapshot ประจำวันทันที',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#2563eb',
+        confirmButtonText: '⚡ บันทึกทันที',
+        cancelButtonText: 'ยกเลิก'
+      }).then(result => {
+        if (result.isConfirmed) {
+          Swal.fire({
+            title: 'กำลังบันทึก Snapshot...',
+            text: 'กำลังประมวลผลและบันทึกข้อมูลลงฐานข้อมูล Archive',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+          });
+
+          fetch('/api/lh-trip/auto-archive', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ force: true })
+          })
+          .then(r => r.json())
+          .then(res => {
+            if (res && res.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'บันทึก Snapshot สำเร็จ! 🎉',
+                text: res.message || 'บันทึกข้อมูลประจำวันเรียบร้อยแล้ว',
+                timer: 2000,
+                showConfirmButton: false
+              });
+              loadHistoryDatesDropdown();
+            } else {
+              Swal.fire('❌ บันทึกไม่สำเร็จ', res.error || 'Unknown error', 'error');
+            }
+          })
+          .catch(err => Swal.fire('❌ เกิดข้อผิดพลาด', err.message, 'error'));
+        }
+      });
+    }
 
     function openAppsScriptSyncModal() {
       syncAppsScriptDataToDashboard(EMBEDDED_PERSONAL_SHEET_URL);
@@ -2574,11 +2731,12 @@
 </body>
 </html>`;
 
+        const dateSuffix = (currentLoadedDate && currentLoadedDate !== 'live') ? `_${currentLoadedDate}` : '';
         const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `LH_TRIP_REPORT_HOURLY_AND_RAW_DATA_${totalTrips}_TRIPS.xls`;
+        link.download = `LH_TRIP_REPORT${dateSuffix}_HOURLY_AND_RAW_DATA_${totalTrips}_TRIPS.xls`;
         link.click();
       } catch (err) {
         if (typeof Swal !== 'undefined') {
@@ -2602,8 +2760,10 @@
       const lateOrders = lateRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
       const onTimeOrders = totalOrders - lateOrders;
 
+      const dateSuffix = (currentLoadedDate && currentLoadedDate !== 'live') ? `_${currentLoadedDate}` : '';
+
       if (window.AuthGuard && window.AuthGuard.logExport) {
-        window.AuthGuard.logExport('LH_TRIP_DASHBOARD_SUMMARY.csv', totalTrips, 'ดาวน์โหลดรายงานสรุปเวลาไหนกี่ตัว และ Raw Data');
+        window.AuthGuard.logExport(`LH_TRIP_DASHBOARD_SUMMARY${dateSuffix}.csv`, totalTrips, 'ดาวน์โหลดรายงานสรุปเวลาไหนกี่ตัว และ Raw Data');
       }
 
       let csv = '\uFEFF=== LH TRIP DASHBOARD SUMMARY REPORT ===\n\n';
@@ -2688,13 +2848,14 @@
         csv += `"${k}",${v.onTime},${v.onTimeOrders},${v.late},${v.lateOrders},${v.total},${v.totalOrders},${pct}%\n`;
       });
 
-      downloadCSVFile(csv, `LH_TRIP_HOURLY_SUMMARY_${totalTrips}_TRIPS.csv`);
+      downloadCSVFile(csv, `LH_TRIP_HOURLY_SUMMARY${dateSuffix}_${totalTrips}_TRIPS.csv`);
     }
 
     function exportFullRawDataCSV() {
       const records = (rawTripRecords && rawTripRecords.length) ? rawTripRecords : [];
+      const dateSuffix = (currentLoadedDate && currentLoadedDate !== 'live') ? `_${currentLoadedDate}` : '';
       if (window.AuthGuard && window.AuthGuard.logExport) {
-        window.AuthGuard.logExport('LH_Trip_Full_RawData.csv', records.length, 'ดาวน์โหลดข้อมูลดิบ LH Trip เที่ยวรถทั้งหมด');
+        window.AuthGuard.logExport(`LH_Trip_Full_RawData${dateSuffix}.csv`, records.length, 'ดาวน์โหลดข้อมูลดิบ LH Trip เที่ยวรถทั้งหมด');
       }
       let csvContent = '\uFEFFNo,LH_Trip_Number,Trip_Category,Vehicle_Type,Vehicle_Plate,Driver,Origin,Destination,Outbound_Orders,Outbound_Weight_KG,Standby_Time,Assign_Time,Cut_0,Cut_1,Cut_2,Cut_3,Actual_Dep_Cut,RMK,Status\n';
       records.forEach((r, idx) => {
@@ -2720,7 +2881,7 @@
 
         csvContent += `${idx + 1},"${shipId}","${category}","${vehType}","${vehPlate}","${driver}","${origin}","${dest}",${obOrders},${obWeight},"${standby}","${assign}","${cut0}","${cut1}","${cut2}","${cut3}","${actualDep}","${rmk}","${st}"\n`;
       });
-      downloadCSVFile(csvContent, `LH_TRIP_RAW_DATA_${records.length}_ALL.csv`);
+      downloadCSVFile(csvContent, `LH_TRIP_RAW_DATA${dateSuffix}_${records.length}_ALL.csv`);
     }
 
     function downloadCSVFile(csvContent, filename) {

@@ -1,0 +1,15 @@
+[
+  {
+    "date": "2026-09-17",
+    "archivedAt": "2026-09-17 20:50:03",
+    "totalTrips": 5913,
+    "onTimeTrips": 5358,
+    "lateTrips": 555,
+    "onTimeRate": 90.6,
+    "obLateCount": 359,
+    "lhLateCount": 196,
+    "totalOrders": 1975450,
+    "lateOrders": 375064,
+    "filename": "lh_trip_2026-09-17.json"
+  }
+]

@@ -11,7 +11,10 @@ import csv
 import io
 import warnings
 import requests
-import pandas as pd
+try:
+    import pandas as pd
+except Exception:
+    pd = None
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -6418,24 +6421,367 @@ def serve_static_files(filename):
         return send_from_directory(BASE_DIR, filename)
     return jsonify({"success": False, "error": "File not found"}), 404
 
-def start_hourly_sheet_background_sync():
+# ==========================================
+# 🚚 LH TRIP & OB LATE 14:00 AUTO-ARCHIVE ENGINE
+# ==========================================
+
+LH_TRIP_HISTORY_DIR = os.path.join(DATA_DIR, "lh_trip_history")
+os.makedirs(LH_TRIP_HISTORY_DIR, exist_ok=True)
+
+DEFAULT_LH_TRIP_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv"
+
+def fetch_and_archive_lh_trip_snapshot(date_str=None, force=False, custom_url=None):
+    if not date_str:
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        
+    target_file = os.path.join(LH_TRIP_HISTORY_DIR, f"lh_trip_{date_str}.json")
+    if os.path.exists(target_file) and not force:
+        try:
+            with open(target_file, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+            return {"success": True, "message": f"Snapshot for {date_str} already exists.", "already_exists": True, "file": target_file, "summary": cached.get("summary", {})}
+        except Exception:
+            pass
+            
+    url = custom_url or DEFAULT_LH_TRIP_SHEET_URL
+    try:
+        resp = requests.get(url, timeout=40, headers={"User-Agent": "Mozilla/5.0"})
+        resp.encoding = 'utf-8'
+        if resp.status_code != 200:
+            return {"success": False, "error": f"HTTP {resp.status_code} fetching Google Sheet"}
+            
+        csv_text = resp.text
+        reader = list(csv.reader(io.StringIO(csv_text)))
+        if not reader or len(reader) < 2:
+            return {"success": False, "error": "CSV is empty or invalid format"}
+            
+        headers = reader[0]
+        data_rows = reader[1:]
+        
+        # Determine column indexes
+        dep_idx = 21
+        stat_idx = 23
+        dest_idx = 7
+        trip_idx = 1
+        veh_idx = 3
+        plate_idx = 4
+        driver_idx = 5
+        orig_idx = 6
+        standby_idx = 19
+        assign_idx = 20
+        rmk_idx = 24
+        intent_idx = 25
+        c0_idx = 15
+        c1_idx = 16
+        c2_idx = 17
+        c3_idx = 18
+        zone_idx = 27
+        region_idx = 26
+        cat_idx = 2
+        ob_order_idx = 30
+        ob_weight_idx = 31
+        ob_to_idx = 29
+        
+        for idx, h in enumerate(headers):
+            s = str(h or "").lower().strip().replace("_", " ")
+            if "standby" in s and "assign" not in s: standby_idx = idx
+            if "assign" in s and "standby" not in s: assign_idx = idx
+            if any(k in s for k in ["actual dep cut", "dep cut", "actual dep", "departure time", "dep time", "เวลาออก", "com time"]) and not any(k in s for k in ["ops date", "date only", "day"]):
+                dep_idx = idx
+            if s == "rmk" or "remark" in s or "หมายเหตุ" in s: rmk_idx = idx
+            if "intent" in s: intent_idx = idx
+            if any(k in s for k in ["status", "show on time", "on time/late"]): stat_idx = idx
+            if any(k in s for k in ["destination", "ปลายทาง", "dest station"]): dest_idx = idx
+            if any(k in s for k in ["lh trip", "trip number", "trip id", "shipment"]): trip_idx = idx
+            if any(k in s for k in ["vehicle type", "vehicle", "ประเภทรถ"]) and not any(k in s for k in ["plate", "number", "ทะเบียน"]): veh_idx = idx
+            if any(k in s for k in ["plate", "license", "ทะเบียน"]): plate_idx = idx
+            if "driver" in s or "คนขับ" in s: driver_idx = idx
+            if "origin" in s or "ต้นทาง" in s: orig_idx = idx
+            if "cut 0" in s or "cut0" in s: c0_idx = idx
+            if "cut 1" in s or "cut1" in s: c1_idx = idx
+            if "cut 2" in s or "cut2" in s: c2_idx = idx
+            if "cut 3" in s or "cut3" in s: c3_idx = idx
+            if "zone" in s or "โซน" in s: zone_idx = idx
+            if "region" in s or "ภาค" in s: region_idx = idx
+            if "category" in s or "trip type" in s: cat_idx = idx
+            if any(k in s for k in ["outbound(order", "outbound (order", "outbound order", "outbound_order", "ob order", "ob(order)"]) or (("outbound" in s and "order" in s) or s in ["col 30", "col_30", "col 28", "col_28", "ae", "ac"]):
+                ob_order_idx = idx
+            if any(k in s for k in ["outbound(weight", "outbound weight"]) or (("outbound" in s and "weight" in s) or s in ["col 31", "col_31", "col 29", "col_29", "af", "ad"]):
+                ob_weight_idx = idx
+            if any(k in s for k in ["outbound(to", "outbound to"]) or ("outbound" in s and "to" in s):
+                ob_to_idx = idx
+                
+        def get_val(row, primary, fallbacks):
+            if primary < len(row) and row[primary] not in [None, "", "#REF!", "#N/A", "nan", "NaN"]:
+                return str(row[primary]).strip()
+            for f in fallbacks:
+                if f < len(row) and row[f] not in [None, "", "#REF!", "#N/A", "nan", "NaN"]:
+                    return str(row[f]).strip()
+            return ""
+
+        merged_map = {}
+        for r in data_rows:
+            trip_id = get_val(r, trip_idx, [1, 0])
+            raw_order = get_val(r, ob_order_idx, [30, 28, 24, 31])
+            raw_weight = get_val(r, ob_weight_idx, [31, 29, 25])
+            
+            p_order = 0.0
+            try:
+                if raw_order:
+                    p_order = float(str(raw_order).replace(",", "").strip())
+            except Exception:
+                p_order = 0.0
+                
+            p_weight = 0.0
+            try:
+                if raw_weight:
+                    p_weight = float(str(raw_weight).replace(",", "").strip())
+            except Exception:
+                p_weight = 0.0
+                
+            entry = {
+                "shipment_id": trip_id,
+                "trip_category": get_val(r, cat_idx, [2]),
+                "vehicle_type": get_val(r, veh_idx, [3]),
+                "vehicle_plate": get_val(r, plate_idx, [4]),
+                "driver": get_val(r, driver_idx, [5]),
+                "origin": get_val(r, orig_idx, [6]),
+                "dest_station_name": get_val(r, dest_idx, [7]),
+                "outbound_order": p_order,
+                "outbound_weight": p_weight,
+                "outbound_to": get_val(r, ob_to_idx, [29, 23]),
+                "standby_time": get_val(r, standby_idx, [19]),
+                "assign_time": get_val(r, assign_idx, [20]),
+                "cut0": get_val(r, c0_idx, [15]),
+                "cut1": get_val(r, c1_idx, [16]),
+                "cut2": get_val(r, c2_idx, [17]),
+                "cut3": get_val(r, c3_idx, [18]),
+                "actual_dep_cut": get_val(r, dep_idx, [21, 19, 13, 14, 20, 18]),
+                "rmk": get_val(r, rmk_idx, [24, 22]),
+                "intentional": get_val(r, intent_idx, [25, 23]),
+                "status": get_val(r, stat_idx, [23, 21, 14, 13]),
+                "region": get_val(r, region_idx, [26, 25]),
+                "zone": get_val(r, zone_idx, [27, 26, 25])
+            }
+            
+            if not trip_id:
+                merged_map[f"_anon_{len(merged_map)}"] = entry
+            elif trip_id not in merged_map:
+                merged_map[trip_id] = entry
+            else:
+                existing = merged_map[trip_id]
+                if entry["outbound_order"] > existing["outbound_order"]:
+                    existing["outbound_order"] = entry["outbound_order"]
+                if entry["outbound_weight"] > existing["outbound_weight"]:
+                    existing["outbound_weight"] = entry["outbound_weight"]
+                for k in ["standby_time", "assign_time", "actual_dep_cut", "rmk", "intentional", "status", "cut0", "cut1", "cut2", "cut3", "region", "zone", "trip_category", "vehicle_type", "vehicle_plate", "driver", "dest_station_name"]:
+                    if (not existing.get(k) or existing[k] in ["nan", "-"]) and (entry.get(k) and entry[k] not in ["nan", "-"]):
+                        existing[k] = entry[k]
+
+        merged_rows = list(merged_map.values())
+        total_trips = len(merged_rows)
+        late_rows = [r for r in merged_rows if "late" in str(r.get("status", "")).lower()]
+        late_trips = len(late_rows)
+        on_time_trips = total_trips - late_trips
+        on_time_rate = round((on_time_trips / total_trips * 100), 1) if total_trips > 0 else 0.0
+        
+        ob_late_rows = [r for r in merged_rows if "ob late" in str(r.get("rmk", "")).lower() or ("late" in str(r.get("status", "")).lower() and "lh late" not in str(r.get("rmk", "")).lower())]
+        lh_late_rows = [r for r in merged_rows if "lh late" in str(r.get("rmk", "")).lower()]
+        
+        total_orders = sum(r.get("outbound_order", 0) for r in merged_rows)
+        late_orders = sum(r.get("outbound_order", 0) for r in late_rows)
+        on_time_orders = total_orders - late_orders
+        
+        ob_late_orders = sum(r.get("outbound_order", 0) for r in ob_late_rows)
+        lh_late_orders = sum(r.get("outbound_order", 0) for r in lh_late_rows)
+        
+        summary = {
+            "date": date_str,
+            "archivedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "totalTrips": total_trips,
+            "onTimeTrips": on_time_trips,
+            "lateTrips": late_trips,
+            "onTimeRate": on_time_rate,
+            "obLateCount": len(ob_late_rows),
+            "lhLateCount": len(lh_late_rows),
+            "totalOrders": int(total_orders),
+            "onTimeOrders": int(on_time_orders),
+            "lateOrders": int(late_orders),
+            "obLateOrders": int(ob_late_orders),
+            "lhLateOrders": int(lh_late_orders),
+            "totalWeightKg": round(sum(r.get("outbound_weight", 0) for r in merged_rows), 1),
+            "upcLateTrips": len([r for r in late_rows if "upc" in str(r.get("region", "")).lower()]),
+            "gbkkLateTrips": len([r for r in late_rows if "gbkk" in str(r.get("region", "")).lower()]),
+            "zoneA_Late": len([r for r in late_rows if str(r.get("zone", "")).upper() == "A"]),
+            "zoneB_Late": len([r for r in late_rows if str(r.get("zone", "")).upper() == "B"]),
+            "zoneC_Late": len([r for r in late_rows if str(r.get("zone", "")).upper() == "C"])
+        }
+        
+        payload = {
+            "success": True,
+            "date": date_str,
+            "archivedAt": summary["archivedAt"],
+            "generatedAt": summary["archivedAt"],
+            "summary": summary,
+            "totalTrips": total_trips,
+            "headers": headers,
+            "rows": data_rows,
+            "outboundRawRows": merged_rows
+        }
+        
+        with open(target_file, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False)
+            
+        latest_file = os.path.join(LH_TRIP_HISTORY_DIR, "lh_trip_latest.json")
+        with open(latest_file, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False)
+            
+        # Update history index
+        index_file = os.path.join(LH_TRIP_HISTORY_DIR, "history_index.json")
+        index_data = []
+        if os.path.exists(index_file):
+            try:
+                with open(index_file, "r", encoding="utf-8") as f:
+                    index_data = json.load(f)
+            except Exception:
+                index_data = []
+                
+        index_data = [d for d in index_data if d.get("date") != date_str]
+        index_data.insert(0, {
+            "date": date_str,
+            "archivedAt": summary["archivedAt"],
+            "totalTrips": total_trips,
+            "onTimeTrips": on_time_trips,
+            "lateTrips": late_trips,
+            "onTimeRate": on_time_rate,
+            "obLateCount": len(ob_late_rows),
+            "lhLateCount": len(lh_late_rows),
+            "totalOrders": int(total_orders),
+            "lateOrders": int(late_orders),
+            "filename": f"lh_trip_{date_str}.json"
+        })
+        index_data.sort(key=lambda x: x.get("date", ""), reverse=True)
+        
+        with open(index_file, "w", encoding="utf-8") as f:
+            json.dump(index_data, f, ensure_ascii=False, indent=2)
+            
+        log_activity("AUTO_ARCHIVE_LH_TRIP", f"⏰ บันทึกข้อมูล LH Trip อัตโนมัติรอบ 14:00 น. วันที่ {date_str} ({total_trips:,} เที่ยวรถ | {int(total_orders):,} Orders)")
+        
+        return {
+            "success": True,
+            "message": f"บันทึกข้อมูล LH Trip รอบ 14:00 น. ประจำวันที่ {date_str} สำเร็จ ({total_trips:,} เที่ยวรถ)",
+            "summary": summary,
+            "file": target_file
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+@app.route("/api/lh-trip/history-dates", methods=["GET"])
+def get_lh_trip_history_dates_api():
+    index_file = os.path.join(LH_TRIP_HISTORY_DIR, "history_index.json")
+    if os.path.exists(index_file):
+        try:
+            with open(index_file, "r", encoding="utf-8") as f:
+                dates = json.load(f)
+                return jsonify({"success": True, "dates": dates})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+            
+    # Fallback to scanning directory
+    files = [f for f in os.listdir(LH_TRIP_HISTORY_DIR) if f.startswith("lh_trip_") and f.endswith(".json") and f != "lh_trip_latest.json"]
+    date_list = []
+    for f in sorted(files, reverse=True):
+        m = re.match(r"lh_trip_(\d{4}-\d{2}-\d{2})\.json", f)
+        if m:
+            date_list.append({"date": m.group(1), "filename": f})
+    return jsonify({"success": True, "dates": date_list})
+
+
+@app.route("/api/lh-trip/history", methods=["GET"])
+def get_lh_trip_history_api():
+    date_str = request.args.get("date", "").strip()
+    is_latest = request.args.get("latest", "").lower() == "true"
+    
+    if not date_str or is_latest:
+        target_file = os.path.join(LH_TRIP_HISTORY_DIR, "lh_trip_latest.json")
+    else:
+        target_file = os.path.join(LH_TRIP_HISTORY_DIR, f"lh_trip_{date_str}.json")
+        
+    if not os.path.exists(target_file):
+        # Try fetching on demand if today's date
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        if date_str == today_str or is_latest or not date_str:
+            res = fetch_and_archive_lh_trip_snapshot(date_str=today_str, force=True)
+            if res.get("success") and os.path.exists(target_file):
+                try:
+                    with open(target_file, "r", encoding="utf-8") as f:
+                        return jsonify(json.load(f))
+                except Exception:
+                    pass
+        return jsonify({"success": False, "error": f"ไม่พบข้อมูลบันทึกประวัติ LH Trip ของวันที่ {date_str or 'latest'}"}), 404
+        
+    try:
+        with open(target_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการโหลดข้อมูล: {str(e)}"}), 500
+
+
+@app.route("/api/lh-trip/auto-archive", methods=["POST"])
+def manual_trigger_lh_trip_archive_api():
+    req = request.get_json(silent=True) or {}
+    date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+    force = req.get("force", True)
+    custom_url = req.get("url")
+    
+    res = fetch_and_archive_lh_trip_snapshot(date_str=date_str, force=force, custom_url=custom_url)
+    return jsonify(res)
+
+
+@app.route("/api/sync-google-sheet", methods=["GET"])
+def sync_google_sheet_proxy_api():
+    url = request.args.get("url") or DEFAULT_LH_TRIP_SHEET_URL
+    res = fetch_and_archive_lh_trip_snapshot(force=True, custom_url=url)
+    if res.get("success") and "file" in res:
+        try:
+            with open(res["file"], "r", encoding="utf-8") as f:
+                return jsonify(json.load(f))
+        except Exception:
+            pass
+    return jsonify(res)
+
+
+
+
+
+def start_lh_trip_daily_1400_auto_sync():
     import threading, time
     def worker():
-        time.sleep(10) # wait for app startup
+        time.sleep(12)  # Wait for startup
         while True:
             try:
-                settings = load_system_settings()
-                gs_cfg = settings.get("googleSheetSync", {})
-                if gs_cfg.get("enabled") and gs_cfg.get("url"):
-                    sync_productivity_orders_sheet(sheet_url=gs_cfg.get("url"), auto_save=True)
+                now = datetime.now()
+                today_str = now.strftime("%Y-%m-%d")
+                target_file = os.path.join(LH_TRIP_HISTORY_DIR, f"lh_trip_{today_str}.json")
+                
+                # Check if it is 14:00 or later and today's snapshot doesn't exist
+                if now.hour >= 14 and not os.path.exists(target_file):
+                    print(f"[LH Trip Auto-Sync] ⏰ Reached 14:00 schedule! Auto-saving daily snapshot for {today_str}...")
+                    res = fetch_and_archive_lh_trip_snapshot(date_str=today_str, force=False)
+                    print(f"[LH Trip Auto-Sync Result]: {res.get('message', res.get('error'))}")
             except Exception as e:
-                print(f"[Hourly Sheet Background Sync Error]: {e}")
-            time.sleep(300) # Sync every 5 minutes
+                print(f"[LH Trip Background Sync Error]: {e}")
+            time.sleep(30) # Check every 30 seconds
 
     t = threading.Thread(target=worker, daemon=True)
     t.start()
 
-start_hourly_sheet_background_sync()
+start_lh_trip_daily_1400_auto_sync()
+
 
 if __name__ == "__main__":
     print("=" * 60)
