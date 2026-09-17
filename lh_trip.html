@@ -709,100 +709,102 @@
     }
 
     async function triggerSaveToGoogleDriveAndSnapshot() {
-      const opsDateStr = getOpsDateForExport();
+      const opsDateStr = typeof getOpsDateForExport === 'function' ? getOpsDateForExport() : (new Date().toISOString().slice(0,10));
       const targetFolderId = "1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1";
       const targetFolderUrl = `https://drive.google.com/drive/folders/${targetFolderId}`;
       const fileName = `Dashboard Charts - ${opsDateStr}`;
+      const selectedDate = (typeof currentSnapshotDate !== 'undefined' && currentSnapshotDate && currentSnapshotDate !== 'live') ? currentSnapshotDate : (new Date().toISOString().slice(0,10));
+      const records = (typeof rawTripRecords !== 'undefined' && Array.isArray(rawTripRecords)) ? rawTripRecords : [];
 
-      // 1. Check existing settings
-      let gasUrl = '';
       try {
-        const setRes = await safeApiFetch('/api/lh-trip/drive-settings');
-        if (setRes && setRes.settings && setRes.settings.appsScriptUrl) {
-          gasUrl = setRes.settings.appsScriptUrl.trim();
+        // 1. Check existing settings
+        let gasUrl = '';
+        try {
+          const setRes = await safeApiFetch('/api/lh-trip/drive-settings');
+          if (setRes && setRes.settings && setRes.settings.appsScriptUrl) {
+            gasUrl = setRes.settings.appsScriptUrl.trim();
+          }
+        } catch (e) {}
+
+        if (!gasUrl) {
+          gasUrl = localStorage.getItem('lh_trip_gas_drive_url') || '';
         }
-      } catch (e) {}
 
-      if (!gasUrl) {
-        gasUrl = localStorage.getItem('lh_trip_gas_drive_url') || '';
-      }
+        // If no Apps Script URL, ask user
+        if (!gasUrl) {
+          const { value: inputUrl } = await Swal.fire({
+            title: '☁️ บันทึกเข้า Google Drive',
+            html: `<div class="text-start small text-muted mb-2">
+                     เพื่อบันทึกไฟล์ <b>${fileName}</b> เข้าโฟลเดอร์ Google Drive:<br>
+                     <code class="text-primary">${targetFolderId}</code> อัตโนมัติ<br>
+                     กรุณาวาง <b>Google Apps Script Web App URL</b> (ทำครั้งเดียว):
+                   </div>`,
+            input: 'url',
+            inputPlaceholder: 'https://script.google.com/macros/s/.../exec',
+            showCancelButton: true,
+            confirmButtonText: '🚀 บันทึกและส่งข้อมูลทันที',
+            cancelButtonText: 'ยกเลิก',
+            footer: '<a href="javascript:void(0)" onclick="openGoogleDriveSyncModal()" class="small text-primary fw-bold"><i class="fa-solid fa-circle-question me-1"></i> ดูวิธีรับ Web App URL (1 นาที)</a>'
+          });
 
-      // If no Apps Script URL, ask user
-      if (!gasUrl) {
-        const { value: inputUrl } = await Swal.fire({
-          title: '☁️ บันทึกเข้า Google Drive',
-          html: `<div class="text-start small text-muted mb-2">
-                   เพื่อบันทึกไฟล์ <b>${fileName}</b> เข้าโฟลเดอร์ Google Drive:<br>
-                   <code class="text-primary">${targetFolderId}</code> อัตโนมัติ<br>
-                   กรุณาวาง <b>Google Apps Script Web App URL</b> (ทำครั้งเดียว):
-                 </div>`,
-          input: 'url',
-          inputPlaceholder: 'https://script.google.com/macros/s/.../exec',
-          showCancelButton: true,
-          confirmButtonText: '🚀 บันทึกและส่งข้อมูลทันที',
-          cancelButtonText: 'ยกเลิก',
-          footer: '<a href="javascript:void(0)" onclick="openGoogleDriveSyncModal()" class="small text-primary fw-bold"><i class="fa-solid fa-circle-question me-1"></i> ดูวิธีรับ Web App URL (1 นาที)</a>'
+          if (!inputUrl || !inputUrl.trim()) return;
+          gasUrl = inputUrl.trim();
+          localStorage.setItem('lh_trip_gas_drive_url', gasUrl);
+          // Save to backend settings
+          try {
+            await safeApiFetch('/api/lh-trip/drive-settings', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ appsScriptUrl: gasUrl, enabled: true, autoUpload1400: true })
+            });
+          } catch(e) {}
+        }
+
+        // 2. Perform Save with visual loading
+        Swal.fire({
+          title: 'กำลังส่งข้อมูลเข้า Google Drive...',
+          html: `<div>กำลังสร้างและเซฟไฟล์ <b>${fileName}</b></div>
+                 <div class="small text-muted mt-1">เข้าสู่โฟลเดอร์ Google Drive: <br><span class="font-monospace text-primary">${targetFolderId}</span></div>`,
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading()
         });
 
-        if (!inputUrl || !inputUrl.trim()) return;
-        gasUrl = inputUrl.trim();
-        localStorage.setItem('lh_trip_gas_drive_url', gasUrl);
-        // Save to backend settings
-        try {
-          await safeApiFetch('/api/lh-trip/drive-settings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ appsScriptUrl: gasUrl, enabled: true, autoUpload1400: true })
-          });
-        } catch(e) {}
-      }
+        // 3. Build lightweight compact 2D array (only 200-300KB instead of 20MB)
+        const compactRows = records.map((r, i) => [
+          i + 1,
+          r.shipment_id || (r.cells ? r.cells[1] : '') || `TRIP_${i+1}`,
+          r.trip_category || (r.cells ? r.cells[2] : '') || '-',
+          r.vehicle_type || (r.cells ? r.cells[3] : '') || '-',
+          r.vehicle_plate || (r.cells ? r.cells[4] : '') || '-',
+          r.driver || (r.cells ? r.cells[5] : '') || '-',
+          r.origin || (r.cells ? r.cells[6] : '') || 'SOCN',
+          r.dest_station_name || (r.cells ? r.cells[7] : '') || '-',
+          Number(r.outbound_order || 0),
+          Number(r.outbound_weight || 0),
+          r.standby_time || (r.cells ? r.cells[19] : '') || '-',
+          r.assign_time || (r.cells ? r.cells[20] : '') || '-',
+          r.cut0 || (r.cells ? r.cells[15] : '') || '—',
+          r.cut1 || (r.cells ? r.cells[16] : '') || '—',
+          r.cut2 || (r.cells ? r.cells[17] : '') || '—',
+          r.cut3 || (r.cells ? r.cells[18] : '') || '—',
+          r.actual_dep_cut || (r.cells ? r.cells[21] || r.cells[19] : '') || '-',
+          r.rmk || (r.cells ? r.cells[24] : '') || '-',
+          String(r.status || (r.cells ? r.cells[23] : '')).toLowerCase().includes('late') ? 'Late' : 'On time'
+        ]);
 
-      // 2. Perform Save
-      Swal.fire({
-        title: 'กำลังส่งข้อมูลเข้า Google Drive...',
-        html: `<div>กำลังสร้างและเซฟไฟล์ <b>${fileName}</b></div>
-               <div class="small text-muted mt-1">เข้าสู่โฟลเดอร์ Google Drive: <br><span class="font-monospace text-primary">${targetFolderId}</span></div>`,
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-      });
+        const payloadData = {
+          date: selectedDate,
+          opsDate: opsDateStr,
+          archivedAt: new Date().toLocaleString('th-TH'),
+          summary: {
+            totalTrips: records.length,
+            lateTrips: records.filter(r => String(r.status || '').toLowerCase().includes('late')).length,
+            totalOrders: records.reduce((s, r) => s + (Number(r.outbound_order) || 0), 0),
+            lateOrders: records.filter(r => String(r.status || '').toLowerCase().includes('late')).reduce((s, r) => s + (Number(r.outbound_order) || 0), 0)
+          },
+          compactRawRows: compactRows
+        };
 
-      // 2. Build lightweight compact 2D array (only 200-300KB instead of 20MB)
-      const compactRows = rawTripRecords.map((r, i) => [
-        i + 1,
-        r.shipment_id || (r.cells ? r.cells[1] : '') || `TRIP_${i+1}`,
-        r.trip_category || (r.cells ? r.cells[2] : '') || '-',
-        r.vehicle_type || (r.cells ? r.cells[3] : '') || '-',
-        r.vehicle_plate || (r.cells ? r.cells[4] : '') || '-',
-        r.driver || (r.cells ? r.cells[5] : '') || '-',
-        r.origin || (r.cells ? r.cells[6] : '') || 'SOCN',
-        r.dest_station_name || (r.cells ? r.cells[7] : '') || '-',
-        Number(r.outbound_order || 0),
-        Number(r.outbound_weight || 0),
-        r.standby_time || (r.cells ? r.cells[19] : '') || '-',
-        r.assign_time || (r.cells ? r.cells[20] : '') || '-',
-        r.cut0 || (r.cells ? r.cells[15] : '') || '—',
-        r.cut1 || (r.cells ? r.cells[16] : '') || '—',
-        r.cut2 || (r.cells ? r.cells[17] : '') || '—',
-        r.cut3 || (r.cells ? r.cells[18] : '') || '—',
-        r.actual_dep_cut || (r.cells ? r.cells[21] || r.cells[19] : '') || '-',
-        r.rmk || (r.cells ? r.cells[24] : '') || '-',
-        String(r.status || (r.cells ? r.cells[23] : '')).toLowerCase().includes('late') ? 'Late' : 'On time'
-      ]);
-
-      const payloadData = {
-        date: selectedDate || (new Date().toISOString().slice(0,10)),
-        opsDate: opsDateStr,
-        archivedAt: new Date().toLocaleString('th-TH'),
-        summary: {
-          totalTrips: rawTripRecords.length,
-          lateTrips: rawTripRecords.filter(r => String(r.status || '').toLowerCase().includes('late')).length,
-          totalOrders: rawTripRecords.reduce((s, r) => s + (Number(r.outbound_order) || 0), 0),
-          lateOrders: rawTripRecords.filter(r => String(r.status || '').toLowerCase().includes('late')).reduce((s, r) => s + (Number(r.outbound_order) || 0), 0)
-        },
-        compactRawRows: compactRows
-      };
-
-      try {
         // Send direct POST from browser in non-blocking background
         fetch(gasUrl, {
           method: 'POST',
@@ -834,9 +836,10 @@
         });
 
         if (window.AuthGuard && window.AuthGuard.logExport) {
-          window.AuthGuard.logExport(`Google Drive: ${fileName}`, rawTripRecords.length, 'ส่งไฟล์ Google Spreadsheet เข้า Google Drive โฟลเดอร์เป้าหมาย');
+          window.AuthGuard.logExport(`Google Drive: ${fileName}`, records.length, 'ส่งไฟล์ Google Spreadsheet เข้า Google Drive โฟลเดอร์เป้าหมาย');
         }
       } catch (err) {
+        console.error('triggerSaveToGoogleDriveAndSnapshot error:', err);
         Swal.fire({
           icon: 'error',
           title: '❌ ไม่สามารถบันทึกเข้า Google Drive ได้',
