@@ -1755,9 +1755,11 @@ def process_table_sheet(df):
             padded_rows = [r + [''] * (num_cols - len(r)) for r in cell_rows]
             df = pd.DataFrame(padded_rows, columns=headers)
 
+    # 1. Detect trip column (Column B / index 1 prioritized)
     trip_col = None
     for c in df.columns:
-        if 'lh trip' in str(c).lower() or 'trip number' in str(c).lower():
+        c_str = str(c).lower().replace("_", " ").strip()
+        if any(k in c_str for k in ['lh trip', 'trip number', 'trip id', 'shipment']):
             trip_col = c
             break
     if not trip_col:
@@ -1864,24 +1866,35 @@ def process_table_sheet(df):
     if not region_col and len(df_clean.columns) > 25: region_col = df_clean.columns[25]
     if not zone_col and len(df_clean.columns) > 26: zone_col = df_clean.columns[26]
 
-    # Detect Outbound and Inbound order & weight columns (Column Y = Outbound(order), Column Z = Outbound(weight)(KG))
+    # Detect Outbound and Inbound order & weight columns (Column AC = index 28 / Column Y = index 24)
     ob_order_col = None
     ob_weight_col = None
     ob_to_col = None
 
     for c in df_clean.columns:
         c_str = str(c).lower().replace("_", " ").strip()
-        if ('outbound(order' in c_str or 'outbound (order' in c_str or 'outbound order' in c_str or 'ob order' in c_str or ('outbound' in c_str and 'order' in c_str)) and not ob_order_col:
+        if ('outbound(order' in c_str or 'outbound (order' in c_str or 'outbound order' in c_str or 'ob order' in c_str or ('outbound' in c_str and 'order' in c_str) or c_str in ['col 28', 'col_28', 'ac']) and not ob_order_col:
             ob_order_col = c
-        elif ('outbound(weight' in c_str or 'outbound weight' in c_str or ('outbound' in c_str and 'weight' in c_str)) and not ob_weight_col:
+        elif ('outbound(weight' in c_str or 'outbound weight' in c_str or ('outbound' in c_str and 'weight' in c_str) or c_str in ['col 29', 'col_29', 'ad']) and not ob_weight_col:
             ob_weight_col = c
         elif ('outbound(to' in c_str or 'outbound to' in c_str or ('outbound' in c_str and 'to' in c_str)) and not ob_to_col:
             ob_to_col = c
 
-    # Fallback to column index Y (24), Z (25), X (23) if not found by name
-    if not ob_order_col and len(df_clean.columns) > 24: ob_order_col = df_clean.columns[24]
-    if not ob_weight_col and len(df_clean.columns) > 25: ob_weight_col = df_clean.columns[25]
-    if not ob_to_col and len(df_clean.columns) > 23: ob_to_col = df_clean.columns[23]
+    # Fallback to column index: prioritize Column AC (28), then Column Y (24)
+    if not ob_order_col:
+        if len(df_clean.columns) > 28:
+            ob_order_col = df_clean.columns[28]
+        elif len(df_clean.columns) > 24:
+            ob_order_col = df_clean.columns[24]
+
+    if not ob_weight_col:
+        if len(df_clean.columns) > 29:
+            ob_weight_col = df_clean.columns[29]
+        elif len(df_clean.columns) > 25:
+            ob_weight_col = df_clean.columns[25]
+
+    if not ob_to_col and len(df_clean.columns) > 23:
+        ob_to_col = df_clean.columns[23]
 
     raw_rows = []
     rows_cells = []
@@ -1891,9 +1904,20 @@ def process_table_sheet(df):
         cells = [str(val) if pd.notna(val) else '' for val in row]
         rows_cells.append({"cells": cells, "routeLink": ""})
 
-        # Parse numeric outbound_order and outbound_weight safely from Column Y and Z
+        # Parse numeric outbound_order and outbound_weight safely from Column AC (28) or Column Y (24)
         raw_ob_order = row.get(ob_order_col, '') if ob_order_col else ''
+        if (pd.isna(raw_ob_order) or str(raw_ob_order).strip() in ['', '0', '0.0', 'nan', 'NaN', '#REF!']):
+            if len(row) > 28 and pd.notna(row.iloc[28]) and str(row.iloc[28]).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!']:
+                raw_ob_order = row.iloc[28]
+            elif len(row) > 24 and pd.notna(row.iloc[24]) and str(row.iloc[24]).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!']:
+                raw_ob_order = row.iloc[24]
+
         raw_ob_weight = row.get(ob_weight_col, '') if ob_weight_col else ''
+        if (pd.isna(raw_ob_weight) or str(raw_ob_weight).strip() in ['', '0', '0.0', 'nan', 'NaN', '#REF!']):
+            if len(row) > 29 and pd.notna(row.iloc[29]) and str(row.iloc[29]).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!']:
+                raw_ob_weight = row.iloc[29]
+            elif len(row) > 25 and pd.notna(row.iloc[25]) and str(row.iloc[25]).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!']:
+                raw_ob_weight = row.iloc[25]
 
         parsed_ob_order = 0
         if pd.notna(raw_ob_order) and str(raw_ob_order).strip():
