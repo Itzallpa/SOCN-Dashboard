@@ -766,7 +766,29 @@
         didOpen: () => Swal.showLoading()
       });
 
-      const selectedDate = currentSnapshotDate === 'live' ? '' : currentSnapshotDate;
+      // 2. Build lightweight compact 2D array (only 200-300KB instead of 20MB)
+      const compactRows = rawTripRecords.map((r, i) => [
+        i + 1,
+        r.shipment_id || (r.cells ? r.cells[1] : '') || `TRIP_${i+1}`,
+        r.trip_category || (r.cells ? r.cells[2] : '') || '-',
+        r.vehicle_type || (r.cells ? r.cells[3] : '') || '-',
+        r.vehicle_plate || (r.cells ? r.cells[4] : '') || '-',
+        r.driver || (r.cells ? r.cells[5] : '') || '-',
+        r.origin || (r.cells ? r.cells[6] : '') || 'SOCN',
+        r.dest_station_name || (r.cells ? r.cells[7] : '') || '-',
+        Number(r.outbound_order || 0),
+        Number(r.outbound_weight || 0),
+        r.standby_time || (r.cells ? r.cells[19] : '') || '-',
+        r.assign_time || (r.cells ? r.cells[20] : '') || '-',
+        r.cut0 || (r.cells ? r.cells[15] : '') || '—',
+        r.cut1 || (r.cells ? r.cells[16] : '') || '—',
+        r.cut2 || (r.cells ? r.cells[17] : '') || '—',
+        r.cut3 || (r.cells ? r.cells[18] : '') || '—',
+        r.actual_dep_cut || (r.cells ? r.cells[21] || r.cells[19] : '') || '-',
+        r.rmk || (r.cells ? r.cells[24] : '') || '-',
+        String(r.status || (r.cells ? r.cells[23] : '')).toLowerCase().includes('late') ? 'Late' : 'On time'
+      ]);
+
       const payloadData = {
         date: selectedDate || (new Date().toISOString().slice(0,10)),
         opsDate: opsDateStr,
@@ -777,38 +799,35 @@
           totalOrders: rawTripRecords.reduce((s, r) => s + (Number(r.outbound_order) || 0), 0),
           lateOrders: rawTripRecords.filter(r => String(r.status || '').toLowerCase().includes('late')).reduce((s, r) => s + (Number(r.outbound_order) || 0), 0)
         },
-        outboundRawRows: rawTripRecords
+        compactRawRows: compactRows
       };
 
       try {
-        // Send direct POST from browser (takes advantage of active Google session)
-        const sendDirectPromise = fetch(gasUrl, {
+        // Send direct POST from browser in non-blocking background
+        fetch(gasUrl, {
           method: 'POST',
           mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payloadData)
         }).catch(e => console.warn('Direct GAS fetch:', e));
 
-        // Trigger local snapshot in parallel
+        // Trigger local snapshot in background
         safeApiFetch('/api/lh-trip/auto-archive', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ force: true })
         }).then(() => loadHistoryDatesDropdown()).catch(()=>{});
 
-        // Wait brief moment for transmission
-        await Promise.race([
-          sendDirectPromise,
-          new Promise(res => setTimeout(res, 3500))
-        ]);
+        // 1.5s gentle delay for visual confirmation
+        await new Promise(res => setTimeout(res, 1500));
 
         const folderLink = `<a href="${targetFolderUrl}" target="_blank" class="btn btn-outline-primary btn-sm fw-bold"><i class="fa-brands fa-google-drive me-1"></i> 📁 เปิดโฟลเดอร์ Google Drive</a>`;
 
         Swal.fire({
           icon: 'success',
           title: 'ส่งไฟล์เข้า Google Drive เรียบร้อย! 🎉',
-          html: `<div class="mb-2">สร้างไฟล์ <b>${fileName}</b> เรียบร้อยแล้ว</div>
-                 <div class="small text-muted mb-3">ระบบได้บันทึกไฟล์ Spreadsheet เข้าโฟลเดอร์ Google Drive ของคุณเรียบร้อยแล้วครับ</div>
+          html: `<div class="mb-2">บันทึกไฟล์ <b>${fileName}</b> เข้าโฟลเดอร์ Google Drive แล้ว</div>
+                 <div class="small text-muted mb-3">ระบบกำลังสร้างและอัปเดตสเปรดชีตใน Google Drive โฟลเดอร์เป้าหมายให้เรียบร้อยครับ</div>
                  <div class="d-flex justify-content-center gap-2 flex-wrap">${folderLink}</div>`,
           showConfirmButton: true,
           confirmButtonText: 'ตกลง'

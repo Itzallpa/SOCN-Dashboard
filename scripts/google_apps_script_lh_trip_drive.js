@@ -124,50 +124,88 @@ function createDashboardChartsSpreadsheet(data) {
   var lhHubMap = {}, obHubMap = {};
   var rawTableData = [];
 
-  for (var i = 0; i < rows.length; i++) {
-    var r = rows[i];
-    var isLateTr = String(r.status || "").toLowerCase().indexOf("late") !== -1;
-    var ord = Number(r.outbound_order || (r.cells ? r.cells[30] : 0)) || 0;
-    var wt = Number(r.outbound_weight || (r.cells ? r.cells[31] : 0)) || 0;
-    var dep = String(r.actual_dep_cut || (r.cells ? r.cells[21] : "") || "");
-    var hub = r.dest_station_name || "Unknown";
-    var rmk = String(r.rmk || "");
-    var rmkLower = rmk.toLowerCase();
+  if (data.compactRawRows && data.compactRawRows.length > 0) {
+    rawTableData = data.compactRawRows;
+    for (var i = 0; i < rawTableData.length; i++) {
+      var cr = rawTableData[i];
+      var dest = cr[7] || "Unknown";
+      var ord = Number(cr[8]) || 0;
+      var vStr = String(cr[3] || "").toLowerCase();
+      var dep = String(cr[16] || "");
+      var rmk = String(cr[17] || "");
+      var isLate = String(cr[18] || "").toLowerCase().indexOf("late") !== -1;
 
-    // Hourly
-    var match = dep.match(/(\d{1,2})[:.](\d{2})/);
-    if (match) {
-      var rH = parseInt(match[1], 10);
-      if (rH >= 0 && rH < 24) {
-        var b = hourlyBuckets[rH];
-        b.trips++;
-        b.orders += ord;
-        var v = String(r.vehicle_type || "").toLowerCase();
-        if (v.indexOf("4wj") !== -1 || v.indexOf("จัมโบ้") !== -1) b.c4WJ++;
-        else if (v.indexOf("4w") !== -1 || v.indexOf("4ล้อ") !== -1) b.c4W++;
-        else if (v.indexOf("6w") !== -1 || v.indexOf("6ล้อ") !== -1) b.c6W++;
-        else if (v.indexOf("semi") !== -1 || v.indexOf("พ่วง") !== -1 || v.indexOf("trailer") !== -1) b.cSemi++;
-        else b.cOther++;
+      var match = dep.match(/(\d{1,2})[:.](\d{2})/);
+      if (match) {
+        var rH = parseInt(match[1], 10);
+        if (rH >= 0 && rH < 24) {
+          var b = hourlyBuckets[rH];
+          b.trips++;
+          b.orders += ord;
+          if (vStr.indexOf("4wj") !== -1 || vStr.indexOf("จัมโบ้") !== -1) b.c4WJ++;
+          else if (vStr.indexOf("4w") !== -1 || vStr.indexOf("4ล้อ") !== -1) b.c4W++;
+          else if (vStr.indexOf("6w") !== -1 || vStr.indexOf("6ล้อ") !== -1) b.c6W++;
+          else if (vStr.indexOf("semi") !== -1 || vStr.indexOf("พ่วง") !== -1 || vStr.indexOf("trailer") !== -1) b.cSemi++;
+          else b.cOther++;
+        }
+      }
+
+      if (isLate) {
+        if (rmk.toLowerCase().indexOf("lh late") !== -1) {
+          if (!lhHubMap[dest]) lhHubMap[dest] = { count: 0, orders: 0 };
+          lhHubMap[dest].count++; lhHubMap[dest].orders += ord;
+        } else {
+          if (!obHubMap[dest]) obHubMap[dest] = { count: 0, orders: 0 };
+          obHubMap[dest].count++; obHubMap[dest].orders += ord;
+        }
       }
     }
+  } else {
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var isLateTr = String(r.status || "").toLowerCase().indexOf("late") !== -1;
+      var ord = Number(r.outbound_order || (r.cells ? r.cells[30] : 0)) || 0;
+      var wt = Number(r.outbound_weight || (r.cells ? r.cells[31] : 0)) || 0;
+      var dep = String(r.actual_dep_cut || (r.cells ? r.cells[21] : "") || "");
+      var hub = r.dest_station_name || "Unknown";
+      var rmk = String(r.rmk || "");
+      var rmkLower = rmk.toLowerCase();
 
-    // Top Hubs
-    if (isLateTr) {
-      if (rmkLower.indexOf("lh late") !== -1) {
-        if (!lhHubMap[hub]) lhHubMap[hub] = { count: 0, orders: 0 };
-        lhHubMap[hub].count++; lhHubMap[hub].orders += ord;
-      } else {
-        if (!obHubMap[hub]) obHubMap[hub] = { count: 0, orders: 0 };
-        obHubMap[hub].count++; obHubMap[hub].orders += ord;
+      // Hourly
+      var match = dep.match(/(\d{1,2})[:.](\d{2})/);
+      if (match) {
+        var rH = parseInt(match[1], 10);
+        if (rH >= 0 && rH < 24) {
+          var b = hourlyBuckets[rH];
+          b.trips++;
+          b.orders += ord;
+          var v = String(r.vehicle_type || "").toLowerCase();
+          if (v.indexOf("4wj") !== -1 || v.indexOf("จัมโบ้") !== -1) b.c4WJ++;
+          else if (v.indexOf("4w") !== -1 || v.indexOf("4ล้อ") !== -1) b.c4W++;
+          else if (v.indexOf("6w") !== -1 || v.indexOf("6ล้อ") !== -1) b.c6W++;
+          else if (v.indexOf("semi") !== -1 || v.indexOf("พ่วง") !== -1 || v.indexOf("trailer") !== -1) b.cSemi++;
+          else b.cOther++;
+        }
       }
-    }
 
-    // Raw Row
-    rawTableData.push([
-      i + 1, r.shipment_id || "", r.trip_category || "", r.vehicle_type || "", r.vehicle_plate || "", r.driver || "",
-      r.origin || "SOCN", hub, ord, wt, r.standby_time || "", r.assign_time || "",
-      r.cut0 || "", r.cut1 || "", r.cut2 || "", r.cut3 || "", dep, rmk, isLateTr ? "Late" : "On time"
-    ]);
+      // Top Hubs
+      if (isLateTr) {
+        if (rmkLower.indexOf("lh late") !== -1) {
+          if (!lhHubMap[hub]) lhHubMap[hub] = { count: 0, orders: 0 };
+          lhHubMap[hub].count++; lhHubMap[hub].orders += ord;
+        } else {
+          if (!obHubMap[hub]) obHubMap[hub] = { count: 0, orders: 0 };
+          obHubMap[hub].count++; obHubMap[hub].orders += ord;
+        }
+      }
+
+      // Raw Row
+      rawTableData.push([
+        i + 1, r.shipment_id || "", r.trip_category || "", r.vehicle_type || "", r.vehicle_plate || "", r.driver || "",
+        r.origin || "SOCN", hub, ord, wt, r.standby_time || "", r.assign_time || "",
+        r.cut0 || "", r.cut1 || "", r.cut2 || "", r.cut3 || "", dep, rmk, isLateTr ? "Late" : "On time"
+      ]);
+    }
   }
 
   for (var hour = 0; hour < 24; hour++) {
