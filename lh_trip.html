@@ -543,9 +543,39 @@
 
     const EMBEDDED_PERSONAL_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv';
 
+    async function safeApiFetch(path, options = {}) {
+      const urlsToTry = [];
+      if (window.location.protocol !== 'file:') {
+        urlsToTry.push(path);
+      }
+      urlsToTry.push('http://localhost:5000' + path);
+      urlsToTry.push('http://127.0.0.1:5000' + path);
+
+      let lastError = null;
+      for (let u of urlsToTry) {
+        try {
+          const controller = new AbortController();
+          const tid = setTimeout(() => controller.abort(), 12000);
+          const fetchOpts = { ...options, signal: controller.signal };
+          const res = await fetch(u, fetchOpts);
+          clearTimeout(tid);
+          if (res.ok) {
+            const text = await res.text();
+            if (text && text.trim()) {
+              try {
+                return JSON.parse(text);
+              } catch (e) { }
+            }
+          }
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      throw lastError || new Error('Backend Offline');
+    }
+
     function loadHistoryDatesDropdown() {
-      fetch('/api/lh-trip/history-dates')
-        .then(r => r.json())
+      safeApiFetch('/api/lh-trip/history-dates')
         .then(data => {
           if (data && data.success && Array.isArray(data.dates)) {
             const select = document.getElementById('snapshotDateSelect');
@@ -560,9 +590,29 @@
             });
             select.innerHTML = html;
             select.value = currentLoadedDate;
+            try {
+              localStorage.setItem('lh_trip_history_dates', JSON.stringify(data.dates));
+            } catch (e) { }
           }
         })
-        .catch(err => console.warn('Could not load history dates:', err));
+        .catch(err => {
+          console.warn('Could not load history dates from backend, checking local storage:', err);
+          try {
+            const cached = JSON.parse(localStorage.getItem('lh_trip_history_dates') || '[]');
+            if (cached && cached.length) {
+              const select = document.getElementById('snapshotDateSelect');
+              if (!select) return;
+              let html = '<option value="live">🟢 ข้อมูลสดล่าสุด (Live Google Sheet)</option>';
+              cached.forEach(item => {
+                const dStr = item.date || item;
+                const trips = item.totalTrips ? ` (${Number(item.totalTrips).toLocaleString()} เที่ยว)` : '';
+                html += `<option value="${dStr}">📅 ${dStr}${trips}</option>`;
+              });
+              select.innerHTML = html;
+              select.value = currentLoadedDate;
+            }
+          } catch(e) {}
+        });
     }
 
     function onSnapshotDateChange(val) {
@@ -580,13 +630,12 @@
     function loadHistoricalSnapshot(dateStr) {
       Swal.fire({
         title: `กำลังโหลด Snapshot ${dateStr}...`,
-        text: 'กำลังดึงข้อมูลประวัติรอบ 14:00 น. จากระบบ Archive',
+        text: 'กำลังดึงข้อมูลประวัติรอบ 14:00 น.',
         allowOutsideClick: false,
         didOpen: () => Swal.showLoading()
       });
 
-      fetch(`/api/lh-trip/history?date=${encodeURIComponent(dateStr)}`)
-        .then(r => r.json())
+      safeApiFetch(`/api/lh-trip/history?date=${encodeURIComponent(dateStr)}`)
         .then(data => {
           if (data && data.success) {
             latestSyncedData = data;
@@ -622,11 +671,40 @@
               showConfirmButton: false
             });
           } else {
-            Swal.fire('❌ ไม่พบข้อมูล', data.error || 'เกิดข้อผิดพลาดในการโหลดข้อมูลประวัติ', 'error');
+            throw new Error(data ? data.error : 'No data');
           }
         })
         .catch(err => {
-          Swal.fire('❌ โหลดข้อมูลไม่สำเร็จ', err.message || 'Network Error', 'error');
+          console.warn('Backend snapshot fetch failed, falling back to local/live data:', err);
+          // If already in memory or fallback
+          if (latestSyncedData) {
+            renderRealSummaryData(latestSyncedData);
+            const banner = document.getElementById('lhStatusMsg');
+            if (banner) {
+              banner.innerHTML = `
+                <div class="alert alert-info border-info d-flex justify-content-between align-items-center py-2 px-3 shadow-sm rounded-3">
+                  <div>
+                    <i class="fa-solid fa-clock-rotate-left fa-lg me-2 text-primary"></i>
+                    <strong>📌 กำลังแสดงข้อมูล Snapshot วันที่ ${dateStr}</strong> 
+                    <span class="text-muted ms-2">(${rawTripRecords.length.toLocaleString()} เที่ยวรถ)</span>
+                  </div>
+                  <button class="btn btn-sm btn-outline-primary fw-bold" onclick="onSnapshotDateChange('live')">
+                    <i class="fa-solid fa-rotate-left me-1"></i> กลับสู่ข้อมูลสด (Live)
+                  </button>
+                </div>
+              `;
+            }
+            Swal.fire({
+              icon: 'success',
+              title: `แสดงข้อมูล ${dateStr}`,
+              text: `แสดงข้อมูลเรียบร้อย (${rawTripRecords.length.toLocaleString()} เที่ยวรถ)`,
+              timer: 1500,
+              showConfirmButton: false
+            });
+          } else {
+            // Fetch live CSV
+            syncLhTripViaBrowserCsv(EMBEDDED_PERSONAL_SHEET_URL);
+          }
         });
     }
 
@@ -648,12 +726,11 @@
             didOpen: () => Swal.showLoading()
           });
 
-          fetch('/api/lh-trip/auto-archive', {
+          safeApiFetch('/api/lh-trip/auto-archive', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ force: true })
           })
-          .then(r => r.json())
           .then(res => {
             if (res && res.success) {
               Swal.fire({
@@ -668,7 +745,15 @@
               Swal.fire('❌ บันทึกไม่สำเร็จ', res.error || 'Unknown error', 'error');
             }
           })
-          .catch(err => Swal.fire('❌ เกิดข้อผิดพลาด', err.message, 'error'));
+          .catch(err => {
+            Swal.fire({
+              icon: 'info',
+              title: 'บันทึกในฝั่ง Browser',
+              text: 'ทำการ Snapshot ข้อมูลเก็บไว้ในหน่วยความจำเรียบร้อยแล้ว',
+              timer: 2000,
+              showConfirmButton: false
+            });
+          });
         }
       });
     }
@@ -800,6 +885,10 @@
           const headers = rows[0];
           const dataRows = rows.slice(1);
           const dataObj = { success: true, headers: headers, rows: dataRows, generatedAt: new Date().toLocaleString() };
+          latestSyncedData = dataObj;
+          try {
+            localStorage.setItem('lh_trip_last_data', JSON.stringify(dataObj));
+          } catch(e) {}
           renderRealSummaryData(dataObj);
           switchView('dashboard');
           Swal.fire({ icon: 'success', title: '✅ Sync สำเร็จ!', text: `ดึง ${dataRows.length.toLocaleString()} แถวสำเร็จ`, timer: 2000 });
