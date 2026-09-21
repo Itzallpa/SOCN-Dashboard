@@ -1000,7 +1000,7 @@ def process_dataframe(df, filename="", cutoff_round="all"):
             if col not in raw_target_df.columns:
                 raw_target_df[col] = ''
 
-        outbound_raw_rows = raw_target_df[needed_cols].head(3000).fillna('').to_dict(orient='records')
+        outbound_raw_rows = raw_target_df[needed_cols].head(500).fillna('').to_dict(orient='records')
 
         for r_entry in outbound_raw_rows:
             st = str(r_entry.get('dest_station_name', '') or '')
