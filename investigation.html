@@ -42,6 +42,14 @@
       .table-custom th, .table-custom td { padding: 6px 8px !important; }
       .btn { padding: 4px 8px !important; font-size: 0.78rem !important; }
     }
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+      50% { box-shadow: 0 0 20px 6px rgba(245, 158, 11, 0.5); }
+      100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+    .pulse-glow {
+      animation: pulseGlow 1.8s ease-in-out;
+    }
   </style>
 </head>
 <body>
@@ -154,12 +162,30 @@
     <div class="row g-3 mb-4">
       <!-- Destination Ranking Table -->
       <div class="col-lg-7">
-        <div class="card-custom">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="fw-bold m-0 text-slate-800"><i class="fa-solid fa-trophy text-warning me-2"></i> ตารางจัดอันดับสถานีปลายทาง (Top Destinations)</h6>
-            <div class="input-group input-group-sm" style="width: 220px;">
+        <div class="card-custom" id="destinationRankingCard">
+          <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+            <h6 class="fw-bold m-0 text-slate-800" id="rankTableTitle"><i class="fa-solid fa-trophy text-warning me-2"></i> ตารางจัดอันดับสถานีปลายทาง (Top Destinations)</h6>
+            <div class="input-group input-group-sm" style="width: 210px;">
               <span class="input-group-text bg-light"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
               <input type="text" class="form-control" id="rankSearchInput" placeholder="ค้นหาสถานี..." onkeyup="filterRankingTable()">
+            </div>
+          </div>
+          <!-- Category Filter Tabs (All / Receive Late / Outbound Late / Pack Late) -->
+          <div class="d-flex align-items-center gap-1 mb-2 flex-wrap" style="font-size:0.82rem;">
+            <span class="text-muted fw-bold me-1"><i class="fa-solid fa-filter text-secondary me-1"></i>จำแนกตามสาเหตุ:</span>
+            <div class="btn-group btn-group-sm" role="group" id="rankingLateTypeTabs">
+              <button type="button" class="btn btn-dark active fw-bold px-2 py-1" id="tabRank-all" onclick="switchRankingLateTypeTab('all')">
+                <i class="fa-solid fa-layer-group me-1"></i> ทุกสาเหตุ (All)
+              </button>
+              <button type="button" class="btn btn-outline-danger fw-bold px-2 py-1" id="tabRank-receive_late" onclick="switchRankingLateTypeTab('receive_late')">
+                🔴 Receive Late (รับเข้า)
+              </button>
+              <button type="button" class="btn btn-outline-warning text-dark fw-bold px-2 py-1" id="tabRank-outbound_late" onclick="switchRankingLateTypeTab('outbound_late')">
+                🟡 Outbound Late (กระจายออก)
+              </button>
+              <button type="button" class="btn btn-outline-primary fw-bold px-2 py-1" id="tabRank-pack_late" onclick="switchRankingLateTypeTab('pack_late')">
+                🔵 Pack Late (แพ็กถุง)
+              </button>
             </div>
           </div>
           <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
@@ -184,7 +210,7 @@
       <!-- Top 10 Bar Chart -->
       <div class="col-lg-5">
         <div class="card-custom">
-          <h6 class="fw-bold mb-3 text-slate-800"><i class="fa-solid fa-chart-column text-primary me-2"></i> 10 อันดับสถานีที่ล่าช้าสูงสุด (Top 10 Outbound Late)</h6>
+          <h6 class="fw-bold mb-3 text-slate-800" id="chartTitle"><i class="fa-solid fa-chart-column text-primary me-2"></i> 10 อันดับสถานีที่ล่าช้าสูงสุด (Top 10 Outbound Late)</h6>
           <div style="height: 380px; position: relative;">
             <canvas id="outboundChart"></canvas>
           </div>
@@ -251,11 +277,18 @@
             <div class="col-md-2">
               <select class="form-select form-select-sm" id="rawLateTypeFilter" onchange="filterAndRenderRawData()">
                 <option value="">ทุกสาเหตุล่าช้า (All Late Types)</option>
+                <option value="receive_late">🔴 Receive Late (รับเข้าล่าช้า)</option>
+                <option value="outbound_late">🟡 Outbound Late (กระจายออกล่าช้า)</option>
+                <option value="pack_late">🔵 Pack Late (แพ็กถุงล่าช้า)</option>
               </select>
             </div>
             <div class="col-md-2">
               <select class="form-select form-select-sm" id="rawRouteTypeFilter" onchange="filterAndRenderRawData()">
                 <option value="">ทุกเส้นทาง (All Routes)</option>
+                <option value="GBKK">🟢 GBKK (กทม.และปริมณฑล)</option>
+                <option value="UPC-RC">🔵 UPC-RC (ตจว.สายรอง RC)</option>
+                <option value="UPC">🟡 UPC (ตจว.สายตรง)</option>
+                <option value="SOC">⚪ SOC (ระหว่าง SOC)</option>
               </select>
             </div>
           </div>
@@ -1526,17 +1559,104 @@
       }
 
       allRawRecords = data.outboundRawRows || [];
-      renderRankingTable(data.ranking || []);
-      renderOutboundChart(data.top10 || []);
+      switchRankingLateTypeTab('all');
       renderBreakdownCards(data.lateTypeBreakdown || {}, data.routeTypeBreakdown || {}, data.totalLate || 0);
+    }
+
+    let currentRankingLateType = 'all';
+
+    function getActiveRankingList() {
+      if (!outboundDataState) return [];
+      if (currentRankingLateType === 'all') {
+        return outboundDataState.ranking || [];
+      }
+      const byLateType = outboundDataState.rankingByLateType || {};
+      return byLateType[currentRankingLateType] || [];
+    }
+
+    function switchRankingLateTypeTab(lateTypeKey) {
+      currentRankingLateType = lateTypeKey;
+
+      const tabs = ['all', 'receive_late', 'outbound_late', 'pack_late'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tabRank-${t}`);
+        if (btn) {
+          if (t === lateTypeKey) {
+            btn.classList.add('active');
+            if (t === 'all') {
+              btn.className = 'btn btn-dark active fw-bold px-2 py-1 shadow-sm';
+            } else if (t === 'receive_late') {
+              btn.className = 'btn btn-danger active fw-bold px-2 py-1 shadow-sm';
+            } else if (t === 'outbound_late') {
+              btn.className = 'btn btn-warning active text-dark fw-bold px-2 py-1 shadow-sm';
+            } else if (t === 'pack_late') {
+              btn.className = 'btn btn-primary active fw-bold px-2 py-1 shadow-sm';
+            }
+          } else {
+            btn.classList.remove('active');
+            if (t === 'all') {
+              btn.className = 'btn btn-outline-dark fw-bold px-2 py-1';
+            } else if (t === 'receive_late') {
+              btn.className = 'btn btn-outline-danger fw-bold px-2 py-1';
+            } else if (t === 'outbound_late') {
+              btn.className = 'btn btn-outline-warning text-dark fw-bold px-2 py-1';
+            } else if (t === 'pack_late') {
+              btn.className = 'btn btn-outline-primary fw-bold px-2 py-1';
+            }
+          }
+        }
+      });
+
+      const titleEl = document.getElementById('rankTableTitle');
+      const chartTitleEl = document.getElementById('chartTitle');
+      const typeLabels = {
+        'all': { name: 'ทุกสาเหตุ (All Destinations)', color: '#0f172a' },
+        'receive_late': { name: 'Receive Late (รับเข้าล่าช้า)', color: '#dc2626' },
+        'outbound_late': { name: 'Outbound Late (กระจายออกล่าช้า)', color: '#d97706' },
+        'pack_late': { name: 'Pack Late (แพ็กถุงล่าช้า)', color: '#2563eb' }
+      };
+      const curInfo = typeLabels[lateTypeKey] || typeLabels['all'];
+      if (titleEl) {
+        titleEl.innerHTML = `<i class="fa-solid fa-trophy text-warning me-2"></i> จัดอันดับสถานี: <span style="color:${curInfo.color};">${curInfo.name}</span>`;
+      }
+      if (chartTitleEl) {
+        chartTitleEl.innerHTML = `<i class="fa-solid fa-chart-column me-2" style="color:${curInfo.color};"></i> 10 อันดับสถานีที่ล่าช้าสูงสุด (${curInfo.name})`;
+      }
+
+      filterRankingTable();
+      const activeList = getActiveRankingList();
+      renderOutboundChart(activeList.slice(0, 10), curInfo.color);
+    }
+
+    function filterRankingTable() {
+      const query = document.getElementById('rankSearchInput')?.value?.toLowerCase()?.trim() || '';
+      const list = getActiveRankingList();
+      if (!query) {
+        renderRankingTable(list);
+      } else {
+        const filtered = list.filter(item => (item.station || '').toLowerCase().includes(query));
+        renderRankingTable(filtered);
+      }
+    }
+
+    function viewTopHubForLateType(key) {
+      switchRankingLateTypeTab(key);
+      const card = document.getElementById('destinationRankingCard') || document.getElementById('rankTable');
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('pulse-glow');
+        setTimeout(() => card.classList.remove('pulse-glow'), 1800);
+      }
     }
 
     function renderRankingTable(list) {
       const tbody = document.getElementById('tableBody');
       if (!list || list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">ไม่พบข้อมูลสถานีที่ล่าช้า</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">ไม่พบข้อมูลสถานีที่ล่าช้าในกลุ่มนี้</td></tr>';
         return;
       }
+
+      const activeLateType = currentRankingLateType !== 'all' ? currentRankingLateType : '';
 
       tbody.innerHTML = list.map((item, idx) => {
         const rank = item.rank || (idx + 1);
@@ -1571,7 +1691,7 @@
           <td>
             <div class="d-flex align-items-center justify-content-between">
               <span class="fw-bold text-dark me-2">${item.station}</span>
-              <button class="btn btn-sm btn-outline-primary py-0 px-2 small" onclick="openRawDataModal('${stTitle}')"><i class="fa-solid fa-file-lines me-1"></i> Raw Data</button>
+              <button class="btn btn-sm btn-outline-primary py-0 px-2 small" onclick="openRawDataModal('${stTitle}', '${activeLateType}')"><i class="fa-solid fa-file-lines me-1"></i> Raw Data</button>
             </div>
           </td>
           <td class="text-center">
@@ -1605,11 +1725,14 @@
                 <span class="me-2 fs-6">${item.icon}</span>
                 <span class="fw-bold text-dark">${item.label}</span>
               </div>
-              <div class="d-flex align-items-center gap-3">
+              <div class="d-flex align-items-center gap-2">
                 <div>
                   <span class="fw-bold text-dark fs-6">${cnt.toLocaleString()}</span>
                   <span class="text-muted small ms-1">(${pct}%)</span>
                 </div>
+                <button class="btn btn-sm btn-warning text-dark py-0 px-2 small fw-bold shadow-xs" onclick="viewTopHubForLateType('${item.key}')" title="ดู Top Hubs ของสาเหตุ ${item.label}">
+                  <i class="fa-solid fa-trophy me-1"></i> ดู Top Hub
+                </button>
                 <button class="btn btn-sm btn-outline-primary py-0 px-2 small" onclick="openRawDataModal('', '${item.key}')"><i class="fa-solid fa-file-lines me-1"></i> Raw Data</button>
               </div>
             </div>`;
@@ -1654,7 +1777,7 @@
       }
     }
 
-    function renderOutboundChart(top10) {
+    function renderOutboundChart(top10, barColor = '#0f172a') {
       const ctx = document.getElementById('outboundChart').getContext('2d');
       if (outboundChartInstance) outboundChartInstance.destroy();
       if (!top10 || top10.length === 0) return;
@@ -1669,8 +1792,8 @@
           datasets: [{
             label: 'จำนวนพัสดุล่าช้า (Shipments)',
             data: dataValues,
-            backgroundColor: '#0f172a',
-            borderColor: '#1e293b',
+            backgroundColor: barColor,
+            borderColor: barColor,
             borderWidth: 1,
             borderRadius: 4
           }]

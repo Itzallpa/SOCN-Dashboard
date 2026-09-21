@@ -973,6 +973,71 @@ def process_dataframe(df, filename="", cutoff_round="all", filepath=""):
             "cutoffInfo": matched_cutoff
         })
 
+    # Calculate top destination ranking for each late type category:
+    ranking_by_late_type = {}
+    target_late_types = [
+        ('receive_late', ['receive', 'รับเข้า']),
+        ('outbound_late', ['outbound', 'กระจาย']),
+        ('pack_late', ['pack', 'แพ็ก', 'ครอง'])
+    ]
+
+    lt_combined = (
+        late_df['soc_outbound_late_type'].astype(str) + " " +
+        late_df['cut1_late_type'].astype(str) + " " +
+        late_df['cut2_late_type'].astype(str)
+    ).str.lower()
+
+    for lt_key, patterns in target_late_types:
+        mask = pd.Series(False, index=late_df.index)
+        for p in patterns:
+            mask |= lt_combined.str.contains(p, na=False)
+
+        sub = late_df[mask]
+        sub_total = int(len(sub))
+        if sub_total == 0:
+            ranking_by_late_type[lt_key] = []
+            continue
+
+        sub_counts = sub['dest_station_name_clean'].value_counts()
+        sub_c1_counts = sub[sub['is_late_c1']]['dest_station_name_clean'].value_counts().to_dict()
+        sub_c2_counts = sub[sub['is_late_c2']]['dest_station_name_clean'].value_counts().to_dict()
+
+        sub_valid_hhmm = sub[sub['_hhmm'] != '-']
+        if not sub_valid_hhmm.empty:
+            st_counts = sub_valid_hhmm.groupby(['dest_station_name_clean', '_hhmm'], observed=True).size().reset_index(name='cnt')
+            idx_max = st_counts.groupby('dest_station_name_clean')['cnt'].idxmax()
+            sub_peak_map = dict(zip(st_counts.loc[idx_max, 'dest_station_name_clean'], st_counts.loc[idx_max, '_hhmm']))
+        else:
+            sub_peak_map = {}
+
+        sub_items = []
+        for idx, (st_name, cnt) in enumerate(sub_counts.items()):
+            cnt_int = int(cnt)
+            pct = round((cnt_int / sub_total * 100), 1) if sub_total > 0 else 0
+            st_clean = str(st_name).split(" - ")[0].strip().lower()
+            matched_cutoff = cutoff_map.get(st_clean) or cutoff_map.get(str(st_name).lower())
+
+            target_str = "-"
+            if matched_cutoff:
+                targets = []
+                if matched_cutoff.get('cut1_ob'): targets.append(f"Cut1 {matched_cutoff.get('cut1_ob')}")
+                if matched_cutoff.get('cut2_ob'): targets.append(f"Cut2 {matched_cutoff.get('cut2_ob')}")
+                if matched_cutoff.get('cut3_ob'): targets.append(f"Cut3 {matched_cutoff.get('cut3_ob')}")
+                if targets: target_str = " | ".join(targets)
+
+            sub_items.append({
+                "rank": idx + 1,
+                "station": str(st_name),
+                "count": cnt_int,
+                "countCut1": int(sub_c1_counts.get(st_name, 0)),
+                "countCut2": int(sub_c2_counts.get(st_name, 0)),
+                "pct": pct,
+                "peakTime": str(sub_peak_map.get(st_name, "-")),
+                "cutoffTarget": target_str,
+                "cutoffInfo": matched_cutoff
+            })
+        ranking_by_late_type[lt_key] = sub_items[:100]
+
     # Prepare outbound late raw rows for modal view
     outbound_raw_rows = []
     try:
@@ -1085,7 +1150,8 @@ def process_dataframe(df, filename="", cutoff_round="all", filepath=""):
         "d2CountCut1": d2_count_c1,
         "d2CountCut2": d2_count_c2,
         "maxCount": max_count,
-        "ranking": ranking_list[:50],  # limit to top 50 for small response
+        "ranking": ranking_list[:100],
+        "rankingByLateType": ranking_by_late_type,
         "top10": ranking_list[:10],
         "lateTypeBreakdown": late_type_counts,
         "lateTypeBreakdownCut1": late_type_c1_counts,
@@ -2604,10 +2670,19 @@ def get_raw_data_page():
         if station_filter and station_filter != "all":
             f_df = f_df[f_df['dest_station_name'].astype(str).str.contains(station_filter, case=False, na=False)]
         if late_type_filter and late_type_filter != "all":
+            if late_type_filter in ['receive_late', 'receive']:
+                regex_pattern = 'receive|รับเข้า'
+            elif late_type_filter in ['outbound_late', 'outbound']:
+                regex_pattern = 'outbound|กระจาย'
+            elif late_type_filter in ['pack_late', 'pack']:
+                regex_pattern = 'pack|แพ็ก|ครอง'
+            else:
+                regex_pattern = re.escape(late_type_filter)
+
             lt_mask = (
-                f_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.contains(late_type_filter, case=False, na=False) |
-                f_df['soc_outbound_late_type_1st_cutoff'].astype(str).str.contains(late_type_filter, case=False, na=False) |
-                f_df['soc_outbound_late_type'].astype(str).str.contains(late_type_filter, case=False, na=False)
+                f_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.contains(regex_pattern, case=False, na=False, regex=True) |
+                f_df['soc_outbound_late_type_1st_cutoff'].astype(str).str.contains(regex_pattern, case=False, na=False, regex=True) |
+                f_df['soc_outbound_late_type'].astype(str).str.contains(regex_pattern, case=False, na=False, regex=True)
             )
             f_df = f_df[lt_mask]
         if cutoff_filter == "BOTH":
