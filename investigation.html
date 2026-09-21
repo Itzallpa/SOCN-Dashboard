@@ -1449,17 +1449,9 @@
           });
         }
 
-        showOutboundStatus(`กำลังประมวลผลข้อมูลโฟลเดอร์ "${detectedFolderName}"...`, 'loading');
-        const data = await safeFetchJson(`/api/load-file?filename=folder:${encodeURIComponent(detectedFolderName)}&cutoff=${currentCutoffRound}`);
-        if (data && data.success) {
-          outboundDataState = data;
-          safeSetLocalStorage('socn_outbound_data', data);
-          updateDashboard(data);
-          showOutboundStatus(`✅ อัปโหลดและประมวลผลโฟลเดอร์ "${detectedFolderName}" (${data.fileCount} ไฟล์) เรียบร้อยแล้ว`, 'success');
-          loadOutboundFileList();
-        } else {
-          showOutboundStatus(`เกิดข้อผิดพลาด: ${data.error}`, 'error');
-        }
+        showOutboundStatus(`กำลังโหลดและประมวลผลโฟลเดอร์ "${detectedFolderName}"...`, 'loading');
+        await switchOutboundFile(`folder:${detectedFolderName}`);
+        loadOutboundFileList();
       } catch (err) {
         showOutboundStatus(`เกิดข้อผิดพลาดในการอัปโหลดโฟลเดอร์: ${err.message}`, 'error');
       }

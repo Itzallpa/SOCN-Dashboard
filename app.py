@@ -985,15 +985,12 @@ def process_dataframe(df, filename="", cutoff_round="all", filepath=""):
         raw_target_df['first_soc_received_timestamp'] = raw_target_df['first_soc_received_timestamp'].astype(str).str.replace('NaT', '')
         raw_target_df['first_soc_packed_timestamp'] = raw_target_df['first_soc_packed_timestamp'].astype(str).str.replace('NaT', '')
 
-        def get_late_round_label(row):
-            c1 = bool(row.get('is_late_c1'))
-            c2 = bool(row.get('is_late_c2'))
-            if c1 and c2: return 'BOTH'
-            if c1: return 'CUT1'
-            if c2: return 'CUT2'
-            return 'LATE'
-
-        raw_target_df['late_round_type'] = raw_target_df.apply(get_late_round_label, axis=1)
+        import numpy as np
+        c1 = raw_target_df['is_late_c1'].astype(bool) if 'is_late_c1' in raw_target_df.columns else False
+        c2 = raw_target_df['is_late_c2'].astype(bool) if 'is_late_c2' in raw_target_df.columns else False
+        conds = [c1 & c2, c1, c2]
+        choices = ['BOTH', 'CUT1', 'CUT2']
+        raw_target_df['late_round_type'] = np.select(conds, choices, default='LATE')
 
         needed_cols = [
             'shipment_id', 'dest_station_name', 'first_soc_received_timestamp',
@@ -1010,30 +1007,31 @@ def process_dataframe(df, filename="", cutoff_round="all", filepath=""):
             if col not in raw_target_df.columns:
                 raw_target_df[col] = ''
 
-        outbound_raw_rows = raw_target_df[needed_cols].fillna('').to_dict(orient='records')
+        # Fast vectorized station cutoff target & area_group mapping
+        st_target_map = {}
+        st_group_map = {}
+        for st_key, m in cutoff_map.items():
+            targets = []
+            if m.get('cut1_ob'): targets.append(f"Cut1 {m.get('cut1_ob')}")
+            if m.get('cut2_ob'): targets.append(f"Cut2 {m.get('cut2_ob')}")
+            if m.get('cut3_ob'): targets.append(f"Cut3 {m.get('cut3_ob')}")
+            st_target_map[st_key.lower()] = " | ".join(targets) if targets else "-"
+            st_group_map[st_key.lower()] = m.get('area_group', '-')
 
-        st_info_cache = {}
-        for r_entry in outbound_raw_rows:
-            st = str(r_entry.get('dest_station_name', '') or '')
-            if st not in st_info_cache:
-                st_clean = st.split('-')[0].strip().lower()
-                m = cutoff_map.get(st_clean) or cutoff_map.get(st.lower())
-                if m:
-                    targets = []
-                    if m.get('cut1_ob'): targets.append(f"Cut1 {m.get('cut1_ob')}")
-                    if m.get('cut2_ob'): targets.append(f"Cut2 {m.get('cut2_ob')}")
-                    if m.get('cut3_ob'): targets.append(f"Cut3 {m.get('cut3_ob')}")
-                    st_info_cache[st] = {
-                        'matched_cutoff_target': " | ".join(targets) if targets else "-",
-                        'area_group': m.get('area_group', '-')
-                    }
-                else:
-                    st_info_cache[st] = {'matched_cutoff_target': "-", 'area_group': "-"}
-            info = st_info_cache[st]
-            r_entry['matched_cutoff_target'] = info['matched_cutoff_target']
-            r_entry['area_group'] = info['area_group']
+        st_cleaned = raw_target_df['dest_station_name'].astype(str).str.split('-').str[0].str.strip().str.lower()
+        raw_target_df['matched_cutoff_target'] = st_cleaned.map(st_target_map).fillna('-')
+        raw_target_df['area_group'] = st_cleaned.map(st_group_map).fillna('-')
+
+        all_needed_cols = needed_cols + ['matched_cutoff_target', 'area_group']
+        clean_raw_df = raw_target_df[all_needed_cols].fillna('')
+
+        # Store clean DataFrame for ultra-fast on-demand pagination in /api/raw-data-page
+        saved_raw_df = clean_raw_df
+        outbound_raw_rows = []
     except Exception as e:
         print("Error preparing outbound_raw_rows:", e)
+        saved_raw_df = pd.DataFrame()
+        outbound_raw_rows = []
 
     report_date = "N/A"
     if "report_date" in df.columns:
@@ -1089,7 +1087,8 @@ def process_dataframe(df, filename="", cutoff_round="all", filepath=""):
         "lateTypeBreakdownCut1": late_type_c1_counts,
         "lateTypeBreakdownCut2": late_type_c2_counts,
         "routeTypeBreakdown": route_type_counts,
-        "outboundRawRows": outbound_raw_rows  # full data kept in memory cache only
+        "outboundRawRows": outbound_raw_rows,
+        "_raw_df": saved_raw_df
     }
 
 
@@ -2575,6 +2574,46 @@ def get_raw_data_page():
 
     if not data:
         return jsonify({"success": False, "error": "ไม่พบข้อมูลไฟล์", "rows": [], "totalRows": 0, "totalPages": 1, "page": page})
+
+    raw_df = data.get("_raw_df")
+    if raw_df is not None and isinstance(raw_df, pd.DataFrame) and not raw_df.empty:
+        f_df = raw_df
+        if query:
+            q_mask = (
+                f_df['shipment_id'].astype(str).str.contains(query, case=False, na=False) |
+                f_df['dest_station_name'].astype(str).str.contains(query, case=False, na=False) |
+                f_df['latest_to_number'].astype(str).str.contains(query, case=False, na=False)
+            )
+            f_df = f_df[q_mask]
+        if station_filter and station_filter != "all":
+            f_df = f_df[f_df['dest_station_name'].astype(str).str.contains(station_filter, case=False, na=False)]
+        if late_type_filter and late_type_filter != "all":
+            lt_mask = (
+                f_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.contains(late_type_filter, case=False, na=False) |
+                f_df['soc_outbound_late_type_1st_cutoff'].astype(str).str.contains(late_type_filter, case=False, na=False) |
+                f_df['soc_outbound_late_type'].astype(str).str.contains(late_type_filter, case=False, na=False)
+            )
+            f_df = f_df[lt_mask]
+        if cutoff_filter == "BOTH":
+            f_df = f_df[f_df['late_round_type'] == "BOTH"]
+        elif cutoff_filter == "CUT1":
+            f_df = f_df[f_df['late_round_type'].isin(["CUT1", "BOTH"])]
+        elif cutoff_filter == "CUT2":
+            f_df = f_df[f_df['late_round_type'].isin(["CUT2", "BOTH"])]
+
+        total_rows = int(len(f_df))
+        total_pages = max(1, (total_rows + limit - 1) // limit)
+        start_idx = (page - 1) * limit
+        page_rows = f_df.iloc[start_idx:start_idx + limit].to_dict(orient='records')
+
+        return jsonify({
+            "success": True,
+            "rows": page_rows,
+            "totalRows": total_rows,
+            "totalPages": total_pages,
+            "page": page,
+            "limit": limit
+        })
 
     raw_rows = data.get("outboundRawRows", [])
 
@@ -6784,7 +6823,11 @@ def get_wow_comparison_api():
 
 @app.route("/investigation")
 def investigation_page():
-    return send_from_directory(BASE_DIR, "investigation.html")
+    resp = make_response(send_from_directory(BASE_DIR, "investigation.html"))
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 @app.route("/skip-process")
 def skip_process_page():
