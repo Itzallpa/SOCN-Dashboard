@@ -657,6 +657,10 @@ def update_user_profile_api():
     })
 
 
+FILE_PARSED_CACHE = {}
+FILE_LATE_DF_CACHE = {}
+
+
 def read_dataframe(filepath):
     if str(filepath).lower().endswith(('.xlsx', '.xls')):
         try:
@@ -689,10 +693,10 @@ def read_dataframe(filepath):
 
 def process_csv(filepath, cutoff_round="all"):
     df = read_dataframe(filepath)
-    return process_dataframe(df, filename=os.path.basename(filepath), cutoff_round=cutoff_round)
+    return process_dataframe(df, filename=os.path.basename(filepath), cutoff_round=cutoff_round, filepath=filepath)
 
 
-def process_dataframe(df, filename="", cutoff_round="all"):
+def process_dataframe(df, filename="", cutoff_round="all", filepath=""):
     cutoff_round_str = str(cutoff_round).strip().lower()
     if cutoff_round_str not in ["1", "2", "all"]:
         cutoff_round_str = "all"
@@ -782,6 +786,12 @@ def process_dataframe(df, filename="", cutoff_round="all"):
         is_late_mask = is_late_cut1 | is_late_cut2
 
     late_df = df[is_late_mask].copy() if is_late_mask.any() else df.head(0).copy()
+    if filepath and os.path.exists(filepath):
+        try:
+            mtime = os.path.getmtime(filepath)
+            FILE_LATE_DF_CACHE[f"{filepath}_{mtime}_cut{cutoff_round_str}"] = late_df.copy()
+        except Exception:
+            pass
     total_late = int(len(late_df))
 
     if total_late == 0:
@@ -1125,9 +1135,22 @@ def process_file_list(files_or_names, group_name="กลุ่มไฟล์ท
 
     for f in sorted(resolved_paths):
         try:
+            mtime = os.path.getmtime(f)
+            file_cache_key = f"{f}_{mtime}_cut{cutoff_round_str}"
+            if file_cache_key in FILE_LATE_DF_CACHE:
+                cached_df = FILE_LATE_DF_CACHE[file_cache_key]
+                if cached_df is not None and not cached_df.empty:
+                    dfs.append(cached_df)
+                    if 'report_date' in cached_df.columns and len(report_dates) < 5:
+                        vds = cached_df['report_date'].dropna()
+                        if len(vds) > 0:
+                            report_dates.append(str(vds.iloc[0]))
+                    continue
+
             if f.lower().endswith('.csv'):
                 h = pd.read_csv(f, nrows=0)
                 usecols = [c for c in h.columns if any(p in str(c).lower() for p in needed_patterns)]
+                f_dfs = []
                 for chunk in pd.read_csv(f, usecols=usecols if usecols else None, chunksize=50000, low_memory=False, on_bad_lines='skip'):
                     if chunk.empty:
                         continue
@@ -2394,7 +2417,41 @@ def delete_file():
         return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ได้: {str(e)}"}), 500
 
 
-FILE_PARSED_CACHE = {}
+@app.route("/api/folder-files", methods=["GET"])
+def get_folder_files():
+    folder_name = request.args.get("folder", "").strip()
+    if not folder_name:
+        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อโฟลเดอร์", "files": []}), 400
+
+    folder_clean = os.path.basename(folder_name)
+    folder_path = os.path.join(UPLOAD_FOLDER, folder_clean)
+    if not os.path.exists(folder_path):
+        folder_path = os.path.join(BASE_DIR, folder_clean)
+
+    if not os.path.exists(folder_path) and os.path.exists(UPLOAD_FOLDER):
+        for entry in os.listdir(UPLOAD_FOLDER):
+            if entry.lower() == folder_clean.lower() and os.path.isdir(os.path.join(UPLOAD_FOLDER, entry)):
+                folder_path = os.path.join(UPLOAD_FOLDER, entry)
+                folder_name = entry
+                break
+
+    if not os.path.exists(folder_path) or not os.path.isdir(folder_path):
+        return jsonify({"success": False, "error": f"ไม่พบโฟลเดอร์ '{folder_name}'", "files": []}), 404
+
+    child_files = []
+    for root, dirs, filenames in os.walk(folder_path):
+        for f in sorted(filenames):
+            if f.lower().endswith(('.csv', '.xlsx', '.xls')) and not f.startswith('.'):
+                rel = os.path.relpath(os.path.join(root, f), UPLOAD_FOLDER).replace('\\', '/')
+                child_files.append(rel)
+
+    return jsonify({
+        "success": True,
+        "folder": folder_name,
+        "files": child_files,
+        "fileCount": len(child_files)
+    })
+
 
 @app.route("/api/load-file", methods=["GET"])
 def load_file():

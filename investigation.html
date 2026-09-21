@@ -1216,28 +1216,63 @@
         });
     }
 
-    function switchOutboundFile(filename) {
+    async function switchOutboundFile(filename) {
       if (!filename) return;
       const isFolder = filename.startsWith('folder:');
-      const displayName = isFolder ? `โฟลเดอร์ "${filename.replace('folder:', '')}"` : `ไฟล์ "${filename}"`;
-      showOutboundStatus(`กำลังโหลดข้อมูล ${displayName} (รอบที่ ${currentCutoffRound})...`, 'loading');
+      const folderName = isFolder ? filename.replace('folder:', '').trim() : '';
+      const displayName = isFolder ? `โฟลเดอร์ "${folderName}"` : `ไฟล์ "${filename}"`;
 
-      safeFetchJson(`/api/load-file?filename=${encodeURIComponent(filename)}&cutoff=${currentCutoffRound}`)
-        .then(data => {
-          if (data.success) {
-            outboundDataState = data;
-            safeSetLocalStorage('socn_outbound_data', data);
-            updateDashboard(data);
-            if (data.isFolder) {
-              showOutboundStatus(`✅ แสดงผลสรุปข้อมูลรวมของโฟลเดอร์ "${data.folderName}" (รวม ${data.fileCount} ไฟล์, รอบที่ ${currentCutoffRound}) เรียบร้อย`, 'success');
-            } else {
-              showOutboundStatus(`✅ สลับไปใช้ไฟล์ "${filename}" (รอบที่ ${currentCutoffRound}) เรียบร้อย`, 'success');
+      try {
+        if (isFolder) {
+          showOutboundStatus(`⏳ กำลังตรวจสอบไฟล์ในโฟลเดอร์ "${folderName}"...`, 'loading');
+          
+          let folderFiles = [];
+          try {
+            const listRes = await safeFetchJson(`/api/folder-files?folder=${encodeURIComponent(folderName)}`);
+            if (listRes && listRes.success && Array.isArray(listRes.files)) {
+              folderFiles = listRes.files;
             }
-          } else {
-            showOutboundStatus(`เกิดข้อผิดพลาด: ${data.error}`, 'error');
+          } catch (e) {
+            console.warn('Cannot list folder files, falling back to direct folder load:', e);
           }
-        })
-        .catch(err => showOutboundStatus(`ไม่สามารถโหลดได้: ${err.message}`, 'error'));
+
+          if (folderFiles.length > 0) {
+            for (let i = 0; i < folderFiles.length; i++) {
+              const childFile = folderFiles[i];
+              const fileBaseName = childFile.split('/').pop();
+              const pct = Math.round(((i + 1) / folderFiles.length) * 100);
+              showOutboundStatus(`⏳ ค่อยๆ ดึงข้อมูล (${i + 1}/${folderFiles.length}): ${fileBaseName} [${pct}%]...`, 'loading');
+
+              try {
+                // Pre-process and cache each individual file (each takes only 1-2s -> No 502!)
+                await safeFetchJson(`/api/load-file?filename=${encodeURIComponent(childFile)}&cutoff=${currentCutoffRound}`);
+              } catch (childErr) {
+                console.warn(`Warning loading file ${childFile}:`, childErr);
+              }
+            }
+            showOutboundStatus(`⏳ รวบรวมข้อมูลสรุปของ ${folderFiles.length} ไฟล์ในโฟลเดอร์ "${folderName}"...`, 'loading');
+          }
+        } else {
+          showOutboundStatus(`กำลังโหลดข้อมูล ${displayName} (รอบที่ ${currentCutoffRound})...`, 'loading');
+        }
+
+        // Final combine request - instant because all sub-files are cached in RAM
+        const data = await safeFetchJson(`/api/load-file?filename=${encodeURIComponent(filename)}&cutoff=${currentCutoffRound}`);
+        if (data && data.success) {
+          outboundDataState = data;
+          safeSetLocalStorage('socn_outbound_data', data);
+          updateDashboard(data);
+          if (data.isFolder) {
+            showOutboundStatus(`✅ แสดงผลสรุปข้อมูลรวมของโฟลเดอร์ "${data.folderName}" (รวม ${data.fileCount} ไฟล์, รอบที่ ${currentCutoffRound}) เรียบร้อย`, 'success');
+          } else {
+            showOutboundStatus(`✅ สลับไปใช้ไฟล์ "${filename}" (รอบที่ ${currentCutoffRound}) เรียบร้อย`, 'success');
+          }
+        } else {
+          showOutboundStatus(`เกิดข้อผิดพลาด: ${data ? data.error : 'ไม่สามารถประมวลผลได้'}`, 'error');
+        }
+      } catch (err) {
+        showOutboundStatus(`ไม่สามารถโหลดได้: ${err.message}`, 'error');
+      }
     }
 
     function deleteSelectedOutboundFile() {
