@@ -1664,17 +1664,53 @@
     function openRawDataModal(stationFilter = '', lateTypeFilter = '', routeFilter = '') {
       const modalEl = new bootstrap.Modal(document.getElementById('rawDataModal'));
       modalEl.show();
-      if (stationFilter && document.getElementById('rawStationFilter')) {
-        document.getElementById('rawStationFilter').value = stationFilter;
+
+      const stSelect = document.getElementById('rawStationFilter');
+      if (stSelect) {
+        if (stSelect.options.length <= 1 && outboundDataState && outboundDataState.ranking) {
+          outboundDataState.ranking.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item.station;
+            opt.textContent = `${item.station} (${(item.count || 0).toLocaleString()} ชิ้น)`;
+            stSelect.appendChild(opt);
+          });
+        }
+        if (stationFilter && stationFilter !== 'ALL') {
+          let found = false;
+          for (let opt of stSelect.options) {
+            if (opt.value.toLowerCase() === stationFilter.toLowerCase()) {
+              stSelect.value = opt.value;
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            const opt = document.createElement('option');
+            opt.value = stationFilter;
+            opt.textContent = stationFilter;
+            stSelect.appendChild(opt);
+            stSelect.value = stationFilter;
+          }
+        } else {
+          stSelect.value = '';
+        }
       }
+
       if (lateTypeFilter && document.getElementById('rawLateTypeFilter')) {
         document.getElementById('rawLateTypeFilter').value = lateTypeFilter;
+      } else if (document.getElementById('rawLateTypeFilter')) {
+        document.getElementById('rawLateTypeFilter').value = '';
       }
       if (routeFilter && document.getElementById('rawRouteTypeFilter')) {
         document.getElementById('rawRouteTypeFilter').value = routeFilter;
+      } else if (document.getElementById('rawRouteTypeFilter')) {
+        document.getElementById('rawRouteTypeFilter').value = '';
+      }
+      if (document.getElementById('rawSearchInput')) {
+        document.getElementById('rawSearchInput').value = '';
       }
       rawCurrentPage = 1;
-      filterAndRenderRawData(stationFilter);
+      filterAndRenderRawData();
     }
 
     function changeRawPage(delta) {

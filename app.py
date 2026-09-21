@@ -1000,22 +1000,28 @@ def process_dataframe(df, filename="", cutoff_round="all"):
             if col not in raw_target_df.columns:
                 raw_target_df[col] = ''
 
-        outbound_raw_rows = raw_target_df[needed_cols].head(500).fillna('').to_dict(orient='records')
+        outbound_raw_rows = raw_target_df[needed_cols].fillna('').to_dict(orient='records')
 
+        st_info_cache = {}
         for r_entry in outbound_raw_rows:
             st = str(r_entry.get('dest_station_name', '') or '')
-            st_clean = st.split('-')[0].strip().lower()
-            m = cutoff_map.get(st_clean) or cutoff_map.get(st.lower())
-            if m:
-                targets = []
-                if m.get('cut1_ob'): targets.append(f"Cut1 {m.get('cut1_ob')}")
-                if m.get('cut2_ob'): targets.append(f"Cut2 {m.get('cut2_ob')}")
-                if m.get('cut3_ob'): targets.append(f"Cut3 {m.get('cut3_ob')}")
-                r_entry['matched_cutoff_target'] = " | ".join(targets) if targets else "-"
-                r_entry['area_group'] = m.get('area_group', '')
-            else:
-                r_entry['matched_cutoff_target'] = "-"
-                r_entry['area_group'] = "-"
+            if st not in st_info_cache:
+                st_clean = st.split('-')[0].strip().lower()
+                m = cutoff_map.get(st_clean) or cutoff_map.get(st.lower())
+                if m:
+                    targets = []
+                    if m.get('cut1_ob'): targets.append(f"Cut1 {m.get('cut1_ob')}")
+                    if m.get('cut2_ob'): targets.append(f"Cut2 {m.get('cut2_ob')}")
+                    if m.get('cut3_ob'): targets.append(f"Cut3 {m.get('cut3_ob')}")
+                    st_info_cache[st] = {
+                        'matched_cutoff_target': " | ".join(targets) if targets else "-",
+                        'area_group': m.get('area_group', '-')
+                    }
+                else:
+                    st_info_cache[st] = {'matched_cutoff_target': "-", 'area_group': "-"}
+            info = st_info_cache[st]
+            r_entry['matched_cutoff_target'] = info['matched_cutoff_target']
+            r_entry['area_group'] = info['area_group']
     except Exception as e:
         print("Error preparing outbound_raw_rows:", e)
 
@@ -1131,7 +1137,24 @@ def process_file_list(files_or_names, group_name="กลุ่มไฟล์ท
                         if len(vds) > 0:
                             report_dates.append(str(vds.iloc[0]))
 
-                    dfs.append(chunk)
+                    # Immediate chunk late filtering to keep only late parcels:
+                    has_late_col = False
+                    late_mask = pd.Series(False, index=chunk.index)
+                    for col_cand in ['is_soc_outbound_1st_ontime', 'is_soc_outbound_2nd_ontime', 'is_soc_outbound_ontime', 'is_ontime', 'ontime']:
+                        if col_cand in chunk.columns:
+                            has_late_col = True
+                            late_mask = late_mask | chunk[col_cand].astype(str).str.strip().str.upper().isin(['FALSE', '0'])
+                    for r_col in ['soc_outbound_late_type_1st_cutoff', 'soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason']:
+                        if r_col in chunk.columns:
+                            has_late_col = True
+                            rs = chunk[r_col].astype(str).str.strip().str.lower()
+                            late_mask = late_mask | (~rs.isin(['', 'none', 'nan']))
+
+                    if has_late_col:
+                        if late_mask.any():
+                            dfs.append(chunk[late_mask])
+                    else:
+                        dfs.append(chunk)
             else:
                 sub_df = read_dataframe(f)
                 if sub_df is not None and not sub_df.empty:
@@ -1139,7 +1162,24 @@ def process_file_list(files_or_names, group_name="กลุ่มไฟล์ท
                         vds = sub_df['report_date'].dropna()
                         if len(vds) > 0:
                             report_dates.append(str(vds.iloc[0]))
-                    dfs.append(sub_df)
+                    
+                    has_late_col = False
+                    late_mask = pd.Series(False, index=sub_df.index)
+                    for col_cand in ['is_soc_outbound_1st_ontime', 'is_soc_outbound_2nd_ontime', 'is_soc_outbound_ontime', 'is_ontime', 'ontime']:
+                        if col_cand in sub_df.columns:
+                            has_late_col = True
+                            late_mask = late_mask | sub_df[col_cand].astype(str).str.strip().str.upper().isin(['FALSE', '0'])
+                    for r_col in ['soc_outbound_late_type_1st_cutoff', 'soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason']:
+                        if r_col in sub_df.columns:
+                            has_late_col = True
+                            rs = sub_df[r_col].astype(str).str.strip().str.lower()
+                            late_mask = late_mask | (~rs.isin(['', 'none', 'nan']))
+
+                    if has_late_col:
+                        if late_mask.any():
+                            dfs.append(sub_df[late_mask])
+                    else:
+                        dfs.append(sub_df)
         except Exception as e:
             print(f"Error reading file {f}:", e)
             
@@ -2395,10 +2435,10 @@ def load_file():
                 return jsonify(resp)
                 
             res = process_folder(folder_path, folder_name, cutoff_round=cutoff)
-            if res:
-                res["success"] = True
-                FILE_PARSED_CACHE[cache_key] = res
-            slim = dict(res) if res else {"success": False}
+            if not res or not res.get("success"):
+                return jsonify(res or {"success": False, "error": f"ไม่สามารถประมวลผลโฟลเดอร์ '{folder_name}' ได้"}), 200
+            FILE_PARSED_CACHE[cache_key] = res
+            slim = dict(res)
             slim["outboundRawRows"] = []  # strip raw rows from initial response
             return jsonify(slim)
         except Exception as e:
