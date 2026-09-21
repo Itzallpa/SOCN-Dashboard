@@ -805,12 +805,10 @@ def process_dataframe(df, filename="", cutoff_round="all"):
 
     for ts_col in ['first_soc_outbound_timestamp', 'cut1_ts', 'cut2_ts', 'first_soc_received_timestamp', 'first_soc_packed_timestamp']:
         if ts_col in late_df.columns:
-            p1 = pd.to_datetime(late_df[ts_col], format='%Y-%m-%d %H:%M:%S', errors='coerce')
-            if p1.isna().sum() > 0:
-                p2 = pd.to_datetime(late_df[ts_col], format='mixed', errors='coerce')
-                late_df[ts_col] = p1.fillna(p2)
-            else:
-                late_df[ts_col] = p1
+            try:
+                late_df[ts_col] = pd.to_datetime(late_df[ts_col], errors='coerce')
+            except Exception:
+                pass
 
     has_c1_out = late_df['first_soc_outbound_timestamp'].notna() & late_df['cut1_ts'].notna()
     late_df['delay_mins_c1'] = 0.0
