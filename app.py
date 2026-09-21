@@ -2266,11 +2266,14 @@ def create_folder():
         return jsonify({"success": False, "error": f"ไม่สามารถสร้างโฟลเดอร์ได้: {str(e)}"}), 500
 
 
-@app.route("/api/move-file-to-folder", methods=["POST"])
+@app.route("/api/move-file-to-folder", methods=["POST", "OPTIONS"])
+@app.route("/api/move-files-to-folder", methods=["POST", "OPTIONS"])
 def move_file_to_folder():
     """Move one or more files into a specified folder."""
-    data = request.get_json() or {}
-    files = data.get("files", [])
+    data = request.get_json(silent=True) or {}
+    files = data.get("files") or data.get("filenames") or []
+    if isinstance(files, str):
+        files = [files]
     if isinstance(data.get("filename"), str) and data.get("filename"):
         files.append(data.get("filename"))
     folder_name = (data.get("folder_name") or data.get("folderName") or "").strip()

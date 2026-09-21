@@ -1111,11 +1111,12 @@
         return;
       }
 
-      safeFetchJson('/api/move-files-to-folder', {
+      safeFetchJson('/api/move-file-to-folder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           folder_name: targetFolder,
+          files: selectedFiles,
           filenames: selectedFiles
         })
       })
