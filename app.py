@@ -1067,13 +1067,13 @@ def process_dataframe(df, filename="", cutoff_round="all"):
         "d2CountCut1": d2_count_c1,
         "d2CountCut2": d2_count_c2,
         "maxCount": max_count,
-        "ranking": ranking_list,
+        "ranking": ranking_list[:50],  # limit to top 50 for small response
         "top10": ranking_list[:10],
         "lateTypeBreakdown": late_type_counts,
         "lateTypeBreakdownCut1": late_type_c1_counts,
         "lateTypeBreakdownCut2": late_type_c2_counts,
         "routeTypeBreakdown": route_type_counts,
-        "outboundRawRows": outbound_raw_rows
+        "outboundRawRows": outbound_raw_rows  # full data kept in memory cache only
     }
 
 
@@ -2140,10 +2140,10 @@ def process_table_sheet(df):
         "lhLateTrips": lh_late_trips,
         "onTimeRate": f"{unique_rate}%",
         "totalLate": unique_late_trips,
-        "ranking": ranking,
+        "ranking": ranking[:50],  # limit to top 50 for small response
         "top10": top10,
         "vehicleStats": veh_stats,
-        "outboundRawRows": unique_raw_rows
+        "outboundRawRows": []  # stripped for lightweight response
     }
 
 
@@ -2390,12 +2390,17 @@ def load_file():
             folder_mtime = os.path.getmtime(folder_path)
             cache_key = f"folder_ob_{folder_path}_{folder_mtime}_cut{cutoff}"
             if cache_key in FILE_PARSED_CACHE:
-                return jsonify(FILE_PARSED_CACHE[cache_key])
+                resp = dict(FILE_PARSED_CACHE[cache_key])
+                resp["outboundRawRows"] = []  # strip raw rows from initial response
+                return jsonify(resp)
                 
             res = process_folder(folder_path, folder_name, cutoff_round=cutoff)
-            if res.get("success"):
+            if res:
+                res["success"] = True
                 FILE_PARSED_CACHE[cache_key] = res
-            return jsonify(res)
+            slim = dict(res) if res else {"success": False}
+            slim["outboundRawRows"] = []  # strip raw rows from initial response
+            return jsonify(slim)
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -2409,7 +2414,9 @@ def load_file():
         mtime = os.path.getmtime(target)
         cache_key = f"{target}_{mtime}_cut{cutoff}"
         if cache_key in FILE_PARSED_CACHE:
-            return jsonify(FILE_PARSED_CACHE[cache_key])
+            slim = dict(FILE_PARSED_CACHE[cache_key])
+            slim["outboundRawRows"] = []  # strip raw rows from initial response
+            return jsonify(slim)
 
         data = process_csv(target, cutoff_round=cutoff)
         data["filename"] = filename
@@ -2417,7 +2424,9 @@ def load_file():
         data["success"] = True
 
         FILE_PARSED_CACHE[cache_key] = data
-        return jsonify(data)
+        slim = dict(data)
+        slim["outboundRawRows"] = []  # strip raw rows from initial response
+        return jsonify(slim)
     except Exception as e:
         import traceback
         traceback.print_exc()
