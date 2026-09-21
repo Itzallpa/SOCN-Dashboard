@@ -671,7 +671,20 @@ def read_dataframe(filepath):
             print("Error reading excel file:", ex)
             return pd.read_csv(filepath, low_memory=False, on_bad_lines='skip')
     else:
-        return pd.read_csv(filepath, low_memory=False, on_bad_lines='skip')
+        try:
+            needed_patterns = [
+                'ontime', 'cutoff', 'cut_off', 'outbound', 'station', 'dest', 'late', 
+                'route', 'shipment', 'tracking', 'received', 'pack', 'team', 'zone', 
+                'to_number', 'report_date', 'date'
+            ]
+            h = pd.read_csv(filepath, nrows=0)
+            usecols = [c for c in h.columns if any(p in str(c).lower() for p in needed_patterns)]
+            if usecols:
+                return pd.read_csv(filepath, usecols=usecols, low_memory=False, on_bad_lines='skip')
+            else:
+                return pd.read_csv(filepath, low_memory=False, on_bad_lines='skip')
+        except Exception:
+            return pd.read_csv(filepath, low_memory=False, on_bad_lines='skip')
 
 
 def process_csv(filepath, cutoff_round="all"):
@@ -1068,14 +1081,14 @@ def resolve_file_path(fn):
     if not fn: return None
     fn_clean = str(fn).strip().replace("\\", "/")
     if os.path.isabs(fn_clean) and os.path.exists(fn_clean) and os.path.isfile(fn_clean):
-        return fn_clean
+        return os.path.normpath(fn_clean)
     if os.path.exists(fn_clean) and os.path.isfile(fn_clean):
         return os.path.abspath(fn_clean)
     candidates = [
-        os.path.join(UPLOAD_FOLDER, fn_clean),
-        os.path.join(BASE_DIR, fn_clean),
-        os.path.join(UPLOAD_FOLDER, os.path.basename(fn_clean)),
-        os.path.join(BASE_DIR, os.path.basename(fn_clean))
+        os.path.normpath(os.path.join(UPLOAD_FOLDER, fn_clean)),
+        os.path.normpath(os.path.join(BASE_DIR, fn_clean)),
+        os.path.normpath(os.path.join(UPLOAD_FOLDER, os.path.basename(fn_clean))),
+        os.path.normpath(os.path.join(BASE_DIR, os.path.basename(fn_clean)))
     ]
     for c in candidates:
         if os.path.exists(c) and os.path.isfile(c):
