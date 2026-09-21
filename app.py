@@ -2421,6 +2421,160 @@ def load_file():
         return jsonify({"success": False, "error": f"ไม่สามารถประมวลผลไฟล์ได้: {str(e)}"}), 200
 
 
+@app.route("/api/raw-data-page", methods=["GET"])
+def get_raw_data_page():
+    filename = request.args.get("filename", "").strip()
+    cutoff = str(request.args.get("cutoff", "all")).strip().lower()
+    page = int(request.args.get("page", 1))
+    limit = int(request.args.get("limit", 50))
+    query = request.args.get("search", "").strip().lower()
+    station_filter = request.args.get("station", "").strip().lower()
+    late_type_filter = request.args.get("late_type", "").strip().lower()
+    cutoff_filter = request.args.get("cutoff_filter", "").strip().upper()
+
+    if page < 1: page = 1
+    if limit < 1 or limit > 200: limit = 50
+
+    data = None
+    if filename:
+        if filename.startswith("folder:"):
+            folder_name = filename.replace("folder:", "").strip()
+            folder_clean = os.path.basename(folder_name)
+            folder_path = os.path.join(UPLOAD_FOLDER, folder_clean)
+            if not os.path.exists(folder_path):
+                folder_path = os.path.join(BASE_DIR, folder_clean)
+            if os.path.exists(folder_path):
+                folder_mtime = os.path.getmtime(folder_path)
+                cache_key = f"folder_ob_{folder_path}_{folder_mtime}_cut{cutoff}"
+                data = FILE_PARSED_CACHE.get(cache_key)
+                if not data:
+                    data = process_folder(folder_path, folder_name, cutoff_round=cutoff)
+                    if data:
+                        data["success"] = True
+                        FILE_PARSED_CACHE[cache_key] = data
+        else:
+            target = resolve_file_path(filename)
+            if target and os.path.exists(target):
+                mtime = os.path.getmtime(target)
+                cache_key = f"{target}_{mtime}_cut{cutoff}"
+                data = FILE_PARSED_CACHE.get(cache_key)
+                if not data:
+                    data = process_csv(target, cutoff_round=cutoff)
+                    if data:
+                        data["success"] = True
+                        FILE_PARSED_CACHE[cache_key] = data
+
+    if not data:
+        return jsonify({"success": False, "error": "ไม่พบข้อมูลไฟล์", "rows": [], "totalRows": 0, "totalPages": 1, "page": page})
+
+    raw_rows = data.get("outboundRawRows", [])
+
+    filtered = []
+    for r in raw_rows:
+        st = str(r.get("dest_station_name", "")).lower()
+        sid = str(r.get("shipment_id", "")).lower()
+        to_no = str(r.get("latest_to_number", "")).lower()
+        lt = str(r.get("soc_outbound_late_type_2nd_cutoff") or r.get("soc_outbound_late_type_1st_cutoff") or r.get("soc_outbound_late_type") or "").lower()
+        round_type = str(r.get("late_round_type", "")).upper()
+
+        if query and query not in sid and query not in st and query not in to_no:
+            continue
+        if station_filter and station_filter != "all" and station_filter not in st:
+            continue
+        if late_type_filter and late_type_filter != "all" and late_type_filter not in lt:
+            continue
+        if cutoff_filter == "BOTH" and round_type != "BOTH":
+            continue
+        elif cutoff_filter == "CUT1" and round_type not in ["CUT1", "BOTH"]:
+            continue
+        elif cutoff_filter == "CUT2" and round_type not in ["CUT2", "BOTH"]:
+            continue
+
+        filtered.append(r)
+
+    total_rows = len(filtered)
+    total_pages = max(1, (total_rows + limit - 1) // limit)
+    start_idx = (page - 1) * limit
+    page_rows = filtered[start_idx:start_idx + limit]
+
+    return jsonify({
+        "success": True,
+        "rows": page_rows,
+        "totalRows": total_rows,
+        "totalPages": total_pages,
+        "page": page,
+        "limit": limit
+    })
+
+
+@app.route("/api/export-raw-csv", methods=["GET"])
+def export_raw_csv_stream():
+    filename = request.args.get("filename", "").strip()
+    cutoff = str(request.args.get("cutoff", "all")).strip().lower()
+
+    data = None
+    if filename:
+        if filename.startswith("folder:"):
+            folder_name = filename.replace("folder:", "").strip()
+            folder_clean = os.path.basename(folder_name)
+            folder_path = os.path.join(UPLOAD_FOLDER, folder_clean)
+            if not os.path.exists(folder_path):
+                folder_path = os.path.join(BASE_DIR, folder_clean)
+            if os.path.exists(folder_path):
+                data = process_folder(folder_path, folder_name, cutoff_round=cutoff)
+                if data:
+                    data["success"] = True
+        else:
+            target = resolve_file_path(filename)
+            if target and os.path.exists(target):
+                data = process_csv(target, cutoff_round=cutoff)
+                if data:
+                    data["success"] = True
+
+    if not data:
+        return "File not found", 404
+
+    rows = data.get("outboundRawRows", [])
+
+    headers = [
+        'No', 'Tracking_ID', 'Destination_Station', 'First_SOC_Received',
+        'First_SOC_Packed', 'First_SOC_Outbound',
+        'Cutoff_1_Target_Timestamp', 'Delay_Minutes_Cut1',
+        'Cutoff_2_Target_Timestamp', 'Delay_Minutes_Cut2',
+        'Late_Round_Status', 'Late_Reason_Cut1', 'Late_Reason_Cut2', 'Route', 'TO_Number', 'Team'
+    ]
+
+    import io
+    output = io.StringIO()
+    output.write('\ufeff' + ','.join(headers) + '\n')
+
+    for idx, r in enumerate(rows):
+        row = [
+            str(idx + 1),
+            f'"{str(r.get("shipment_id","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("dest_station_name","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("first_soc_received_timestamp","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("first_soc_packed_timestamp","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("first_soc_outbound_timestamp","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("soc_outbound_based_received_1st_cut_off_timestamp","")).replace(chr(34), chr(34)*2)}"',
+            str(r.get("delay_mins_c1", 0)),
+            f'"{str(r.get("soc_outbound_based_received_2nd_cut_off_timestamp","")).replace(chr(34), chr(34)*2)}"',
+            str(r.get("delay_mins_c2", 0)),
+            f'"{r.get("late_round_type", "LATE")}"',
+            f'"{str(r.get("soc_outbound_late_type_1st_cutoff","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("soc_outbound_late_type_2nd_cutoff") or r.get("soc_outbound_late_type","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("soc_outbound_route_type","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("latest_to_number","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("recieve_team","")).replace(chr(34), chr(34)*2)}"'
+        ]
+        output.write(','.join(row) + '\n')
+
+    from flask import Response
+    resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
+    resp.headers["Content-Disposition"] = f"attachment; filename=RAW_DATA_EXPORT_{cutoff}.csv"
+    return resp
+
+
 @app.route("/api/load-custom-group", methods=["GET", "POST"])
 def load_custom_group_api():
     """Load and combine multiple custom-selected files into a single aggregated report."""

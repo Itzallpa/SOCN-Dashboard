@@ -1656,6 +1656,10 @@
       });
     }
 
+    let rawCurrentPage = 1;
+    let rawTotalPages = 1;
+    let rawPageLimit = 50;
+
     function openRawDataModal(stationFilter = '', lateTypeFilter = '', routeFilter = '') {
       const modalEl = new bootstrap.Modal(document.getElementById('rawDataModal'));
       modalEl.show();
@@ -1668,7 +1672,16 @@
       if (routeFilter && document.getElementById('rawRouteTypeFilter')) {
         document.getElementById('rawRouteTypeFilter').value = routeFilter;
       }
+      rawCurrentPage = 1;
       filterAndRenderRawData(stationFilter);
+    }
+
+    function changeRawPage(delta) {
+      const newPage = rawCurrentPage + delta;
+      if (newPage >= 1 && newPage <= rawTotalPages) {
+        rawCurrentPage = newPage;
+        filterAndRenderRawData();
+      }
     }
 
     function getCutoffIdentifyBadge(r) {
@@ -1701,38 +1714,130 @@
       }
     }
 
-    function filterAndRenderRawData(stationFilter = '') {
-      const query = document.getElementById('rawSearchInput').value.toLowerCase().trim();
-      const cutoffFilter = document.getElementById('rawCutoffLateFilter') ? document.getElementById('rawCutoffLateFilter').value : '';
-      
+    let rawFetchAbortController = null;
+
+    async function filterAndRenderRawData(stationParam = null) {
+      const query = document.getElementById('rawSearchInput')?.value?.toLowerCase()?.trim() || '';
+      const stationFilter = (stationParam !== null && stationParam !== undefined && stationParam !== '') 
+        ? stationParam 
+        : (document.getElementById('rawStationFilter')?.value || '');
+      const cutoffFilter = document.getElementById('rawCutoffLateFilter')?.value || '';
+      const lateTypeFilter = document.getElementById('rawLateTypeFilter')?.value || '';
+      const routeFilter = document.getElementById('rawRouteTypeFilter')?.value || '';
+
+      const selectEl = document.getElementById('outboundFileSelect');
+      const activeFile = selectEl?.value || outboundDataState?.filename || '';
+
+      const tbody = document.getElementById('rawTableBody');
+      const recordCountEl = document.getElementById('modalRecordCount');
+      const pageIndicator = document.getElementById('pageIndicator');
+      const paginationInfo = document.getElementById('paginationInfo');
+      const prevBtn = document.getElementById('btnPrevPage');
+      const nextBtn = document.getElementById('btnNextPage');
+
+      // Try server-side pagination endpoint if file is active
+      if (activeFile) {
+        if (rawFetchAbortController) rawFetchAbortController.abort();
+        rawFetchAbortController = new AbortController();
+
+        if (tbody) tbody.innerHTML = '<tr><td colspan="13" class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin me-2 text-primary"></i> กำลังดึงข้อมูล Raw Data (ทีละ 50 รายการ)...</td></tr>';
+
+        const params = new URLSearchParams({
+          filename: activeFile,
+          cutoff: currentCutoffRound,
+          page: rawCurrentPage,
+          limit: rawPageLimit,
+          search: query,
+          station: stationFilter,
+          late_type: lateTypeFilter,
+          cutoff_filter: cutoffFilter
+        });
+
+        try {
+          const res = await fetch(`/api/raw-data-page?${params.toString()}`, { signal: rawFetchAbortController.signal });
+          const json = await res.json();
+          if (json && json.success) {
+            rawTotalPages = json.totalPages || 1;
+            rawCurrentPage = json.page || 1;
+            const totalRows = json.totalRows || 0;
+            const rows = json.rows || [];
+
+            if (recordCountEl) recordCountEl.innerText = `${totalRows.toLocaleString()} records`;
+            if (pageIndicator) pageIndicator.innerText = `หน้า ${rawCurrentPage} / ${rawTotalPages}`;
+            if (paginationInfo) {
+              const start = (rawCurrentPage - 1) * rawPageLimit + 1;
+              const end = Math.min(rawCurrentPage * rawPageLimit, totalRows);
+              paginationInfo.innerText = totalRows > 0 ? `กำลังแสดง ${start}-${end} จาก ${totalRows.toLocaleString()} รายการ` : 'กำลังแสดง 0 รายการ';
+            }
+            if (prevBtn) prevBtn.disabled = (rawCurrentPage <= 1);
+            if (nextBtn) nextBtn.disabled = (rawCurrentPage >= rawTotalPages);
+
+            if (rows.length === 0) {
+              if (tbody) tbody.innerHTML = '<tr><td colspan="13" class="text-center py-4 text-muted">ไม่พบข้อมูล Raw Data ที่ตรงกับเงื่อนไข</td></tr>';
+              return;
+            }
+
+            renderRawTableRows(rows, (rawCurrentPage - 1) * rawPageLimit);
+            return;
+          }
+        } catch (e) {
+          if (e.name === 'AbortError') return;
+          console.warn('Server pagination fallback to local:', e);
+        }
+      }
+
+      // Fallback to local filtering
       filteredRawRows = allRawRecords.filter(r => {
         const st = (r.dest_station_name || '').toLowerCase();
         const shipId = (r.shipment_id || '').toLowerCase();
-        const matchQuery = !query || shipId.includes(query) || st.includes(query);
+        const toNo = (r.latest_to_number || '').toLowerCase();
+        const lt = (r.soc_outbound_late_type_2nd_cutoff || r.soc_outbound_late_type_1st_cutoff || r.soc_outbound_late_type || '').toLowerCase();
+        const roundType = (r.late_round_type || '').toUpperCase();
+
+        const matchQuery = !query || shipId.includes(query) || st.includes(query) || toNo.includes(query);
         const matchStation = !stationFilter || stationFilter === 'ALL' || st.includes(stationFilter.toLowerCase());
+        const matchLateType = !lateTypeFilter || lateTypeFilter === 'ALL' || lt.includes(lateTypeFilter.toLowerCase());
 
         let matchCutoff = true;
         if (cutoffFilter === 'BOTH') {
-          matchCutoff = (r.late_round_type === 'BOTH');
+          matchCutoff = (roundType === 'BOTH');
         } else if (cutoffFilter === 'CUT1') {
-          matchCutoff = (r.late_round_type === 'CUT1' || r.late_round_type === 'BOTH');
+          matchCutoff = (roundType === 'CUT1' || roundType === 'BOTH');
         } else if (cutoffFilter === 'CUT2') {
-          matchCutoff = (r.late_round_type === 'CUT2' || r.late_round_type === 'BOTH');
+          matchCutoff = (roundType === 'CUT2' || roundType === 'BOTH');
         }
 
-        return matchQuery && matchStation && matchCutoff;
+        return matchQuery && matchStation && matchLateType && matchCutoff;
       });
 
-      document.getElementById('modalRecordCount').innerText = `${filteredRawRows.length.toLocaleString()} records`;
-      const pageRows = filteredRawRows.slice(0, 50);
+      const totalRows = filteredRawRows.length;
+      rawTotalPages = Math.max(1, Math.ceil(totalRows / rawPageLimit));
+      if (rawCurrentPage > rawTotalPages) rawCurrentPage = rawTotalPages;
 
-      const tbody = document.getElementById('rawTableBody');
+      if (recordCountEl) recordCountEl.innerText = `${totalRows.toLocaleString()} records`;
+      if (pageIndicator) pageIndicator.innerText = `หน้า ${rawCurrentPage} / ${rawTotalPages}`;
+      if (paginationInfo) {
+        const start = (rawCurrentPage - 1) * rawPageLimit + 1;
+        const end = Math.min(rawCurrentPage * rawPageLimit, totalRows);
+        paginationInfo.innerText = totalRows > 0 ? `กำลังแสดง ${start}-${end} จาก ${totalRows.toLocaleString()} รายการ` : 'กำลังแสดง 0 รายการ';
+      }
+      if (prevBtn) prevBtn.disabled = (rawCurrentPage <= 1);
+      if (nextBtn) nextBtn.disabled = (rawCurrentPage >= rawTotalPages);
+
+      const pageRows = filteredRawRows.slice((rawCurrentPage - 1) * rawPageLimit, rawCurrentPage * rawPageLimit);
       if (pageRows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="13" class="text-center py-4 text-muted">ไม่พบข้อมูล Raw Data ที่ตรงกับเงื่อนไข</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="13" class="text-center py-4 text-muted">ไม่พบข้อมูล Raw Data ที่ตรงกับเงื่อนไข</td></tr>';
         return;
       }
 
-      tbody.innerHTML = pageRows.map((r, i) => {
+      renderRawTableRows(pageRows, (rawCurrentPage - 1) * rawPageLimit);
+    }
+
+    function renderRawTableRows(rows, offset = 0) {
+      const tbody = document.getElementById('rawTableBody');
+      if (!tbody) return;
+
+      tbody.innerHTML = rows.map((r, i) => {
         const targetCut = r.matched_cutoff_target && r.matched_cutoff_target !== '-' 
           ? `<div style="font-size:10px; font-weight:700; color:#2563eb; margin-top:2px;"><i class="fa-solid fa-crosshair me-1"></i>${r.matched_cutoff_target}</div>` 
           : '';
@@ -1745,7 +1850,7 @@
         const lateTypeDisplay = r.soc_outbound_late_type_2nd_cutoff || r.soc_outbound_late_type_1st_cutoff || r.soc_outbound_late_type || r.reason || '-';
 
         return `<tr>
-          <td>${i + 1}</td>
+          <td>${offset + i + 1}</td>
           <td class="fw-bold text-dark">${r.shipment_id || '-'}</td>
           <td>${r.dest_station_name || '-'}</td>
           <td class="small text-muted">${r.first_soc_received_timestamp || '-'}</td>
@@ -1763,6 +1868,14 @@
     }
 
     function exportFilteredRawCSV() {
+      const selectEl = document.getElementById('outboundFileSelect');
+      const activeFile = selectEl?.value || outboundDataState?.filename || '';
+
+      if (activeFile) {
+        window.location.href = `/api/export-raw-csv?filename=${encodeURIComponent(activeFile)}&cutoff=${encodeURIComponent(currentCutoffRound)}`;
+        return;
+      }
+
       const rowsToExport = filteredRawRows && filteredRawRows.length > 0 ? filteredRawRows : allRawRecords;
       if (!rowsToExport || rowsToExport.length === 0) {
         alert('ไม่มีข้อมูล Raw Data สำหรับ Export');
