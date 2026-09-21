@@ -1,32 +1,52 @@
 [
   {
-    "id": "56b4ae22",
-    "timestamp": "2026-09-17 17:09:13",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "DATA_EXPORT",
-    "details": "📤 ดาวน์โหลด/ส่งออกข้อมูล: LH_Trip_Executive_Report.xls (5913 รายการ) - ส่งออกไฟล์ Excel รายงาน LH Trip สรุปรายชั่วโมงและ Raw Data ครบถ้วน",
-    "ip": "203.156.13.114"
+    "id": "0062ce39",
+    "timestamp": "2026-09-21 20:13:42",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Ground",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as admin@spxexpress.com (Role: Ground)",
+    "ip": "127.0.0.1"
   },
   {
-    "id": "10782de3",
-    "timestamp": "2026-09-17 17:09:13",
-    "email": "guy.panmanee@spxexpress.com",
-    "name": "Natakorn Panmanee",
-    "role": "Admin",
-    "action": "DATA_EXPORT",
-    "details": "📤 ดาวน์โหลด/ส่งออกข้อมูล: 📊 Export Excel (0 รายการ) - ดาวน์โหลด/ส่งออกข้อมูลจากหน้า lh_trip.html",
-    "ip": "203.156.13.114"
+    "id": "0359cdf1",
+    "timestamp": "2026-09-21 20:13:42",
+    "email": "admin@spxexpress.com",
+    "name": "Admin SOC",
+    "role": "Ground",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Ground",
+    "ip": "127.0.0.1"
   },
   {
-    "id": "00afbdfa",
-    "timestamp": "2026-09-17 17:08:52",
+    "id": "202eb021",
+    "timestamp": "2026-09-21 20:11:41",
     "email": "guy.panmanee@spxexpress.com",
     "name": "Natakorn Panmanee",
     "role": "Admin",
     "action": "SYNC_GOOGLE_SHEET",
     "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
-    "ip": "203.156.13.114"
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "f7e50aae",
+    "timestamp": "2026-09-21 18:25:37",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "106ed751",
+    "timestamp": "2026-09-21 18:25:36",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "ip": "112.121.130.34"
   }
 ]

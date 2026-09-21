@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-17 21:39:44",
+  "updatedAt": "2026-09-21 15:36:44",
   "hourlyTarget": 45000,
   "hourlyMinimum": 40000,
   "hourlyMinimumPct": 90,
@@ -105,8 +105,8 @@
     }
   },
   "googleSheetSync": {
-    "enabled": true,
-    "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRz_aGomDisEonO0T5FJT00nOxpeUa9iUDYwfmBrd0USzMCwXN5qIkJnvvh424woD3KqWYEmUaglPDG/pub?output=csv"
+    "enabled": false,
+    "url": ""
   },
   "ttbSync": {
     "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTgblrQVq9E7KcSf_gd_PGfGRwh-7HZBWXzRnXcZUYmnQ_WiX7xPHgWL_I5_TkUl0FHLy7zGxebGedq/pub?output=csv",
@@ -118,9 +118,10 @@
   },
   "lhTripDriveSync": {
     "enabled": true,
+    "sourceSheetUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
     "folderId": "1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1",
     "folderUrl": "https://drive.google.com/drive/folders/1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1",
-    "appsScriptUrl": "https://script.google.com/a/macros/spxexpress.com/s/AKfycbzk8JXsWiwUcfiaHEZVBthiFuTP1s_cLuaOCjPHhtjmcRNU3xxHl6i8rpuyq_s2UE0O/exec",
+    "appsScriptUrl": "https://script.google.com/macros/s/AKfycbyuzY7nDG0MiKUniN0YUrIBdPPmo6wt5RDWuC4YBDb3mmr_CfuDUdhrz6mPl46oPeeAuw/exec",
     "autoUpload1400": true
   }
 }

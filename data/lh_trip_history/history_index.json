@@ -1,15 +1,15 @@
 [
   {
-    "date": "2026-09-17",
-    "archivedAt": "2026-09-17 20:50:03",
-    "totalTrips": 5913,
-    "onTimeTrips": 5358,
-    "lateTrips": 555,
-    "onTimeRate": 90.6,
-    "obLateCount": 359,
-    "lhLateCount": 196,
-    "totalOrders": 1975450,
-    "lateOrders": 375064,
-    "filename": "lh_trip_2026-09-17.json"
+    "date": "2026-09-21",
+    "archivedAt": "2026-09-21 16:31:11",
+    "totalTrips": 745,
+    "onTimeTrips": 701,
+    "lateTrips": 44,
+    "onTimeRate": 94.1,
+    "obLateCount": 44,
+    "lhLateCount": 0,
+    "totalOrders": 865488,
+    "lateOrders": 28633,
+    "filename": "lh_trip_2026-09-21.json"
   }
 ]

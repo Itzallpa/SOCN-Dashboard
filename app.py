@@ -186,12 +186,20 @@ def save_activity_logs(logs):
         print("Error saving activity logs:", e)
 
 def log_activity(action, details, user_email=None, user_name=None, user_role=None):
-    if not user_email:
-        user_email = session.get("user_email", "guest")
-    if not user_name:
-        user_name = session.get("user_name", "Guest")
-    if not user_role:
-        user_role = session.get("user_role", "Ground")
+    from flask import has_request_context
+    if has_request_context():
+        if not user_email:
+            user_email = session.get("user_email", "guest")
+        if not user_name:
+            user_name = session.get("user_name", "Guest")
+        if not user_role:
+            user_role = session.get("user_role", "Ground")
+        ip = getattr(request, "remote_addr", "127.0.0.1") or "127.0.0.1"
+    else:
+        user_email = user_email or "system"
+        user_name = user_name or "System Background"
+        user_role = user_role or "System"
+        ip = "127.0.0.1"
     
     logs = load_activity_logs()
     entry = {
@@ -202,7 +210,7 @@ def log_activity(action, details, user_email=None, user_name=None, user_role=Non
         "role": user_role,
         "action": action,
         "details": details,
-        "ip": request.remote_addr or "127.0.0.1"
+        "ip": ip
     }
     logs.insert(0, entry)
     if len(logs) > 5000:
@@ -666,63 +674,99 @@ def read_dataframe(filepath):
         return pd.read_csv(filepath, low_memory=False, on_bad_lines='skip')
 
 
-def process_csv(filepath):
+def process_csv(filepath, cutoff_round="all"):
     df = read_dataframe(filepath)
-    return process_dataframe(df, filename=os.path.basename(filepath))
+    return process_dataframe(df, filename=os.path.basename(filepath), cutoff_round=cutoff_round)
 
 
-def process_dataframe(df, filename=""):
-    # Standardize Column Names
-    col_map = {}
-    target_used = set()
-    for col in df.columns:
-        c_clean = str(col).strip().lower()
-        target = None
-        if c_clean == 'is_soc_outbound_2nd_ontime':
-            target = 'is_soc_outbound_2nd_ontime'
-        elif c_clean in ['is_soc_outbound_ontime', 'is_ontime', 'ontime']:
-            target = 'is_soc_outbound_ontime'
-        elif c_clean == 'soc_outbound_based_received_2nd_cut_off_timestamp':
-            target = 'soc_outbound_based_received_2nd_cut_off_timestamp'
-        elif c_clean in ['soc_outbound_based_received_cut_off_timestamp', 'cutoff_timestamp', 'cut_off_2']:
-            target = 'soc_outbound_based_received_cut_off_timestamp'
-        elif c_clean in ['first_soc_outbound_timestamp', 'first_outbound_timestamp', 'outbound_timestamp']:
-            target = 'first_soc_outbound_timestamp'
-        elif c_clean in ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination']:
-            target = 'dest_station_name'
-        elif c_clean in ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason']:
-            target = 'soc_outbound_late_type_2nd_cutoff'
-        elif c_clean in ['soc_outbound_route_type', 'route_type', 'route']:
-            target = 'soc_outbound_route_type'
-        elif c_clean in ['shipment_id', 'tracking_id', 'tracking_no', 'waybill']:
-            target = 'shipment_id'
-        elif c_clean in ['first_soc_received_timestamp', 'received_timestamp', 'inbound_timestamp']:
-            target = 'first_soc_received_timestamp'
-        elif c_clean in ['recieve_team', 'receive_team', 'obd_zone', 'zone']:
-            target = 'recieve_team'
-        elif c_clean in ['latest_to_number', 'to_number', 'to_no']:
-            target = 'latest_to_number'
+def process_dataframe(df, filename="", cutoff_round="all"):
+    cutoff_round_str = str(cutoff_round).strip().lower()
+    if cutoff_round_str not in ["1", "2", "all"]:
+        cutoff_round_str = "all"
 
-        if target and target not in target_used:
-            col_map[col] = target
-            target_used.add(target)
+    lower_col_dict = {str(c).strip().lower(): c for c in df.columns}
 
-    if col_map:
-        df = df.rename(columns=col_map)
-    df = df.loc[:, ~df.columns.duplicated()]
+    def get_col(cands):
+        for c in cands:
+            if c in lower_col_dict:
+                return lower_col_dict[c]
+        return None
 
-    # Ensure required columns exist
-    for req in ['first_soc_outbound_timestamp', 'is_soc_outbound_ontime', 'dest_station_name', 'soc_outbound_based_received_2nd_cut_off_timestamp', 'shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'soc_outbound_route_type']:
-        if req not in df.columns:
-            df[req] = ''
+    # Cutoff 1 & 2 column candidates
+    c1_ontime_cand = ['is_soc_outbound_1st_ontime', 'is_soc_outbound_ontime', 'is_ontime', 'ontime']
+    c1_ts_cand = ['soc_outbound_based_received_1st_cut_off_timestamp', 'soc_outbound_based_received_cut_off_timestamp', 'cutoff_timestamp', 'cut_off_1', 'cutoff_1']
+    c1_late_cand = ['soc_outbound_late_type_1st_cutoff', 'soc_outbound_late_type', 'late_type', 'reason']
 
-    # Filter LATE rows FIRST to achieve ultra-fast <0.5s processing speed!
-    ontime_str = df["is_soc_outbound_ontime"].astype(str).str.strip().str.upper()
-    reason_str = df["soc_outbound_late_type_2nd_cutoff"].astype(str).str.strip().str.lower()
+    c2_ontime_cand = ['is_soc_outbound_2nd_ontime', 'is_soc_outbound_ontime', 'is_ontime', 'ontime']
+    c2_ts_cand = ['soc_outbound_based_received_2nd_cut_off_timestamp', 'soc_outbound_based_received_cut_off_timestamp', 'cutoff_timestamp', 'cut_off_2', 'cutoff_2']
+    c2_late_cand = ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason']
 
-    is_late_ontime = ontime_str.isin(["FALSE", "0"])
-    is_late_reason = reason_str.notna() & ~reason_str.isin(["", "none", "nan"])
-    is_late_mask = is_late_ontime | is_late_reason
+    common_rules = {
+        'first_soc_outbound_timestamp': ['first_soc_outbound_timestamp', 'first_outbound_timestamp', 'outbound_timestamp'],
+        'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
+        'soc_outbound_route_type': ['soc_outbound_route_type', 'route_type', 'route'],
+        'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
+        'first_soc_received_timestamp': ['first_soc_received_timestamp', 'received_timestamp', 'inbound_timestamp'],
+        'first_soc_packed_timestamp': ['first_soc_packed_timestamp', 'packed_timestamp', 'first_packed_timestamp', 'first_soc_packed'],
+        'recieve_team': ['recieve_team', 'receive_team', 'obd_zone', 'zone'],
+        'latest_to_number': ['latest_to_number', 'to_number', 'to_no'],
+        'report_date': ['report_date', 'date']
+    }
+
+    src_c1_ontime = get_col(c1_ontime_cand)
+    src_c1_ts = get_col(c1_ts_cand)
+    src_c1_late = get_col(c1_late_cand)
+
+    src_c2_ontime = get_col(c2_ontime_cand)
+    src_c2_ts = get_col(c2_ts_cand)
+    src_c2_late = get_col(c2_late_cand)
+
+    for target_col, candidates in common_rules.items():
+        src = get_col(candidates)
+        if src and src != target_col:
+            df[target_col] = df[src]
+        elif not src and target_col not in df.columns:
+            df[target_col] = ''
+
+    # Evaluate Cutoff 1 late mask
+    if src_c1_ontime and src_c1_ontime in df.columns:
+        ontime_c1 = df[src_c1_ontime].astype(str).str.strip().str.upper().isin(["FALSE", "0"])
+    else:
+        ontime_c1 = pd.Series(False, index=df.index)
+
+    if src_c1_late and src_c1_late in df.columns:
+        reason_c1 = df[src_c1_late].astype(str).str.strip().str.lower()
+        has_reason_c1 = reason_c1.notna() & ~reason_c1.isin(["", "none", "nan"])
+    else:
+        has_reason_c1 = pd.Series(False, index=df.index)
+
+    is_late_cut1 = ontime_c1 | has_reason_c1
+
+    # Evaluate Cutoff 2 late mask
+    if src_c2_ontime and src_c2_ontime in df.columns:
+        ontime_c2 = df[src_c2_ontime].astype(str).str.strip().str.upper().isin(["FALSE", "0"])
+    else:
+        ontime_c2 = pd.Series(False, index=df.index)
+
+    if src_c2_late and src_c2_late in df.columns:
+        reason_c2 = df[src_c2_late].astype(str).str.strip().str.lower()
+        has_reason_c2 = reason_c2.notna() & ~reason_c2.isin(["", "none", "nan"])
+    else:
+        has_reason_c2 = pd.Series(False, index=df.index)
+
+    is_late_cut2 = ontime_c2 | has_reason_c2
+
+    if not is_late_cut1.any() and not is_late_cut2.any():
+        ontime_gen = df.get('is_soc_outbound_ontime', pd.Series(False, index=df.index)).astype(str).str.strip().str.upper().isin(["FALSE", "0"])
+        is_late_cut1 = ontime_gen
+        is_late_cut2 = ontime_gen
+
+    if cutoff_round_str == "1":
+        is_late_mask = is_late_cut1
+    elif cutoff_round_str == "2":
+        is_late_mask = is_late_cut2
+    else:
+        is_late_mask = is_late_cut1 | is_late_cut2
 
     late_df = df[is_late_mask].copy() if is_late_mask.any() else df.head(0).copy()
     total_late = int(len(late_df))
@@ -730,48 +774,87 @@ def process_dataframe(df, filename=""):
     if total_late == 0:
         return {
             "reportDate": "N/A",
+            "cutoffRound": cutoff_round_str,
             "totalLate": 0,
+            "totalLateCut1": 0,
+            "totalLateCut2": 0,
             "destCount": 0,
             "medianLate": 0.0,
+            "medianLateCut1": 0.0,
+            "medianLateCut2": 0.0,
             "d2Count": 0,
+            "d2CountCut1": 0,
+            "d2CountCut2": 0,
             "maxCount": 0,
             "ranking": [],
             "top10": [],
             "lateTypeBreakdown": {},
+            "lateTypeBreakdownCut1": {},
+            "lateTypeBreakdownCut2": {},
             "routeTypeBreakdown": {},
             "outboundRawRows": []
         }
 
-    # Vectorized timestamp parsing ONLY on late_df with fast exact format fallback
-    ts_cols = [
-        "first_soc_outbound_timestamp",
-        "soc_outbound_based_received_cut_off_timestamp",
-        "soc_outbound_based_received_2nd_cut_off_timestamp",
-        "first_soc_received_timestamp"
-    ]
-    for col in ts_cols:
-        if col in late_df.columns:
-            parsed = pd.to_datetime(late_df[col], format='%Y-%m-%d %H:%M:%S', errors='coerce')
-            if parsed.isna().sum() > 0:
-                parsed2 = pd.to_datetime(late_df[col], format='mixed', errors='coerce')
-                late_df[col] = parsed.fillna(parsed2)
+    late_df['cut1_ts'] = late_df[src_c1_ts] if (src_c1_ts and src_c1_ts in late_df.columns) else ''
+    late_df['cut2_ts'] = late_df[src_c2_ts] if (src_c2_ts and src_c2_ts in late_df.columns) else late_df['cut1_ts']
+    late_df['cut1_late_type'] = late_df[src_c1_late] if (src_c1_late and src_c1_late in late_df.columns) else ''
+    late_df['cut2_late_type'] = late_df[src_c2_late] if (src_c2_late and src_c2_late in late_df.columns) else late_df['cut1_late_type']
+
+    late_df['is_late_c1'] = is_late_cut1[is_late_mask].values
+    late_df['is_late_c2'] = is_late_cut2[is_late_mask].values
+
+    for ts_col in ['first_soc_outbound_timestamp', 'cut1_ts', 'cut2_ts', 'first_soc_received_timestamp', 'first_soc_packed_timestamp']:
+        if ts_col in late_df.columns:
+            p1 = pd.to_datetime(late_df[ts_col], format='%Y-%m-%d %H:%M:%S', errors='coerce')
+            if p1.isna().sum() > 0:
+                p2 = pd.to_datetime(late_df[ts_col], format='mixed', errors='coerce')
+                late_df[ts_col] = p1.fillna(p2)
             else:
-                late_df[col] = parsed
+                late_df[ts_col] = p1
 
-    # Calculate delay & D+2 count
-    has_cut = late_df["soc_outbound_based_received_2nd_cut_off_timestamp"].notna()
-    has_out = late_df["first_soc_outbound_timestamp"].notna()
-    calc_df = late_df[has_cut & has_out]
+    has_c1_out = late_df['first_soc_outbound_timestamp'].notna() & late_df['cut1_ts'].notna()
+    late_df['delay_mins_c1'] = 0.0
+    if has_c1_out.any():
+        late_df.loc[has_c1_out, 'delay_mins_c1'] = (late_df.loc[has_c1_out, 'first_soc_outbound_timestamp'] - late_df.loc[has_c1_out, 'cut1_ts']).dt.total_seconds() / 60
 
-    if len(calc_df) > 0:
-        delays = (calc_df["first_soc_outbound_timestamp"] - calc_df["soc_outbound_based_received_2nd_cut_off_timestamp"]).dt.total_seconds() / 60
-        late_df.loc[calc_df.index, "delay_mins"] = delays
-        median_late = round(float(delays.median()), 1) if len(delays) > 0 else 0.0
-        d2_count = int((delays >= 2880).sum())
+    has_c2_out = late_df['first_soc_outbound_timestamp'].notna() & late_df['cut2_ts'].notna()
+    late_df['delay_mins_c2'] = 0.0
+    if has_c2_out.any():
+        late_df.loc[has_c2_out, 'delay_mins_c2'] = (late_df.loc[has_c2_out, 'first_soc_outbound_timestamp'] - late_df.loc[has_c2_out, 'cut2_ts']).dt.total_seconds() / 60
+
+    if cutoff_round_str == "1":
+        late_df['delay_mins'] = late_df['delay_mins_c1']
+        late_df['soc_outbound_late_type'] = late_df['cut1_late_type']
+        late_df['soc_outbound_based_received_cut_off_timestamp'] = late_df['cut1_ts']
+    elif cutoff_round_str == "2":
+        late_df['delay_mins'] = late_df['delay_mins_c2']
+        late_df['soc_outbound_late_type'] = late_df['cut2_late_type']
+        late_df['soc_outbound_based_received_cut_off_timestamp'] = late_df['cut2_ts']
     else:
-        late_df["delay_mins"] = 0
-        median_late = 0.0
-        d2_count = 0
+        late_df['delay_mins'] = late_df['delay_mins_c2']
+        late_df['soc_outbound_late_type'] = late_df['cut2_late_type'].where(late_df['cut2_late_type'] != '', late_df['cut1_late_type'])
+        late_df['soc_outbound_based_received_cut_off_timestamp'] = late_df['cut2_ts']
+
+    total_late_c1 = int(late_df['is_late_c1'].sum())
+    total_late_c2 = int(late_df['is_late_c2'].sum())
+
+    valid_c1_delays = late_df.loc[late_df['is_late_c1'] & has_c1_out, 'delay_mins_c1']
+    median_late_c1 = round(float(valid_c1_delays.median()), 1) if len(valid_c1_delays) > 0 else 0.0
+    d2_count_c1 = int((valid_c1_delays >= 2880).sum())
+
+    valid_c2_delays = late_df.loc[late_df['is_late_c2'] & has_c2_out, 'delay_mins_c2']
+    median_late_c2 = round(float(valid_c2_delays.median()), 1) if len(valid_c2_delays) > 0 else 0.0
+    d2_count_c2 = int((valid_c2_delays >= 2880).sum())
+
+    if cutoff_round_str == "1":
+        median_late = median_late_c1
+        d2_count = d2_count_c1
+    elif cutoff_round_str == "2":
+        median_late = median_late_c2
+        d2_count = d2_count_c2
+    else:
+        median_late = median_late_c2
+        d2_count = max(d2_count_c1, d2_count_c2)
 
     THAI_STATION_MAP = {
         'APTNI': 'พัทลุง', 'HSNOI': 'สะเดาน้อย', 'APHIT': 'พิษณุโลก',
@@ -822,8 +905,7 @@ def process_dataframe(df, filename=""):
     late_df["dest_station_name_clean"] = late_df["dest_station_name"].apply(clean_name)
     dest_count = int(late_df["dest_station_name_clean"].nunique())
 
-    # Fast Vectorized Peak Time
-    if "first_soc_outbound_timestamp" in late_df.columns and pd.api.types.is_datetime64_any_dtype(late_df["first_soc_outbound_timestamp"]):
+    if pd.api.types.is_datetime64_any_dtype(late_df["first_soc_outbound_timestamp"]):
         late_df["_hhmm"] = late_df["first_soc_outbound_timestamp"].dt.strftime("%H:%M").fillna("-")
     else:
         late_df["_hhmm"] = "-"
@@ -838,6 +920,8 @@ def process_dataframe(df, filename=""):
 
     cutoff_map = build_cutoff_map()
     grp_counts = late_df["dest_station_name_clean"].value_counts()
+    c1_st_counts = late_df[late_df['is_late_c1']]["dest_station_name_clean"].value_counts().to_dict()
+    c2_st_counts = late_df[late_df['is_late_c2']]["dest_station_name_clean"].value_counts().to_dict()
 
     ranking_list = []
     max_count = int(grp_counts.iloc[0]) if len(grp_counts) > 0 else 1
@@ -859,6 +943,8 @@ def process_dataframe(df, filename=""):
             "rank": idx + 1,
             "station": str(st_name),
             "count": cnt_int,
+            "countCut1": int(c1_st_counts.get(st_name, 0)),
+            "countCut2": int(c2_st_counts.get(st_name, 0)),
             "pct": pct,
             "peakTime": str(peak_map.get(st_name, "-")),
             "cutoffTarget": target_str,
@@ -870,22 +956,40 @@ def process_dataframe(df, filename=""):
     try:
         raw_target_df = late_df.copy()
         raw_target_df['dest_station_name'] = raw_target_df['dest_station_name_clean']
+        raw_target_df['soc_outbound_based_received_1st_cut_off_timestamp'] = raw_target_df['cut1_ts'].astype(str).str.replace('NaT', '')
+        raw_target_df['soc_outbound_based_received_2nd_cut_off_timestamp'] = raw_target_df['cut2_ts'].astype(str).str.replace('NaT', '')
+        raw_target_df['soc_outbound_late_type_1st_cutoff'] = raw_target_df['cut1_late_type'].fillna('')
+        raw_target_df['soc_outbound_late_type_2nd_cutoff'] = raw_target_df['cut2_late_type'].fillna('')
+        raw_target_df['first_soc_outbound_timestamp'] = raw_target_df['first_soc_outbound_timestamp'].astype(str).str.replace('NaT', '')
+        raw_target_df['first_soc_received_timestamp'] = raw_target_df['first_soc_received_timestamp'].astype(str).str.replace('NaT', '')
+        raw_target_df['first_soc_packed_timestamp'] = raw_target_df['first_soc_packed_timestamp'].astype(str).str.replace('NaT', '')
+
+        def get_late_round_label(row):
+            c1 = bool(row.get('is_late_c1'))
+            c2 = bool(row.get('is_late_c2'))
+            if c1 and c2: return 'BOTH'
+            if c1: return 'CUT1'
+            if c2: return 'CUT2'
+            return 'LATE'
+
+        raw_target_df['late_round_type'] = raw_target_df.apply(get_late_round_label, axis=1)
+
         needed_cols = [
             'shipment_id', 'dest_station_name', 'first_soc_received_timestamp',
             'first_soc_packed_timestamp', 'first_soc_outbound_timestamp',
+            'soc_outbound_based_received_cut_off_timestamp',
+            'soc_outbound_based_received_1st_cut_off_timestamp',
             'soc_outbound_based_received_2nd_cut_off_timestamp',
-            'delay_mins', 'soc_outbound_late_type_2nd_cutoff', 'soc_outbound_route_type',
+            'delay_mins', 'delay_mins_c1', 'delay_mins_c2',
+            'soc_outbound_late_type', 'soc_outbound_late_type_1st_cutoff', 'soc_outbound_late_type_2nd_cutoff',
+            'late_round_type', 'soc_outbound_route_type',
             'latest_to_number', 'recieve_team'
         ]
         for col in needed_cols:
             if col not in raw_target_df.columns:
                 raw_target_df[col] = ''
 
-        for ts in ['first_soc_received_timestamp', 'first_soc_packed_timestamp', 'first_soc_outbound_timestamp', 'soc_outbound_based_received_2nd_cut_off_timestamp']:
-            if ts in raw_target_df.columns:
-                raw_target_df[ts] = raw_target_df[ts].astype(str).str.replace('NaT', '')
-
-        outbound_raw_rows = raw_target_df[needed_cols].head(2500).fillna('').to_dict(orient='records')
+        outbound_raw_rows = raw_target_df[needed_cols].head(3000).fillna('').to_dict(orient='records')
 
         for r_entry in outbound_raw_rows:
             st = str(r_entry.get('dest_station_name', '') or '')
@@ -911,11 +1015,25 @@ def process_dataframe(df, filename=""):
             report_date = str(valid_dates.iloc[0])
 
     late_type_counts = {}
-    if 'soc_outbound_late_type_2nd_cutoff' in late_df.columns:
-        lt_series = late_df['soc_outbound_late_type_2nd_cutoff'].dropna().astype(str).str.strip()
+    if 'soc_outbound_late_type' in late_df.columns:
+        lt_series = late_df['soc_outbound_late_type'].dropna().astype(str).str.strip()
         for lt, cnt in lt_series.value_counts().items():
             if lt and lt.lower() not in ['nan', 'none', '']:
                 late_type_counts[lt] = int(cnt)
+
+    late_type_c1_counts = {}
+    if 'cut1_late_type' in late_df.columns:
+        lt1_series = late_df.loc[late_df['is_late_c1'], 'cut1_late_type'].dropna().astype(str).str.strip()
+        for lt, cnt in lt1_series.value_counts().items():
+            if lt and lt.lower() not in ['nan', 'none', '']:
+                late_type_c1_counts[lt] = int(cnt)
+
+    late_type_c2_counts = {}
+    if 'cut2_late_type' in late_df.columns:
+        lt2_series = late_df.loc[late_df['is_late_c2'], 'cut2_late_type'].dropna().astype(str).str.strip()
+        for lt, cnt in lt2_series.value_counts().items():
+            if lt and lt.lower() not in ['nan', 'none', '']:
+                late_type_c2_counts[lt] = int(cnt)
 
     route_type_counts = {}
     if 'soc_outbound_route_type' in late_df.columns:
@@ -926,14 +1044,23 @@ def process_dataframe(df, filename=""):
 
     return {
         "reportDate": report_date,
+        "cutoffRound": cutoff_round_str,
         "totalLate": total_late,
+        "totalLateCut1": total_late_c1,
+        "totalLateCut2": total_late_c2,
         "destCount": dest_count,
         "medianLate": median_late,
+        "medianLateCut1": median_late_c1,
+        "medianLateCut2": median_late_c2,
         "d2Count": d2_count,
+        "d2CountCut1": d2_count_c1,
+        "d2CountCut2": d2_count_c2,
         "maxCount": max_count,
         "ranking": ranking_list,
         "top10": ranking_list[:10],
         "lateTypeBreakdown": late_type_counts,
+        "lateTypeBreakdownCut1": late_type_c1_counts,
+        "lateTypeBreakdownCut2": late_type_c2_counts,
         "routeTypeBreakdown": route_type_counts,
         "outboundRawRows": outbound_raw_rows
     }
@@ -958,7 +1085,11 @@ def resolve_file_path(fn):
     return None
 
 
-def process_file_list(files_or_names, group_name="กลุ่มไฟล์ที่เลือก"):
+def process_file_list(files_or_names, group_name="กลุ่มไฟล์ที่เลือก", cutoff_round="all"):
+    cutoff_round_str = str(cutoff_round).strip().lower()
+    if cutoff_round_str not in ["1", "2", "all"]:
+        cutoff_round_str = "all"
+
     resolved_paths = []
     for fn in files_or_names:
         rp = resolve_file_path(fn)
@@ -973,21 +1104,7 @@ def process_file_list(files_or_names, group_name="กลุ่มไฟล์ท
         
     dfs = []
     report_dates = []
-    needed_patterns = ['ontime', 'cutoff', 'outbound', 'station', 'dest', 'late', 'route', 'shipment', 'tracking', 'received', 'pack', 'team', 'zone', 'to_number', 'report_date']
-    
-    col_mapping_rules = {
-        'is_soc_outbound_ontime': ['is_soc_outbound_ontime', 'is_ontime', 'ontime', 'is_soc_outbound_2nd_ontime'],
-        'soc_outbound_based_received_2nd_cut_off_timestamp': ['soc_outbound_based_received_2nd_cut_off_timestamp', 'soc_outbound_based_received_cut_off_timestamp', 'cutoff_timestamp', 'cut_off_2'],
-        'first_soc_outbound_timestamp': ['first_soc_outbound_timestamp', 'first_outbound_timestamp', 'outbound_timestamp'],
-        'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
-        'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
-        'soc_outbound_route_type': ['soc_outbound_route_type', 'route_type', 'route'],
-        'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
-        'first_soc_received_timestamp': ['first_soc_received_timestamp', 'received_timestamp', 'inbound_timestamp'],
-        'recieve_team': ['recieve_team', 'receive_team', 'obd_zone', 'zone'],
-        'latest_to_number': ['latest_to_number', 'to_number', 'to_no'],
-        'report_date': ['report_date', 'date']
-    }
+    needed_patterns = ['ontime', 'cutoff', 'cut_off', 'outbound', 'station', 'dest', 'late', 'route', 'shipment', 'tracking', 'received', 'pack', 'team', 'zone', 'to_number', 'report_date']
 
     for f in sorted(resolved_paths):
         try:
@@ -997,69 +1114,21 @@ def process_file_list(files_or_names, group_name="กลุ่มไฟล์ท
                 for chunk in pd.read_csv(f, usecols=usecols if usecols else None, chunksize=50000, low_memory=False, on_bad_lines='skip'):
                     if chunk.empty:
                         continue
-                    col_map = {}
-                    target_used = set()
-                    for col in chunk.columns:
-                        c_clean = str(col).strip().lower()
-                        for target_name, cands in col_mapping_rules.items():
-                            if c_clean in cands and target_name not in target_used:
-                                col_map[col] = target_name
-                                target_used.add(target_name)
-                                break
-                    if col_map:
-                        chunk = chunk.rename(columns=col_map)
-                    chunk = chunk.loc[:, ~chunk.columns.duplicated()]
 
                     if 'report_date' in chunk.columns and len(report_dates) < 5:
                         vds = chunk['report_date'].dropna()
                         if len(vds) > 0:
                             report_dates.append(str(vds.iloc[0]))
 
-                    for req in ['is_soc_outbound_ontime', 'soc_outbound_late_type_2nd_cutoff', 'shipment_id', 'dest_station_name', 'first_soc_outbound_timestamp', 'soc_outbound_based_received_2nd_cut_off_timestamp']:
-                        if req not in chunk.columns:
-                            chunk[req] = ''
-
-                    ontime_str = chunk["is_soc_outbound_ontime"].astype(str).str.strip().str.upper()
-                    reason_str = chunk["soc_outbound_late_type_2nd_cutoff"].astype(str).str.strip().str.lower()
-                    is_late_mask = ontime_str.isin(["FALSE", "0"]) | (reason_str.notna() & ~reason_str.isin(["", "none", "nan"]))
-                    
-                    if is_late_mask.any():
-                        late_chunk = chunk[is_late_mask].copy()
-                        late_chunk['source_file'] = os.path.basename(f)
-                        dfs.append(late_chunk)
+                    dfs.append(chunk)
             else:
                 sub_df = read_dataframe(f)
                 if sub_df is not None and not sub_df.empty:
-                    col_map = {}
-                    target_used = set()
-                    for col in sub_df.columns:
-                        c_clean = str(col).strip().lower()
-                        for target_name, cands in col_mapping_rules.items():
-                            if c_clean in cands and target_name not in target_used:
-                                col_map[col] = target_name
-                                target_used.add(target_name)
-                                break
-                    if col_map:
-                        sub_df = sub_df.rename(columns=col_map)
-                    sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
-
                     if 'report_date' in sub_df.columns:
                         vds = sub_df['report_date'].dropna()
                         if len(vds) > 0:
                             report_dates.append(str(vds.iloc[0]))
-
-                    for req in ['is_soc_outbound_ontime', 'soc_outbound_late_type_2nd_cutoff', 'shipment_id', 'dest_station_name', 'first_soc_outbound_timestamp', 'soc_outbound_based_received_2nd_cut_off_timestamp']:
-                        if req not in sub_df.columns:
-                            sub_df[req] = ''
-
-                    ontime_str = sub_df["is_soc_outbound_ontime"].astype(str).str.strip().str.upper()
-                    reason_str = sub_df["soc_outbound_late_type_2nd_cutoff"].astype(str).str.strip().str.lower()
-                    is_late_mask = ontime_str.isin(["FALSE", "0"]) | (reason_str.notna() & ~reason_str.isin(["", "none", "nan"]))
-                    
-                    if is_late_mask.any():
-                        late_sub_df = sub_df[is_late_mask].copy()
-                        late_sub_df['source_file'] = os.path.basename(f)
-                        dfs.append(late_sub_df)
+                    dfs.append(sub_df)
         except Exception as e:
             print(f"Error reading file {f}:", e)
             
@@ -1069,24 +1138,25 @@ def process_file_list(files_or_names, group_name="กลุ่มไฟล์ท
             "error": f"ไม่สามารถอ่านข้อมูลจากไฟล์ที่เลือกได้"
         }
         
-    combined_late_df = pd.concat(dfs, ignore_index=True)
-    if 'shipment_id' in combined_late_df.columns:
-        combined_late_df = combined_late_df.drop_duplicates(subset=['shipment_id'])
+    combined_raw_df = pd.concat(dfs, ignore_index=True)
+    if 'shipment_id' in combined_raw_df.columns:
+        combined_raw_df = combined_raw_df.drop_duplicates(subset=['shipment_id'])
         
-    data = process_dataframe(combined_late_df, filename=f"custom:{group_name}")
+    data = process_dataframe(combined_raw_df, filename=f"custom:{group_name}", cutoff_round=cutoff_round_str)
     data["isFolder"] = True
     data["isCustomGroup"] = True
     data["folderName"] = group_name
     data["fileCount"] = len(resolved_paths)
     data["fileList"] = [os.path.basename(f) for f in resolved_paths]
     data["filename"] = f"custom:{group_name}"
+    data["cutoffRound"] = cutoff_round_str
     if report_dates:
         data["reportDate"] = " - ".join(sorted(list(set(report_dates))))
     data["success"] = True
     return data
 
 
-def process_folder(folder_path, folder_name=None):
+def process_folder(folder_path, folder_name=None, cutoff_round="all"):
     if not folder_name:
         folder_name = os.path.basename(folder_path)
     
@@ -1103,10 +1173,11 @@ def process_folder(folder_path, folder_name=None):
             "error": f"ไม่พบไฟล์ CSV/Excel ในโฟลเดอร์ '{folder_name}'"
         }
         
-    res = process_file_list(files, group_name=folder_name)
+    res = process_file_list(files, group_name=folder_name, cutoff_round=cutoff_round)
     if res.get("success"):
         res["filename"] = f"folder:{folder_name}"
         res["isCustomGroup"] = False
+        res["cutoffRound"] = str(cutoff_round)
     return res
 
 
@@ -1619,8 +1690,15 @@ def sync_google_sheet():
     url = request.args.get("url", "") or (request.json.get("url", "") if request.is_json else "")
     url = str(url).strip()
 
-    # Default Google Sheet Published CSV / GViz URL if none provided
-    default_sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv"
+    # Check sourceSheetUrl from settings if none provided
+    if not url:
+        settings = load_system_settings()
+        url = settings.get("lhTripDriveSync", {}).get("sourceSheetUrl", "").strip()
+    if not url:
+        return jsonify({
+            "success": False,
+            "error": "ยังไม่ได้ระบุลิงก์ Google Sheet สด (กรุณาระบุ URL ผ่านปุ่ม ⚡ Sync Google Sheet สด หรือหน้าต่างตั้งค่า Drive)"
+        }), 200
 
     import re
     gid_match = re.search(r'gid=([0-9]+)', url)
@@ -1667,9 +1745,7 @@ def sync_google_sheet():
         except Exception:
             pass  # fall through to old GET method
 
-    if not url:
-        url = default_sheet_url
-    elif "/pubhtml" in url:
+    if "/pubhtml" in url:
         url = url.replace("/pubhtml", "/pub?output=csv")
         if gid_match and "gid=" not in url:
             url += gid_param
@@ -2268,6 +2344,9 @@ FILE_PARSED_CACHE = {}
 
 @app.route("/api/load-file", methods=["GET"])
 def load_file():
+    cutoff = str(request.args.get("cutoff", "all")).strip().lower()
+    if cutoff not in ["1", "2", "all"]:
+        cutoff = "all"
     filename = request.args.get("filename", "").strip()
     folder_param = request.args.get("folder", "").strip()
     if folder_param:
@@ -2295,11 +2374,11 @@ def load_file():
         
         try:
             folder_mtime = os.path.getmtime(folder_path)
-            cache_key = f"folder_ob_{folder_path}_{folder_mtime}"
+            cache_key = f"folder_ob_{folder_path}_{folder_mtime}_cut{cutoff}"
             if cache_key in FILE_PARSED_CACHE:
                 return jsonify(FILE_PARSED_CACHE[cache_key])
                 
-            res = process_folder(folder_path, folder_name)
+            res = process_folder(folder_path, folder_name, cutoff_round=cutoff)
             if res.get("success"):
                 FILE_PARSED_CACHE[cache_key] = res
             return jsonify(res)
@@ -2314,12 +2393,13 @@ def load_file():
 
     try:
         mtime = os.path.getmtime(target)
-        cache_key = f"{target}_{mtime}"
+        cache_key = f"{target}_{mtime}_cut{cutoff}"
         if cache_key in FILE_PARSED_CACHE:
             return jsonify(FILE_PARSED_CACHE[cache_key])
 
-        data = process_csv(target)
+        data = process_csv(target, cutoff_round=cutoff)
         data["filename"] = filename
+        data["cutoffRound"] = cutoff
         data["success"] = True
 
         FILE_PARSED_CACHE[cache_key] = data
@@ -2333,16 +2413,22 @@ def load_file():
 @app.route("/api/load-custom-group", methods=["GET", "POST"])
 def load_custom_group_api():
     """Load and combine multiple custom-selected files into a single aggregated report."""
+    cutoff = "all"
     if request.method == "POST":
         data = request.get_json() or {}
         files = data.get("files", [])
         group_type = (data.get("type") or "outbound").strip().lower()
         group_name = (data.get("group_name") or data.get("name") or "กลุ่มไฟล์ที่เลือก").strip()
+        cutoff = str(data.get("cutoff") or request.args.get("cutoff") or "all").strip().lower()
     else:
         files_param = request.args.get("files", "").strip()
         group_type = request.args.get("type", "outbound").strip().lower()
         group_name = request.args.get("group_name", request.args.get("name", "กลุ่มไฟล์ที่เลือก")).strip()
+        cutoff = str(request.args.get("cutoff", "all")).strip().lower()
         files = [f.strip() for f in files_param.split(",") if f.strip()] if files_param else []
+
+    if cutoff not in ["1", "2", "all"]:
+        cutoff = "all"
 
     if not files:
         return jsonify({"success": False, "error": "ไม่ได้เลือกไฟล์สำหรับจัดกลุ่ม"}), 400
@@ -2351,10 +2437,10 @@ def load_custom_group_api():
         if group_type == "skip":
             res = process_skip_file_list(files, group_name=group_name)
         else:
-            res = process_file_list(files, group_name=group_name)
+            res = process_file_list(files, group_name=group_name, cutoff_round=cutoff)
             
         if res.get("success"):
-            log_activity("CUSTOM_GROUP_LOAD", f"📊 ประมวลผลกลุ่มไฟล์ ({len(files)} ไฟล์): {group_name}")
+            log_activity("CUSTOM_GROUP_LOAD", f"📊 ประมวลผลกลุ่มไฟล์ ({len(files)} ไฟล์, รอบ Cutoff {cutoff}): {group_name}")
         return jsonify(res)
     except Exception as e:
         import traceback
@@ -2435,6 +2521,11 @@ def load_skip_lightweight():
 
 @app.route("/api/raw-data", methods=["GET"])
 def get_raw_data():
+    cutoff = str(request.args.get("cutoff", "2")).strip()
+    if cutoff not in ["1", "2"]:
+        cutoff = "2"
+    is_cut1 = (cutoff == "1")
+
     filename = request.args.get("filename", "").strip()
     target = ""
     if filename:
@@ -2454,8 +2545,14 @@ def get_raw_data():
         return jsonify({"success": False, "error": "No file found"}), 404
 
     df = pd.read_csv(target, low_memory=False)
-    has_out = df["first_soc_outbound_timestamp"].notna()
-    is_late = df["is_soc_outbound_ontime"].astype(str).str.strip().str.upper().isin(["FALSE", "0"])
+    
+    # Map target columns based on cutoff
+    ontime_col = 'is_soc_outbound_1st_ontime' if (is_cut1 and 'is_soc_outbound_1st_ontime' in df.columns) else ('is_soc_outbound_2nd_ontime' if 'is_soc_outbound_2nd_ontime' in df.columns else 'is_soc_outbound_ontime')
+    cut_ts_col = 'soc_outbound_based_received_1st_cut_off_timestamp' if (is_cut1 and 'soc_outbound_based_received_1st_cut_off_timestamp' in df.columns) else ('soc_outbound_based_received_2nd_cut_off_timestamp' if 'soc_outbound_based_received_2nd_cut_off_timestamp' in df.columns else 'soc_outbound_based_received_cut_off_timestamp')
+    late_type_col = 'soc_outbound_late_type_1st_cutoff' if (is_cut1 and 'soc_outbound_late_type_1st_cutoff' in df.columns) else ('soc_outbound_late_type_2nd_cutoff' if 'soc_outbound_late_type_2nd_cutoff' in df.columns else 'soc_outbound_late_type')
+
+    has_out = df["first_soc_outbound_timestamp"].notna() if "first_soc_outbound_timestamp" in df.columns else pd.Series(True, index=df.index)
+    is_late = df[ontime_col].astype(str).str.strip().str.upper().isin(["FALSE", "0"]) if ontime_col in df.columns else pd.Series(True, index=df.index)
     late_df = df[has_out & is_late].copy()
 
     # Filters
@@ -2463,14 +2560,16 @@ def get_raw_data():
     station = request.args.get("station", "").strip()
 
     if search:
-        mask = (
-            late_df["shipment_id"].astype(str).str.lower().str.contains(search) |
-            late_df["dest_station_name"].astype(str).str.lower().str.contains(search) |
-            late_df["latest_to_number"].astype(str).str.lower().str.contains(search)
-        )
+        mask = False
+        if "shipment_id" in late_df.columns:
+            mask = mask | late_df["shipment_id"].astype(str).str.lower().str.contains(search)
+        if "dest_station_name" in late_df.columns:
+            mask = mask | late_df["dest_station_name"].astype(str).str.lower().str.contains(search)
+        if "latest_to_number" in late_df.columns:
+            mask = mask | late_df["latest_to_number"].astype(str).str.lower().str.contains(search)
         late_df = late_df[mask]
 
-    if station:
+    if station and "dest_station_name" in late_df.columns:
         late_df = late_df[late_df["dest_station_name"].astype(str).str.contains(station)]
 
     page = int(request.args.get("page", 1))
@@ -2478,26 +2577,37 @@ def get_raw_data():
     total_count = len(late_df)
 
     # Delay calculation
-    late_df["out_dt"] = pd.to_datetime(late_df["first_soc_outbound_timestamp"], errors="coerce")
-    late_df["cut_dt"] = pd.to_datetime(late_df["soc_outbound_based_received_2nd_cut_off_timestamp"], errors="coerce")
-    late_df["delay_mins"] = ((late_df["out_dt"] - late_df["cut_dt"]).dt.total_seconds() / 60).round(1).fillna(0)
+    if "first_soc_outbound_timestamp" in late_df.columns and cut_ts_col in late_df.columns:
+        late_df["out_dt"] = pd.to_datetime(late_df["first_soc_outbound_timestamp"], errors="coerce")
+        late_df["cut_dt"] = pd.to_datetime(late_df[cut_ts_col], errors="coerce")
+        late_df["delay_mins"] = ((late_df["out_dt"] - late_df["cut_dt"]).dt.total_seconds() / 60).round(1).fillna(0)
+    else:
+        late_df["delay_mins"] = 0
 
     start_idx = (page - 1) * limit
-    page_df = late_df.iloc[start_idx:start_idx + limit]
+    page_df = late_df.iloc[start_idx:start_idx + limit].copy()
+
+    page_df["soc_outbound_based_received_cut_off_timestamp"] = page_df[cut_ts_col] if cut_ts_col in page_df.columns else ""
+    page_df["soc_outbound_late_type"] = page_df[late_type_col] if late_type_col in page_df.columns else ""
 
     cols = [
         "shipment_id", "dest_station_name", "first_soc_received_timestamp",
-        "first_soc_outbound_timestamp", "soc_outbound_based_received_2nd_cut_off_timestamp",
-        "delay_mins", "soc_outbound_late_type_2nd_cutoff", "soc_outbound_route_type", "latest_to_number", "recieve_team"
+        "first_soc_outbound_timestamp", "soc_outbound_based_received_cut_off_timestamp",
+        "delay_mins", "soc_outbound_late_type", "soc_outbound_route_type", "latest_to_number", "recieve_team"
     ]
+    for c in cols:
+        if c not in page_df.columns:
+            page_df[c] = ""
+
     rows = page_df[cols].fillna("").to_dict(orient="records")
 
     return jsonify({
         "success": True,
+        "cutoffRound": cutoff,
         "total": total_count,
         "page": page,
         "limit": limit,
-        "totalPages": (total_count + limit - 1) // limit,
+        "totalPages": (total_count + limit - 1) // limit if limit > 0 else 1,
         "rows": rows
     })
 
@@ -6428,7 +6538,12 @@ def serve_static_files(filename):
 LH_TRIP_HISTORY_DIR = os.path.join(DATA_DIR, "lh_trip_history")
 os.makedirs(LH_TRIP_HISTORY_DIR, exist_ok=True)
 
-DEFAULT_LH_TRIP_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv"
+DEFAULT_LH_TRIP_SHEET_URL = ""
+
+def get_configured_lh_trip_sheet_url():
+    settings = load_system_settings()
+    url = settings.get("lhTripDriveSync", {}).get("sourceSheetUrl", "")
+    return url.strip()
 
 def fetch_and_archive_lh_trip_snapshot(date_str=None, force=False, custom_url=None):
     if not date_str:
@@ -6443,7 +6558,10 @@ def fetch_and_archive_lh_trip_snapshot(date_str=None, force=False, custom_url=No
         except Exception:
             pass
             
-    url = custom_url or DEFAULT_LH_TRIP_SHEET_URL
+    url = (custom_url or get_configured_lh_trip_sheet_url() or "").strip()
+    if not url:
+        return {"success": False, "error": "ยังไม่ได้ระบุลิงก์ Google Sheet ต้นทางของ LH Trip — กรุณาระบุลิงก์ที่ปุ่ม ⚡ Sync Google Sheet สด เพื่อดึงข้อมูลจริงครับ"}
+
     try:
         resp = requests.get(url, timeout=40, headers={"User-Agent": "Mozilla/5.0"})
         resp.encoding = 'utf-8'
@@ -6521,7 +6639,9 @@ def fetch_and_archive_lh_trip_snapshot(date_str=None, force=False, custom_url=No
 
         merged_map = {}
         for r in data_rows:
-            trip_id = get_val(r, trip_idx, [1, 0])
+            trip_id = get_val(r, trip_idx, [1, 9, 13])
+            if not trip_id:
+                continue
             raw_order = get_val(r, ob_order_idx, [30, 28, 24, 31])
             raw_weight = get_val(r, ob_weight_idx, [31, 29, 25])
             
@@ -6564,9 +6684,7 @@ def fetch_and_archive_lh_trip_snapshot(date_str=None, force=False, custom_url=No
                 "zone": get_val(r, zone_idx, [27, 26, 25])
             }
             
-            if not trip_id:
-                merged_map[f"_anon_{len(merged_map)}"] = entry
-            elif trip_id not in merged_map:
+            if trip_id not in merged_map:
                 merged_map[trip_id] = entry
             else:
                 existing = merged_map[trip_id]
@@ -6697,22 +6815,32 @@ def upload_lh_trip_to_google_drive(payload, custom_gas_url=None):
     gas_url = (custom_gas_url or drive_cfg.get("appsScriptUrl") or "").strip()
     
     if not gas_url:
-        return {"success": False, "error": "ยังไม่ได้ระบุ Google Apps Script Web App URL ในระบบ"}
+        return {"success": False, "error": "ยังไม่ได้ระบุ Google Apps Script Web App URL ในระบบ กรุณาเข้าไปตั้งค่าที่ปุ่ม ☁️ ส่งไฟล์เข้า Google Drive"}
         
     try:
         # Google Apps Script Web App redirects (302), requests will follow redirects automatically
         resp = requests.post(gas_url, json=payload, headers={"Content-Type": "application/json"}, timeout=90, allow_redirects=True)
         if resp.status_code == 200:
+            resp_text = resp.text.strip()
+            # Check if response redirected to Google Sign-in / SSO HTML page
+            if "<!doctype html>" in resp_text.lower() or "<html" in resp_text.lower() or "accounts.google.com" in resp_text:
+                return {
+                    "success": False,
+                    "error": "Google Apps Script ติดหน้า Google Account Sign-In (ยังไม่ได้สิทธิ์เข้าถึง) 👉 กรุณาเปิด script.google.com แล้วตั้งค่า Deploy > Who has access (ผู้มีสิทธิ์เข้าถึง) ให้เป็น 'Anyone' (ทุกคน) ครับ"
+                }
             try:
                 res_data = resp.json()
-                log_activity("GOOGLE_DRIVE_SYNC_LH_TRIP", f"☁️ ส่งข้อมูลเข้า Google Drive สำเร็จ: {res_data.get('fileName')} (Folder: {drive_cfg.get('folderId')})")
+                if isinstance(res_data, dict) and res_data.get("success") is False:
+                    return {"success": False, "error": res_data.get("error", "Google Apps Script แจ้งข้อผิดพลาด")}
+                log_activity("GOOGLE_DRIVE_SYNC_LH_TRIP", f"☁️ ส่งข้อมูลเข้า Google Drive สำเร็จ: {res_data.get('fileName', '')} (Folder: {drive_cfg.get('folderId')})")
                 return res_data
             except Exception:
-                return {"success": True, "message": "ส่งข้อมูลเข้า Google Apps Script สำเร็จ (Raw Response)", "raw": resp.text[:300]}
+                return {"success": False, "error": f"Google Apps Script ตอบกลับไม่ใช่ JSON: {resp_text[:250]}"}
         else:
             return {"success": False, "error": f"Google Apps Script HTTP Error: {resp.status_code} - {resp.text[:200]}"}
     except Exception as e:
         return {"success": False, "error": f"เกิดข้อผิดพลาดในการเชื่อมต่อ Google Drive: {str(e)}"}
+
 
 
 @app.route("/api/lh-trip/drive-settings", methods=["GET", "POST"])
@@ -6725,6 +6853,7 @@ def lh_trip_drive_settings_api():
         drive_cfg["folderId"] = req.get("folderId", drive_cfg.get("folderId", "1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1"))
         drive_cfg["folderUrl"] = req.get("folderUrl", f"https://drive.google.com/drive/folders/{drive_cfg['folderId']}")
         drive_cfg["appsScriptUrl"] = (req.get("appsScriptUrl") or "").strip()
+        drive_cfg["sourceSheetUrl"] = (req.get("sourceSheetUrl") or "").strip()
         drive_cfg["autoUpload1400"] = bool(req.get("autoUpload1400", True))
         settings["lhTripDriveSync"] = drive_cfg
         save_system_settings(settings)
@@ -6769,7 +6898,7 @@ def get_lh_trip_history_dates_api():
     index_file = os.path.join(LH_TRIP_HISTORY_DIR, "history_index.json")
     if os.path.exists(index_file):
         try:
-            with open(index_file, "r", encoding="utf-8") as f:
+            with open(index_file, "r", encoding="utf-8-sig") as f:
                 dates = json.load(f)
                 return jsonify({"success": True, "dates": dates})
         except Exception as e:
@@ -6802,14 +6931,14 @@ def get_lh_trip_history_api():
             res = fetch_and_archive_lh_trip_snapshot(date_str=today_str, force=True)
             if res.get("success") and os.path.exists(target_file):
                 try:
-                    with open(target_file, "r", encoding="utf-8") as f:
+                    with open(target_file, "r", encoding="utf-8-sig") as f:
                         return jsonify(json.load(f))
                 except Exception:
                     pass
         return jsonify({"success": False, "error": f"ไม่พบข้อมูลบันทึกประวัติ LH Trip ของวันที่ {date_str or 'latest'}"}), 404
         
     try:
-        with open(target_file, "r", encoding="utf-8") as f:
+        with open(target_file, "r", encoding="utf-8-sig") as f:
             data = json.load(f)
         return jsonify(data)
     except Exception as e:

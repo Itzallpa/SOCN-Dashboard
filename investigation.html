@@ -70,9 +70,23 @@
 
     <!-- Header Banner -->
     <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-2 px-3 rounded-3 shadow-sm border flex-wrap gap-2">
-      <div>
-        <h4 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-rocket text-primary me-2"></i> Outbound 2nd Cutoff Investigation Dashboard</h4>
-        <p class="text-muted small mb-0" id="bannerSubtitle">ระบบตรวจสอบเคสสายงาน Outbound รอบที่ 2 สรุปเคสสายพัสดุล่าช้า และเป้าหมายเวลา Cutoff / TTB</p>
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div>
+          <h4 class="fw-bold mb-1 text-slate-800" id="bannerTitle"><i class="fa-solid fa-layer-group text-primary me-2"></i> Outbound Cutoff Investigation Dashboard</h4>
+          <p class="text-muted small mb-0" id="bannerSubtitle">ระบบตรวจสอบเคสสายงาน Outbound สรุปรวมและแยกแสดงข้อมูลพัสดุล่าช้าของ Cutoff 1 และ Cutoff 2</p>
+        </div>
+        <!-- Cutoff Round Switcher Pills -->
+        <div class="btn-group p-1 bg-light rounded-pill border shadow-xs" role="group" id="cutoffRoundSwitchGroup">
+          <button type="button" class="btn btn-sm rounded-pill fw-bold px-3 py-1 btn-primary text-white shadow-sm" id="btnCutoffAll" onclick="switchCutoffRound('all')" title="สรุปรวมทั้ง 2 รอบ Cutoff (Cut 1 & Cut 2)">
+            <i class="fa-solid fa-layer-group me-1"></i> รวมทั้ง 2 รอบ (All Cutoff 1 & 2)
+          </button>
+          <button type="button" class="btn btn-sm rounded-pill fw-bold px-3 py-1 btn-light text-secondary" id="btnCutoff1" onclick="switchCutoffRound('1')" title="สลับไปตรวจสอบเคสล่าช้ารอบที่ 1 (1st Cutoff)">
+            <i class="fa-solid fa-sun text-warning me-1"></i> รอบที่ 1 (1st Cutoff)
+          </button>
+          <button type="button" class="btn btn-sm rounded-pill fw-bold px-3 py-1 btn-light text-secondary" id="btnCutoff2" onclick="switchCutoffRound('2')" title="สลับไปตรวจสอบเคสล่าช้ารอบที่ 2 (2nd Cutoff)">
+            <i class="fa-solid fa-rocket text-primary me-1"></i> รอบที่ 2 (2nd Cutoff)
+          </button>
+        </div>
       </div>
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <button class="btn btn-success btn-sm fw-bold" onclick="openGoogleSheetModal()"><i class="fa-solid fa-link me-1"></i> Sync Google Sheet</button>
@@ -110,28 +124,28 @@
         <div class="kpi-card kpi-danger">
           <div class="kpi-title">พัสดุขาออกล่าช้าทั้งหมด (TOTAL LATE)</div>
           <div class="kpi-value text-danger" id="kpiTotalLate">0</div>
-          <div class="kpi-subtext">พัสดุที่หลุดเวลา Cutoff เป้าหมาย</div>
+          <div class="kpi-subtext" id="kpiTotalLateSubtext">พัสดุที่หลุดเวลา Cutoff เป้าหมาย</div>
         </div>
       </div>
       <div class="col-md-3">
         <div class="kpi-card kpi-blue">
           <div class="kpi-title">จำนวนสถานีปลายทาง (STATIONS)</div>
           <div class="kpi-value text-primary" id="kpiDestStations">0</div>
-          <div class="kpi-subtext">สถานีปลายทางที่ได้รับผลกระทบ</div>
+          <div class="kpi-subtext" id="kpiDestStationsSubtext">สถานีปลายทางที่ได้รับผลกระทบ</div>
         </div>
       </div>
       <div class="col-md-3">
         <div class="kpi-card kpi-warning">
           <div class="kpi-title">ความล่าช้ากลาง (MEDIAN DELAY)</div>
           <div class="kpi-value text-warning" id="kpiMedianLate">0.0</div>
-          <div class="kpi-subtext">นาที (เทียบกับเวลา Cutoff รอบที่ 2)</div>
+          <div class="kpi-subtext" id="kpiMedianLateSubtext">นาที (เทียบกับเวลา Cutoff)</div>
         </div>
       </div>
       <div class="col-md-3">
         <div class="kpi-card kpi-purple">
           <div class="kpi-title">ล่าช้าเกิน 2 วัน (D+2 OR LATER)</div>
           <div class="kpi-value text-purple" id="kpiD2Later">0</div>
-          <div class="kpi-subtext">พัสดุที่ล่าช้าสะสม ≥ 48 ชั่วโมง</div>
+          <div class="kpi-subtext" id="kpiD2Subtext">พัสดุที่ล่าช้าสะสม ≥ 48 ชั่วโมง</div>
         </div>
       </div>
     </div>
@@ -183,7 +197,7 @@
       <div class="col-md-6">
         <div class="card-custom">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <h6 class="fw-bold m-0 text-slate-800"><i class="fa-solid fa-magnifying-glass text-primary me-2"></i> Late Type Breakdown (2nd Cutoff)</h6>
+            <h6 class="fw-bold m-0 text-slate-800" id="lateTypeTitle"><i class="fa-solid fa-magnifying-glass text-primary me-2"></i> Late Type Breakdown (2nd Cutoff)</h6>
           </div>
           <p class="text-muted small mb-3">สาเหตุความล่าช้า (คลิกเพื่อดู Raw Data) | <span class="fst-italic text-secondary">Root cause classification of late outbound</span></p>
           <div id="lateTypeContainer">
@@ -256,8 +270,8 @@
                   <th>เวลารับเข้า</th>
                   <th>เวลาแพ็ก (FIRST PACKED)</th>
                   <th>เวลากระจายออก</th>
-                  <th>CUTOFF 2 & TARGET</th>
-                  <th>ดีเลย์ (นาที)</th>
+                  <th class="text-warning">🟡 CUTOFF 1 & ดีเลย์</th>
+                  <th class="text-danger" id="rawTargetHeader">🔴 CUTOFF 2 & ดีเลย์</th>
                   <th>รอบ CUTOFF ที่ LATE</th>
                   <th>สาเหตุล่าช้า</th>
                   <th>เส้นทาง</th>
@@ -266,7 +280,7 @@
                 </tr>
               </thead>
               <tbody id="rawTableBody">
-                <tr><td colspan="12" class="text-center py-4 text-muted">กำลังโหลดข้อมูลดิบ...</td></tr>
+                <tr><td colspan="13" class="text-center py-4 text-muted">กำลังโหลดข้อมูลดิบ...</td></tr>
               </tbody>
             </table>
           </div>
@@ -427,7 +441,7 @@
                     <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" id="folderUploadProgressBar" style="width: 0%;"></div>
                   </div>
                 </div>
-                <button class="btn btn-primary btn-sm fw-bold w-100" id="btnStartFolderUpload" onclick="startUploadFilesToFolder()" disabled>
+                <button class="btn btn-purple btn-sm fw-bold text-white w-100" style="background:#7c3aed;" id="btnStartFolderUpload" onclick="startUploadFilesToFolder()" disabled>
                   <i class="fa-solid fa-cloud-arrow-up me-1"></i> เริ่มอัปโหลดไฟล์เข้าโฟลเดอร์ที่เลือก
                 </button>
               </div>
@@ -473,6 +487,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    let currentCutoffRound = urlParams.get('cutoff') || 'all';
+    if (!['1', '2', 'all'].includes(currentCutoffRound)) currentCutoffRound = 'all';
+
     let outboundDataState = null;
     let outboundChartInstance = null;
     let allRawRecords = [];
@@ -480,6 +498,101 @@
     let currentRawPage = 1;
     const currentRawLimit = 50;
     let availableGroupFiles = { folders: [], files: [] };
+
+    function switchCutoffRound(round) {
+      if (!['1', '2', 'all'].includes(round)) round = 'all';
+      currentCutoffRound = round;
+
+      // Update URL query without reload
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('cutoff', round);
+      window.history.replaceState(null, '', newUrl.toString());
+
+      updateCutoffButtonUI(round);
+      updateHeaderLabels(round);
+
+      const selectEl = document.getElementById('outboundFileSelect');
+      const currentFn = (outboundDataState && outboundDataState.filename) ? outboundDataState.filename : (selectEl ? selectEl.value : '');
+      if (currentFn && !currentFn.startsWith('custom:')) {
+        switchOutboundFile(currentFn);
+      } else if (outboundDataState && outboundDataState.isCustomGroup && outboundDataState.fileList) {
+        const roundTitle = round === 'all' ? 'รวมทั้ง 2 รอบ' : `รอบ Cutoff ${round}`;
+        showOutboundStatus(`กำลังประมวลผลกลุ่มไฟล์ "${outboundDataState.folderName || 'กลุ่มที่เลือก'}" (${roundTitle})...`, 'loading');
+        safeFetchJson('/api/load-custom-group', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            files: outboundDataState.fileList,
+            type: 'outbound',
+            group_name: outboundDataState.folderName || 'กลุ่มที่เลือก',
+            cutoff: currentCutoffRound
+          })
+        }).then(data => {
+          if (data && data.success) {
+            outboundDataState = data;
+            updateDashboard(data);
+            showOutboundStatus(`✅ ประมวลผล ${roundTitle} เรียบร้อย`, 'success');
+          }
+        }).catch(err => showOutboundStatus(`เกิดข้อผิดพลาด: ${err.message}`, 'error'));
+      } else {
+        loadDefaultOutbound();
+      }
+    }
+
+    function updateCutoffButtonUI(round) {
+      const btnAll = document.getElementById('btnCutoffAll');
+      const btn1 = document.getElementById('btnCutoff1');
+      const btn2 = document.getElementById('btnCutoff2');
+      if (btnAll && btn1 && btn2) {
+        if (round === 'all') {
+          btnAll.className = 'btn btn-sm rounded-pill fw-bold px-3 py-1 btn-primary text-white shadow-sm';
+          btn1.className = 'btn btn-sm rounded-pill fw-bold px-3 py-1 btn-light text-secondary';
+          btn2.className = 'btn btn-sm rounded-pill fw-bold px-3 py-1 btn-light text-secondary';
+        } else if (round === '1') {
+          btnAll.className = 'btn btn-sm rounded-pill fw-bold px-3 py-1 btn-light text-secondary';
+          btn1.className = 'btn btn-sm rounded-pill fw-bold px-3 py-1 btn-warning text-dark shadow-sm';
+          btn2.className = 'btn btn-sm rounded-pill fw-bold px-3 py-1 btn-light text-secondary';
+        } else {
+          btnAll.className = 'btn btn-sm rounded-pill fw-bold px-3 py-1 btn-light text-secondary';
+          btn1.className = 'btn btn-sm rounded-pill fw-bold px-3 py-1 btn-light text-secondary';
+          btn2.className = 'btn btn-sm rounded-pill fw-bold px-3 py-1 btn-primary text-white shadow-sm';
+        }
+      }
+    }
+
+    function updateHeaderLabels(round) {
+      const bannerTitle = document.getElementById('bannerTitle');
+      const bannerSub = document.getElementById('bannerSubtitle');
+      const medianSub = document.getElementById('kpiMedianLateSubtext');
+      const lateTitle = document.getElementById('lateTypeTitle');
+      const rawTargetHdr = document.getElementById('rawTargetHeader');
+
+      if (round === 'all') {
+        if (bannerTitle) bannerTitle.innerHTML = '<i class="fa-solid fa-layer-group text-primary me-2"></i> Outbound Cutoff Investigation (รวมทั้งรอบ 1 และรอบ 2)';
+        if (bannerSub && (!outboundDataState || !outboundDataState.reportDate)) {
+          bannerSub.innerText = 'ระบบตรวจสอบเคสสายงาน Outbound สรุปรวมและแยกแสดงข้อมูลพัสดุล่าช้าของ Cutoff 1 และ Cutoff 2';
+        }
+        if (medianSub) medianSub.innerText = 'นาที (🟡 Cut 1 | 🔴 Cut 2)';
+        if (lateTitle) lateTitle.innerHTML = '<i class="fa-solid fa-magnifying-glass text-primary me-2"></i> Late Type Breakdown (Cutoff 1 & Cutoff 2)';
+        if (rawTargetHdr) rawTargetHdr.innerText = 'CUTOFF 1 & 2 TARGETS';
+      } else if (round === '1') {
+        if (bannerTitle) bannerTitle.innerHTML = '<i class="fa-solid fa-sun text-warning me-2"></i> Outbound 1st Cutoff Investigation Dashboard';
+        if (bannerSub && (!outboundDataState || !outboundDataState.reportDate)) {
+          bannerSub.innerText = 'ระบบตรวจสอบเคสสายงาน Outbound รอบที่ 1 สรุปเคสสายพัสดุล่าช้า และเป้าหมายเวลา Cutoff / TTB';
+        }
+        if (medianSub) medianSub.innerText = 'นาที (เทียบกับเวลา Cutoff รอบที่ 1)';
+        if (lateTitle) lateTitle.innerHTML = '<i class="fa-solid fa-magnifying-glass text-warning me-2"></i> Late Type Breakdown (1st Cutoff)';
+        if (rawTargetHdr) rawTargetHdr.innerText = 'CUTOFF 1 & TARGET';
+      } else {
+        if (bannerTitle) bannerTitle.innerHTML = '<i class="fa-solid fa-rocket text-primary me-2"></i> Outbound 2nd Cutoff Investigation Dashboard';
+        if (bannerSub && (!outboundDataState || !outboundDataState.reportDate)) {
+          bannerSub.innerText = 'ระบบตรวจสอบเคสสายงาน Outbound รอบที่ 2 สรุปเคสสายพัสดุล่าช้า และเป้าหมายเวลา Cutoff / TTB';
+        }
+        if (medianSub) medianSub.innerText = 'นาที (เทียบกับเวลา Cutoff รอบที่ 2)';
+        if (lateTitle) lateTitle.innerHTML = '<i class="fa-solid fa-magnifying-glass text-primary me-2"></i> Late Type Breakdown (2nd Cutoff)';
+        if (rawTargetHdr) rawTargetHdr.innerText = 'CUTOFF 2 & TARGET';
+      }
+    }
 
     function openGoogleSheetModal() {
       const modalEl = new bootstrap.Modal(document.getElementById('googleSheetSyncModal'));
@@ -519,6 +632,8 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       fetchFileList();
+      updateCutoffButtonUI(currentCutoffRound);
+      updateHeaderLabels(currentCutoffRound);
       loadDefaultOutbound();
     });
 
@@ -607,6 +722,10 @@
           }
         })
         .catch(err => console.error(err));
+    }
+
+    function loadOutboundFileList() {
+      fetchFileList();
     }
 
     function openCustomGroupModal() {
@@ -722,7 +841,7 @@
       const modalEl = bootstrap.Modal.getInstance(document.getElementById('customGroupModal'));
       if (modalEl) modalEl.hide();
 
-      showOutboundStatus(`กำลังประมวลผลกลุ่มไฟล์ "${groupName}" (${selectedFiles.length} ไฟล์)...`, 'loading');
+      showOutboundStatus(`กำลังประมวลผลกลุ่มไฟล์ "${groupName}" (${selectedFiles.length} ไฟล์, รอบ Cutoff ${currentCutoffRound})...`, 'loading');
 
       safeFetchJson('/api/load-custom-group', {
         method: 'POST',
@@ -730,7 +849,8 @@
         body: JSON.stringify({
           files: selectedFiles,
           type: 'outbound',
-          group_name: groupName
+          group_name: groupName,
+          cutoff: currentCutoffRound
         })
       })
       .then(data => {
@@ -936,19 +1056,20 @@
           });
         }
 
-        if (statusText) statusText.innerText = `✅ อัปโหลดครบทั้ง ${folderSelectedUploadFiles.length} ไฟล์เข้าโฟลเดอร์ "${folderName}" สำเร็จ!`;
+        if (statusText) statusText.innerText = `✅ อัปโหลดครบทั้ง ${folderSelectedUploadFiles.length} ไฟล์เข้าโฟลเดอร์ "${folderName}" เรียบร้อยแล้ว!`;
         if (progressBar) progressBar.style.width = '100%';
-
         folderSelectedUploadFiles = [];
-        const fileInput = document.getElementById('folderMultiFileInput');
+        const fileInput = document.getElementById('folderUploadFilesInput');
         if (fileInput) fileInput.value = '';
-        if (startBtn) {
-          startBtn.disabled = true;
-          startBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up me-1"></i> เริ่มอัปโหลดไฟล์เข้าโฟลเดอร์ที่เลือก';
+        const listDiv = document.getElementById('folderUploadSelectedList');
+        if (listDiv) listDiv.innerHTML = '';
+        const btn = document.getElementById('btnStartFolderUpload');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up me-1"></i> เริ่มอัปโหลดเข้าโฟลเดอร์';
         }
-
         refreshFolderManager();
-
+        loadOutboundFileList();
         if (typeof Swal !== 'undefined') {
           Swal.fire({
             title: 'อัปโหลดสำเร็จ!',
@@ -956,41 +1077,57 @@
             icon: 'success',
             confirmButtonColor: '#10b981',
             background: '#0d1b2a',
-            color: '#fff'
+            color: '#fff',
+            timer: 2000,
+            showConfirmButton: false
           });
         }
       } catch (err) {
-        if (statusText) statusText.innerText = `เกิดข้อผิดพลาด: ${err.message}`;
+        if (statusText) statusText.innerText = `❌ เกิดข้อผิดพลาด: ${err.message}`;
+        alert(`เกิดข้อผิดพลาดในการอัปโหลดไฟล์เข้าโฟลเดอร์: ${err.message}`);
+      } finally {
         if (startBtn) startBtn.disabled = false;
       }
     }
 
     function submitMoveFilesToFolder() {
-      const cbs = document.querySelectorAll('.move-file-cb:checked');
-      const files = Array.from(cbs).map(cb => cb.value);
-      if (files.length === 0) {
-        alert('กรุณาเลือกไฟล์ที่ต้องการย้าย');
-        return;
-      }
-      const folderName = (document.getElementById('targetMoveFolderSelect')?.value || '').trim();
-      if (!folderName) {
+      const targetFolder = (document.getElementById('targetMoveFolderSelect')?.value || '').trim();
+      if (!targetFolder) {
         alert('กรุณาเลือกโฟลเดอร์ปลายทาง');
         return;
       }
+      const checkboxes = document.querySelectorAll('.move-file-cb:checked');
+      const selectedFiles = Array.from(checkboxes).map(cb => cb.value);
+      if (selectedFiles.length === 0) {
+        alert('กรุณาเลือกไฟล์ที่ต้องการย้าย');
+        return;
+      }
 
-      safeFetchJson('/api/move-file-to-folder', {
+      safeFetchJson('/api/move-files-to-folder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files: files, folder_name: folderName })
+        body: JSON.stringify({
+          folder_name: targetFolder,
+          filenames: selectedFiles
+        })
       })
       .then(data => {
         if (data.success) {
           refreshFolderManager();
           if (typeof Swal !== 'undefined') {
-            Swal.fire({ title: 'ย้ายไฟล์สำเร็จ!', text: `ย้าย ${data.movedCount} ไฟล์เข้าสู่โฟลเดอร์ "${folderName}" เรียบร้อยแล้ว`, icon: 'success', confirmButtonColor: '#10b981', background: '#0d1b2a', color: '#fff' });
+            Swal.fire({
+              title: 'ย้ายไฟล์สำเร็จ!',
+              text: `ย้าย ${selectedFiles.length} ไฟล์เข้าโฟลเดอร์ "${targetFolder}" เรียบร้อยแล้ว`,
+              icon: 'success',
+              confirmButtonColor: '#10b981',
+              background: '#0d1b2a',
+              color: '#fff',
+              timer: 1500,
+              showConfirmButton: false
+            });
           }
         } else {
-          alert(data.error);
+          alert('เกิดข้อผิดพลาด: ' + (data.error || 'ย้ายไฟล์ไม่สำเร็จ'));
         }
       })
       .catch(err => alert('เกิดข้อผิดพลาด: ' + err.message));
@@ -1056,13 +1193,13 @@
     }
 
     function loadDefaultOutbound() {
-      showOutboundStatus('กำลังโหลดข้อมูล Outbound...', 'loading');
-      safeFetchJson('/api/load-file?filename=SOC-BISOCinvestigateshipment_DownloadTable_25aug.csv')
+      showOutboundStatus(`กำลังโหลดข้อมูล Outbound (รอบที่ ${currentCutoffRound})...`, 'loading');
+      safeFetchJson(`/api/load-file?filename=SOC-BISOCinvestigateshipment_DownloadTable_25aug.csv&cutoff=${currentCutoffRound}`)
         .then(data => {
           if (data.success) {
             outboundDataState = data;
             updateDashboard(data);
-            showOutboundStatus('✅ โหลดข้อมูล Outbound เรียบร้อย', 'success');
+            showOutboundStatus(`✅ โหลดข้อมูล Outbound รอบที่ ${currentCutoffRound} เรียบร้อย`, 'success');
           }
         })
         .catch(() => {
@@ -1074,18 +1211,18 @@
       if (!filename) return;
       const isFolder = filename.startsWith('folder:');
       const displayName = isFolder ? `โฟลเดอร์ "${filename.replace('folder:', '')}"` : `ไฟล์ "${filename}"`;
-      showOutboundStatus(`กำลังโหลดข้อมูล ${displayName}...`, 'loading');
+      showOutboundStatus(`กำลังโหลดข้อมูล ${displayName} (รอบที่ ${currentCutoffRound})...`, 'loading');
 
-      safeFetchJson(`/api/load-file?filename=${encodeURIComponent(filename)}`)
+      safeFetchJson(`/api/load-file?filename=${encodeURIComponent(filename)}&cutoff=${currentCutoffRound}`)
         .then(data => {
           if (data.success) {
             outboundDataState = data;
             safeSetLocalStorage('socn_outbound_data', data);
             updateDashboard(data);
             if (data.isFolder) {
-              showOutboundStatus(`✅ แสดงผลสรุปข้อมูลรวมของโฟลเดอร์ "${data.folderName}" (รวม ${data.fileCount} ไฟล์) เรียบร้อย`, 'success');
+              showOutboundStatus(`✅ แสดงผลสรุปข้อมูลรวมของโฟลเดอร์ "${data.folderName}" (รวม ${data.fileCount} ไฟล์, รอบที่ ${currentCutoffRound}) เรียบร้อย`, 'success');
             } else {
-              showOutboundStatus(`✅ สลับไปใช้ไฟล์ "${filename}" เรียบร้อย`, 'success');
+              showOutboundStatus(`✅ สลับไปใช้ไฟล์ "${filename}" (รอบที่ ${currentCutoffRound}) เรียบร้อย`, 'success');
             }
           } else {
             showOutboundStatus(`เกิดข้อผิดพลาด: ${data.error}`, 'error');
@@ -1123,44 +1260,43 @@
             }
             showOutboundStatus(`✅ ลบ ${itemTitle} เรียบร้อยแล้ว`, 'success');
             outboundDataState = null;
-            safeSetLocalStorage('socn_outbound_data', null);
-            fetchFileList();
+            safeRemoveLocalStorage('socn_outbound_data');
+            loadOutboundFileList();
+            refreshFolderManager();
           } else {
-            if (typeof Swal !== 'undefined') {
-              Swal.fire({ title: 'เกิดข้อผิดพลาด', text: data.error, icon: 'error', confirmButtonColor: '#dc2626', background: '#0d1b2a', color: '#fff' });
-            }
-            showOutboundStatus(`เกิดข้อผิดพลาด: ${data.error}`, 'error');
+            showOutboundStatus(`เกิดข้อผิดพลาดในการลบ: ${data.error}`, 'error');
           }
         })
-        .catch(err => showOutboundStatus(`ไม่สามารถลบได้: ${err.message}`, 'error'));
+        .catch(err => showOutboundStatus(`ไม่สามารถลบไฟล์ได้: ${err.message}`, 'error'));
       };
 
       if (typeof Swal !== 'undefined') {
         Swal.fire({
-          title: '⚠️ ยืนยันการลบถาวร?',
-          html: `คุณต้องการลบ <b>${itemTitle}</b> ออกจากเซิร์ฟเวอร์ใช่หรือไม่?<br><span style="color:#ef4444; font-size:0.83rem; margin-top:6px; display:inline-block;">คำเตือน: ข้อมูลนี้จะถูกลบออกจากดิสก์ทันทีและไม่สามารถกู้คืนได้</span>`,
+          title: 'ยืนยันการลบไฟล์/โฟลเดอร์',
+          html: `คุณแน่ใจหรือไม่ว่าต้องการลบ <b>${itemTitle}</b>?<br><small class="text-danger">*การกระทำนี้ไม่สามารถย้อนกลับได้</small>`,
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#dc2626',
+          confirmButtonColor: '#ef4444',
           cancelButtonColor: '#64748b',
-          confirmButtonText: '<i class="fa-solid fa-trash me-1"></i> ใช่, ลบถาวร',
+          confirmButtonText: 'ใช่, ลบเลย',
           cancelButtonText: 'ยกเลิก',
           background: '#0d1b2a',
-          color: '#ffffff'
+          color: '#fff'
         }).then((result) => {
           if (result.isConfirmed) {
             runDelete();
           }
         });
       } else {
-        if (confirm(`⚠️ คุณต้องการลบ ${itemTitle} ออกจากเซิร์ฟเวอร์ถาวรใช่หรือไม่?`)) {
+        if (confirm(`คุณต้องการลบ ${itemTitle} ใช่หรือไม่?`)) {
           runDelete();
         }
       }
     }
 
     async function uploadSingleFileChunks(file, scope = 'outbound', folderName = '', onProgress = null) {
-      const CHUNK_SIZE = 1024 * 1024; // 1MB chunks (high stability across proxy & cloud preview)
+      if (!file) return;
+      const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunk
       const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
       const fn = file.name;
 
@@ -1217,18 +1353,18 @@
           showOutboundStatus(`กำลังอัปโหลด "${file.name}" เข้าสู่โฟลเดอร์ uploads (${pct}%)...`, 'loading');
         });
 
-        showOutboundStatus(`กำลังประมวลผลไฟล์ "${file.name}"...`, 'loading');
-        const data = await safeFetchJson(`/api/load-file?filename=${encodeURIComponent(file.name)}`);
+        showOutboundStatus(`กำลังประมวลผลไฟล์ "${file.name}" (รอบที่ ${currentCutoffRound})...`, 'loading');
+        const data = await safeFetchJson(`/api/load-file?filename=${encodeURIComponent(file.name)}&cutoff=${currentCutoffRound}`);
         if (data && data.success) {
           outboundDataState = data;
           safeSetLocalStorage('socn_outbound_data', data);
           updateDashboard(data);
-          showOutboundStatus(`✅ บันทึกไฟล์ "${file.name}" เข้าโฟลเดอร์ uploads บนเซิร์ฟเวอร์เรียบร้อย!`, 'success');
-          fetchFileList();
+          showOutboundStatus(`✅ บันทึกไฟล์ "${file.name}" เข้าโฟลเดอร์ uploads เรียบร้อยแล้ว`, 'success');
+          loadOutboundFileList();
           if (typeof Swal !== 'undefined') {
             Swal.fire({
               title: 'อัปโหลดสำเร็จ!',
-              text: `บันทึกไฟล์ "${file.name}" เข้าโฟลเดอร์ uploads บนเซิร์ฟเวอร์เรียบร้อย`,
+              text: `บันทึกไฟล์ "${file.name}" เรียบร้อยแล้ว`,
               icon: 'success',
               confirmButtonColor: '#10b981',
               background: '#0d1b2a',
@@ -1238,91 +1374,119 @@
             });
           }
         } else {
-          showOutboundStatus(`เกิดข้อผิดพลาดในการประมวลผล: ${data.error}`, 'error');
+          showOutboundStatus(`เกิดข้อผิดพลาด: ${data.error}`, 'error');
         }
       } catch (err) {
-        showOutboundStatus(`อัปโหลดล้มเหลว: ${err.message}`, 'error');
-        if (typeof Swal !== 'undefined') {
-          Swal.fire({ title: 'อัปโหลดล้มเหลว', text: err.message, icon: 'error', confirmButtonColor: '#dc2626', background: '#0d1b2a', color: '#fff' });
-        }
+        showOutboundStatus(`เกิดข้อผิดพลาดในการอัปโหลด: ${err.message}`, 'error');
       }
     }
 
-    async function handleOutboundFolderUpload(fileList) {
-      if (!fileList || fileList.length === 0) return;
-
-      const validFiles = Array.from(fileList).filter(f => {
-        const n = f.name.toLowerCase();
-        return n.endsWith('.csv') || n.endsWith('.xlsx') || n.endsWith('.xls');
-      });
-
-      if (validFiles.length === 0) {
-        if (typeof Swal !== 'undefined') {
-          Swal.fire({ title: 'ไม่พบไฟล์ข้อมูล', text: 'ไม่พบไฟล์ CSV หรือ Excel (.xlsx, .xls) ในโฟลเดอร์ที่เลือก', icon: 'warning', confirmButtonColor: '#2563eb', background: '#0d1b2a', color: '#fff' });
-        } else {
-          alert('ไม่พบไฟล์ CSV หรือ Excel ในโฟลเดอร์ที่เลือก');
-        }
+    async function handleOutboundFolderUpload(files) {
+      const fileList = Array.from(files || []).filter(f => f.name.toLowerCase().endsWith('.csv') || f.name.toLowerCase().endsWith('.xlsx') || f.name.toLowerCase().endsWith('.xls'));
+      if (fileList.length === 0) {
+        alert('ไม่พบไฟล์ CSV หรือ Excel ในโฟลเดอร์ที่เลือก');
         return;
       }
 
-      let folderName = 'Folder_Upload';
-      if (validFiles[0].webkitRelativePath) {
-        folderName = validFiles[0].webkitRelativePath.split('/')[0];
-      } else {
-        folderName = `Folder_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`;
+      let detectedFolderName = 'UploadedFolder';
+      if (files[0] && files[0].webkitRelativePath) {
+        const parts = files[0].webkitRelativePath.split('/');
+        if (parts.length > 1) detectedFolderName = parts[0];
       }
 
-      showOutboundStatus(`กำลังอัปโหลดโฟลเดอร์ "${folderName}" (${validFiles.length} ไฟล์)...`, 'loading');
+      showOutboundStatus(`กำลังอัปโหลดโฟลเดอร์ "${detectedFolderName}" (รวม ${fileList.length} ไฟล์)...`, 'loading');
 
       try {
-        for (let fIdx = 0; fIdx < validFiles.length; fIdx++) {
-          const file = validFiles[fIdx];
-          const fileNum = fIdx + 1;
-          await uploadSingleFileChunks(file, 'outbound', folderName, (pct) => {
-            showOutboundStatus(`กำลังอัปโหลดโฟลเดอร์ "${folderName}" - ไฟล์ ${fileNum}/${validFiles.length}: "${file.name}" (${pct}%)...`, 'loading');
+        for (let i = 0; i < fileList.length; i++) {
+          const file = fileList[i];
+          const fileNum = i + 1;
+          await uploadSingleFileChunks(file, 'outbound', detectedFolderName, (pct) => {
+            showOutboundStatus(`กำลังอัปโหลด [${fileNum}/${fileList.length}] "${file.name}" (${pct}%)...`, 'loading');
           });
         }
 
-        showOutboundStatus(`กำลังประมวลผลสรุปข้อมูลรวมของโฟลเดอร์ "${folderName}"...`, 'loading');
-        const data = await safeFetchJson(`/api/load-file?filename=folder:${encodeURIComponent(folderName)}`);
+        showOutboundStatus(`กำลังประมวลผลข้อมูลโฟลเดอร์ "${detectedFolderName}"...`, 'loading');
+        const data = await safeFetchJson(`/api/load-file?filename=folder:${encodeURIComponent(detectedFolderName)}&cutoff=${currentCutoffRound}`);
         if (data && data.success) {
           outboundDataState = data;
           safeSetLocalStorage('socn_outbound_data', data);
           updateDashboard(data);
-          showOutboundStatus(`✅ อัปโหลดและสรุปข้อมูลทั้งโฟลเดอร์ "${folderName}" (รวม ${data.fileCount} ไฟล์) บันทึกลงเซิร์ฟเวอร์เรียบร้อย!`, 'success');
-          fetchFileList();
-          if (typeof Swal !== 'undefined') {
-            Swal.fire({
-              title: '📁 สรุปข้อมูลโฟลเดอร์สำเร็จ!',
-              html: `บันทึกโฟลเดอร์ <b>"${folderName}"</b> ลงเครื่องเรียบร้อย<br>รวมทั้งหมด <b>${data.fileCount} ไฟล์</b><br>ยอดพัสดุล่าช้ารวม: <b class="text-danger">${(data.totalLate || 0).toLocaleString()} ชิ้น</b>`,
-              icon: 'success',
-              confirmButtonColor: '#10b981',
-              background: '#0d1b2a',
-              color: '#fff'
-            });
-          }
+          showOutboundStatus(`✅ อัปโหลดและประมวลผลโฟลเดอร์ "${detectedFolderName}" (${data.fileCount} ไฟล์) เรียบร้อยแล้ว`, 'success');
+          loadOutboundFileList();
         } else {
-          showOutboundStatus(`เกิดข้อผิดพลาดในการประมวลผลโฟลเดอร์: ${data.error}`, 'error');
+          showOutboundStatus(`เกิดข้อผิดพลาด: ${data.error}`, 'error');
         }
       } catch (err) {
-        showOutboundStatus(`อัปโหลดโฟลเดอร์ล้มเหลว: ${err.message}`, 'error');
-        if (typeof Swal !== 'undefined') {
-          Swal.fire({ title: 'อัปโหลดโฟลเดอร์ล้มเหลว', text: err.message, icon: 'error', confirmButtonColor: '#dc2626', background: '#0d1b2a', color: '#fff' });
-        }
+        showOutboundStatus(`เกิดข้อผิดพลาดในการอัปโหลดโฟลเดอร์: ${err.message}`, 'error');
       }
     }
 
     function updateDashboard(data) {
-      document.getElementById('kpiTotalLate').innerText = (data.totalLate || 0).toLocaleString();
-      document.getElementById('kpiDestStations').innerText = (data.destCount || 0).toLocaleString();
-      
-      const medianVal = parseFloat(data.medianLate || 0);
-      let medianText = `${medianVal.toFixed(1)}`;
-      document.getElementById('kpiMedianLate').innerText = medianText;
+      if (data.cutoffRound) {
+        currentCutoffRound = String(data.cutoffRound).toLowerCase();
+        updateCutoffButtonUI(currentCutoffRound);
+      }
+      updateHeaderLabels(currentCutoffRound);
 
-      document.getElementById('kpiD2Later').innerText = (data.d2Count || 0).toLocaleString();
+      // 1. Total Late KPI Card
+      document.getElementById('kpiTotalLate').innerText = (data.totalLate || 0).toLocaleString();
+      const kpiLateSub = document.getElementById('kpiTotalLateSubtext');
+      if (kpiLateSub) {
+        if (currentCutoffRound === 'all') {
+          const c1 = (data.totalLateCut1 || 0).toLocaleString();
+          const c2 = (data.totalLateCut2 || 0).toLocaleString();
+          kpiLateSub.innerHTML = `<div class="d-flex gap-1 flex-wrap mt-1 justify-content-center justify-content-md-start"><span class="badge bg-warning text-dark px-2 py-1 shadow-xs" title="ยอดล่าช้า Cutoff 1">🟡 Cut 1: ${c1}</span><span class="badge bg-danger text-white px-2 py-1 shadow-xs" title="ยอดล่าช้า Cutoff 2">🔴 Cut 2: ${c2}</span></div>`;
+        } else if (currentCutoffRound === '1') {
+          kpiLateSub.innerHTML = '<span class="badge bg-warning text-dark px-2 py-1 shadow-xs">🟡 เฉพาะ Cutoff รอบที่ 1</span>';
+        } else {
+          kpiLateSub.innerHTML = '<span class="badge bg-danger text-white px-2 py-1 shadow-xs">🔴 เฉพาะ Cutoff รอบที่ 2</span>';
+        }
+      }
+
+      // 2. Destinations KPI Card
+      document.getElementById('kpiDestStations').innerText = (data.destCount || 0).toLocaleString();
+      const kpiDestSub = document.getElementById('kpiDestStationsSubtext');
+      if (kpiDestSub) {
+        kpiDestSub.innerText = currentCutoffRound === 'all' ? 'สถานีปลายทางที่ได้รับผลกระทบรวม (ทั้ง 2 รอบ)' : 'สถานีปลายทางที่ได้รับผลกระทบ';
+      }
+      
+      // 3. Median Delay KPI Card
+      const kpiMedianEl = document.getElementById('kpiMedianLate');
+      const kpiMedianSub = document.getElementById('kpiMedianLateSubtext');
+      if (currentCutoffRound === 'all') {
+        const m1 = parseFloat(data.medianLateCut1 || 0).toFixed(1);
+        const m2 = parseFloat(data.medianLateCut2 || 0).toFixed(1);
+        kpiMedianEl.innerHTML = `<div class="d-flex gap-2 align-items-baseline"><span class="text-warning fw-bold fs-4">${m1}</span><small class="text-muted" style="font-size:11px;">(Cut 1)</small><span class="text-secondary opacity-50">/</span><span class="text-danger fw-bold fs-4">${m2}</span><small class="text-muted" style="font-size:11px;">(Cut 2)</small></div>`;
+        if (kpiMedianSub) kpiMedianSub.innerHTML = `นาที (🟡 Cut 1: <b>${m1}</b> น. | 🔴 Cut 2: <b>${m2}</b> น.)`;
+      } else if (currentCutoffRound === '1') {
+        const mVal = parseFloat(data.medianLate || data.medianLateCut1 || 0).toFixed(1);
+        kpiMedianEl.innerText = mVal;
+        if (kpiMedianSub) kpiMedianSub.innerText = 'นาที (เทียบกับเวลา Cutoff รอบที่ 1)';
+      } else {
+        const mVal = parseFloat(data.medianLate || data.medianLateCut2 || 0).toFixed(1);
+        kpiMedianEl.innerText = mVal;
+        if (kpiMedianSub) kpiMedianSub.innerText = 'นาที (เทียบกับเวลา Cutoff รอบที่ 2)';
+      }
+
+      // 4. D+2 KPI Card
+      const kpiD2El = document.getElementById('kpiD2Later');
+      const kpiD2Sub = document.getElementById('kpiD2Subtext');
+      if (currentCutoffRound === 'all') {
+        kpiD2El.innerText = (data.d2Count || 0).toLocaleString();
+        if (kpiD2Sub) kpiD2Sub.innerHTML = `<div class="d-flex gap-1 flex-wrap mt-1 justify-content-center justify-content-md-start"><span class="badge bg-warning text-dark px-2 py-1">🟡 Cut 1: ${(data.d2CountCut1 || 0).toLocaleString()}</span><span class="badge bg-danger text-white px-2 py-1">🔴 Cut 2: ${(data.d2CountCut2 || 0).toLocaleString()}</span></div>`;
+      } else if (currentCutoffRound === '1') {
+        kpiD2El.innerText = (data.d2CountCut1 !== undefined ? data.d2CountCut1 : data.d2Count || 0).toLocaleString();
+        if (kpiD2Sub) kpiD2Sub.innerText = 'พัสดุที่ล่าช้าสะสม ≥ 48 ชั่วโมง (Cutoff 1)';
+      } else {
+        kpiD2El.innerText = (data.d2CountCut2 !== undefined ? data.d2CountCut2 : data.d2Count || 0).toLocaleString();
+        if (kpiD2Sub) kpiD2Sub.innerText = 'พัสดุที่ล่าช้าสะสม ≥ 48 ชั่วโมง (Cutoff 2)';
+      }
+
       if (data.reportDate) {
-        document.getElementById('bannerSubtitle').innerText = `Report Date: ${data.reportDate} | Outbound File: ${data.filename || 'Active'}`;
+        let roundText = 'All Cutoff 1 & 2';
+        if (currentCutoffRound === '1') roundText = '1st Cutoff';
+        else if (currentCutoffRound === '2') roundText = '2nd Cutoff';
+        document.getElementById('bannerSubtitle').innerText = `Report Date: ${data.reportDate} | Outbound File: ${data.filename || 'Active'} | Mode: ${roundText}`;
       }
 
       allRawRecords = data.outboundRawRows || [];
@@ -1341,7 +1505,30 @@
       tbody.innerHTML = list.map((item, idx) => {
         const rank = item.rank || (idx + 1);
         const rankClass = rank === 1 ? 'rank-1' : (rank === 2 ? 'rank-2' : (rank === 3 ? 'rank-3' : ''));
-        const stTitle = (item.station || '').replace(/'/g, "\'");
+        const stTitle = (item.station || '').replace(/'/g, "\\'");
+        const countCut1 = (item.countCut1 !== undefined) ? item.countCut1 : item.count;
+        const countCut2 = (item.countCut2 !== undefined) ? item.countCut2 : item.count;
+
+        let countDisplay = '';
+        if (currentCutoffRound === 'all') {
+          countDisplay = `
+            <div class="fw-bold text-danger fs-6">${item.count.toLocaleString()}</div>
+            <div class="d-flex gap-1 justify-content-center mt-1 flex-wrap" style="font-size:10px;">
+              <span class="badge bg-warning text-dark px-1 py-0" title="พัสดุล่าช้า Cutoff 1">🟡 Cut 1: ${countCut1.toLocaleString()}</span>
+              <span class="badge bg-danger text-white px-1 py-0" title="พัสดุล่าช้า Cutoff 2">🔴 Cut 2: ${countCut2.toLocaleString()}</span>
+            </div>
+          `;
+        } else if (currentCutoffRound === '1') {
+          countDisplay = `
+            <div class="fw-bold text-warning fs-6">${item.count.toLocaleString()}</div>
+            <span class="badge bg-warning text-dark mt-1" style="font-size:10px;">🟡 Cutoff 1</span>
+          `;
+        } else {
+          countDisplay = `
+            <div class="fw-bold text-danger fs-6">${item.count.toLocaleString()}</div>
+            <span class="badge bg-danger text-white mt-1" style="font-size:10px;">🔴 Cutoff 2</span>
+          `;
+        }
 
         return `<tr>
           <td><span class="rank-pill ${rankClass}">${rank}</span></td>
@@ -1352,7 +1539,7 @@
             </div>
           </td>
           <td class="text-center">
-            <span class="badge bg-danger bg-opacity-10 text-danger fw-bold fs-6 px-3 py-1">${item.count.toLocaleString()}</span>
+            ${countDisplay}
           </td>
           <td class="fw-bold">${item.pct}%</td>
           <td class="fw-bold text-primary">${item.peakTime}</td>
@@ -1477,29 +1664,18 @@
     }
 
     function getCutoffIdentifyBadge(r) {
-      const outboundTime = r.first_soc_outbound_timestamp || '';
-      const cut2Time = r.soc_outbound_based_received_2nd_cut_off_timestamp || '';
-      const reason = (r.soc_outbound_late_type_2nd_cutoff || r.reason || '').toLowerCase();
-      
-      let isCut2Late = false;
-      let isCut1Late = false;
-
-      if (outboundTime && cut2Time && outboundTime > cut2Time) {
-        isCut2Late = true;
+      if (r.late_round_type === 'BOTH') {
+        return `<span class="badge text-white px-2 py-1 shadow-xs" style="background:#7c3aed;"><i class="fa-solid fa-circle-nodes me-1"></i>🟣 Late Both (1 & 2)</span>`;
+      } else if (r.late_round_type === 'CUT1') {
+        return `<span class="badge bg-warning text-dark px-2 py-1 shadow-xs"><i class="fa-solid fa-sun me-1"></i>🟡 Late Cut 1 Only</span>`;
+      } else if (r.late_round_type === 'CUT2') {
+        return `<span class="badge bg-danger text-white px-2 py-1 shadow-xs"><i class="fa-solid fa-rocket me-1"></i>🔴 Late Cut 2 Only</span>`;
       }
 
-      if (reason.includes('receive') || reason.includes('pack') || reason.includes('cut1') || (r.first_soc_received_timestamp && r.first_soc_received_timestamp.includes('08:'))) {
-        isCut1Late = true;
-      }
-
-      if (isCut2Late && isCut1Late) {
-        return `<span class="badge bg-danger text-white px-2 py-1 shadow-sm"><i class="fa-solid fa-triangle-exclamation me-1"></i>🔴 Late Cut 2 (เกิน 10:30)</span>`;
-      } else if (isCut2Late) {
-        return `<span class="badge bg-danger text-white px-2 py-1 shadow-sm"><i class="fa-solid fa-clock me-1"></i>🔴 Late Cut 2</span>`;
-      } else if (isCut1Late) {
-        return `<span class="badge bg-warning text-dark px-2 py-1 shadow-sm"><i class="fa-solid fa-clock me-1"></i>🟡 Late Cut 1</span>`;
+      if (currentCutoffRound === '1') {
+        return `<span class="badge bg-warning text-dark px-2 py-1 shadow-xs"><i class="fa-solid fa-sun me-1"></i>🟡 Late Cut 1</span>`;
       } else {
-        return `<span class="badge bg-danger text-white px-2 py-1 shadow-sm"><i class="fa-solid fa-clock me-1"></i>🔴 Late Cut 2</span>`;
+        return `<span class="badge bg-danger text-white px-2 py-1 shadow-xs"><i class="fa-solid fa-rocket me-1"></i>🔴 Late Cut 2</span>`;
       }
     }
 
@@ -1528,11 +1704,12 @@
         const matchStation = !stationFilter || stationFilter === 'ALL' || st.includes(stationFilter.toLowerCase());
 
         let matchCutoff = true;
-        if (cutoffFilter === 'CUT2') {
-          matchCutoff = (r.first_soc_outbound_timestamp || '') > (r.soc_outbound_based_received_2nd_cut_off_timestamp || '');
+        if (cutoffFilter === 'BOTH') {
+          matchCutoff = (r.late_round_type === 'BOTH');
         } else if (cutoffFilter === 'CUT1') {
-          const reason = (r.soc_outbound_late_type_2nd_cutoff || r.reason || '').toLowerCase();
-          matchCutoff = reason.includes('receive') || reason.includes('pack') || reason.includes('cut1');
+          matchCutoff = (r.late_round_type === 'CUT1' || r.late_round_type === 'BOTH');
+        } else if (cutoffFilter === 'CUT2') {
+          matchCutoff = (r.late_round_type === 'CUT2' || r.late_round_type === 'BOTH');
         }
 
         return matchQuery && matchStation && matchCutoff;
@@ -1543,7 +1720,7 @@
 
       const tbody = document.getElementById('rawTableBody');
       if (pageRows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12" class="text-center py-4 text-muted">ไม่พบข้อมูล Raw Data ที่ตรงกับเงื่อนไข</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="13" class="text-center py-4 text-muted">ไม่พบข้อมูล Raw Data ที่ตรงกับเงื่อนไข</td></tr>';
         return;
       }
 
@@ -1553,7 +1730,11 @@
           : '';
 
         const identifyBadge = getCutoffIdentifyBadge(r);
-        const delayDisplay = formatDelayDisplay(r.delay_mins);
+        const cut1Ts = r.soc_outbound_based_received_1st_cut_off_timestamp || r.soc_outbound_based_received_cut_off_timestamp || '-';
+        const cut2Ts = r.soc_outbound_based_received_2nd_cut_off_timestamp || r.soc_outbound_based_received_cut_off_timestamp || '-';
+        const del1Display = formatDelayDisplay(r.delay_mins_c1 || (currentCutoffRound === '1' ? r.delay_mins : 0));
+        const del2Display = formatDelayDisplay(r.delay_mins_c2 || (currentCutoffRound === '2' ? r.delay_mins : 0));
+        const lateTypeDisplay = r.soc_outbound_late_type_2nd_cutoff || r.soc_outbound_late_type_1st_cutoff || r.soc_outbound_late_type || r.reason || '-';
 
         return `<tr>
           <td>${i + 1}</td>
@@ -1562,10 +1743,10 @@
           <td class="small text-muted">${r.first_soc_received_timestamp || '-'}</td>
           <td class="small text-primary fw-bold">${r.first_soc_packed_timestamp || r.first_soc_packed || '-'}</td>
           <td class="small text-muted">${r.first_soc_outbound_timestamp || '-'}</td>
-          <td class="small"><div>${r.soc_outbound_based_received_2nd_cut_off_timestamp || '-'}</div>${targetCut}</td>
-          <td class="text-center">${delayDisplay}</td>
+          <td class="small"><div class="fw-bold text-warning">${cut1Ts}</div><div class="small">${del1Display}</div></td>
+          <td class="small"><div class="fw-bold text-danger">${cut2Ts}</div><div class="small">${del2Display}</div>${targetCut}</td>
           <td>${identifyBadge}</td>
-          <td><span class="badge bg-danger text-white px-2 py-1">${r.soc_outbound_late_type_2nd_cutoff || r.reason || 'Late 2nd Cutoff'}</span></td>
+          <td><span class="badge bg-secondary px-2 py-1">${lateTypeDisplay}</span></td>
           <td class="small">${r.soc_outbound_route_type || '-'}</td>
           <td class="small">${r.latest_to_number || '-'}</td>
           <td class="small">${r.recieve_team || '-'}</td>
@@ -1582,24 +1763,15 @@
 
       const headers = [
         'No', 'Tracking_ID', 'Destination_Station', 'First_SOC_Received',
-        'First_SOC_Packed', 'First_SOC_Outbound', 'Cutoff_Target_Timestamp',
-        'Delay_Minutes', 'Cutoff_Late_Round', 'Late_Reason', 'Route', 'TO_Number', 'Team'
+        'First_SOC_Packed', 'First_SOC_Outbound',
+        'Cutoff_1_Target_Timestamp', 'Delay_Minutes_Cut1',
+        'Cutoff_2_Target_Timestamp', 'Delay_Minutes_Cut2',
+        'Late_Round_Status', 'Late_Reason_Cut1', 'Late_Reason_Cut2', 'Route', 'TO_Number', 'Team'
       ];
 
       let csvContent = '\uFEFF' + headers.join(',') + '\n';
 
       rowsToExport.forEach((r, idx) => {
-        const outboundTime = r.first_soc_outbound_timestamp || '';
-        const cut2Time = r.soc_outbound_based_received_2nd_cut_off_timestamp || '';
-        const reason = (r.soc_outbound_late_type_2nd_cutoff || r.reason || '').toLowerCase();
-        
-        let cutLateRound = 'Late Cut 2';
-        if (outboundTime > cut2Time && (reason.includes('receive') || reason.includes('pack'))) {
-          cutLateRound = 'Late Cut 1 & Cut 2';
-        } else if (reason.includes('receive') || reason.includes('pack')) {
-          cutLateRound = 'Late Cut 1';
-        }
-
         const rowData = [
           idx + 1,
           `"${(r.shipment_id || '').replace(/"/g, '""')}"`,
@@ -1607,10 +1779,13 @@
           `"${(r.first_soc_received_timestamp || '').replace(/"/g, '""')}"`,
           `"${(r.first_soc_packed_timestamp || r.first_soc_packed || '').replace(/"/g, '""')}"`,
           `"${(r.first_soc_outbound_timestamp || '').replace(/"/g, '""')}"`,
+          `"${(r.soc_outbound_based_received_1st_cut_off_timestamp || '').replace(/"/g, '""')}"`,
+          r.delay_mins_c1 || 0,
           `"${(r.soc_outbound_based_received_2nd_cut_off_timestamp || '').replace(/"/g, '""')}"`,
-          r.delay_mins || 0,
-          `"${cutLateRound}"`,
-          `"${(r.soc_outbound_late_type_2nd_cutoff || r.reason || '').replace(/"/g, '""')}"`,
+          r.delay_mins_c2 || 0,
+          `"${r.late_round_type || 'LATE'}"`,
+          `"${(r.soc_outbound_late_type_1st_cutoff || '').replace(/"/g, '""')}"`,
+          `"${(r.soc_outbound_late_type_2nd_cutoff || r.soc_outbound_late_type || '').replace(/"/g, '""')}"`,
           `"${(r.soc_outbound_route_type || '').replace(/"/g, '""')}"`,
           `"${(r.latest_to_number || '').replace(/"/g, '""')}"`,
           `"${(r.recieve_team || '').replace(/"/g, '""')}"`
@@ -1623,7 +1798,7 @@
       const link = document.createElement('a');
       const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
       link.setAttribute('href', url);
-      link.setAttribute('download', `RAW_DATA_EXPORT_ALL_${timestamp}.csv`);
+      link.setAttribute('download', `RAW_DATA_EXPORT_CUTOFF_${currentCutoffRound}_${timestamp}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
