@@ -659,6 +659,7 @@ def update_user_profile_api():
 
 FILE_PARSED_CACHE = {}
 FILE_LATE_DF_CACHE = {}
+RAW_DF_STORAGE = {}
 
 
 def read_dataframe(filepath):
@@ -1026,11 +1027,14 @@ def process_dataframe(df, filename="", cutoff_round="all", filepath=""):
         clean_raw_df = raw_target_df[all_needed_cols].fillna('')
 
         # Store clean DataFrame for ultra-fast on-demand pagination in /api/raw-data-page
-        saved_raw_df = clean_raw_df
+        # Store clean DataFrame in dedicated RAW_DF_STORAGE for on-demand pagination
+        cache_tag = f"{filename}_{cutoff_round_str}"
+        RAW_DF_STORAGE[cache_tag] = clean_raw_df
+        if filepath:
+            RAW_DF_STORAGE[f"{filepath}_{cutoff_round_str}"] = clean_raw_df
         outbound_raw_rows = []
     except Exception as e:
         print("Error preparing outbound_raw_rows:", e)
-        saved_raw_df = pd.DataFrame()
         outbound_raw_rows = []
 
     report_date = "N/A"
@@ -1087,8 +1091,7 @@ def process_dataframe(df, filename="", cutoff_round="all", filepath=""):
         "lateTypeBreakdownCut1": late_type_c1_counts,
         "lateTypeBreakdownCut2": late_type_c2_counts,
         "routeTypeBreakdown": route_type_counts,
-        "outboundRawRows": outbound_raw_rows,
-        "_raw_df": saved_raw_df
+        "outboundRawRows": outbound_raw_rows
     }
 
 
@@ -1251,6 +1254,10 @@ def process_folder(folder_path, folder_name=None, cutoff_round="all"):
         res["filename"] = f"folder:{folder_name}"
         res["isCustomGroup"] = False
         res["cutoffRound"] = str(cutoff_round)
+        cust_key = f"custom:{folder_name}_{cutoff_round}"
+        if cust_key in RAW_DF_STORAGE:
+            RAW_DF_STORAGE[f"folder:{folder_name}_{cutoff_round}"] = RAW_DF_STORAGE[cust_key]
+            RAW_DF_STORAGE[f"folder:{folder_name}"] = RAW_DF_STORAGE[cust_key]
     return res
 
 
@@ -2575,7 +2582,16 @@ def get_raw_data_page():
     if not data:
         return jsonify({"success": False, "error": "ไม่พบข้อมูลไฟล์", "rows": [], "totalRows": 0, "totalPages": 1, "page": page})
 
-    raw_df = data.get("_raw_df")
+    raw_df = None
+    candidates = [f"{filename}_{cutoff}", filename]
+    if 'cache_key' in locals() and cache_key:
+        candidates.append(cache_key)
+    for ck in candidates:
+        if ck in RAW_DF_STORAGE:
+            raw_df = RAW_DF_STORAGE[ck]
+            break
+    if raw_df is None and isinstance(data, dict):
+        raw_df = data.get("_raw_df")
     if raw_df is not None and isinstance(raw_df, pd.DataFrame) and not raw_df.empty:
         f_df = raw_df
         if query:
@@ -2682,7 +2698,24 @@ def export_raw_csv_stream():
     if not data:
         return "File not found", 404
 
-    rows = data.get("outboundRawRows", [])
+    raw_df = None
+    candidates = [f"{filename}_{cutoff}", filename]
+    for ck in candidates:
+        if ck in RAW_DF_STORAGE:
+            raw_df = RAW_DF_STORAGE[ck]
+            break
+
+    if raw_df is not None and isinstance(raw_df, pd.DataFrame) and not raw_df.empty:
+        import io
+        from flask import Response
+        output = io.StringIO()
+        output.write('\ufeff')
+        raw_df.to_csv(output, index=False)
+        resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
+        resp.headers["Content-Disposition"] = f"attachment; filename=RAW_DATA_EXPORT_{cutoff}.csv"
+        return resp
+
+    rows = data.get("outboundRawRows", []) if isinstance(data, dict) else []
 
     headers = [
         'No', 'Tracking_ID', 'Destination_Station', 'First_SOC_Received',
