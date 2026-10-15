@@ -169,6 +169,7 @@
     .tile-cutoff { background: linear-gradient(145deg, #475569 0%, #1e293b 100%); }
     .tile-compare { background: linear-gradient(145deg, #0284c7 0%, #0369a1 100%); }
     .tile-hourly { background: linear-gradient(145deg, #10b981 0%, #047857 100%); }
+    .tile-obi { background: linear-gradient(145deg, #f59e0b 0%, #d97706 100%); }
     .tile-admin { background: linear-gradient(145deg, #e11d48 0%, #9f1239 100%); }
 
     /* App Labels */
@@ -347,7 +348,16 @@
         <div class="app-sublabel">ยอดปล่อยรายชั่วโมง</div>
       </a>
 
-      <!-- 8. Admin Control Panel (Visible for Admin) -->
+      <!-- 8. SOCN OBI Performance Monitor -->
+      <a href="obi_monitor.html" class="app-item">
+        <div class="app-icon-tile tile-obi">
+          <i class="fa-solid fa-gauge-high"></i>
+        </div>
+        <div class="app-label">OBI Monitor</div>
+        <div class="app-sublabel">Sack & CBS Tower</div>
+      </a>
+
+      <!-- 9. Admin Control Panel (Visible for Admin) -->
       <a href="admin.html" class="app-item" id="adminPortalCardCol" style="display: none;">
         <div class="app-icon-tile tile-admin">
           <i class="fa-solid fa-user-shield"></i>

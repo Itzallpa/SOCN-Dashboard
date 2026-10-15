@@ -1,5 +1,2055 @@
 [
   {
+    "id": "ec0b78b9",
+    "timestamp": "2026-10-14 20:14:25",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "10.25.202.60"
+  },
+  {
+    "id": "6feda824",
+    "timestamp": "2026-10-14 20:14:23",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-10-14",
+    "ip": "10.25.202.60"
+  },
+  {
+    "id": "9ff21076",
+    "timestamp": "2026-10-14 20:14:23",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-10-14",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "00bf1721",
+    "timestamp": "2026-10-14 20:14:20",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "AUTO_ARCHIVE_LH_TRIP",
+    "details": "⏰ บันทึกข้อมูล LH Trip อัตโนมัติรอบ 14:00 น. วันที่ 2026-10-14 (8,111 เที่ยวรถ | 10,317,906 Orders)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "bd511970",
+    "timestamp": "2026-10-14 20:14:07",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-10-14",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "8e5c34a6",
+    "timestamp": "2026-10-14 20:14:05",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "AUTO_ARCHIVE_LH_TRIP",
+    "details": "⏰ บันทึกข้อมูล LH Trip อัตโนมัติรอบ 14:00 น. วันที่ 2026-10-14 (8,111 เที่ยวรถ | 10,317,906 Orders)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "c48a940a",
+    "timestamp": "2026-10-14 20:13:47",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Admin)",
+    "ip": "10.25.202.60"
+  },
+  {
+    "id": "615fe4f9",
+    "timestamp": "2026-10-14 20:13:47",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "ip": "10.25.202.60"
+  },
+  {
+    "id": "3f76749f",
+    "timestamp": "2026-09-26 21:54:58",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "58ce1bf6",
+    "timestamp": "2026-09-26 21:53:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "68943133",
+    "timestamp": "2026-09-26 21:52:58",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "f7662f31",
+    "timestamp": "2026-09-26 21:51:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "783eb5c8",
+    "timestamp": "2026-09-26 21:50:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "8ae67310",
+    "timestamp": "2026-09-26 21:49:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "5eaa9c98",
+    "timestamp": "2026-09-26 21:48:58",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "b3268888",
+    "timestamp": "2026-09-26 21:47:57",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "3ec779a0",
+    "timestamp": "2026-09-26 21:46:56",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "19cc8eed",
+    "timestamp": "2026-09-26 21:45:55",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "5fee99a2",
+    "timestamp": "2026-09-26 21:44:54",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "99e0e73e",
+    "timestamp": "2026-09-26 21:43:53",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "e0e0d48c",
+    "timestamp": "2026-09-26 21:42:53",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "a62bd918",
+    "timestamp": "2026-09-26 21:41:51",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "0488eca3",
+    "timestamp": "2026-09-26 21:40:50",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "4f9ef910",
+    "timestamp": "2026-09-26 21:39:49",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "6ac6c7bc",
+    "timestamp": "2026-09-26 21:38:49",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "1547dec5",
+    "timestamp": "2026-09-26 21:37:48",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "1c1ca7c2",
+    "timestamp": "2026-09-26 21:36:46",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "dee728a1",
+    "timestamp": "2026-09-26 21:35:47",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "304598b6",
+    "timestamp": "2026-09-26 21:33:50",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "30f4ec85",
+    "timestamp": "2026-09-26 21:32:50",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "35b0c1a2",
+    "timestamp": "2026-09-26 21:31:48",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "d3ea0515",
+    "timestamp": "2026-09-26 21:30:46",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "a40227ef",
+    "timestamp": "2026-09-26 21:29:45",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "fecba885",
+    "timestamp": "2026-09-26 21:28:41",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "9f3f661b",
+    "timestamp": "2026-09-26 21:27:40",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "6abb0522",
+    "timestamp": "2026-09-26 21:26:52",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "5073be22",
+    "timestamp": "2026-09-26 21:26:27",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "301fd6cd",
+    "timestamp": "2026-09-26 21:24:53",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "3cd00fde",
+    "timestamp": "2026-09-26 21:23:50",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "11b20050",
+    "timestamp": "2026-09-26 21:22:48",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "4b168781",
+    "timestamp": "2026-09-26 21:21:48",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "59463b31",
+    "timestamp": "2026-09-26 21:20:47",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "289d91c2",
+    "timestamp": "2026-09-26 21:18:50",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "91071669",
+    "timestamp": "2026-09-26 21:17:49",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "4444d49c",
+    "timestamp": "2026-09-26 21:16:48",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "8825b40e",
+    "timestamp": "2026-09-26 21:15:47",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "b34c6497",
+    "timestamp": "2026-09-26 21:14:47",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "83ea343f",
+    "timestamp": "2026-09-26 21:13:45",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "ec014f5f",
+    "timestamp": "2026-09-26 21:12:42",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "7bf77d64",
+    "timestamp": "2026-09-26 21:11:40",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "aeac232a",
+    "timestamp": "2026-09-26 21:10:40",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "a648e401",
+    "timestamp": "2026-09-26 21:09:42",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "b9d7a3a7",
+    "timestamp": "2026-09-26 21:08:39",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "e031d847",
+    "timestamp": "2026-09-26 21:07:38",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "0a001525",
+    "timestamp": "2026-09-26 21:06:39",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "1de9f039",
+    "timestamp": "2026-09-26 21:05:38",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "cc714d75",
+    "timestamp": "2026-09-26 21:04:39",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "6a4dae99",
+    "timestamp": "2026-09-26 21:03:40",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "3e18fbb3",
+    "timestamp": "2026-09-26 21:02:39",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "d72fa053",
+    "timestamp": "2026-09-26 21:01:39",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "74b4058d",
+    "timestamp": "2026-09-26 21:00:39",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "8f8617c4",
+    "timestamp": "2026-09-26 20:59:50",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "4397f315",
+    "timestamp": "2026-09-26 20:59:39",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "fa320b5b",
+    "timestamp": "2026-09-26 20:58:32",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "GOOGLE_DRIVE_SYNC_LH_TRIP",
+    "details": "☁️ ส่งข้อมูลเข้า Google Drive สำเร็จ: Dashboard Charts - 2026-09-25 (Folder: 1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "e1ec0c2f",
+    "timestamp": "2026-09-26 20:58:29",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "GOOGLE_DRIVE_SYNC_LH_TRIP",
+    "details": "☁️ ส่งข้อมูลเข้า Google Drive สำเร็จ: Dashboard Charts - 2026-09-25 (Folder: 1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "a5faa25b",
+    "timestamp": "2026-09-26 20:58:16",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "AUTO_ARCHIVE_LH_TRIP",
+    "details": "⏰ บันทึกข้อมูล LH Trip อัตโนมัติรอบ 14:00 น. วันที่ 2026-09-26 (8,111 เที่ยวรถ | 10,317,906 Orders)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "ae446200",
+    "timestamp": "2026-09-26 20:58:16",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "AUTO_ARCHIVE_LH_TRIP",
+    "details": "⏰ บันทึกข้อมูล LH Trip อัตโนมัติรอบ 14:00 น. วันที่ 2026-09-26 (8,111 เที่ยวรถ | 10,317,906 Orders)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "76f97153",
+    "timestamp": "2026-09-26 20:58:03",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "96f34541",
+    "timestamp": "2026-09-26 20:58:02",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-26",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "c430e1d5",
+    "timestamp": "2026-09-25 18:12:08",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "a67c8fa1",
+    "timestamp": "2026-09-25 18:12:07",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "a0c6fdf0",
+    "timestamp": "2026-09-25 18:11:06",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "f593246e",
+    "timestamp": "2026-09-25 18:11:00",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "c25e8671",
+    "timestamp": "2026-09-25 18:10:56",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Admin)",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "8c1ec5e5",
+    "timestamp": "2026-09-25 18:10:55",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "68ccb228",
+    "timestamp": "2026-09-25 18:10:00",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "e37cb8fe",
+    "timestamp": "2026-09-25 18:09:00",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "8ba5538d",
+    "timestamp": "2026-09-25 18:08:00",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "0ba1ad88",
+    "timestamp": "2026-09-25 18:06:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "6cad2670",
+    "timestamp": "2026-09-25 18:06:06",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "IDLE_AUTO_LOGOUT",
+    "details": "ไม่มีการใช้งานเกิน 1 ชั่วโมง (Idle Timeout)",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "93ab61f8",
+    "timestamp": "2026-09-25 18:05:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "18eb4242",
+    "timestamp": "2026-09-25 18:04:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "c3484253",
+    "timestamp": "2026-09-25 18:03:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "630f23c5",
+    "timestamp": "2026-09-25 18:02:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "5d5f4e80",
+    "timestamp": "2026-09-25 18:01:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "9e3b00fb",
+    "timestamp": "2026-09-25 18:00:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "ab92d272",
+    "timestamp": "2026-09-25 17:59:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "2ed7f0ab",
+    "timestamp": "2026-09-25 17:58:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "d9951b3b",
+    "timestamp": "2026-09-25 17:58:00",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "e9a452a6",
+    "timestamp": "2026-09-25 17:56:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "c05eb31a",
+    "timestamp": "2026-09-25 17:55:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "862ae64a",
+    "timestamp": "2026-09-25 17:54:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "8615b54b",
+    "timestamp": "2026-09-25 17:53:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "deff8dbb",
+    "timestamp": "2026-09-25 17:52:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "fbf302f0",
+    "timestamp": "2026-09-25 17:51:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "c0f987ff",
+    "timestamp": "2026-09-25 17:50:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "bd4e8044",
+    "timestamp": "2026-09-25 17:49:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "790670ca",
+    "timestamp": "2026-09-25 17:48:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "cd1b9f56",
+    "timestamp": "2026-09-25 17:47:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "da81759a",
+    "timestamp": "2026-09-25 17:46:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "cd0dfeef",
+    "timestamp": "2026-09-25 17:45:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "f66605f7",
+    "timestamp": "2026-09-25 17:44:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "591c2527",
+    "timestamp": "2026-09-25 17:43:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "54d8c37f",
+    "timestamp": "2026-09-25 17:42:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "fa489f83",
+    "timestamp": "2026-09-25 17:42:00",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "20dd4558",
+    "timestamp": "2026-09-25 17:40:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "dfd5c6b8",
+    "timestamp": "2026-09-25 17:39:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "a5469ea7",
+    "timestamp": "2026-09-25 17:38:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "635b20ed",
+    "timestamp": "2026-09-25 17:37:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "d52281af",
+    "timestamp": "2026-09-25 17:36:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "ed6d84d2",
+    "timestamp": "2026-09-25 17:35:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "19d2828f",
+    "timestamp": "2026-09-25 17:34:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "99b2cee7",
+    "timestamp": "2026-09-25 17:33:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "70d03084",
+    "timestamp": "2026-09-25 17:32:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "62284ca9",
+    "timestamp": "2026-09-25 17:31:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "b45303dc",
+    "timestamp": "2026-09-25 17:30:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "996466b3",
+    "timestamp": "2026-09-25 17:29:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "abde78da",
+    "timestamp": "2026-09-25 17:28:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "7888538f",
+    "timestamp": "2026-09-25 17:28:00",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "2302a899",
+    "timestamp": "2026-09-25 17:26:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "747493ee",
+    "timestamp": "2026-09-25 17:25:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "b8988d4e",
+    "timestamp": "2026-09-25 17:24:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "3c96b7e1",
+    "timestamp": "2026-09-25 17:23:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "41c3e8ed",
+    "timestamp": "2026-09-25 17:23:03",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "639bc4c1",
+    "timestamp": "2026-09-25 17:21:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "024e8b70",
+    "timestamp": "2026-09-25 17:20:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "3d306a71",
+    "timestamp": "2026-09-25 17:19:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "84a424c2",
+    "timestamp": "2026-09-25 17:18:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "62de2326",
+    "timestamp": "2026-09-25 17:17:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "c6945226",
+    "timestamp": "2026-09-25 17:16:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "204a2944",
+    "timestamp": "2026-09-25 17:15:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "ddfbd4ae",
+    "timestamp": "2026-09-25 17:14:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "7b8fe5ec",
+    "timestamp": "2026-09-25 17:13:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "6809b0d5",
+    "timestamp": "2026-09-25 17:12:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "03bac8b0",
+    "timestamp": "2026-09-25 17:11:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "abf86873",
+    "timestamp": "2026-09-25 17:11:29",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "d3ab1ef9",
+    "timestamp": "2026-09-25 17:11:00",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "2a01d0bc",
+    "timestamp": "2026-09-25 17:09:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "daab031d",
+    "timestamp": "2026-09-25 17:08:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "6667826b",
+    "timestamp": "2026-09-25 17:07:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "0372df07",
+    "timestamp": "2026-09-25 17:06:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "62c9611f",
+    "timestamp": "2026-09-25 17:05:59",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "5328ce25",
+    "timestamp": "2026-09-25 17:05:44",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "7f90aaf2",
+    "timestamp": "2026-09-25 17:05:02",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "904bcc42",
+    "timestamp": "2026-09-25 17:04:02",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "7826dc71",
+    "timestamp": "2026-09-25 17:03:02",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "53816a10",
+    "timestamp": "2026-09-25 17:02:02",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "34cfb5ed",
+    "timestamp": "2026-09-25 17:01:02",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "9474992c",
+    "timestamp": "2026-09-25 17:00:02",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "055edce9",
+    "timestamp": "2026-09-25 16:59:54",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "94feb80d",
+    "timestamp": "2026-09-25 16:58:53",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "33d569f4",
+    "timestamp": "2026-09-25 16:57:52",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "12291000",
+    "timestamp": "2026-09-25 16:56:52",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "d5d33df2",
+    "timestamp": "2026-09-25 16:55:52",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "72f39b5f",
+    "timestamp": "2026-09-25 16:54:52",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "08b4201a",
+    "timestamp": "2026-09-25 16:53:53",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "5adacc22",
+    "timestamp": "2026-09-25 16:52:51",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "72b7c05e",
+    "timestamp": "2026-09-25 16:51:53",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "144ac234",
+    "timestamp": "2026-09-25 16:50:52",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "8bcd2d34",
+    "timestamp": "2026-09-25 16:50:18",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "face3c3c",
+    "timestamp": "2026-09-25 16:50:01",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "GOOGLE_DRIVE_SYNC_LH_TRIP",
+    "details": "☁️ ส่งข้อมูลเข้า Google Drive สำเร็จ: Dashboard Charts - 2026-09-24 (Folder: 1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "b447fe00",
+    "timestamp": "2026-09-25 16:50:00",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "GOOGLE_DRIVE_SYNC_LH_TRIP",
+    "details": "☁️ ส่งข้อมูลเข้า Google Drive สำเร็จ: Dashboard Charts - 2026-09-24 (Folder: 1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "24aba1b3",
+    "timestamp": "2026-09-25 16:49:52",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "d249365e",
+    "timestamp": "2026-09-25 16:49:49",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "AUTO_ARCHIVE_LH_TRIP",
+    "details": "⏰ บันทึกข้อมูล LH Trip อัตโนมัติรอบ 14:00 น. วันที่ 2026-09-25 (8,111 เที่ยวรถ | 10,317,906 Orders)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "4ae3ec08",
+    "timestamp": "2026-09-25 16:49:49",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "AUTO_ARCHIVE_LH_TRIP",
+    "details": "⏰ บันทึกข้อมูล LH Trip อัตโนมัติรอบ 14:00 น. วันที่ 2026-09-25 (8,111 เที่ยวรถ | 10,317,906 Orders)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "b53ba3a3",
+    "timestamp": "2026-09-25 16:49:33",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-25",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "4072e0cf",
+    "timestamp": "2026-09-24 17:29:55",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "d3fb06d2",
+    "timestamp": "2026-09-24 17:28:55",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "82100180",
+    "timestamp": "2026-09-24 17:27:54",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "38de144b",
+    "timestamp": "2026-09-24 17:26:54",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "52add0bf",
+    "timestamp": "2026-09-24 17:25:52",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "fd05ce48",
+    "timestamp": "2026-09-24 17:23:56",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "7efec7df",
+    "timestamp": "2026-09-24 17:22:55",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "bcd55f4d",
+    "timestamp": "2026-09-24 17:21:55",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "98f643f1",
+    "timestamp": "2026-09-24 17:20:55",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "afc449f4",
+    "timestamp": "2026-09-24 17:19:54",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "3b76c228",
+    "timestamp": "2026-09-24 17:18:08",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "967d9a96",
+    "timestamp": "2026-09-24 17:16:58",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "2e23b51c",
+    "timestamp": "2026-09-24 17:16:04",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "83e7f28c",
+    "timestamp": "2026-09-24 17:16:04",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "043a518f",
+    "timestamp": "2026-09-24 17:15:46",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "c5799326",
+    "timestamp": "2026-09-24 17:13:56",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "c6e3238b",
+    "timestamp": "2026-09-24 17:12:46",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "eb7cceda",
+    "timestamp": "2026-09-24 17:11:36",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "a7cd92a3",
+    "timestamp": "2026-09-24 17:10:37",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "a63784f8",
+    "timestamp": "2026-09-24 17:09:40",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "8a624873",
+    "timestamp": "2026-09-24 17:08:37",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "64612f76",
+    "timestamp": "2026-09-24 17:07:34",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "2eb6edc2",
+    "timestamp": "2026-09-24 17:06:42",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "c8f4a727",
+    "timestamp": "2026-09-24 17:06:36",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "203.156.13.114"
+  },
+  {
+    "id": "a14817c0",
+    "timestamp": "2026-09-24 16:45:44",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "3a1d905f",
+    "timestamp": "2026-09-24 16:45:35",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "OBI_AUTO_ARCHIVE",
+    "details": "💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: C:\\Users\\spxth71637\\Desktop\\OB Dashboard\\data\\obi_history\\2026-09-24",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "191e8c47",
+    "timestamp": "2026-09-24 16:15:37",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "DATA_EXPORT",
+    "details": "📤 ดาวน์โหลด/ส่งออกข้อมูล: Export ทุกแท็บ (.ZIP) (0 รายการ) - ดาวน์โหลด/ส่งออกข้อมูลจากหน้า obi_monitor.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "269a52cb",
+    "timestamp": "2026-09-24 15:55:54",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "DATA_EXPORT",
+    "details": "📤 ดาวน์โหลด/ส่งออกข้อมูล: Export CSV (0 รายการ) - ดาวน์โหลด/ส่งออกข้อมูลจากหน้า obi_monitor.html",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "3208b212",
+    "timestamp": "2026-09-24 14:20:52",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "VIEW_ADMIN_DASHBOARD",
+    "details": "Accessed Admin Control Panel & Audit Logs",
+    "ip": "192.168.226.11"
+  },
+  {
+    "id": "8e951e17",
+    "timestamp": "2026-09-24 14:19:56",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "GOOGLE_DRIVE_SYNC_LH_TRIP",
+    "details": "☁️ ส่งข้อมูลเข้า Google Drive สำเร็จ: Dashboard Charts - 2026-09-23 (Folder: 1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "98d3b251",
+    "timestamp": "2026-09-24 14:19:55",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "GOOGLE_DRIVE_SYNC_LH_TRIP",
+    "details": "☁️ ส่งข้อมูลเข้า Google Drive สำเร็จ: Dashboard Charts - 2026-09-23 (Folder: 1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "b7a885e1",
+    "timestamp": "2026-09-24 14:19:44",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "AUTO_ARCHIVE_LH_TRIP",
+    "details": "⏰ บันทึกข้อมูล LH Trip อัตโนมัติรอบ 14:00 น. วันที่ 2026-09-24 (8,111 เที่ยวรถ | 10,317,906 Orders)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "cadef361",
+    "timestamp": "2026-09-24 14:19:42",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "AUTO_ARCHIVE_LH_TRIP",
+    "details": "⏰ บันทึกข้อมูล LH Trip อัตโนมัติรอบ 14:00 น. วันที่ 2026-09-24 (8,111 เที่ยวรถ | 10,317,906 Orders)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "9b4011e1",
+    "timestamp": "2026-09-22 01:25:04",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "fd0f8e75",
+    "timestamp": "2026-09-22 00:38:04",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Successfully synced live Google Sheet Table data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "25fb2cf1",
+    "timestamp": "2026-09-22 00:32:56",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Synced Google Sheet data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "d3d61219",
+    "timestamp": "2026-09-22 00:32:49",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "LOGIN",
+    "details": "Signed in via Google/Gmail as guy.panmanee@spxexpress.com (Role: Admin)",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "8bd406f9",
+    "timestamp": "2026-09-22 00:32:48",
+    "email": "guy.panmanee@spxexpress.com",
+    "name": "Natakorn Panmanee",
+    "role": "Admin",
+    "action": "USER_LOGIN",
+    "details": "เข้าสู่ระบบสำเร็จในฐานะ Admin",
+    "ip": "112.121.130.34"
+  },
+  {
+    "id": "3295bdb1",
+    "timestamp": "2026-09-22 00:32:38",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "SYNC_GOOGLE_SHEET",
+    "details": "Synced Google Sheet data from https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "ip": "112.121.130.34"
+  },
+  {
     "id": "0062ce39",
     "timestamp": "2026-09-21 20:13:42",
     "email": "admin@spxexpress.com",

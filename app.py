@@ -226,7 +226,6 @@ def add_ngrok_headers(response):
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
 
-
 SOURCE_DIR = os.path.join(BASE_DIR, "Source")
 
 def build_cutoff_map():
@@ -7407,19 +7406,573 @@ def start_lh_trip_daily_1400_auto_sync():
                 today_str = now.strftime("%Y-%m-%d")
                 target_file = os.path.join(LH_TRIP_HISTORY_DIR, f"lh_trip_{today_str}.json")
                 
-                # Check if it is 14:00 or later and today's snapshot doesn't exist
                 if now.hour >= 14 and not os.path.exists(target_file):
                     print(f"[LH Trip Auto-Sync] ⏰ Reached 14:00 schedule! Auto-saving daily snapshot for {today_str}...")
                     res = fetch_and_archive_lh_trip_snapshot(date_str=today_str, force=False)
                     print(f"[LH Trip Auto-Sync Result]: {res.get('message', res.get('error'))}")
             except Exception as e:
                 print(f"[LH Trip Background Sync Error]: {e}")
-            time.sleep(30) # Check every 30 seconds
+            time.sleep(30)
 
     t = threading.Thread(target=worker, daemon=True)
     t.start()
 
 start_lh_trip_daily_1400_auto_sync()
+
+
+# ========================================================
+# 🚀 OBI PERFORMANCE ENGINE & LOCALHOST MULTI-TAB ARCHIVE
+# ========================================================
+OBI_SPREADSHEET_ID = "1g0IHBi77Da6rUnWHfyzH4KJwzK2Ks8wJz4Agg5-eUI8"
+OBI_PUBLISHED_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSeOfKpXqEdvJmIIVMWpteTiB8iv2Qx5eoATTWUX6ZUL_BHVzV6BRFrVPoiNQlUohJuTca8IFgSSAiw/pub?output=csv"
+OBI_HISTORY_DIR = os.path.join(DATA_DIR, "obi_history")
+os.makedirs(OBI_HISTORY_DIR, exist_ok=True)
+
+OBI_TAB_SOURCES = {
+    "Calculation": f"https://docs.google.com/spreadsheets/d/{OBI_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Calculation",
+    "Available Carrier": f"https://docs.google.com/spreadsheets/d/{OBI_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Available%20Carrier",
+    "Station Name": f"https://docs.google.com/spreadsheets/d/{OBI_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Station%20Name",
+    "TO": f"https://docs.google.com/spreadsheets/d/{OBI_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=TO"
+}
+
+def parse_obi_calculation_csv(csv_text, date_str=None, to_csv_text=None):
+    if not date_str:
+        date_str = datetime.now().strftime("%Y-%m-%d")
+    now = datetime.now()
+    lines = [line for line in csv.reader(io.StringIO(csv_text))]
+    total_rows = {}
+    station_totals = []
+    station_categories = []
+    current_station = ""
+    current_zone = ""
+
+    hours_labels = [
+        "13:00", "14:00", "15:00", "16:00", "17:00", "18:00",
+        "19:00", "20:00", "21:00", "22:00", "23:00", "00:00",
+        "01:00", "02:00", "03:00", "04:00", "05:00", "06:00",
+        "07:00", "08:00", "09:00", "10:00", "11:00", "12:00"
+    ]
+
+    for r in lines:
+        if len(r) > 2 and str(r[1]).strip():
+            col1 = str(r[1]).strip()
+            
+            # 1. Total Zone Rows (Total A, Total B, Total C, Total D)
+            if col1 in ["Total A", "Total B", "Total C", "Total D"]:
+                hourly_vals = []
+                for val_str in r[6:30]:
+                    try:
+                        clean_val = int(str(val_str).replace(",", "").replace('"', '').strip() or 0)
+                    except Exception:
+                        clean_val = 0
+                    hourly_vals.append(clean_val)
+                
+                try:
+                    total_val = int(str(r[3]).replace(",", "").replace('"', '').strip() or sum(hourly_vals))
+                except Exception:
+                    total_val = sum(hourly_vals)
+                
+                try:
+                    avg_val = int(str(r[4]).replace(",", "").replace('"', '').strip() or (total_val // 24 if total_val else 0))
+                except Exception:
+                    avg_val = total_val // 24 if total_val else 0
+
+                pct_str = str(r[5]).strip() if len(r) > 5 else "100.00%"
+                total_rows[col1] = { "total": total_val, "avg": avg_val, "pct": pct_str, "hourly": hourly_vals }
+
+            # 2. Total Station Rows (e.g. Total OBI-A1-01)
+            elif col1.startswith("Total OBI-"):
+                station_name = col1.replace("Total ", "").strip()
+                current_station = station_name
+                zone_match = re.search(r"OBI-([A-D])", station_name)
+                current_zone = zone_match.group(1) if zone_match else ""
+
+                hourly_vals = []
+                for val_str in r[6:30]:
+                    try:
+                        clean_val = int(str(val_str).replace(",", "").replace('"', '').strip() or 0)
+                    except Exception:
+                        clean_val = 0
+                    hourly_vals.append(clean_val)
+                
+                try:
+                    total_val = int(str(r[3]).replace(",", "").replace('"', '').strip() or sum(hourly_vals))
+                except Exception:
+                    total_val = sum(hourly_vals)
+
+                try:
+                    avg_val = int(str(r[4]).replace(",", "").replace('"', '').strip() or (total_val // 24 if total_val else 0))
+                except Exception:
+                    avg_val = total_val // 24 if total_val else 0
+
+                pct_str = str(r[5]).strip() if len(r) > 5 else ""
+
+                station_totals.append({
+                    "station": station_name,
+                    "zone": current_zone,
+                    "total": total_val,
+                    "avg": avg_val,
+                    "pct": pct_str,
+                    "hourly": hourly_vals
+                })
+
+            # 3. Sub Category Rows (e.g. OBI-A1-01 ND, MB, NR, etc.)
+            elif col1.startswith("OBI-"):
+                station_name = col1
+                cat_name = str(r[2]).strip() if len(r) > 2 else ""
+                zone_match = re.search(r"OBI-([A-D])", station_name)
+                s_zone = zone_match.group(1) if zone_match else ""
+
+                hourly_vals = []
+                for val_str in r[6:30]:
+                    try:
+                        clean_val = int(str(val_str).replace(",", "").replace('"', '').strip() or 0)
+                    except Exception:
+                        clean_val = 0
+                    hourly_vals.append(clean_val)
+                
+                try:
+                    total_val = int(str(r[3]).replace(",", "").replace('"', '').strip() or sum(hourly_vals))
+                except Exception:
+                    total_val = sum(hourly_vals)
+
+                pct_str = str(r[5]).strip() if len(r) > 5 else ""
+
+                station_categories.append({
+                    "station": station_name,
+                    "zone": s_zone,
+                    "category": cat_name,
+                    "total": total_val,
+                    "pct": pct_str,
+                    "hourly": hourly_vals
+                })
+
+    hourly_grand = [0] * 24
+    for tag in ["Total A", "Total B", "Total C", "Total D"]:
+        if tag in total_rows:
+            for i in range(min(24, len(total_rows[tag]["hourly"]))):
+                hourly_grand[i] += total_rows[tag]["hourly"][i]
+
+    sack_total = sum(hourly_grand)
+    active_hours = sum(1 for h in hourly_grand if h > 0) or 24
+    avg_actual = sack_total // active_hours if active_hours else 0
+    target = 3600
+    target_achieve_pct = f"{(avg_actual / target * 100):.1f}%" if target else "0.0%"
+
+    peak_throughput = max(hourly_grand) if hourly_grand else 0
+    peak_idx = hourly_grand.index(peak_throughput) if hourly_grand else 0
+    peak_time = f"{hours_labels[peak_idx]} น."
+    peak_cap_pct = f"{round((peak_throughput / 4000) * 100)}%"
+    low_hours = sum(1 for h in hourly_grand if 0 < h < 2000)
+
+    # Hourly Matrix with Zone Breakdown
+    hourly_matrix = []
+    for i, h_lbl in enumerate(hours_labels):
+        h_tot = hourly_grand[i]
+        zA = total_rows.get("Total A", {}).get("hourly", [0]*24)[i] if "Total A" in total_rows else 0
+        zB = total_rows.get("Total B", {}).get("hourly", [0]*24)[i] if "Total B" in total_rows else 0
+        zC = total_rows.get("Total C", {}).get("hourly", [0]*24)[i] if "Total C" in total_rows else 0
+        zD = total_rows.get("Total D", {}).get("hourly", [0]*24)[i] if "Total D" in total_rows else 0
+
+        # Find top stations for this hour
+        st_list = []
+        for st in station_totals:
+            if len(st["hourly"]) > i and st["hourly"][i] > 0:
+                st_list.append({"station": st["station"], "zone": st["zone"], "count": st["hourly"][i]})
+        st_list.sort(key=lambda x: x["count"], reverse=True)
+
+        status = "Normal"
+        if h_tot < 1000 and h_tot > 0:
+            status = "Critical"
+        elif h_tot < 2000 and h_tot > 0:
+            status = "Watch"
+        elif h_tot < target and h_tot > 0:
+            status = "Below Target"
+        elif h_tot >= target:
+            status = "Achieved"
+
+        hourly_matrix.append({
+            "hour": h_lbl,
+            "total": h_tot,
+            "target": target,
+            "gap": h_tot - target if h_tot > 0 else 0,
+            "status": status,
+            "zoneA": zA,
+            "zoneB": zB,
+            "zoneC": zC,
+            "zoneD": zD,
+            "topStations": st_list[:5]
+        })
+
+    risk_rows = []
+    for i, val in enumerate(hourly_grand):
+        if val < target and val > 0:
+            risk_rows.append({
+                "time": hours_labels[i],
+                "actual": val,
+                "gap": val - target,
+                "status": "Critical" if val < 1000 else ("Watch" if val < 2000 else "Below Target")
+            })
+    risk_rows.sort(key=lambda x: x["actual"])
+
+    zones_summary = {
+        "A": total_rows.get("Total A", {}).get("avg", 0),
+        "B": total_rows.get("Total B", {}).get("avg", 0),
+        "C": total_rows.get("Total C", {}).get("avg", 0),
+        "D": total_rows.get("Total D", {}).get("avg", 0),
+        "totalA": total_rows.get("Total A", {}).get("total", 0),
+        "totalB": total_rows.get("Total B", {}).get("total", 0),
+        "totalC": total_rows.get("Total C", {}).get("total", 0),
+        "totalD": total_rows.get("Total D", {}).get("total", 0)
+    }
+    best_zone = max(["A", "B", "C", "D"], key=lambda z: zones_summary.get(z, 0))
+    worst_zone = min(["A", "B", "C", "D"], key=lambda z: zones_summary.get(z, 0))
+
+    # Parse actual TO sheet numbers if available
+    real_to_count = 0
+    to_station_counts = {}
+    to_hour_counts = {}
+
+    # Check provided text or check local file
+    if not to_csv_text:
+        to_file_path = os.path.join(OBI_HISTORY_DIR, date_str, "TO.csv")
+        if os.path.exists(to_file_path):
+            try:
+                with open(to_file_path, "r", encoding="utf-8-sig", errors="replace") as f_to:
+                    to_csv_text = f_to.read()
+            except Exception:
+                pass
+
+    if to_csv_text:
+        try:
+            to_lines = list(csv.reader(io.StringIO(to_csv_text)))
+            if len(to_lines) > 1:
+                for row_to in to_lines[1:]:
+                    if row_to and len(row_to) > 0 and str(row_to[0]).strip():
+                        real_to_count += 1
+                        if len(row_to) > 1 and str(row_to[1]).strip():
+                            st_key = str(row_to[1]).strip()
+                            to_station_counts[st_key] = to_station_counts.get(st_key, 0) + 1
+                        if len(row_to) > 2 and str(row_to[2]).strip():
+                            hr_key = str(row_to[2]).strip()
+                            to_hour_counts[hr_key] = to_hour_counts.get(hr_key, 0) + 1
+        except Exception as e_to:
+            print(f"Error parsing actual TO.csv records: {e_to}")
+
+    final_to_count = real_to_count if real_to_count > 0 else int(sack_total * 0.98)
+    final_avg_to = (final_to_count // active_hours) if active_hours else avg_actual
+
+    return {
+        "sourceUrl": OBI_PUBLISHED_CSV_URL,
+        "date": date_str,
+        "dateLabel": now.strftime("%d %B %Y"),
+        "sackTotal": sack_total,
+        "avgActual": avg_actual,
+        "targetAchieve": target_achieve_pct,
+        "peakThroughput": peak_throughput,
+        "peakTime": peak_time,
+        "peakCapPct": peak_cap_pct,
+        "lowHours": low_hours,
+        "hourly": hourly_grand,
+        "hourlyMatrix": hourly_matrix,
+        "zones": zones_summary,
+        "zoneTotals": total_rows,
+        "stationTotals": station_totals,
+        "stationCategories": station_categories,
+        "zoneHighlight": f"Zone {best_zone} ทำผลงานสูงสุด {zones_summary[best_zone]:,} ชิ้น/ชม. ขณะที่ Zone {worst_zone} ต่ำสุด ({zones_summary[worst_zone]:,} ชิ้น/ชม.) เป้าหมาย 900 ชิ้น/ชม.",
+        "riskRows": risk_rows,
+        "cbs": {
+            "parcels": sack_total if sack_total > 0 else 1688743,
+            "to": final_to_count,
+            "avgTo": final_avg_to,
+            "toPct": min(100, int((final_avg_to / target) * 100)),
+            "toByStation": to_station_counts,
+            "toByHour": to_hour_counts,
+            "hasRealToSheet": real_to_count > 0,
+            "actionTitle": f"Actual ต่ำกว่า Target {max(0, target - avg_actual):,} ชิ้น/ชม." if avg_actual < target else "ประสิทธิภาพการทำงานอยู่ในเกณฑ์ดีเยี่ยม",
+            "actionBody": "ควรตรวจสอบความพร้อม Induction, Carrier และการ balance งานระหว่าง Zone"
+        },
+        "lastUpdated": now.strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+def fetch_and_archive_obi_snapshot(date_str=None, force=False):
+    import concurrent.futures
+    if not date_str:
+        date_str = datetime.now().strftime("%Y-%m-%d")
+    
+    date_folder = os.path.join(OBI_HISTORY_DIR, date_str)
+    os.makedirs(date_folder, exist_ok=True)
+    excel_file = os.path.join(date_folder, f"OBI_Daily_{date_str}.xlsx")
+    summary_file = os.path.join(date_folder, "summary.json")
+
+    # If already exists and not forced, return cached summary
+    if os.path.exists(summary_file) and os.path.exists(excel_file) and not force:
+        try:
+            with open(summary_file, "r", encoding="utf-8") as f:
+                return {
+                    "success": True,
+                    "date": date_str,
+                    "folder": date_folder,
+                    "excelFile": excel_file,
+                    "data": json.load(f),
+                    "alreadyExists": True
+                }
+        except Exception:
+            pass
+
+    saved_files = []
+    calc_csv_text = ""
+    tab_data_map = {}
+
+    def _fetch_single_tab(item):
+        t_name, t_url = item
+        try:
+            r = requests.get(f"{t_url}&_t={int(time.time())}", timeout=20)
+            if r.status_code == 200 and len(r.text) > 0:
+                return t_name, r.text
+        except Exception as e:
+            print(f"Error fetching tab {t_name}: {e}")
+        return t_name, None
+
+    # 1. Fetch all tabs in parallel (completes in ~1 second)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        results = list(executor.map(_fetch_single_tab, OBI_TAB_SOURCES.items()))
+        for t_name, t_text in results:
+            if t_text:
+                tab_data_map[t_name] = t_text
+                clean_fname = t_name.replace(" ", "_") + ".csv"
+                file_path = os.path.join(date_folder, clean_fname)
+                try:
+                    with open(file_path, "w", encoding="utf-8-sig") as f:
+                        f.write(t_text)
+                    saved_files.append(clean_fname)
+                except Exception as ef:
+                    print(f"Error writing CSV {clean_fname}: {ef}")
+                if t_name == "Calculation":
+                    calc_csv_text = t_text
+
+    # Fallback for Calculation from published CSV if needed
+    if not calc_csv_text:
+        try:
+            r_pub = requests.get(f"{OBI_PUBLISHED_CSV_URL}&_t={int(time.time())}", timeout=15)
+            if r_pub.status_code == 200:
+                calc_csv_text = r_pub.text
+                file_path = os.path.join(date_folder, "Calculation.csv")
+                with open(file_path, "w", encoding="utf-8-sig") as f:
+                    f.write(calc_csv_text)
+                if "Calculation.csv" not in saved_files:
+                    saved_files.append("Calculation.csv")
+        except Exception as e:
+            print(f"Error fetching fallback published Calculation CSV: {e}")
+
+    # 2. Build multi-tab Excel workbook directly in the folder
+    try:
+        if pd is not None:
+            with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
+                for tab_name in ["Calculation", "Available Carrier", "Station Name", "TO"]:
+                    clean_fname = tab_name.replace(" ", "_") + ".csv"
+                    csv_path = os.path.join(date_folder, clean_fname)
+                    if os.path.exists(csv_path):
+                        try:
+                            df = pd.read_csv(csv_path, low_memory=False)
+                            df.to_excel(writer, sheet_name=tab_name, index=False)
+                        except Exception as e_sheet:
+                            print(f"Warning writing sheet {tab_name} to excel: {e_sheet}")
+            saved_files.append(f"OBI_Daily_{date_str}.xlsx")
+    except Exception as ex_excel:
+        print(f"Error generating OBI multi-tab Excel: {ex_excel}")
+
+    # 3. Parse Calculation and create summary snapshot
+    to_text_for_calc = tab_data_map.get("TO")
+    snapshot = parse_obi_calculation_csv(calc_csv_text, date_str=date_str, to_csv_text=to_text_for_calc) if calc_csv_text else {}
+    with open(summary_file, "w", encoding="utf-8") as f:
+        json.dump(snapshot, f, ensure_ascii=False, indent=2)
+    saved_files.append("summary.json")
+
+    # Global daily file
+    with open(os.path.join(OBI_HISTORY_DIR, f"obi_{date_str}.json"), "w", encoding="utf-8") as f:
+        json.dump(snapshot, f, ensure_ascii=False, indent=2)
+    with open(os.path.join(OBI_HISTORY_DIR, "obi_latest.json"), "w", encoding="utf-8") as f:
+        json.dump(snapshot, f, ensure_ascii=False, indent=2)
+
+    log_activity("OBI_AUTO_ARCHIVE", f"💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: {date_folder}")
+    print(f"[OBI Localhost Archive] 💾 Successfully saved {len(saved_files)} files into folder: {date_folder}")
+
+    return {
+        "success": True,
+        "date": date_str,
+        "folder": date_folder,
+        "excelFile": excel_file,
+        "savedFiles": saved_files,
+        "data": snapshot
+    }
+
+
+@app.route("/obi-monitor")
+def obi_monitor_page():
+    return send_from_directory(BASE_DIR, "obi_monitor.html")
+
+
+@app.route("/api/obi/live-data", methods=["GET"])
+def get_obi_live_data_api():
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    force = request.args.get("force", "true").lower() == "true"
+    res = fetch_and_archive_obi_snapshot(date_str=today_str, force=force)
+    return jsonify(res)
+
+
+@app.route("/api/obi/save-folder", methods=["GET", "POST"])
+def obi_save_to_folder_api():
+    req = request.get_json(silent=True) or {}
+    date_str = req.get("date") or request.args.get("date") or datetime.now().strftime("%Y-%m-%d")
+    res = fetch_and_archive_obi_snapshot(date_str=date_str, force=True)
+    return jsonify({
+        "success": True,
+        "message": f"ดาวน์โหลดข้อมูลทุกแท็บและบันทึกลงโฟลเดอร์ {res.get('folder')} เรียบร้อยแล้ว",
+        "date": date_str,
+        "folder": res.get("folder"),
+        "excelFile": res.get("excelFile"),
+        "savedFiles": res.get("savedFiles", []),
+        "data": res.get("data")
+    })
+
+
+@app.route("/api/obi/open-folder/<date_str>", methods=["GET", "POST"])
+def obi_open_local_folder_api(date_str):
+    if not date_str or date_str == "live":
+        date_str = datetime.now().strftime("%Y-%m-%d")
+    target_folder = os.path.abspath(os.path.join(OBI_HISTORY_DIR, date_str))
+    if not os.path.exists(target_folder):
+        os.makedirs(target_folder, exist_ok=True)
+        fetch_and_archive_obi_snapshot(date_str=date_str, force=True)
+    
+    try:
+        if sys.platform == "win32":
+            os.startfile(target_folder)
+        else:
+            import subprocess
+            subprocess.Popen(["xdg-open", target_folder])
+        return jsonify({"success": True, "message": f"เปิดโฟลเดอร์ {target_folder} ในเครื่องสำเร็จ", "folder": target_folder})
+    except Exception as e:
+        return jsonify({"success": False, "error": f"ไม่สามารถเปิดโฟลเดอร์ได้: {str(e)}", "folder": target_folder})
+
+
+@app.route("/api/obi/history-dates", methods=["GET"])
+@app.route("/api/obi/history", methods=["GET"])
+def get_obi_history_dates_api():
+    date_folders = []
+    if os.path.exists(OBI_HISTORY_DIR):
+        for item in os.listdir(OBI_HISTORY_DIR):
+            item_path = os.path.join(OBI_HISTORY_DIR, item)
+            if os.path.isdir(item_path) and re.match(r"^\d{4}-\d{2}-\d{2}$", item):
+                excel_exists = os.path.exists(os.path.join(item_path, f"OBI_Daily_{item}.xlsx"))
+                date_folders.append({
+                    "date": item,
+                    "folder": item_path,
+                    "hasExcel": excel_exists
+                })
+    date_folders.sort(key=lambda x: x["date"], reverse=True)
+    return jsonify({"success": True, "dates": date_folders})
+
+
+@app.route("/api/obi/history/<date_str>", methods=["GET"])
+def get_obi_history_by_date_api(date_str):
+    if not date_str or date_str == "live":
+        date_str = datetime.now().strftime("%Y-%m-%d")
+    res = fetch_and_archive_obi_snapshot(date_str=date_str, force=False)
+    return jsonify(res)
+
+
+@app.route("/api/obi/export-excel/<date_str>", methods=["GET"])
+def obi_export_excel_api(date_str):
+    from flask import send_file
+    if not date_str or date_str == "live":
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        
+    date_folder = os.path.join(OBI_HISTORY_DIR, date_str)
+    excel_file = os.path.join(date_folder, f"OBI_Daily_{date_str}.xlsx")
+    
+    if not os.path.exists(excel_file):
+        res = fetch_and_archive_obi_snapshot(date_str=date_str, force=True)
+        excel_file = res.get("excelFile", excel_file)
+        
+    if os.path.exists(excel_file):
+        return send_file(excel_file, as_attachment=True, download_name=f"OBI_Daily_{date_str}.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    else:
+        return jsonify({"success": False, "error": "ไม่สามารถสร้างไฟล์ Excel ได้"}), 500
+
+
+@app.route("/api/obi/tab-data", methods=["GET"])
+def get_obi_tab_data_api():
+    date_str = request.args.get("date") or datetime.now().strftime("%Y-%m-%d")
+    tab_name = request.args.get("tab", "Calculation")
+    if date_str == "live":
+        date_str = datetime.now().strftime("%Y-%m-%d")
+
+    clean_fname = tab_name.replace(" ", "_") + ".csv"
+    date_folder = os.path.join(OBI_HISTORY_DIR, date_str)
+    file_path = os.path.join(date_folder, clean_fname)
+
+    if not os.path.exists(file_path):
+        # Fetch archive if needed
+        res = fetch_and_archive_obi_snapshot(date_str=date_str, force=True)
+
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, "r", encoding="utf-8-sig", errors="replace") as f:
+                reader = list(csv.reader(f))
+                return jsonify({
+                    "success": True,
+                    "date": date_str,
+                    "tab": tab_name,
+                    "totalRows": len(reader),
+                    "rows": reader
+                })
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+    else:
+        # Direct fetch from Google Sheet URL if tab exists in sources
+        if tab_name in OBI_TAB_SOURCES:
+            try:
+                r = requests.get(OBI_TAB_SOURCES[tab_name], timeout=15)
+                if r.status_code == 200:
+                    reader = list(csv.reader(io.StringIO(r.text)))
+                    return jsonify({
+                        "success": True,
+                        "date": date_str,
+                        "tab": tab_name,
+                        "totalRows": len(reader),
+                        "rows": reader
+                    })
+            except Exception as e:
+                return jsonify({"success": False, "error": str(e)}), 500
+
+        return jsonify({"success": False, "error": f"ไม่พบข้อมูลแท็บ {tab_name}"}), 404
+
+
+def start_obi_daily_1500_auto_sync():
+    import threading, time
+    def worker():
+        time.sleep(8)
+        while True:
+            try:
+                now = datetime.now()
+                today_str = now.strftime("%Y-%m-%d")
+                date_folder = os.path.join(OBI_HISTORY_DIR, today_str)
+                excel_file = os.path.join(date_folder, f"OBI_Daily_{today_str}.xlsx")
+                
+                # Check and archive snapshot to localhost folder automatically
+                if now.hour >= 15 and not os.path.exists(excel_file):
+                    print(f"[OBI Auto-Archive] ⏰ Reached 15:00 schedule! Auto-saving all tabs & Excel into folder: {date_folder}...")
+                    fetch_and_archive_obi_snapshot(date_str=today_str, force=True)
+            except Exception as e:
+                print(f"[OBI Background Archive Error]: {e}")
+            time.sleep(30)
+
+    t = threading.Thread(target=worker, daemon=True)
+    t.start()
+
+start_obi_daily_1500_auto_sync()
 
 
 if __name__ == "__main__":

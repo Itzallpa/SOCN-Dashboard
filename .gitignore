@@ -16,3 +16,5 @@ users_db.json
 # Local evidence photos
 หลักฐาน/
 
+# Media recordings
+*.mp4

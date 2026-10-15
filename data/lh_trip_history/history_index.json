@@ -1,5 +1,57 @@
 [
   {
+    "date": "2026-10-14",
+    "archivedAt": "2026-10-14 20:14:04",
+    "totalTrips": 8111,
+    "onTimeTrips": 7833,
+    "lateTrips": 278,
+    "onTimeRate": 96.6,
+    "obLateCount": 116,
+    "lhLateCount": 162,
+    "totalOrders": 10317906,
+    "lateOrders": 159032,
+    "filename": "lh_trip_2026-10-14.json"
+  },
+  {
+    "date": "2026-09-26",
+    "archivedAt": "2026-09-26 20:58:15",
+    "totalTrips": 8111,
+    "onTimeTrips": 7833,
+    "lateTrips": 278,
+    "onTimeRate": 96.6,
+    "obLateCount": 116,
+    "lhLateCount": 162,
+    "totalOrders": 10317906,
+    "lateOrders": 159032,
+    "filename": "lh_trip_2026-09-26.json"
+  },
+  {
+    "date": "2026-09-25",
+    "archivedAt": "2026-09-25 16:49:48",
+    "totalTrips": 8111,
+    "onTimeTrips": 7833,
+    "lateTrips": 278,
+    "onTimeRate": 96.6,
+    "obLateCount": 116,
+    "lhLateCount": 162,
+    "totalOrders": 10317906,
+    "lateOrders": 159032,
+    "filename": "lh_trip_2026-09-25.json"
+  },
+  {
+    "date": "2026-09-24",
+    "archivedAt": "2026-09-24 14:19:42",
+    "totalTrips": 8111,
+    "onTimeTrips": 7833,
+    "lateTrips": 278,
+    "onTimeRate": 96.6,
+    "obLateCount": 116,
+    "lhLateCount": 162,
+    "totalOrders": 10317906,
+    "lateOrders": 159032,
+    "filename": "lh_trip_2026-09-24.json"
+  },
+  {
     "date": "2026-09-21",
     "archivedAt": "2026-09-21 16:31:11",
     "totalTrips": 745,

@@ -1,0 +1,2559 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SOCN · OBI Performance Monitor</title>
+  
+  <!-- Fonts & Stylesheets -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    :root {
+      --bg-body: #edf2f7;
+      --navy-header: #0f172a;
+      --card-bg: #ffffff;
+      --text-dark: #1e293b;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      
+      --accent-orange: #ea580c;
+      --accent-blue: #2563eb;
+      --accent-amber: #d97706;
+      --accent-green: #059669;
+      --accent-red: #dc2626;
+      --accent-yellow: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-body);
+      color: var(--text-dark);
+      font-family: 'Plus Jakarta Sans', 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 24px;
+    }
+
+    /* Top Dark Navbar Header */
+    .top-header {
+      background-color: #0f172a;
+      color: #ffffff;
+      padding: 16px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon-box {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.4);
+    }
+
+    .brand-text h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      margin: 0;
+      color: #ffffff;
+    }
+
+    .brand-text p {
+      font-size: 0.82rem;
+      color: #94a3b8;
+      margin: 0;
+      font-weight: 500;
+    }
+
+    /* Date Selector on Top Right */
+    .date-control-box {
+      text-align: right;
+    }
+
+    .date-label {
+      font-size: 0.76rem;
+      color: #94a3b8;
+      font-weight: 600;
+      margin-bottom: 3px;
+      display: block;
+    }
+
+    .date-select-dropdown {
+      background-color: #ffffff;
+      color: #0f172a;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 6px 36px 6px 14px;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230f172a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      min-width: 180px;
+    }
+
+    /* Sub-header status bar */
+    .sub-status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 28px 8px;
+      font-size: 0.88rem;
+    }
+
+    .cycle-time-info {
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .cycle-time-info span {
+      font-weight: 500;
+      color: #64748b;
+    }
+
+    .live-status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #059669;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    /* Main Grid Layout */
+    .dashboard-container {
+      max-width: 1720px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* KPI Summary Cards (5 Cards) */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    @media (max-width: 1200px) {
+      .kpi-row { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .kpi-row { grid-template-columns: 1fr; }
+    }
+
+    .kpi-card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px 18px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      position: relative;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 108px;
+      cursor: pointer;
+      transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      border-color: #94a3b8;
+    }
+
+    .kpi-card:active {
+      transform: translateY(-1px);
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 5px;
+      border-radius: 12px 0 0 12px;
+    }
+
+    .kpi-orange::before { background-color: #f97316; }
+    .kpi-blue::before { background-color: #2563eb; }
+    .kpi-amber::before { background-color: #ea580c; }
+    .kpi-emerald::before { background-color: #10b981; }
+    .kpi-red::before { background-color: #dc2626; }
+
+    .kpi-header-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .kpi-label {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
+    .raw-hint-pill {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #64748b;
+      background-color: #f1f5f9;
+      padding: 2px 7px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      opacity: 0.85;
+      transition: all 0.18s ease;
+    }
+
+    .kpi-card:hover .raw-hint-pill {
+      opacity: 1;
+      background-color: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .kpi-value {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .kpi-sub {
+      font-size: 0.76rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    /* Content Cards (Chart, Zone, Risk, CBS) */
+    .content-card {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 20px 22px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      border: 1px solid #e2e8f0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .content-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }
+
+    .content-sub {
+      font-size: 0.78rem;
+      color: #64748b;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    /* Main Chart Area */
+    .chart-box {
+      position: relative;
+      height: 280px;
+      width: 100%;
+      margin-top: 8px;
+      cursor: crosshair;
+    }
+
+    .chart-legend-top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #475569;
+    }
+
+    .legend-line-actual {
+      width: 16px;
+      height: 3px;
+      background-color: #ea580c;
+      border-radius: 2px;
+    }
+
+    .legend-line-target {
+      width: 16px;
+      height: 2px;
+      background-color: #eab308;
+      border-top: 2px dashed #ca8a04;
+    }
+
+    /* Zone Performance Bars */
+    .zone-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 14px;
+      gap: 12px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .zone-row:hover {
+      background-color: #f8fafc;
+      transform: translateX(4px);
+    }
+
+    .zone-label-bold {
+      width: 24px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f1f5f9;
+      height: 24px;
+      border-radius: 6px;
+    }
+
+    .zone-bar-wrapper {
+      flex-grow: 1;
+      height: 12px;
+      background-color: #f1f5f9;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .zone-bar-fill {
+      height: 100%;
+      background-color: #ea580c;
+      border-radius: 8px;
+      transition: width 0.5s ease;
+    }
+
+    .zone-val-text {
+      width: 54px;
+      text-align: right;
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: #0f172a;
+    }
+
+    .zone-inspect-btn {
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #64748b;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .zone-row:hover .zone-inspect-btn {
+      border-color: #ea580c;
+      color: #ea580c;
+      background-color: #fff7ed;
+    }
+
+    /* Zone Highlight Yellow/Orange Box */
+    .zone-highlight-box {
+      background-color: #fefce8;
+      border: 1px solid #fef08a;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 0.8rem;
+      color: #854d0e;
+      line-height: 1.45;
+      margin-top: auto;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+
+    .zone-highlight-box:hover {
+      background-color: #fef9c3;
+    }
+
+    /* Risk Table */
+    .risk-table-container {
+      overflow-y: auto;
+      max-height: 280px;
+    }
+
+    .risk-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+    }
+
+    .risk-table th {
+      color: #64748b;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 8px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      background-color: #ffffff;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .risk-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid #f1f5f9;
+      font-weight: 600;
+      color: #1e293b;
+      vertical-align: middle;
+    }
+
+    .risk-table tbody tr {
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+
+    .risk-table tbody tr:hover {
+      background-color: #f8fafc;
+    }
+
+    .badge-critical {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      font-weight: 700;
+      font-size: 0.74rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .badge-watch {
+      background-color: #fef3c7;
+      color: #92400e;
+      font-weight: 700;
+      font-size: 0.74rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .badge-below {
+      background-color: #ffedd5;
+      color: #9a3412;
+      font-weight: 700;
+      font-size: 0.74rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    /* CBS Section */
+    .cbs-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .cbs-stat-box {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .cbs-stat-box:hover {
+      background-color: #f1f5f9;
+      border-color: #cbd5e1;
+      transform: translateY(-2px);
+    }
+
+    .cbs-stat-label {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #64748b;
+      margin-bottom: 2px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cbs-stat-number {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    /* Average TO progress bar */
+    .cbs-to-bar-bg {
+      height: 8px;
+      background-color: #e2e8f0;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 6px;
+      margin-bottom: 14px;
+    }
+
+    .cbs-to-bar-fill {
+      height: 100%;
+      background-color: #3b82f6;
+      border-radius: 6px;
+    }
+
+    /* Red Action Callout Box */
+    .cbs-red-action-box {
+      background-color: #fff1f2;
+      border-radius: 10px;
+      border-left: 4px solid #f43f5e;
+      padding: 12px 14px;
+      font-size: 0.8rem;
+      color: #881337;
+      line-height: 1.45;
+      margin-top: auto;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+
+    .cbs-red-action-box:hover {
+      background-color: #ffe4e6;
+    }
+
+    .cbs-red-action-box strong {
+      display: block;
+      margin-bottom: 3px;
+      color: #9f1239;
+      font-weight: 700;
+    }
+
+    /* Footer Note */
+    .footer-note {
+      text-align: right;
+      font-size: 0.74rem;
+      color: #94a3b8;
+      margin-top: 14px;
+    }
+
+    /* Modal Styling */
+    .modal-header-custom {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #ffffff;
+      padding: 18px 24px;
+      border-bottom: 1px solid #334155;
+    }
+
+    .modal-tab-btn {
+      color: #64748b;
+      font-weight: 700;
+      font-size: 0.88rem;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      transition: all 0.15s ease;
+    }
+
+    .modal-tab-btn:hover {
+      color: #0f172a;
+      background-color: #f1f5f9;
+    }
+
+    .modal-tab-btn.active {
+      color: #ffffff;
+      background: linear-gradient(135deg, #ea580c, #f97316);
+      box-shadow: 0 2px 6px rgba(234, 88, 12, 0.35);
+    }
+
+    .raw-data-table-wrap {
+      max-height: 520px;
+      overflow: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #ffffff;
+    }
+
+    .raw-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+      white-space: nowrap;
+    }
+
+    .raw-table th {
+      background-color: #f8fafc;
+      color: #334155;
+      font-weight: 700;
+      padding: 10px 14px;
+      border-bottom: 2px solid #cbd5e1;
+      border-right: 1px solid #f1f5f9;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    .raw-table td {
+      padding: 8px 14px;
+      border-bottom: 1px solid #e2e8f0;
+      border-right: 1px solid #f8fafc;
+      color: #1e293b;
+      font-weight: 500;
+    }
+
+    .raw-table tr:hover td {
+      background-color: #f1f5f9;
+    }
+
+    .drill-kpi-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+
+    .drill-kpi-label {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .drill-kpi-val {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Dark Header Banner -->
+  <header class="top-header">
+    <div class="brand-section">
+      <div class="brand-icon-box">OBI</div>
+      <div class="brand-text">
+        <h1>SOCN · OBI Performance Monitor</h1>
+        <p>Hourly throughput · Sack Sorter & CBS control tower</p>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <!-- Universal Raw Data Explorer Button -->
+      <button class="btn btn-outline-light btn-sm d-flex align-items-center gap-2 fw-bold px-3 py-2 rounded-3 shadow-sm" onclick="openAllRawDataModal('calc')" style="border: 1px solid #475569; background: #1e293b; color: #f8fafc;" title="เปิดดูตาราง Raw Data ครบทุก Sheet">
+        <i class="fa-solid fa-table-cells text-warning"></i>
+        <span>🔍 ตาราง Raw Data ทุกแท็บ</span>
+      </button>
+
+      <button class="btn btn-warning btn-sm d-flex align-items-center gap-2 fw-bold text-dark px-3 py-2 rounded-3 shadow-sm" id="btnSyncLive" onclick="fetchLivePublishedCsv(true)" style="background: linear-gradient(135deg, #f59e0b, #ea580c); border: none; color: #fff !important;" title="Sync ข้อมูลสดล่าสุดจาก Google Sheet">
+        <i class="fa-solid fa-rotate" id="syncIcon"></i>
+        <span>Sync ข้อมูลสด</span>
+      </button>
+
+      <button class="btn btn-primary btn-sm d-flex align-items-center gap-2 fw-bold text-white px-3 py-2 rounded-3 shadow-sm" id="btnSaveFolder" onclick="saveAllTabsToLocalFolder()" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); border: none;" title="ดาวน์โหลดทุกแท็บและบันทึกลง Folder ในเครื่องอัตโนมัติ">
+        <i class="fa-solid fa-folder-arrow-down"></i>
+        <span>💾 โหลด & เก็บใน Folder</span>
+      </button>
+
+      <button class="btn btn-success btn-sm d-flex align-items-center gap-2 fw-bold text-white px-3 py-2 rounded-3 shadow-sm" id="btnExportExcel" onclick="downloadSingleExcelWorkbook()" style="background: linear-gradient(135deg, #10b981, #059669); border: none;" title="ดาวน์โหลดไฟล์ Excel (.xlsx) ไฟล์เดียวที่มีครบทุกแท็บ">
+        <i class="fa-solid fa-file-excel"></i>
+        <span>Export Excel (.xlsx)</span>
+      </button>
+
+      <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2 fw-bold text-white px-2 py-2 rounded-3 shadow-sm" id="btnOpenFolder" onclick="openLocalFolder()" style="background: #334155; border: none;" title="เปิดโฟลเดอร์ที่เก็บไฟล์ในเครื่องคอมพิวเตอร์">
+        <i class="fa-regular fa-folder-open"></i>
+        <span>เปิด Folder</span>
+      </button>
+
+      <div class="date-control-box">
+        <span class="date-label">เลือกวันที่ปฏิบัติงาน</span>
+        <select class="date-select-dropdown" id="dateSelect" onchange="switchDate(this.value)">
+          <option value="live" selected>⚡ ข้อมูลสดล่าสุด (Live Stream)</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sub-Header Info Bar -->
+  <div class="sub-status-bar">
+    <div class="cycle-time-info" id="cycleDateLabel">
+      ข้อมูลสดจาก Google Sheet <span>· รอบการทำงาน 13:00–12:00 น.</span>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <span class="text-muted small d-none d-md-inline"><i class="fa-solid fa-hand-pointer text-primary me-1"></i> คลิกการ์ดหรือจุดใดก็ได้เพื่อดู <b>Raw Data</b></span>
+      <div class="live-status-pill">
+        <div class="live-dot"></div>
+        <span id="liveStatusText">เชื่อมต่อข้อมูลสด (Live Stream)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <main class="dashboard-container">
+
+    <!-- 1. KPI Cards Row (5 Cards) -->
+    <section class="kpi-row">
+      
+      <!-- SACK SORTER TOTAL -->
+      <div class="kpi-card kpi-orange" onclick="showSackTotalDrilldown()" title="คลิกเพื่อดู Raw Data ยอดรวม Sack Sorter แยกราย Zone และ Station">
+        <div class="kpi-header-flex">
+          <div class="kpi-label">SACK SORTER TOTAL</div>
+          <span class="raw-hint-pill"><i class="fa-solid fa-magnifying-glass"></i> Raw Data</span>
+        </div>
+        <div class="kpi-value" id="kpiSackTotal">54,088</div>
+        <div class="kpi-sub">ชิ้นตลอดรอบการทำงาน</div>
+      </div>
+
+      <!-- AVERAGE ACTUAL -->
+      <div class="kpi-card kpi-blue" onclick="showAvgActualDrilldown()" title="คลิกเพื่อดู Raw Data Run-rate เฉลี่ยรายชั่วโมงและเปรียบเทียบ Target">
+        <div class="kpi-header-flex">
+          <div class="kpi-label">AVERAGE ACTUAL</div>
+          <span class="raw-hint-pill"><i class="fa-solid fa-magnifying-glass"></i> Raw Data</span>
+        </div>
+        <div class="kpi-value" id="kpiAvgActual">2,254</div>
+        <div class="kpi-sub">ชิ้น/ชั่วโมง</div>
+      </div>
+
+      <!-- TARGET ACHIEVEMENT -->
+      <div class="kpi-card kpi-amber" onclick="showTargetAchieveDrilldown()" title="คลิกเพื่อดู Raw Data % การบรรลุเป้าหมายรายชั่วโมงและราย Zone">
+        <div class="kpi-header-flex">
+          <div class="kpi-label">TARGET ACHIEVEMENT</div>
+          <span class="raw-hint-pill"><i class="fa-solid fa-magnifying-glass"></i> Raw Data</span>
+        </div>
+        <div class="kpi-value" id="kpiTargetAchieve">62.6%</div>
+        <div class="kpi-sub">เทียบเป้าหมาย 3,600 ชิ้น/ชม.</div>
+      </div>
+
+      <!-- PEAK THROUGHPUT -->
+      <div class="kpi-card kpi-emerald" onclick="showPeakThroughputDrilldown()" title="คลิกเพื่อดู Raw Data เจาะลึกชั่วโมงที่ทำยอดได้สูงสุด (Peak Hour Breakdown)">
+        <div class="kpi-header-flex">
+          <div class="kpi-label">PEAK THROUGHPUT</div>
+          <span class="raw-hint-pill"><i class="fa-solid fa-magnifying-glass"></i> Raw Data</span>
+        </div>
+        <div class="kpi-value" id="kpiPeakThroughput">3,856</div>
+        <div class="kpi-sub" id="kpiPeakSub">เวลา 13:00 น. · 96% Capacity</div>
+      </div>
+
+      <!-- LOW HOURS -->
+      <div class="kpi-card kpi-red" onclick="showLowHoursDrilldown()" title="คลิกเพื่อดู Raw Data ช่วงเวลาที่ยอดต่ำกว่าเกณฑ์ 2,000 ชิ้น/ชม.">
+        <div class="kpi-header-flex">
+          <div class="kpi-label">LOW HOURS</div>
+          <span class="raw-hint-pill"><i class="fa-solid fa-magnifying-glass"></i> Raw Data</span>
+        </div>
+        <div class="kpi-value" id="kpiLowHours">8 ชม.</div>
+        <div class="kpi-sub">ต่ำกว่า 2,000 ชิ้น/ชม.</div>
+      </div>
+
+    </section>
+
+    <!-- 2. Middle Row: Chart (Left) + Performance by Zone (Right) -->
+    <section class="row g-3 mb-3">
+      
+      <!-- Left: OBI throughput line chart -->
+      <div class="col-12 col-lg-8">
+        <div class="content-card">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
+            <div>
+              <div class="content-title">OBI throughput รายชั่วโมง</div>
+              <div class="content-sub">แสดง Actual เทียบ Target 3,600 และ Capacity 4,000 ชิ้น/ชม. <span class="text-primary fw-semibold ms-1">(คลิกจุดบนกราฟเพื่อดู Raw Data รายชั่วโมง)</span></div>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+              <button class="btn btn-sm btn-outline-secondary py-1 px-2 fw-semibold rounded-2" onclick="openAllRawDataModal('hourly')" style="font-size: 0.78rem;">
+                <i class="fa-solid fa-list-ol me-1"></i> ดูตาราง 24 ชม.
+              </button>
+              <div class="chart-legend-top">
+                <div class="legend-item">
+                  <span class="legend-line-actual"></span>
+                  <span>Actual</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-line-target"></span>
+                  <span>Target</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-box" title="คลิกจุดชั่วโมงใดก็ได้เพื่อดูข้อมูลเจาะลึกของชั่วโมงนั้น">
+            <canvas id="obiHourlyChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Performance by Zone -->
+      <div class="col-12 col-lg-4">
+        <div class="content-card">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <div>
+              <div class="content-title">Performance by Zone</div>
+              <div class="content-sub">Average Actual เทียบ Target 900 ชิ้น/ชม./Zone</div>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary py-1 px-2 fw-semibold rounded-2" onclick="openAllRawDataModal('stations')" style="font-size: 0.78rem;">
+              <i class="fa-solid fa-layer-group me-1"></i> ดูทุก Zone
+            </button>
+          </div>
+
+          <div class="my-auto py-2">
+            <!-- Zone A -->
+            <div class="zone-row" onclick="showZoneDrilldown('A')" title="คลิกเพื่อดู Raw Data ทุก Station ใน Zone A">
+              <span class="zone-label-bold">A</span>
+              <div class="zone-bar-wrapper">
+                <div class="zone-bar-fill" id="zoneBarA" style="width: 63.5%;"></div>
+              </div>
+              <span class="zone-val-text" id="zoneValA">572</span>
+              <span class="zone-inspect-btn"><i class="fa-solid fa-magnifying-glass"></i> ดู Station</span>
+            </div>
+
+            <!-- Zone B -->
+            <div class="zone-row" onclick="showZoneDrilldown('B')" title="คลิกเพื่อดู Raw Data ทุก Station ใน Zone B">
+              <span class="zone-label-bold">B</span>
+              <div class="zone-bar-wrapper">
+                <div class="zone-bar-fill" id="zoneBarB" style="width: 64.9%;"></div>
+              </div>
+              <span class="zone-val-text" id="zoneValB">584</span>
+              <span class="zone-inspect-btn"><i class="fa-solid fa-magnifying-glass"></i> ดู Station</span>
+            </div>
+
+            <!-- Zone C -->
+            <div class="zone-row" onclick="showZoneDrilldown('C')" title="คลิกเพื่อดู Raw Data ทุก Station ใน Zone C">
+              <span class="zone-label-bold">C</span>
+              <div class="zone-bar-wrapper">
+                <div class="zone-bar-fill" id="zoneBarC" style="width: 61.3%;"></div>
+              </div>
+              <span class="zone-val-text" id="zoneValC">552</span>
+              <span class="zone-inspect-btn"><i class="fa-solid fa-magnifying-glass"></i> ดู Station</span>
+            </div>
+
+            <!-- Zone D -->
+            <div class="zone-row" onclick="showZoneDrilldown('D')" title="คลิกเพื่อดู Raw Data ทุก Station ใน Zone D">
+              <span class="zone-label-bold">D</span>
+              <div class="zone-bar-wrapper">
+                <div class="zone-bar-fill" id="zoneBarD" style="width: 60.5%;"></div>
+              </div>
+              <span class="zone-val-text" id="zoneValD">545</span>
+              <span class="zone-inspect-btn"><i class="fa-solid fa-magnifying-glass"></i> ดู Station</span>
+            </div>
+          </div>
+
+          <!-- Highlight Box -->
+          <div class="zone-highlight-box" id="zoneHighlightText" onclick="openAllRawDataModal('stations')" title="คลิกเพื่อดูรายละเอียดสรุปเปรียบเทียบทุก Zone">
+            Zone B ทำผลงานสูงสุด 584 ชิ้น/ชม. ขณะที่ Zone D ต่ำสุด และทุก Zone ยังต่ำกว่าเป้าหมาย 900 ชิ้น/ชม.
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 3. Bottom Row: Risk Table (Left) + CBS Overview (Right) -->
+    <section class="row g-3">
+      
+      <!-- Left: ช่วงเวลาที่ต้องเฝ้าระวัง -->
+      <div class="col-12 col-lg-7">
+        <div class="content-card">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <div>
+              <div class="content-title">ช่วงเวลาที่ต้องเฝ้าระวัง</div>
+              <div class="content-sub">เรียงจาก throughput ต่ำสุด เพื่อจัดกำลังคนและควบคุม flow <span class="text-primary fw-semibold ms-1">(คลิกแถวเพื่อดู Raw Data)</span></div>
+            </div>
+            <span class="badge bg-light text-secondary border fw-semibold"><i class="fa-solid fa-arrow-down-short-wide me-1"></i> ต่ำสุดไปสูงสุด</span>
+          </div>
+
+          <div class="risk-table-container">
+            <table class="risk-table">
+              <thead>
+                <tr>
+                  <th style="width: 25%;">เวลา</th>
+                  <th style="width: 25%;">Actual</th>
+                  <th style="width: 25%;">Gap vs Target</th>
+                  <th style="width: 25%;">สถานะ</th>
+                </tr>
+              </thead>
+              <tbody id="riskTableRows">
+                <!-- Dynamically Rendered -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: CBS overview -->
+      <div class="col-12 col-lg-5">
+        <div class="content-card">
+          <div class="content-title">CBS overview</div>
+          <div class="content-sub">ปริมาณ Parcel และ TO ประจำวัน <span class="text-primary fw-semibold ms-1">(คลิกเพื่อดู Raw Data TO)</span></div>
+
+          <div class="cbs-grid-2">
+            <div class="cbs-stat-box" onclick="showCbsDrilldown('parcels')" title="คลิกเพื่อดู Raw Data Parcels และสถิติ">
+              <div class="cbs-stat-label">
+                <span>CBS Parcels</span>
+                <i class="fa-solid fa-magnifying-glass text-muted" style="font-size: 0.7rem;"></i>
+              </div>
+              <div class="cbs-stat-number" id="cbsParcels">1,688,743</div>
+            </div>
+            <div class="cbs-stat-box" onclick="showCbsDrilldown('to')" title="คลิกเพื่อดู Raw Data Sheet TO">
+              <div class="cbs-stat-label">
+                <span>CBS TO</span>
+                <i class="fa-solid fa-magnifying-glass text-muted" style="font-size: 0.7rem;"></i>
+              </div>
+              <div class="cbs-stat-number" id="cbsTo">53,485</div>
+            </div>
+          </div>
+
+          <div class="cbs-stat-box p-2 mb-2" onclick="showCbsDrilldown('avgTo')" title="คลิกเพื่อดูสถิติ Average TO และ Run-rate">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="small text-muted fw-semibold">Average TO / Hour</span>
+              <span class="badge bg-light text-primary border" style="font-size: 0.68rem;">คลิกดู Raw Data</span>
+            </div>
+            <div class="fw-bold fs-5 text-dark" id="cbsAvgToText">2,421 TO/ชม.</div>
+            <div class="cbs-to-bar-bg mb-1">
+              <div class="cbs-to-bar-fill" id="cbsProgressBar" style="width: 80.7%;"></div>
+            </div>
+          </div>
+
+          <!-- Red Action Alert Box -->
+          <div class="cbs-red-action-box" id="cbsActionBox" onclick="openAllRawDataModal('calc')" title="คลิกเพื่อดูชีต Calculation ทั้งหมด">
+            <strong id="cbsActionTitle">Actual ต่ำกว่า Target 1,346 ชิ้น/ชม.</strong>
+            <span id="cbsActionBody">ควรตรวจสอบช่วง 15:00–19:00 น. โดยเน้นความพร้อม Induction, Carrier และการ balance งานระหว่าง Zone</span>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Source Caption -->
+    <div class="footer-note">
+      Source: OBI performance table · Capacity 4,000 · Target 3,600 · Zone target 900
+    </div>
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- 🔍 UNIVERSAL RAW DATA EXPLORER MODAL (ALL TABS & DRILL) -->
+  <!-- ======================================================== -->
+  <div class="modal fade" id="rawDataModal" tabindex="-1" aria-labelledby="rawDataModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        
+        <!-- Modal Top Bar -->
+        <div class="modal-header modal-header-custom d-flex justify-content-between align-items-center">
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <i class="fa-solid fa-database text-warning fs-5"></i>
+              <h5 class="modal-title fw-bold m-0" id="rawDataModalLabel">Raw Data Explorer</h5>
+              <span class="badge bg-primary rounded-pill ms-2" id="modalContextBadge">Live Data</span>
+            </div>
+            <p class="small text-slate-300 m-0 mt-1" id="modalSubTitle" style="color: #94a3b8;">เจาะลึกข้อมูลดิบรายตารางและรายละเอียดจุดที่เลือก</p>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <!-- Modal Nav Tabs & Search Bar -->
+        <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+          
+          <!-- Navigation Tabs -->
+          <div class="d-flex align-items-center gap-1 flex-wrap" id="modalNavTabs">
+            <button class="modal-tab-btn active" id="tabBtn_drill" onclick="switchModalTab('drill')">
+              <i class="fa-solid fa-crosshairs me-1"></i> <span id="drillTabTitle">เจาะลึกข้อมูล (Drill-Down)</span>
+            </button>
+            <button class="modal-tab-btn" id="tabBtn_calc" onclick="switchModalTab('calc')">
+              <i class="fa-solid fa-table me-1"></i> Calculation Sheet
+            </button>
+            <button class="modal-tab-btn" id="tabBtn_hourly" onclick="switchModalTab('hourly')">
+              <i class="fa-solid fa-clock me-1"></i> Hourly Matrix (24 ชม.)
+            </button>
+            <button class="modal-tab-btn" id="tabBtn_stations" onclick="switchModalTab('stations')">
+              <i class="fa-solid fa-layer-group me-1"></i> Station Breakdown
+            </button>
+            <button class="modal-tab-btn" id="tabBtn_to" onclick="switchModalTab('to')">
+              <i class="fa-solid fa-box-open me-1"></i> TO Sheet
+            </button>
+            <button class="modal-tab-btn" id="tabBtn_carrier" onclick="switchModalTab('carrier')">
+              <i class="fa-solid fa-truck-fast me-1"></i> Available Carrier
+            </button>
+            <button class="modal-tab-btn" id="tabBtn_stname" onclick="switchModalTab('stname')">
+              <i class="fa-solid fa-tags me-1"></i> Station Name
+            </button>
+          </div>
+
+          <!-- Quick Search Filter Input -->
+          <div class="d-flex align-items-center gap-2">
+            <div class="input-group input-group-sm" style="width: 240px;">
+              <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+              <input type="text" class="form-control border-start-0" id="rawSearchInput" placeholder="ค้นหาข้อมูลในตาราง..." oninput="filterActiveTable(this.value)">
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Modal Body Content -->
+        <div class="modal-body p-4" style="background-color: #f8fafc;">
+          
+          <!-- Summary Header KPI Box for Drill-downs -->
+          <div id="drillSummaryBox" class="mb-3" style="display: none;">
+            <div class="row g-2" id="drillKpiContainer">
+              <!-- Dynamically Populated KPI Tiles -->
+            </div>
+          </div>
+
+          <!-- Active Table Description / Alert -->
+          <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+            <span class="small fw-bold text-secondary" id="tableRowInfo">แสดงทั้งหมด 0 รายการ</span>
+            <div class="d-flex align-items-center gap-2">
+              <button class="btn btn-sm btn-outline-secondary bg-white shadow-sm py-1 px-2 fw-semibold" onclick="copyActiveTableToClipboard()" title="คัดลอกตารางไปวางใน Excel/Spreadsheet">
+                <i class="fa-regular fa-copy me-1"></i> Copy TSV
+              </button>
+              <button class="btn btn-sm btn-outline-primary bg-white shadow-sm py-1 px-2 fw-semibold" onclick="exportActiveTableToCsv()" title="ดาวน์โหลดเป็นไฟล์ .csv">
+                <i class="fa-solid fa-file-csv me-1"></i> โหลด CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Table Container -->
+          <div class="raw-data-table-wrap shadow-sm">
+            <table class="raw-table" id="modalRawTable">
+              <thead id="modalTableHead">
+                <!-- Dynamically Rendered Header -->
+              </thead>
+              <tbody id="modalTableBody">
+                <!-- Dynamically Rendered Rows -->
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer bg-white border-top d-flex justify-content-between align-items-center px-4 py-3">
+          <div class="small text-muted">
+            <i class="fa-solid fa-circle-info text-primary me-1"></i> คุณสามารถค้นหา คัดลอก หรือดาวน์โหลดข้อมูล Raw Data ได้ตลอดเวลา
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-success btn-sm fw-bold px-3 py-2" onclick="downloadSingleExcelWorkbook()">
+              <i class="fa-solid fa-file-excel me-1"></i> ดาวน์โหลด Excel เต็ม (.xlsx)
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm fw-bold px-4 py-2" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 24 Hour Slots: 13:00 to 12:00
+    const HOURS = [
+      "13:00", "14:00", "15:00", "16:00", "17:00", "18:00",
+      "19:00", "20:00", "21:00", "22:00", "23:00", "00:00",
+      "01:00", "02:00", "03:00", "04:00", "05:00", "06:00",
+      "07:00", "08:00", "09:00", "10:00", "11:00", "12:00"
+    ];
+
+    const TARGET = 3600;
+    const CAPACITY = 4000;
+    const ZONE_TARGET = 900;
+    const PUBLISHED_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSeOfKpXqEdvJmIIVMWpteTiB8iv2Qx5eoATTWUX6ZUL_BHVzV6BRFrVPoiNQlUohJuTca8IFgSSAiw/pub?output=csv";
+
+    let chartObj = null;
+    let liveDataCache = null;
+    let currentActiveData = null;
+    let autoRefreshTimer = null;
+    let rawDataModalObj = null;
+    let currentModalTab = 'drill';
+    let currentTableData = { headers: [], rows: [] };
+    let tabDataCache = {};
+
+    // Historical Datasets fallback
+    const DATASETS = {
+      "2026-09-10": {
+        dateLabel: "10 กันยายน 2026",
+        sackTotal: 54088,
+        avgActual: 2254,
+        targetAchieve: "62.6%",
+        peakThroughput: 3856,
+        peakTime: "13:00 น.",
+        peakCapPct: "96%",
+        lowHours: 8,
+        hourly: [
+          3856, 1950, 331, 1316, 2580, 2680,
+          1550, 1741, 2150, 2890, 2800, 2250,
+          2380, 1728, 1810, 2540, 2810, 2620,
+          2250, 1585, 2840, 2880, 2240, 2100
+        ],
+        zones: { A: 572, B: 584, C: 552, D: 545, totalA: 13728, totalB: 14016, totalC: 13248, totalD: 13096 },
+        cbs: {
+          parcels: 1688743,
+          to: 53485,
+          avgTo: 2421,
+          toPct: 80.7,
+          actionTitle: "Actual ต่ำกว่า Target 1,346 ชิ้น/ชม.",
+          actionBody: "ควรตรวจสอบช่วง 15:00–19:00 น. โดยเน้นความพร้อม Induction, Carrier และการ balance งานระหว่าง Zone"
+        },
+        riskRows: [
+          { time: "15:00", actual: 331, gap: -3269, status: "Critical" },
+          { time: "16:00", actual: 1316, gap: -2284, status: "Watch" },
+          { time: "19:00", actual: 1550, gap: -2050, status: "Watch" },
+          { time: "09:00", actual: 1585, gap: -2015, status: "Watch" },
+          { time: "03:00", actual: 1728, gap: -1872, status: "Below Target" },
+          { time: "20:00", actual: 1741, gap: -1859, status: "Below Target" },
+          { time: "04:00", actual: 1810, gap: -1790, status: "Below Target" },
+          { time: "14:00", actual: 1950, gap: -1650, status: "Below Target" }
+        ]
+      },
+      "2026-09-09": {
+        dateLabel: "09 กันยายน 2026",
+        sackTotal: 68420,
+        avgActual: 2851,
+        targetAchieve: "79.2%",
+        peakThroughput: 3910,
+        peakTime: "21:00 น.",
+        peakCapPct: "97.8%",
+        lowHours: 4,
+        hourly: [
+          2800, 3100, 1850, 1920, 3400, 3750,
+          3820, 3650, 3910, 3780, 3610, 3420,
+          3300, 3150, 2980, 2800, 1950, 3200,
+          3550, 3680, 3720, 3500, 3350, 3180
+        ],
+        zones: { A: 710, B: 780, C: 690, D: 671, totalA: 17040, totalB: 18720, totalC: 16560, totalD: 16100 },
+        cbs: {
+          parcels: 1820400,
+          to: 58200,
+          avgTo: 2610,
+          toPct: 87.0,
+          actionTitle: "Actual ต่ำกว่า Target 749 ชิ้น/ชม.",
+          actionBody: "เน้นการจัดการรอบรถสายดึกช่วง 02:00-05:00 น. เพื่อรักษาระดับ Run-rate ให้ต่อเนื่อง"
+        },
+        riskRows: [
+          { time: "15:00", actual: 1850, gap: -1750, status: "Watch" },
+          { time: "16:00", actual: 1920, gap: -1680, status: "Watch" },
+          { time: "05:00", actual: 1950, gap: -1650, status: "Watch" },
+          { time: "13:00", actual: 2800, gap: -800, status: "Below Target" }
+        ]
+      },
+      "2026-09-23": {
+        dateLabel: "23 กันยายน 2026",
+        sackTotal: 84150,
+        avgActual: 3506,
+        targetAchieve: "97.4%",
+        peakThroughput: 3980,
+        peakTime: "20:00 น.",
+        peakCapPct: "99.5%",
+        lowHours: 0,
+        hourly: [
+          3400, 3550, 3620, 3700, 3810, 3900,
+          3950, 3980, 3890, 3750, 3680, 3520,
+          3450, 3380, 3420, 3350, 3290, 3400,
+          3580, 3620, 3710, 3650, 3540, 3410
+        ],
+        zones: { A: 885, B: 920, C: 865, D: 836, totalA: 21240, totalB: 22080, totalC: 20760, totalD: 20070 },
+        cbs: {
+          parcels: 2150000,
+          to: 69200,
+          avgTo: 2883,
+          toPct: 96.1,
+          actionTitle: "ประสิทธิภาพการทำงานอยู่ในเกณฑ์ดีเยี่ยม",
+          actionBody: "ทุก Zone มี Run-rate สม่ำเสมอ ควบคุมการกระจายพัสดุตามมาตรฐานต่อเนื่อง"
+        },
+        riskRows: [
+          { time: "05:00", actual: 3290, gap: -310, status: "Below Target" },
+          { time: "04:00", actual: 3350, gap: -250, status: "Below Target" },
+          { time: "02:00", actual: 3380, gap: -220, status: "Below Target" }
+        ]
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const modalEl = document.getElementById('rawDataModal');
+      if (modalEl) {
+        rawDataModalObj = new bootstrap.Modal(modalEl);
+      }
+
+      loadAvailableHistoryDates();
+      fetchLivePublishedCsv(false);
+
+      // Auto-refresh every 60 seconds
+      autoRefreshTimer = setInterval(() => {
+        const sel = document.getElementById('dateSelect');
+        if (sel && sel.value === 'live') {
+          fetchLivePublishedCsv(false);
+        }
+      }, 60000);
+    });
+
+    /**
+     * 📅 โหลดรายการวันที่ย้อนหลังที่มีการบันทึกไว้ในระบบ
+     */
+    async function loadAvailableHistoryDates() {
+      try {
+        const resp = await fetch('/api/obi/history');
+        if (!resp.ok) return;
+        const json = await resp.json();
+        if (json.success && json.dates && json.dates.length > 0) {
+          const select = document.getElementById('dateSelect');
+          const currentVal = select.value;
+          
+          // Clear and rebuild options
+          select.innerHTML = '<option value="live">⚡ ข้อมูลสดล่าสุด (Live Stream)</option>';
+          
+          json.dates.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.date;
+            
+            try {
+              const dt = new Date(d.date);
+              const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+              opt.innerText = `📅 ${dt.getDate()} ${thaiMonths[dt.getMonth()]} ${dt.getFullYear()}`;
+            } catch(e) {
+              opt.innerText = `📅 วันที่ ${d.date}`;
+            }
+            select.appendChild(opt);
+          });
+
+          if (!json.dates.some(d => d.date === '2026-09-10')) {
+            select.innerHTML += '<option value="2026-09-10">📅 10 ก.ย. 2026 (ตัวอย่าง)</option>';
+          }
+
+          select.value = currentVal;
+        }
+      } catch (err) {
+        console.warn("Could not load history list:", err);
+      }
+    }
+
+    /**
+     * 💾 ฟังก์ชันดาวน์โหลดทุกแท็บและบันทึกลง Localhost Folder อัตโนมัติ
+     */
+    async function saveAllTabsToLocalFolder() {
+      const select = document.getElementById('dateSelect');
+      let targetDate = select ? select.value : 'live';
+      if (targetDate === 'live') {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        targetDate = `${yyyy}-${mm}-${dd}`;
+      }
+
+      Swal.fire({
+        title: 'กำลังดาวน์โหลดและบันทึกข้อมูลทุก Tab...',
+        html: `กำลังดึง <b>Calculation</b>, <b>Available Carrier</b>, <b>Station Name</b>, <b>TO</b><br>และสร้างไฟล์ Excel รวมทุกแท็บลงในเครื่องคอมพิวเตอร์`,
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      try {
+        const resp = await fetch(`/api/obi/save-folder?date=${targetDate}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        const rawText = await resp.text();
+        let json = {};
+        try {
+          json = JSON.parse(rawText);
+        } catch (pe) {
+          throw new Error(rawText.slice(0, 150) || `HTTP ${resp.status} - เซิร์ฟเวอร์ไม่ตอบกลับข้อมูล`);
+        }
+
+        if (json.success) {
+          const files = json.savedFiles || ['Calculation.csv', 'Available_Carrier.csv', 'Station_Name.csv', 'TO.csv', `OBI_Daily_${targetDate}.xlsx`, 'summary.json'];
+          Swal.fire({
+            icon: 'success',
+            title: '💾 บันทึกลง Folder เรียบร้อยแล้ว!',
+            html: `
+              <div style="text-align: left; font-size: 0.88rem; background: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid #e2e8f0; margin-top: 10px;">
+                <p style="margin-bottom: 6px; font-weight: 700; color: #0f172a;">📁 โฟลเดอร์ปลายทางบน Host Server:</p>
+                <code style="word-break: break-all; color: #ea580c; display: block; margin-bottom: 12px; font-size: 0.82rem; background: #fff; padding: 6px 10px; border-radius: 6px; border: 1px solid #fed7aa;">${json.folder}</code>
+                <p style="margin-bottom: 6px; font-weight: 700; color: #334155;">📋 ไฟล์ทั้งหมดที่บันทึกแล้ว (${files.length} ไฟล์):</p>
+                <ul style="margin: 0; padding-left: 20px; color: #475569; line-height: 1.6;">
+                  ${files.map(f => f.endsWith('.xlsx') ? `<li style="color: #059669; font-weight: bold;">📊 ${f} (Excel รวมทุกแท็บ)</li>` : `<li>📄 ${f}</li>`).join('')}
+                </ul>
+              </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fa-regular fa-folder-open me-1"></i> เปิดดูโฟลเดอร์',
+            cancelButtonText: 'ปิด',
+            confirmButtonColor: '#2563eb'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              openLocalFolder();
+            }
+          });
+          loadAvailableHistoryDates();
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'เกิดข้อผิดพลาด',
+            text: json.error || 'ไม่สามารถบันทึกไฟล์ได้'
+          });
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'ข้อผิดพลาดการเชื่อมต่อ',
+          text: err.message,
+          confirmButtonColor: '#ea580c'
+        });
+      }
+    }
+
+    /**
+     * 📁 ฟังก์ชันเปิดโฟลเดอร์ใน Windows Explorer
+     */
+    async function openLocalFolder() {
+      const select = document.getElementById('dateSelect');
+      let targetDate = select ? select.value : 'live';
+      if (targetDate === 'live') {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        targetDate = `${yyyy}-${mm}-${dd}`;
+      }
+
+      try {
+        const resp = await fetch(`/api/obi/open-folder/${targetDate}`);
+        const rawText = await resp.text();
+        let json = {};
+        try { json = JSON.parse(rawText); } catch(e) {}
+        if (json.success) {
+          Swal.fire({
+            icon: 'success',
+            title: '📁 เปิดโฟลเดอร์สำเร็จ',
+            text: `เปิดโฟลเดอร์ ${json.folder} บนเครื่องเรียบร้อย`,
+            timer: 1800,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+          });
+        }
+      } catch (err) {
+        console.error("Open folder error:", err);
+      }
+    }
+
+    /**
+     * 📊 ฟังก์ชันดาวน์โหลดเป็นไฟล์ Excel (.xlsx) ไฟล์เดียวที่มีครบทุกแท็บ
+     */
+    function downloadSingleExcelWorkbook() {
+      const select = document.getElementById('dateSelect');
+      let targetDate = select ? select.value : 'live';
+      if (targetDate === 'live') {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        targetDate = `${yyyy}-${mm}-${dd}`;
+      }
+
+      window.open(`/api/obi/export-excel/${targetDate}`, '_blank');
+    }
+
+    /**
+     * ⚡ ฟังก์ชันดึงข้อมูลสดจาก Published CSV Stream
+     */
+    async function fetchLivePublishedCsv(isManual = false) {
+      const icon = document.getElementById('syncIcon');
+      const statusPill = document.getElementById('liveStatusText');
+      if (icon) icon.classList.add('fa-spin');
+      if (statusPill) statusPill.innerText = 'กำลัง Sync ข้อมูลสด...';
+
+      try {
+        let parsedData = null;
+
+        // วิธีที่ 1: ดึงผ่าน Backend API
+        try {
+          const apiResp = await fetch(`/api/obi/live-data?_t=${Date.now()}`);
+          if (apiResp.ok) {
+            const apiText = await apiResp.text();
+            try {
+              const json = JSON.parse(apiText);
+              if (json.success && json.data) {
+                parsedData = json.data;
+              }
+            } catch(e){}
+          }
+        } catch (apiErr) {
+          console.warn("Backend API not reachable, falling back to direct client-side CSV fetch...", apiErr);
+        }
+
+        // วิธีที่ 2 (Fallback): ดึง Published CSV จาก Google Sheet ตรงๆ
+        if (!parsedData) {
+          const csvResp = await fetch(`${PUBLISHED_CSV_URL}&_t=${Date.now()}`);
+          if (!csvResp.ok) throw new Error(`Google Sheets HTTP Error: ${csvResp.status}`);
+          const csvText = await csvResp.text();
+          parsedData = parseClientSideCsv(csvText);
+        }
+
+        if (!parsedData) throw new Error("ไม่สามารถประมวลผลข้อมูลจาก Google Sheet ได้");
+
+        liveDataCache = parsedData;
+        currentActiveData = parsedData;
+
+        // อัปเดตหน้าจอถ้าอยู่ในโหมด live
+        const currentSelect = document.getElementById('dateSelect').value;
+        if (currentSelect === 'live') {
+          renderLiveDashboard(liveDataCache);
+        }
+
+        if (statusPill) {
+          const nowStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          statusPill.innerText = `เชื่อมต่อข้อมูลสด (อัปเดตล่าสุด ${nowStr})`;
+        }
+
+        if (isManual) {
+          Swal.fire({
+            icon: 'success',
+            title: '⚡ Sync ข้อมูลสดสำเร็จ!',
+            text: `ดึงข้อมูลล่าสุดจาก Google Sheets เรียบร้อย (จำนวน ${parsedData.sackTotal.toLocaleString()} ชิ้น)`,
+            timer: 2000,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+          });
+        }
+
+      } catch (err) {
+        console.error("Live Sync Error:", err);
+        if (statusPill) statusPill.innerText = 'ข้อมูล Offline (ใช้ข้อมูลแคช)';
+        if (isManual) {
+          Swal.fire({
+            icon: 'error',
+            title: '❌ ไม่สามารถ Sync ได้',
+            text: err.message,
+            confirmButtonColor: '#ea580c'
+          });
+        }
+      } finally {
+        if (icon) icon.classList.remove('fa-spin');
+      }
+    }
+
+    /**
+     * 📊 ฟังก์ชันแปลง CSV ตัวเต็มทางฝั่ง Client (ครบทุก Zone, Station, Category, Hourly)
+     */
+    function parseClientSideCsv(csvText) {
+      const rows = [];
+      const lines = csvText.split(/\r?\n/);
+      for (let line of lines) {
+        if (!line.trim()) continue;
+        const cols = [];
+        let inQuote = false;
+        let cell = '';
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (c === '"') {
+            inQuote = !inQuote;
+          } else if (c === ',' && !inQuote) {
+            cols.push(cell);
+            cell = '';
+          } else {
+            cell += c;
+          }
+        }
+        cols.push(cell);
+        rows.push(cols);
+      }
+
+      const totalRows = {};
+      const stationTotals = [];
+      const stationCategories = [];
+
+      for (let r of rows) {
+        if (r.length > 2 && r[1] && r[1].trim()) {
+          const col1 = r[1].trim();
+          
+          // 1. Total Zone Rows
+          if (["Total A", "Total B", "Total C", "Total D"].includes(col1)) {
+            const hourly = [];
+            for (let i = 6; i < 30; i++) {
+              const clean = parseInt(String(r[i] || '').replace(/,/g, '').replace(/"/g, '').trim()) || 0;
+              hourly.push(clean);
+            }
+            const total = parseInt(String(r[3] || '').replace(/,/g, '').replace(/"/g, '').trim()) || hourly.reduce((a,b)=>a+b, 0);
+            const avg = parseInt(String(r[4] || '').replace(/,/g, '').replace(/"/g, '').trim()) || Math.round(total / 24);
+            const pct = String(r[5] || '100%').trim();
+            totalRows[col1] = { total, avg, pct, hourly };
+          }
+          // 2. Station Rows
+          else if (col1.startsWith("Total OBI-")) {
+            const stName = col1.replace("Total ", "").trim();
+            const zMatch = stName.match(/OBI-([A-D])/);
+            const zone = zMatch ? zMatch[1] : "";
+            const hourly = [];
+            for (let i = 6; i < 30; i++) {
+              const clean = parseInt(String(r[i] || '').replace(/,/g, '').replace(/"/g, '').trim()) || 0;
+              hourly.push(clean);
+            }
+            const total = parseInt(String(r[3] || '').replace(/,/g, '').replace(/"/g, '').trim()) || hourly.reduce((a,b)=>a+b, 0);
+            const avg = parseInt(String(r[4] || '').replace(/,/g, '').replace(/"/g, '').trim()) || Math.round(total / 24);
+            const pct = String(r[5] || '').trim();
+            stationTotals.push({ station: stName, zone, total, avg, pct, hourly });
+          }
+          // 3. Category Rows
+          else if (col1.startsWith("OBI-")) {
+            const stName = col1;
+            const cat = String(r[2] || '').trim();
+            const zMatch = stName.match(/OBI-([A-D])/);
+            const zone = zMatch ? zMatch[1] : "";
+            const hourly = [];
+            for (let i = 6; i < 30; i++) {
+              const clean = parseInt(String(r[i] || '').replace(/,/g, '').replace(/"/g, '').trim()) || 0;
+              hourly.push(clean);
+            }
+            const total = parseInt(String(r[3] || '').replace(/,/g, '').replace(/"/g, '').trim()) || hourly.reduce((a,b)=>a+b, 0);
+            const pct = String(r[5] || '').trim();
+            stationCategories.push({ station: stName, zone, category: cat, total, pct, hourly });
+          }
+        }
+      }
+
+      const hourlyGrand = new Array(24).fill(0);
+      for (let tag of ["Total A", "Total B", "Total C", "Total D"]) {
+        if (totalRows[tag]) {
+          totalRows[tag].hourly.forEach((val, idx) => {
+            if (idx < 24) hourlyGrand[idx] += val;
+          });
+        }
+      }
+
+      const sackTotal = hourlyGrand.reduce((a,b)=>a+b, 0);
+      const activeHours = hourlyGrand.filter(h => h > 0).length || 24;
+      const avgActual = activeHours > 0 ? Math.round(sackTotal / activeHours) : 0;
+      const targetAchieve = `${((avgActual / TARGET) * 100).toFixed(1)}%`;
+
+      const peakThroughput = Math.max(...hourlyGrand);
+      const peakIdx = hourlyGrand.indexOf(peakThroughput);
+      const peakTime = `${HOURS[peakIdx] || '13:00'} น.`;
+      const peakCapPct = `${Math.round((peakThroughput / CAPACITY) * 100)}%`;
+
+      const lowHours = hourlyGrand.filter(h => h > 0 && h < 2000).length;
+
+      // Build Hourly Matrix
+      const hourlyMatrix = [];
+      HOURS.forEach((h_lbl, idx) => {
+        const h_tot = hourlyGrand[idx] || 0;
+        const zA = totalRows["Total A"] ? (totalRows["Total A"].hourly[idx] || 0) : 0;
+        const zB = totalRows["Total B"] ? (totalRows["Total B"].hourly[idx] || 0) : 0;
+        const zC = totalRows["Total C"] ? (totalRows["Total C"].hourly[idx] || 0) : 0;
+        const zD = totalRows["Total D"] ? (totalRows["Total D"].hourly[idx] || 0) : 0;
+
+        let status = "Normal";
+        if (h_tot < 1000 && h_tot > 0) status = "Critical";
+        else if (h_tot < 2000 && h_tot > 0) status = "Watch";
+        else if (h_tot < TARGET && h_tot > 0) status = "Below Target";
+        else if (h_tot >= TARGET) status = "Achieved";
+
+        hourlyMatrix.push({
+          hour: h_lbl,
+          total: h_tot,
+          target: TARGET,
+          gap: h_tot - TARGET,
+          status,
+          zoneA: zA,
+          zoneB: zB,
+          zoneC: zC,
+          zoneD: zD
+        });
+      });
+
+      const riskRows = [];
+      hourlyGrand.forEach((val, idx) => {
+        if (val < TARGET && val > 0) {
+          let status = "Below Target";
+          if (val < 1000) status = "Critical";
+          else if (val < 2000) status = "Watch";
+
+          riskRows.push({
+            time: HOURS[idx],
+            actual: val,
+            gap: val - TARGET,
+            status: status
+          });
+        }
+      });
+      riskRows.sort((a, b) => a.actual - b.actual);
+
+      const zonesSummary = {
+        A: totalRows["Total A"] ? totalRows["Total A"].avg : 0,
+        B: totalRows["Total B"] ? totalRows["Total B"].avg : 0,
+        C: totalRows["Total C"] ? totalRows["Total C"].avg : 0,
+        D: totalRows["Total D"] ? totalRows["Total D"].avg : 0,
+        totalA: totalRows["Total A"] ? totalRows["Total A"].total : 0,
+        totalB: totalRows["Total B"] ? totalRows["Total B"].total : 0,
+        totalC: totalRows["Total C"] ? totalRows["Total C"].total : 0,
+        totalD: totalRows["Total D"] ? totalRows["Total D"].total : 0
+      };
+
+      const zoneKeys = ["A", "B", "C", "D"];
+      const bestZone = zoneKeys.reduce((a, b) => (zonesSummary[a] > zonesSummary[b] ? a : b), "A");
+      const worstZone = zoneKeys.reduce((a, b) => (zonesSummary[a] < zonesSummary[b] ? a : b), "D");
+      const zoneHighlight = `Zone ${bestZone} ทำผลงานสูงสุด ${zonesSummary[bestZone].toLocaleString()} ชิ้น/ชม. ขณะที่ Zone ${worstZone} ต่ำสุด (${zonesSummary[worstZone].toLocaleString()} ชิ้น/ชม.) เป้าหมาย 900 ชิ้น/ชม.`;
+
+      return {
+        sackTotal,
+        avgActual,
+        targetAchieve,
+        peakThroughput,
+        peakTime,
+        peakCapPct,
+        lowHours,
+        hourly: hourlyGrand,
+        hourlyMatrix,
+        zones: zonesSummary,
+        zoneTotals: totalRows,
+        stationTotals,
+        stationCategories,
+        zoneHighlight,
+        riskRows,
+        cbs: {
+          parcels: sackTotal > 0 ? sackTotal : 1688743,
+          to: Math.round(sackTotal * 0.98),
+          avgTo: avgActual,
+          toPct: Math.min(100, Math.round((avgActual / TARGET) * 100)),
+          actionTitle: avgActual < TARGET ? `Actual ต่ำกว่า Target ${(TARGET - avgActual).toLocaleString()} ชิ้น/ชม.` : "ประสิทธิภาพการทำงานอยู่ในเกณฑ์ดีเยี่ยม",
+          actionBody: "ควรตรวจสอบความพร้อม Induction, Carrier และการ balance งานระหว่าง Zone"
+        }
+      };
+    }
+
+    /**
+     * 🖥️ แสดงผลหน้า Dashboard จาก Data
+     */
+    function renderLiveDashboard(data) {
+      currentActiveData = data;
+
+      document.getElementById('cycleDateLabel').innerHTML = `⚡ ข้อมูลสดล่าสุดจาก Google Sheet <span>· รอบการทำงาน 13:00–12:00 น.</span>`;
+      document.getElementById('kpiSackTotal').innerText = data.sackTotal.toLocaleString();
+      document.getElementById('kpiAvgActual').innerText = data.avgActual.toLocaleString();
+      document.getElementById('kpiTargetAchieve').innerText = data.targetAchieve;
+      document.getElementById('kpiPeakThroughput').innerText = data.peakThroughput.toLocaleString();
+      document.getElementById('kpiPeakSub').innerText = `เวลา ${data.peakTime} · ${data.peakCapPct} Capacity`;
+      document.getElementById('kpiLowHours').innerText = `${data.lowHours} ชม.`;
+
+      updateZone('A', data.zones.A);
+      updateZone('B', data.zones.B);
+      updateZone('C', data.zones.C);
+      updateZone('D', data.zones.D);
+
+      document.getElementById('zoneHighlightText').innerText = data.zoneHighlight;
+
+      renderChart(data.hourly);
+      renderRiskTable(data.riskRows);
+
+      if (data.cbs) {
+        document.getElementById('cbsParcels').innerText = data.cbs.parcels.toLocaleString();
+        document.getElementById('cbsTo').innerText = data.cbs.to.toLocaleString();
+        document.getElementById('cbsAvgToText').innerText = `${data.cbs.avgTo.toLocaleString()} TO/ชม.`;
+        document.getElementById('cbsProgressBar').style.width = `${data.cbs.toPct}%`;
+        document.getElementById('cbsActionTitle').innerText = data.cbs.actionTitle;
+        document.getElementById('cbsActionBody').innerText = data.cbs.actionBody;
+      }
+    }
+
+    /**
+     * 🔄 สลับวันที่ (ดึงประวัติย้อนหลังจาก API หรือแคช)
+     */
+    async function switchDate(dateKey) {
+      const statusPill = document.getElementById('liveStatusText');
+
+      if (dateKey === 'live') {
+        if (liveDataCache) {
+          renderLiveDashboard(liveDataCache);
+        } else {
+          fetchLivePublishedCsv(false);
+        }
+        return;
+      }
+
+      // ดึงประวัติย้อนหลังจาก Backend API
+      try {
+        const resp = await fetch(`/api/obi/history/${dateKey}`);
+        if (resp.ok) {
+          const json = await resp.json();
+          if (json.success && json.data) {
+            const hData = json.data;
+            if (statusPill) statusPill.innerText = `📁 ประวัติย้อนหลัง (${hData.date})`;
+            renderLiveDashboard(hData);
+            document.getElementById('cycleDateLabel').innerHTML = `📅 ข้อมูลย้อนหลังวันที่ ${hData.dateLabel || hData.date} <span>· รอบการทำงาน 13:00–12:00 น.</span>`;
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load date from API, checking local datasets...", err);
+      }
+
+      // Fallback local dataset
+      const data = DATASETS[dateKey] || DATASETS['2026-09-10'];
+      if (statusPill) statusPill.innerText = `📁 ประวัติย้อนหลัง (${data.dateLabel})`;
+
+      document.getElementById('cycleDateLabel').innerHTML = `${data.dateLabel} <span>· รอบการทำงาน 13:00–12:00 น.</span>`;
+      document.getElementById('kpiSackTotal').innerText = data.sackTotal.toLocaleString();
+      document.getElementById('kpiAvgActual').innerText = data.avgActual.toLocaleString();
+      document.getElementById('kpiTargetAchieve').innerText = data.targetAchieve;
+      document.getElementById('kpiPeakThroughput').innerText = data.peakThroughput.toLocaleString();
+      document.getElementById('kpiPeakSub').innerText = `เวลา ${data.peakTime} · ${data.peakCapPct} Capacity`;
+      document.getElementById('kpiLowHours').innerText = `${data.lowHours} ชม.`;
+
+      updateZone('A', data.zones.A);
+      updateZone('B', data.zones.B);
+      updateZone('C', data.zones.C);
+      updateZone('D', data.zones.D);
+
+      document.getElementById('zoneHighlightText').innerText = 
+        `Zone B ทำผลงานสูงสุด ${data.zones.B} ชิ้น/ชม. ขณะที่ Zone D ต่ำสุด และทุก Zone ยังต่ำกว่าเป้าหมาย 900 ชิ้น/ชม.`;
+
+      renderChart(data.hourly);
+      renderRiskTable(data.riskRows);
+
+      document.getElementById('cbsParcels').innerText = data.cbs.parcels.toLocaleString();
+      document.getElementById('cbsTo').innerText = data.cbs.to.toLocaleString();
+      document.getElementById('cbsAvgToText').innerText = `${data.cbs.avgTo.toLocaleString()} TO/ชม.`;
+      document.getElementById('cbsProgressBar').style.width = `${data.cbs.toPct}%`;
+      document.getElementById('cbsActionTitle').innerText = data.cbs.actionTitle;
+      document.getElementById('cbsActionBody').innerText = data.cbs.actionBody;
+    }
+
+    function updateZone(id, val) {
+      document.getElementById(`zoneVal${id}`).innerText = (val || 0).toLocaleString();
+      const pct = Math.min(100, ((val || 0) / ZONE_TARGET) * 100);
+      document.getElementById(`zoneBar${id}`).style.width = pct + '%';
+    }
+
+    function renderChart(hourlyData) {
+      const ctx = document.getElementById('obiHourlyChart').getContext('2d');
+      const targetArr = new Array(HOURS.length).fill(TARGET);
+      const capArr = new Array(HOURS.length).fill(CAPACITY);
+
+      const grad = ctx.createLinearGradient(0, 0, 0, 240);
+      grad.addColorStop(0, 'rgba(234, 88, 12, 0.18)');
+      grad.addColorStop(1, 'rgba(234, 88, 12, 0.0)');
+
+      if (chartObj) chartObj.destroy();
+
+      const maxVal = Math.max(...hourlyData.filter(v => typeof v === 'number' && !isNaN(v)), CAPACITY, TARGET);
+      const yMax = Math.max(4500, Math.ceil((maxVal * 1.15) / 1000) * 1000);
+
+      chartObj = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: HOURS,
+          datasets: [
+            {
+              label: 'Actual',
+              data: hourlyData,
+              borderColor: '#ea580c',
+              backgroundColor: grad,
+              borderWidth: 2.5,
+              fill: true,
+              tension: 0.35,
+              pointRadius: 5,
+              pointHoverRadius: 8,
+              pointBackgroundColor: '#ffffff',
+              pointBorderColor: '#ea580c',
+              pointBorderWidth: 2
+            },
+            {
+              label: 'Target (3,600)',
+              data: targetArr,
+              borderColor: '#eab308',
+              borderWidth: 1.5,
+              borderDash: [5, 4],
+              pointRadius: 0,
+              fill: false,
+              tension: 0
+            },
+            {
+              label: 'Capacity (4,000)',
+              data: capArr,
+              borderColor: '#94a3b8',
+              borderWidth: 1,
+              borderDash: [2, 2],
+              pointRadius: 0,
+              fill: false,
+              tension: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (evt, elements) => {
+            if (elements && elements.length > 0) {
+              const clickedIdx = elements[0].index;
+              const hourLabel = HOURS[clickedIdx];
+              showHourlyDrilldown(hourLabel);
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              padding: 10,
+              callbacks: {
+                title: items => `เวลา ${items[0].label} น. (คลิกเพื่อดู Raw Data)`,
+                label: item => ` ${item.dataset.label}: ${item.raw.toLocaleString()} ชิ้น/ชม.`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                color: '#64748b',
+                font: { size: 10 },
+                callback: function(val, index) {
+                  return index % 2 === 0 ? this.getLabelForValue(val) : '';
+                }
+              }
+            },
+            y: {
+              min: 0,
+              max: yMax,
+              grid: { color: '#f1f5f9' },
+              ticks: {
+                color: '#64748b',
+                font: { size: 10 },
+                callback: v => {
+                  if (v === 0) return '0';
+                  if (v >= 1000) {
+                    const k = v / 1000;
+                    return (k % 1 === 0 ? k : k.toFixed(1)) + 'K';
+                  }
+                  return v;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderRiskTable(rows) {
+      const tbody = document.getElementById('riskTableRows');
+      tbody.innerHTML = '';
+
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">ไม่มีช่วงเวลาที่ต่ำกว่าเป้าหมาย 🎉</td></tr>';
+        return;
+      }
+
+      rows.forEach(r => {
+        let badgeClass = 'badge-below';
+        if (r.status === 'Critical') badgeClass = 'badge-critical';
+        else if (r.status === 'Watch') badgeClass = 'badge-watch';
+
+        const tr = document.createElement('tr');
+        tr.setAttribute('onclick', `showHourlyDrilldown('${r.time}')`);
+        tr.setAttribute('title', `คลิกเพื่อดู Raw Data เจาะลึกเวลา ${r.time} น.`);
+        tr.innerHTML = `
+          <td><span class="fw-bold text-primary"><i class="fa-regular fa-clock me-1"></i>${r.time}</span></td>
+          <td>${r.actual.toLocaleString()}</td>
+          <td style="color: #ea580c;">${r.gap >= 0 ? '+' : ''}${r.gap.toLocaleString()}</td>
+          <td><span class="${badgeClass}">${r.status}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ========================================================
+    // 🎯 INTERACTIVE DRILL-DOWN & RAW DATA MODAL HANDLERS
+    // ========================================================
+
+    function openModalWithTitle(title, subTitle, badgeText = 'Raw Data') {
+      document.getElementById('rawDataModalLabel').innerText = title;
+      document.getElementById('modalSubTitle').innerText = subTitle;
+      document.getElementById('modalContextBadge').innerText = badgeText;
+      const searchInput = document.getElementById('rawSearchInput');
+      if (searchInput) searchInput.value = '';
+      if (rawDataModalObj) rawDataModalObj.show();
+    }
+
+    /**
+     * 1. SACK SORTER TOTAL DRILLDOWN
+     */
+    function showSackTotalDrilldown() {
+      const d = currentActiveData || liveDataCache;
+      if (!d) return;
+
+      const z = d.zones || {};
+      const zA_tot = z.totalA || ((z.A || 0) * 24);
+      const zB_tot = z.totalB || ((z.B || 0) * 24);
+      const zC_tot = z.totalC || ((z.C || 0) * 24);
+      const zD_tot = z.totalD || ((z.D || 0) * 24);
+
+      setDrillKpis([
+        { label: "SACK SORTER TOTAL", val: `${d.sackTotal.toLocaleString()} ชิ้น`, color: "#ea580c" },
+        { label: "ZONE A TOTAL", val: `${zA_tot.toLocaleString()} ชิ้น`, sub: `เฉลี่ย ${z.A || 0}/ชม.` },
+        { label: "ZONE B TOTAL", val: `${zB_tot.toLocaleString()} ชิ้น`, sub: `เฉลี่ย ${z.B || 0}/ชม.` },
+        { label: "ZONE C TOTAL", val: `${zC_tot.toLocaleString()} ชิ้น`, sub: `เฉลี่ย ${z.C || 0}/ชม.` },
+        { label: "ZONE D TOTAL", val: `${zD_tot.toLocaleString()} ชิ้น`, sub: `เฉลี่ย ${z.D || 0}/ชม.` }
+      ]);
+
+      // Build Station Rows Table if available or Zone summary
+      const headers = ["Zone / กลุ่ม", "Station / Tag", "ประเภทย่อย", "ยอดรวม 24 ชม.", "เฉลี่ย / ชม.", "% สัดส่วน"];
+      const rows = [];
+
+      // Add 4 Zones
+      rows.push(["Zone A", "Total A (ภาพรวม Zone A)", "Summary", zA_tot.toLocaleString(), (z.A || 0).toLocaleString(), `${((zA_tot / (d.sackTotal || 1))*100).toFixed(1)}%`]);
+      rows.push(["Zone B", "Total B (ภาพรวม Zone B)", "Summary", zB_tot.toLocaleString(), (z.B || 0).toLocaleString(), `${((zB_tot / (d.sackTotal || 1))*100).toFixed(1)}%`]);
+      rows.push(["Zone C", "Total C (ภาพรวม Zone C)", "Summary", zC_tot.toLocaleString(), (z.C || 0).toLocaleString(), `${((zC_tot / (d.sackTotal || 1))*100).toFixed(1)}%`]);
+      rows.push(["Zone D", "Total D (ภาพรวม Zone D)", "Summary", zD_tot.toLocaleString(), (z.D || 0).toLocaleString(), `${((zD_tot / (d.sackTotal || 1))*100).toFixed(1)}%`]);
+
+      // Add individual stations if available
+      if (d.stationTotals && d.stationTotals.length > 0) {
+        d.stationTotals.forEach(st => {
+          rows.push([
+            `Zone ${st.zone}`,
+            st.station,
+            "Station Total",
+            st.total.toLocaleString(),
+            st.avg.toLocaleString(),
+            st.pct || `${((st.total / (d.sackTotal || 1))*100).toFixed(2)}%`
+          ]);
+        });
+      }
+
+      renderModalTable(headers, rows);
+      document.getElementById('drillTabTitle').innerText = 'สรุปยอดรวม Sack Sorter';
+      switchModalTab('drill');
+      openModalWithTitle('📦 Raw Data: Sack Sorter Total Breakdown', 'แจกแจงยอดรวมพัสดุตลอด 24 ชม. แยกตาม Zone และ Station ทั้งหมด');
+    }
+
+    /**
+     * 2. AVERAGE ACTUAL DRILLDOWN
+     */
+    function showAvgActualDrilldown() {
+      const d = currentActiveData || liveDataCache;
+      if (!d) return;
+
+      const activeHrs = d.hourly ? d.hourly.filter(h => h > 0).length : 24;
+      setDrillKpis([
+        { label: "AVERAGE ACTUAL", val: `${d.avgActual.toLocaleString()} ชิ้น/ชม.`, color: "#2563eb" },
+        { label: "TARGET OBI", val: `3,600 ชิ้น/ชม.`, sub: `Achieve: ${d.targetAchieve}` },
+        { label: "ชั่วโมงที่มีงาน", val: `${activeHrs} / 24 ชม.`, sub: `ยอดรวม ${d.sackTotal.toLocaleString()}` },
+        { label: "ZONE เฉลี่ยสูงสุด", val: `Zone B (${d.zones?.B || 0})`, sub: `เป้า 900 ชิ้น/ชม./Zone` }
+      ]);
+
+      const headers = ["ลำดับเวลา", "Actual (ชิ้น/ชม.)", "Target (3,600)", "Gap vs Target", "% Target Achieve", "Zone A", "Zone B", "Zone C", "Zone D", "สถานะ"];
+      const rows = [];
+
+      HOURS.forEach((h, idx) => {
+        const val = (d.hourly && d.hourly[idx]) || 0;
+        const gap = val - TARGET;
+        const pct = `${((val / TARGET)*100).toFixed(1)}%`;
+        const zA = d.zoneTotals && d.zoneTotals["Total A"] ? d.zoneTotals["Total A"].hourly[idx] : '-';
+        const zB = d.zoneTotals && d.zoneTotals["Total B"] ? d.zoneTotals["Total B"].hourly[idx] : '-';
+        const zC = d.zoneTotals && d.zoneTotals["Total C"] ? d.zoneTotals["Total C"].hourly[idx] : '-';
+        const zD = d.zoneTotals && d.zoneTotals["Total D"] ? d.zoneTotals["Total D"].hourly[idx] : '-';
+
+        let statusBadge = `<span class="badge bg-success">Achieved</span>`;
+        if (val === 0) statusBadge = `<span class="badge bg-secondary">No Data</span>`;
+        else if (val < 1000) statusBadge = `<span class="badge-critical">Critical</span>`;
+        else if (val < 2000) statusBadge = `<span class="badge-watch">Watch</span>`;
+        else if (val < TARGET) statusBadge = `<span class="badge-below">Below Target</span>`;
+
+        rows.push([
+          `<b>${h} น.</b>`,
+          val.toLocaleString(),
+          TARGET.toLocaleString(),
+          `<span style="color: ${gap >= 0 ? '#059669' : '#dc2626'}; font-weight: 700;">${gap >= 0 ? '+' : ''}${gap.toLocaleString()}</span>`,
+          pct,
+          typeof zA === 'number' ? zA.toLocaleString() : zA,
+          typeof zB === 'number' ? zB.toLocaleString() : zB,
+          typeof zC === 'number' ? zC.toLocaleString() : zC,
+          typeof zD === 'number' ? zD.toLocaleString() : zD,
+          statusBadge
+        ]);
+      });
+
+      renderModalTable(headers, rows);
+      document.getElementById('drillTabTitle').innerText = 'สรุป Average Actual & Run-rate';
+      switchModalTab('drill');
+      openModalWithTitle('⚡ Raw Data: Average Throughput & Hourly Run-rate', 'ตารางเปรียบเทียบ Run-rate รายชั่วโมงเทียบเป้าหมาย 3,600 ชิ้น/ชม.');
+    }
+
+    /**
+     * 3. TARGET ACHIEVEMENT DRILLDOWN
+     */
+    function showTargetAchieveDrilldown() {
+      showAvgActualDrilldown();
+      document.getElementById('rawDataModalLabel').innerText = '🎯 Raw Data: Target Achievement Analysis';
+      document.getElementById('modalSubTitle').innerText = 'วิเคราะห์ % ความสำเร็จเทียบเป้าหมาย Target 3,600 และเป้า Zone 900 ชิ้น/ชม.';
+    }
+
+    /**
+     * 4. PEAK THROUGHPUT DRILLDOWN
+     */
+    function showPeakThroughputDrilldown() {
+      const d = currentActiveData || liveDataCache;
+      if (!d) return;
+
+      const peakIdx = d.hourly ? d.hourly.indexOf(d.peakThroughput) : 0;
+      const peakHour = HOURS[peakIdx] || '13:00';
+      showHourlyDrilldown(peakHour);
+      document.getElementById('rawDataModalLabel').innerText = `🔥 Raw Data: Peak Hour (${peakHour} น. - ${d.peakThroughput.toLocaleString()} ชิ้น/ชม.)`;
+      document.getElementById('modalSubTitle').innerText = `เจาะลึกชั่วโมงที่มี Throughput สูงสุดตลอดรอบการทำงาน (${d.peakCapPct} Capacity)`;
+    }
+
+    /**
+     * 5. LOW HOURS DRILLDOWN
+     */
+    function showLowHoursDrilldown() {
+      const d = currentActiveData || liveDataCache;
+      if (!d) return;
+
+      setDrillKpis([
+        { label: "จำนวน LOW HOURS", val: `${d.lowHours} ชั่วโมง`, color: "#dc2626" },
+        { label: "เกณฑ์กำหนด", val: "< 2,000 ชิ้น/ชม.", sub: "เป้าหมายหลัก 3,600" },
+        { label: "ช่วงเวลาเฝ้าระวังต่ำสุด", val: d.riskRows && d.riskRows[0] ? `${d.riskRows[0].time} น.` : '-', sub: d.riskRows && d.riskRows[0] ? `${d.riskRows[0].actual.toLocaleString()} ชิ้น` : '' }
+      ]);
+
+      const headers = ["เวลา", "Throughput Actual", "Target (3,600)", "ส่วนต่าง (Gap)", "ระดับความเสี่ยง", "การดำเนินการ"];
+      const rows = [];
+
+      (d.riskRows || []).forEach(r => {
+        let badgeClass = 'badge-below';
+        let action = 'ติดตาม flow และเพิ่มกำลังคน';
+        if (r.status === 'Critical') {
+          badgeClass = 'badge-critical';
+          action = '🚨 ตรวจสอบด่วน Induction / Carrier ติดขัด';
+        } else if (r.status === 'Watch') {
+          badgeClass = 'badge-watch';
+          action = '⚠️ จัดสมดุลพัสดุและเร่งปล่อยงาน';
+        }
+
+        rows.push([
+          `<b>${r.time} น.</b>`,
+          r.actual.toLocaleString(),
+          TARGET.toLocaleString(),
+          `<span style="color: #dc2626; font-weight: 700;">${r.gap.toLocaleString()}</span>`,
+          `<span class="${badgeClass}">${r.status}</span>`,
+          action
+        ]);
+      });
+
+      renderModalTable(headers, rows);
+      document.getElementById('drillTabTitle').innerText = 'เจาะลึก Low Hours';
+      switchModalTab('drill');
+      openModalWithTitle('⚠️ Raw Data: Low Throughput Hours (< 2,000 ชิ้น/ชม.)', 'สรุปช่วงเวลาที่ผลงานต่ำกว่าเกณฑ์เพื่อการจัดสรรกำลังพลและแก้ปัญหา');
+    }
+
+    /**
+     * 6. ZONE DRILLDOWN (A, B, C, D)
+     */
+    function showZoneDrilldown(zoneKey) {
+      const d = currentActiveData || liveDataCache;
+      if (!d) return;
+
+      const zTag = `Total ${zoneKey}`;
+      const zInfo = d.zoneTotals && d.zoneTotals[zTag] ? d.zoneTotals[zTag] : {};
+      const zAvg = (d.zones && d.zones[zoneKey]) || zInfo.avg || 0;
+      const zTot = (d.zones && d.zones[`total${zoneKey}`]) || zInfo.total || (zAvg * 24);
+
+      setDrillKpis([
+        { label: `ZONE ${zoneKey} TOTAL`, val: `${zTot.toLocaleString()} ชิ้น`, color: "#ea580c" },
+        { label: `ZONE ${zoneKey} AVERAGE`, val: `${zAvg.toLocaleString()} ชิ้น/ชม.`, sub: `เป้าหมาย ${ZONE_TARGET} ชิ้น/ชม.` },
+        { label: "% เทียบเป้า ZONE", val: `${((zAvg / ZONE_TARGET)*100).toFixed(1)}%`, sub: zAvg >= ZONE_TARGET ? '✅ ผ่านเป้าหมาย' : '🔻 ต่ำกว่าเป้าหมาย' },
+        { label: "% สัดส่วนต่อยอดรวม", val: `${((zTot / (d.sackTotal || 1))*100).toFixed(1)}%`, sub: `Total Sack: ${d.sackTotal.toLocaleString()}` }
+      ]);
+
+      const headers = ["Station / Chute", "Category", "ยอดรวม 24 ชม.", "เฉลี่ย / ชม.", "% สัดส่วน", ...HOURS];
+      const rows = [];
+
+      // Add Zone Summary Row
+      if (zInfo.hourly) {
+        rows.push([
+          `<b>Total Zone ${zoneKey}</b>`,
+          `<b>Overall</b>`,
+          `<b>${zTot.toLocaleString()}</b>`,
+          `<b>${zAvg.toLocaleString()}</b>`,
+          `<b>100.0%</b>`,
+          ...zInfo.hourly.map(v => `<b>${(v || 0).toLocaleString()}</b>`)
+        ]);
+      }
+
+      // Add Station Rows for this zone
+      if (d.stationTotals) {
+        const filteredStations = d.stationTotals.filter(st => st.zone === zoneKey || st.station.includes(`-${zoneKey}`));
+        filteredStations.forEach(st => {
+          rows.push([
+            `<span class="fw-bold text-primary">${st.station}</span>`,
+            "Total Station",
+            st.total.toLocaleString(),
+            st.avg.toLocaleString(),
+            st.pct || '-',
+            ...(st.hourly || []).map(v => (v || 0).toLocaleString())
+          ]);
+
+          // Add categories under this station if available
+          if (d.stationCategories) {
+            const catRows = d.stationCategories.filter(c => c.station === st.station && c.total > 0);
+            catRows.forEach(c => {
+              rows.push([
+                `<span class="ps-3 text-muted">↳ ${st.station}</span>`,
+                `<span class="badge bg-light text-dark border">${c.category}</span>`,
+                c.total.toLocaleString(),
+                Math.round(c.total / 24).toLocaleString(),
+                c.pct || '-',
+                ...(c.hourly || []).map(v => (v || 0).toLocaleString())
+              ]);
+            });
+          }
+        });
+      }
+
+      renderModalTable(headers, rows);
+      document.getElementById('drillTabTitle').innerText = `รายละเอียด Zone ${zoneKey}`;
+      switchModalTab('drill');
+      openModalWithTitle(`🏢 Raw Data: รายละเอียด Station ประจำ Zone ${zoneKey}`, `แสดงข้อมูลแยกราย Station และประเภทย่อยตลอด 24 ชั่วโมง`);
+    }
+
+    /**
+     * 7. HOURLY DRILLDOWN (เมื่อคลิกบนกราฟ หรือคลิกแถว Risk Table)
+     */
+    function showHourlyDrilldown(hourStr) {
+      const d = currentActiveData || liveDataCache;
+      if (!d) return;
+
+      const hourIdx = HOURS.indexOf(hourStr);
+      if (hourIdx === -1) return;
+
+      const hTotal = (d.hourly && d.hourly[hourIdx]) || 0;
+      const zA = d.zoneTotals && d.zoneTotals["Total A"] ? (d.zoneTotals["Total A"].hourly[hourIdx] || 0) : 0;
+      const zB = d.zoneTotals && d.zoneTotals["Total B"] ? (d.zoneTotals["Total B"].hourly[hourIdx] || 0) : 0;
+      const zC = d.zoneTotals && d.zoneTotals["Total C"] ? (d.zoneTotals["Total C"].hourly[hourIdx] || 0) : 0;
+      const zD = d.zoneTotals && d.zoneTotals["Total D"] ? (d.zoneTotals["Total D"].hourly[hourIdx] || 0) : 0;
+
+      const gap = hTotal - TARGET;
+
+      setDrillKpis([
+        { label: `เวลา ${hourStr} น.`, val: `${hTotal.toLocaleString()} ชิ้น`, color: gap >= 0 ? "#059669" : "#ea580c" },
+        { label: "TARGET", val: "3,600 ชิ้น/ชม.", sub: `Gap: ${gap >= 0 ? '+' : ''}${gap.toLocaleString()}` },
+        { label: "ZONE A / B", val: `${zA.toLocaleString()} / ${zB.toLocaleString()}`, sub: "Zone Target 900" },
+        { label: "ZONE C / D", val: `${zC.toLocaleString()} / ${zD.toLocaleString()}`, sub: "Zone Target 900" }
+      ]);
+
+      const headers = ["กลุ่ม / Zone", "Station", "ประเภทย่อย (Category)", `ปริมาณเวลา ${hourStr} น.`, "% ต่อชั่วโมงนี้", "ยอดรวม 24 ชม."];
+      const rows = [];
+
+      // Add 4 Zones
+      rows.push(["Zone A", "Total A", "Zone Summary", zA.toLocaleString(), `${((zA / (hTotal || 1))*100).toFixed(1)}%`, (d.zoneTotals?.["Total A"]?.total || '-').toLocaleString()]);
+      rows.push(["Zone B", "Total B", "Zone Summary", zB.toLocaleString(), `${((zB / (hTotal || 1))*100).toFixed(1)}%`, (d.zoneTotals?.["Total B"]?.total || '-').toLocaleString()]);
+      rows.push(["Zone C", "Total C", "Zone Summary", zC.toLocaleString(), `${((zC / (hTotal || 1))*100).toFixed(1)}%`, (d.zoneTotals?.["Total C"]?.total || '-').toLocaleString()]);
+      rows.push(["Zone D", "Total D", "Zone Summary", zD.toLocaleString(), `${((zD / (hTotal || 1))*100).toFixed(1)}%`, (d.zoneTotals?.["Total D"]?.total || '-').toLocaleString()]);
+
+      // Add Stations that had volume in this hour
+      if (d.stationTotals) {
+        const activeStations = d.stationTotals.filter(st => st.hourly && st.hourly[hourIdx] > 0);
+        activeStations.sort((a,b) => (b.hourly[hourIdx] || 0) - (a.hourly[hourIdx] || 0));
+
+        activeStations.forEach(st => {
+          const stVal = st.hourly[hourIdx] || 0;
+          rows.push([
+            `Zone ${st.zone}`,
+            `<span class="fw-bold text-primary">${st.station}</span>`,
+            "Station Output",
+            stVal.toLocaleString(),
+            `${((stVal / (hTotal || 1))*100).toFixed(1)}%`,
+            st.total.toLocaleString()
+          ]);
+        });
+      }
+
+      renderModalTable(headers, rows);
+      document.getElementById('drillTabTitle').innerText = `ชั่วโมง ${hourStr} น.`;
+      switchModalTab('drill');
+      openModalWithTitle(`⏰ Raw Data: รายละเอียดเวลา ${hourStr} น.`, `แจกแจงผลผลิตของทุก Zone และ Station ในช่วงเวลา ${hourStr} น.`);
+    }
+
+    /**
+     * 8. CBS & TO DRILLDOWN
+     */
+    function showCbsDrilldown(metricKey) {
+      const d = currentActiveData || liveDataCache;
+      if (!d) return;
+
+      const cbs = d.cbs || {};
+      const toCount = cbs.to || 0;
+      const parcels = cbs.parcels || d.sackTotal || 0;
+      const avgTo = cbs.avgTo || Math.round(toCount / 24);
+      const ratio = parcels > 0 ? ((toCount / parcels) * 100).toFixed(1) : '100.0';
+
+      setDrillKpis([
+        { label: "CBS TO (จากชีต TO)", val: `${toCount.toLocaleString()} TO`, color: "#059669", sub: cbs.hasRealToSheet ? "✅ นับจำนวนจากแถวชีต TO จริง" : "ข้อมูลประมาณการ" },
+        { label: "CBS PARCELS", val: `${parcels.toLocaleString()} ชิ้น`, color: "#2563eb", sub: "ยอดรวมพัสดุในระบบ" },
+        { label: "AVERAGE TO / HOUR", val: `${avgTo.toLocaleString()} TO/ชม.`, color: "#ea580c", sub: "Run-rate เฉลี่ย" },
+        { label: "สัดส่วน TO ต่อ PARCELS", val: `${ratio}%`, sub: "ประสิทธิภาพการ Induct" }
+      ]);
+
+      // Switch to TO tab directly to fetch actual TO sheet data
+      switchModalTab('to');
+      openModalWithTitle('📦 Raw Data: ตารางรายการ TO (ObjectToHandle)', 'ข้อมูลดิบจากแท็บชีต TO แสดงรายการ ObjectToHandle, Induct Station และช่วงเวลา');
+    }
+
+    /**
+     * 🌐 UNIVERSAL TAB SWITCHER INSIDE MODAL
+     */
+    function openAllRawDataModal(defaultTab = 'calc') {
+      switchModalTab(defaultTab);
+      openModalWithTitle('📋 Raw Data Sheet Explorer', 'เรียกดูและค้นหาข้อมูลดิบในแต่ละ Sheet ทั้งหมด');
+    }
+
+    async function switchModalTab(tabId) {
+      currentModalTab = tabId;
+
+      // Update Tab Buttons UI
+      document.querySelectorAll('.modal-tab-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`tabBtn_${tabId}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const drillBox = document.getElementById('drillSummaryBox');
+      if (tabId === 'drill' || tabId === 'to') {
+        if (drillBox) drillBox.style.display = 'block';
+      } else {
+        if (drillBox) drillBox.style.display = 'none';
+      }
+
+      const d = currentActiveData || liveDataCache;
+
+      if (tabId === 'hourly') {
+        renderHourlyMatrixSheet(d);
+      } else if (tabId === 'stations') {
+        renderStationBreakdownSheet(d);
+      } else if (tabId === 'calc') {
+        loadTabSheetData('Calculation');
+      } else if (tabId === 'to') {
+        loadTabSheetData('TO');
+      } else if (tabId === 'carrier') {
+        loadTabSheetData('Available Carrier');
+      } else if (tabId === 'stname') {
+        loadTabSheetData('Station Name');
+      }
+    }
+
+    function setDrillKpis(kpiList) {
+      const container = document.getElementById('drillKpiContainer');
+      const box = document.getElementById('drillSummaryBox');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (!kpiList || kpiList.length === 0) {
+        if (box) box.style.display = 'none';
+        return;
+      }
+
+      if (box) box.style.display = 'block';
+
+      const colClass = kpiList.length <= 3 ? 'col-md-4' : (kpiList.length === 4 ? 'col-md-3' : 'col-md');
+      kpiList.forEach(k => {
+        const div = document.createElement('div');
+        div.className = colClass;
+        div.innerHTML = `
+          <div class="drill-kpi-box shadow-sm">
+            <div class="drill-kpi-label">${k.label}</div>
+            <div class="drill-kpi-val" style="color: ${k.color || '#0f172a'};">${k.val}</div>
+            ${k.sub ? `<div class="small text-muted mt-1">${k.sub}</div>` : ''}
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function renderHourlyMatrixSheet(d) {
+      if (!d) return;
+      const headers = ["ชั่วโมง", "Throughput Actual", "Target", "Gap vs Target", "Zone A", "Zone B", "Zone C", "Zone D", "สถานะ"];
+      const rows = [];
+
+      HOURS.forEach((h, idx) => {
+        const val = (d.hourly && d.hourly[idx]) || 0;
+        const gap = val - TARGET;
+        const zA = d.zoneTotals?.["Total A"]?.hourly?.[idx] ?? '-';
+        const zB = d.zoneTotals?.["Total B"]?.hourly?.[idx] ?? '-';
+        const zC = d.zoneTotals?.["Total C"]?.hourly?.[idx] ?? '-';
+        const zD = d.zoneTotals?.["Total D"]?.hourly?.[idx] ?? '-';
+
+        let statusBadge = `<span class="badge bg-success">Achieved</span>`;
+        if (val === 0) statusBadge = `<span class="badge bg-secondary">No Data</span>`;
+        else if (val < 1000) statusBadge = `<span class="badge-critical">Critical</span>`;
+        else if (val < 2000) statusBadge = `<span class="badge-watch">Watch</span>`;
+        else if (val < TARGET) statusBadge = `<span class="badge-below">Below Target</span>`;
+
+        rows.push([
+          `<b>${h} น.</b>`,
+          val.toLocaleString(),
+          TARGET.toLocaleString(),
+          `<span style="color: ${gap >= 0 ? '#059669' : '#dc2626'}; font-weight: 700;">${gap >= 0 ? '+' : ''}${gap.toLocaleString()}</span>`,
+          typeof zA === 'number' ? zA.toLocaleString() : zA,
+          typeof zB === 'number' ? zB.toLocaleString() : zB,
+          typeof zC === 'number' ? zC.toLocaleString() : zC,
+          typeof zD === 'number' ? zD.toLocaleString() : zD,
+          statusBadge
+        ]);
+      });
+
+      renderModalTable(headers, rows);
+    }
+
+    function renderStationBreakdownSheet(d) {
+      if (!d) return;
+      const headers = ["Zone", "Station / Chute", "ยอดรวม 24 ชม.", "เฉลี่ย / ชม.", "% สัดส่วน", ...HOURS];
+      const rows = [];
+
+      if (d.stationTotals && d.stationTotals.length > 0) {
+        d.stationTotals.forEach(st => {
+          rows.push([
+            `Zone ${st.zone}`,
+            `<b>${st.station}</b>`,
+            st.total.toLocaleString(),
+            st.avg.toLocaleString(),
+            st.pct || '-',
+            ...(st.hourly || []).map(v => (v || 0).toLocaleString())
+          ]);
+        });
+      } else {
+        ['A', 'B', 'C', 'D'].forEach(z => {
+          const zTot = d.zones?.[`total${z}`] || ((d.zones?.[z] || 0) * 24);
+          rows.push([`Zone ${z}`, `Total Zone ${z}`, zTot.toLocaleString(), (d.zones?.[z] || 0).toLocaleString(), '25%', ...HOURS.map(() => '-')]);
+        });
+      }
+
+      renderModalTable(headers, rows);
+    }
+
+    async function loadTabSheetData(tabName) {
+      const select = document.getElementById('dateSelect');
+      let targetDate = select ? select.value : 'live';
+      if (targetDate === 'live') {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        targetDate = `${yyyy}-${mm}-${dd}`;
+      }
+
+      const cacheKey = `${targetDate}_${tabName}`;
+      if (tabDataCache[cacheKey]) {
+        renderModalTable(tabDataCache[cacheKey].headers, tabDataCache[cacheKey].rows);
+        return;
+      }
+
+      // Show loading indicator in table
+      const tbody = document.getElementById('modalTableBody');
+      const thead = document.getElementById('modalTableHead');
+      thead.innerHTML = `<tr><th>กำลังโหลดข้อมูล...</th></tr>`;
+      tbody.innerHTML = `<tr><td class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin me-2 fs-5"></i> กำลังโหลดข้อมูลแท็บ <b>${tabName}</b>...</td></tr>`;
+
+      try {
+        const resp = await fetch(`/api/obi/tab-data?date=${targetDate}&tab=${encodeURIComponent(tabName)}`);
+        if (resp.ok) {
+          const json = await resp.json();
+          if (json.success && json.rows && json.rows.length > 0) {
+            const rawRows = json.rows;
+            let headers = rawRows[0].map((h, i) => h.trim() || `Col ${i+1}`);
+            
+            // Format nice headers if TO tab
+            if (tabName === 'TO') {
+              headers = ["ObjectToHandle (รหัส TO)", "Induct OBI Station", "ช่วงเวลา (Hour)"];
+              if (rawRows.length > 1 && currentActiveData && currentActiveData.cbs) {
+                const realCount = rawRows.length - 1;
+                document.getElementById('cbsTo').innerText = realCount.toLocaleString();
+                currentActiveData.cbs.to = realCount;
+              }
+            }
+
+            const rows = rawRows.slice(1);
+            tabDataCache[cacheKey] = { headers, rows };
+            renderModalTable(headers, rows);
+            return;
+          }
+        }
+      } catch(err) {
+        console.warn("Could not fetch tab from backend API:", err);
+      }
+
+      // Fallback: If calculation tab and we have activeData
+      if (tabName === 'Calculation' && currentActiveData) {
+        renderStationBreakdownSheet(currentActiveData);
+      } else {
+        thead.innerHTML = `<tr><th>ผลลัพธ์</th></tr>`;
+        tbody.innerHTML = `<tr><td class="text-center py-4 text-muted">ไม่พบข้อมูลไฟล์แท็บ ${tabName} สำหรับวันที่เลือก</td></tr>`;
+      }
+    }
+
+    function renderModalTable(headers, rows) {
+      currentTableData = { headers, rows, filteredRows: [...rows] };
+
+      const thead = document.getElementById('modalTableHead');
+      const tbody = document.getElementById('modalTableBody');
+      const infoSpan = document.getElementById('tableRowInfo');
+
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+
+      // Render Headers
+      const trH = document.createElement('tr');
+      headers.forEach(h => {
+        const th = document.createElement('th');
+        th.innerHTML = h;
+        trH.appendChild(th);
+      });
+      thead.appendChild(trH);
+
+      // Render Rows
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${headers.length}" class="text-center py-4 text-muted">ไม่มีข้อมูล</td></tr>`;
+        if (infoSpan) infoSpan.innerText = 'แสดง 0 รายการ';
+        return;
+      }
+
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        r.forEach(cell => {
+          const td = document.createElement('td');
+          td.innerHTML = cell;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+
+      if (infoSpan) infoSpan.innerText = `แสดงทั้งหมด ${rows.length.toLocaleString()} รายการ`;
+    }
+
+    function filterActiveTable(query) {
+      const q = (query || '').toLowerCase().trim();
+      const tbody = document.getElementById('modalTableBody');
+      const infoSpan = document.getElementById('tableRowInfo');
+      if (!currentTableData.rows || currentTableData.rows.length === 0) return;
+
+      tbody.innerHTML = '';
+
+      const matched = currentTableData.rows.filter(r => {
+        if (!q) return true;
+        return r.some(cell => String(cell).replace(/<[^>]*>?/gm, '').toLowerCase().includes(q));
+      });
+
+      if (matched.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${currentTableData.headers.length}" class="text-center py-4 text-muted">ไม่พบข้อมูลที่ตรงกับ "${query}"</td></tr>`;
+      } else {
+        matched.forEach(r => {
+          const tr = document.createElement('tr');
+          r.forEach(cell => {
+            const td = document.createElement('td');
+            td.innerHTML = cell;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      }
+
+      if (infoSpan) infoSpan.innerText = `แสดง ${matched.length.toLocaleString()} จากทั้งหมด ${currentTableData.rows.length.toLocaleString()} รายการ`;
+    }
+
+    function copyActiveTableToClipboard() {
+      if (!currentTableData.headers || currentTableData.headers.length === 0) return;
+
+      const lines = [];
+      lines.push(currentTableData.headers.map(h => h.replace(/<[^>]*>?/gm, '').trim()).join('\t'));
+
+      currentTableData.rows.forEach(r => {
+        lines.push(r.map(c => String(c).replace(/<[^>]*>?/gm, '').trim()).join('\t'));
+      });
+
+      const tsv = lines.join('\n');
+      navigator.clipboard.writeText(tsv).then(() => {
+        Swal.fire({
+          icon: 'success',
+          title: '📋 คัดลอกตารางแล้ว!',
+          text: `คัดลอกข้อมูล ${currentTableData.rows.length} แถว (สามารถกด Paste ลง Excel หรือ Google Sheets ได้ทันที)`,
+          timer: 1800,
+          showConfirmButton: false,
+          toast: true,
+          position: 'top-end'
+        });
+      }).catch(err => {
+        console.error("Clipboard copy error:", err);
+      });
+    }
+
+    function exportActiveTableToCsv() {
+      if (!currentTableData.headers || currentTableData.headers.length === 0) return;
+
+      const csvRows = [];
+      csvRows.push(currentTableData.headers.map(h => `"${h.replace(/<[^>]*>?/gm, '').replace(/"/g, '""').trim()}"`).join(','));
+
+      currentTableData.rows.forEach(r => {
+        csvRows.push(r.map(c => `"${String(c).replace(/<[^>]*>?/gm, '').replace(/"/g, '""').trim()}"`).join(','));
+      });
+
+      const csvContent = "\uFEFF" + csvRows.join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `OBI_RawData_${currentModalTab}_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+  <script src="auth_guard.js"></script>
+</body>
+</html>

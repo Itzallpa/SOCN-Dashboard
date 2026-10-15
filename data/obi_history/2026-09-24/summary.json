@@ -1,0 +1,96 @@
+{
+  "sourceUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSeOfKpXqEdvJmIIVMWpteTiB8iv2Qx5eoATTWUX6ZUL_BHVzV6BRFrVPoiNQlUohJuTca8IFgSSAiw/pub?output=csv",
+  "date": "2026-09-24",
+  "dateLabel": "24 September 2026",
+  "sackTotal": 152392,
+  "avgActual": 8964,
+  "targetAchieve": "249.0%",
+  "peakThroughput": 18024,
+  "peakTime": "23:00 น.",
+  "peakCapPct": "451%",
+  "lowHours": 4,
+  "hourly": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    1752,
+    13748,
+    9761,
+    16328,
+    17552,
+    18024,
+    15657,
+    12471,
+    10783,
+    12154,
+    9871,
+    6931,
+    3316,
+    136,
+    2242,
+    1253,
+    413,
+    0,
+    0
+  ],
+  "zones": {
+    "A": 2074,
+    "B": 2529,
+    "C": 2437,
+    "D": 2190,
+    "totalA": 43730,
+    "totalB": 50626,
+    "totalC": 46540,
+    "totalD": 43816
+  },
+  "zoneHighlight": "Zone B ทำผลงานสูงสุด 2,529 ชิ้น/ชม. ขณะที่ Zone A ต่ำสุด (2,074 ชิ้น/ชม.) เป้าหมาย 900 ชิ้น/ชม.",
+  "riskRows": [
+    {
+      "time": "07:00",
+      "actual": 136,
+      "gap": -3464,
+      "status": "Critical"
+    },
+    {
+      "time": "10:00",
+      "actual": 413,
+      "gap": -3187,
+      "status": "Critical"
+    },
+    {
+      "time": "09:00",
+      "actual": 1253,
+      "gap": -2347,
+      "status": "Watch"
+    },
+    {
+      "time": "18:00",
+      "actual": 1752,
+      "gap": -1848,
+      "status": "Watch"
+    },
+    {
+      "time": "08:00",
+      "actual": 2242,
+      "gap": -1358,
+      "status": "Below Target"
+    },
+    {
+      "time": "06:00",
+      "actual": 3316,
+      "gap": -284,
+      "status": "Below Target"
+    }
+  ],
+  "cbs": {
+    "parcels": 152392,
+    "to": 149344,
+    "avgTo": 8964,
+    "toPct": 100,
+    "actionTitle": "ประสิทธิภาพการทำงานอยู่ในเกณฑ์ดีเยี่ยม",
+    "actionBody": "ควรตรวจสอบความพร้อม Induction, Carrier และการ balance งานระหว่าง Zone"
+  },
+  "lastUpdated": "2026-09-24 17:29:55"
+}
