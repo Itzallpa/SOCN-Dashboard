@@ -507,6 +507,9 @@
     function safeFetchJson(url, options) {
       return fetch(url, options).then(res => {
         if (!res.ok) {
+          if (res.status === 502 || res.status === 504) {
+            throw new Error(`ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ (Error ${res.status} Bad Gateway): เซิร์ฟเวอร์ Flask (app.py) กำลังปิดอยู่ หรือหลุดการเชื่อมต่อ กรุณารัน run_app.bat หรือ py app.py บนเครื่องคอมพิวเตอร์`);
+          }
           throw new Error(`เซิร์ฟเวอร์ตอบกลับ Error Status ${res.status}`);
         }
         return res.text().then(text => {

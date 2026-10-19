@@ -1,5 +1,65 @@
 [
   {
+    "id": "e4abf5af",
+    "timestamp": "2026-10-19 14:55:19",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): test_multi_chunk.csv -> uploads",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "d8106766",
+    "timestamp": "2026-10-19 14:51:52",
+    "email": "guest",
+    "name": "Guest",
+    "role": "Ground",
+    "action": "UPLOAD_FILE",
+    "details": "Uploaded file (chunked): test_chk.csv -> uploads",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "792c1fd9",
+    "timestamp": "2026-10-19 14:43:13",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "GOOGLE_DRIVE_SYNC_LH_TRIP",
+    "details": "☁️ ส่งข้อมูลเข้า Google Drive สำเร็จ: Dashboard Charts - 2026-10-18 (Folder: 1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "49e35f75",
+    "timestamp": "2026-10-19 14:43:13",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "GOOGLE_DRIVE_SYNC_LH_TRIP",
+    "details": "☁️ ส่งข้อมูลเข้า Google Drive สำเร็จ: Dashboard Charts - 2026-10-18 (Folder: 1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "3abb3fb0",
+    "timestamp": "2026-10-19 14:43:06",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "AUTO_ARCHIVE_LH_TRIP",
+    "details": "⏰ บันทึกข้อมูล LH Trip อัตโนมัติรอบ 14:00 น. วันที่ 2026-10-19 (686 เที่ยวรถ | 883,669 Orders)",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "af996ff0",
+    "timestamp": "2026-10-19 14:43:06",
+    "email": "system",
+    "name": "System Background",
+    "role": "System",
+    "action": "AUTO_ARCHIVE_LH_TRIP",
+    "details": "⏰ บันทึกข้อมูล LH Trip อัตโนมัติรอบ 14:00 น. วันที่ 2026-10-19 (686 เที่ยวรถ | 883,669 Orders)",
+    "ip": "127.0.0.1"
+  },
+  {
     "id": "ec0b78b9",
     "timestamp": "2026-10-14 20:14:25",
     "email": "guy.panmanee@spxexpress.com",

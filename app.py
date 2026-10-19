@@ -1689,13 +1689,20 @@ def upload_chunk():
 
     os.makedirs(target_dir, exist_ok=True)
     save_path = os.path.join(target_dir, filename)
+    part_path = save_path + ".part"
 
     try:
         mode = "wb" if chunk_index == 0 else "ab"
-        with open(save_path, mode) as f:
+        with open(part_path, mode) as f:
             f.write(file_chunk.read())
 
         if chunk_index == total_chunks - 1:
+            if os.path.exists(save_path):
+                try:
+                    os.remove(save_path)
+                except Exception:
+                    pass
+            os.replace(part_path, save_path)
             log_activity("UPLOAD_FILE", f"Uploaded file (chunked): {filename} -> {os.path.basename(target_dir)}")
             return jsonify({
                 "success": True,

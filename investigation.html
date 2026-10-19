@@ -695,7 +695,10 @@
           } catch (e) {}
 
           if (!res.ok) {
-            const errDetail = json && json.error ? json.error : `เซิร์ฟเวอร์ตอบกลับ Error Status ${res.status}`;
+            let errDetail = json && json.error ? json.error : `เซิร์ฟเวอร์ตอบกลับ Error Status ${res.status}`;
+            if (res.status === 502 || res.status === 504) {
+              errDetail = `ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ (Error ${res.status} Bad Gateway): เซิร์ฟเวอร์ Flask (app.py) กำลังปิดอยู่ หรือหลุดการเชื่อมต่อ กรุณารัน run_app.bat หรือ py app.py บนเครื่องคอมพิวเตอร์`;
+            }
             throw new Error(errDetail);
           }
 
@@ -1373,7 +1376,7 @@
 
     async function uploadSingleFileChunks(file, scope = 'outbound', folderName = '', onProgress = null) {
       if (!file) return;
-      const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunk
+      const CHUNK_SIZE = 1024 * 1024; // 1MB chunks (high stability across proxy & cloud preview)
       const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
       const fn = file.name;
 

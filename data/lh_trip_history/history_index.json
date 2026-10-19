@@ -1,5 +1,18 @@
 [
   {
+    "date": "2026-10-19",
+    "archivedAt": "2026-10-19 14:43:05",
+    "totalTrips": 686,
+    "onTimeTrips": 591,
+    "lateTrips": 95,
+    "onTimeRate": 86.2,
+    "obLateCount": 74,
+    "lhLateCount": 22,
+    "totalOrders": 883669,
+    "lateOrders": 126686,
+    "filename": "lh_trip_2026-10-19.json"
+  },
+  {
     "date": "2026-10-14",
     "archivedAt": "2026-10-14 20:14:04",
     "totalTrips": 8111,
