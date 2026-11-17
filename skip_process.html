@@ -83,7 +83,9 @@
         <div class="metric-card metric-danger">
           <div class="metric-title">TOTAL SKIP CASES</div>
           <div class="metric-value text-danger" id="totalSkipCount">9,409 เคส</div>
-          <div class="metric-subtext">⚙️ Machine: <b id="machineCount" class="text-dark">0</b> | 💻 System: <b id="systemCount" class="text-dark">0</b></div>
+          <div class="metric-subtext">นับเฉพาะ reason = <b>skip_outbound</b></div>
+          <div class="metric-subtext small text-muted" title="แสดงแยก ไม่นับรวมใน % skip_outbound">📦 skip_pack_and_outbound: <b id="skipPackOutCount" class="text-dark">0</b> | skip_pack: <b id="skipPackCount" class="text-dark">0</b> <span class="fst-italic">(ไม่นับรวมใน %)</span></div>
+          <div id="skipDataWarning"></div>
         </div>
       </div>
       <div class="col-md-4">
@@ -106,6 +108,7 @@
           <div class="metric-subtext d-flex align-items-center gap-1" id="targetStatusText">
             <span class="badge bg-danger">🔴 Exceeded</span> <span class="text-muted small">เกินเป้าหมายภาพรวม (> 0.80%)</span>
           </div>
+          <div class="metric-subtext small text-muted mt-1" id="skipFormulaText"></div>
         </div>
       </div>
     </div>
@@ -153,6 +156,28 @@
         </table>
       </div>
     </div>
+
+    <div class="card-custom d-none" id="weeklySkipCard">
+      <h6 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-calendar-week text-primary me-2"></i> % skip_outbound รายสัปดาห์ (Week-over-Week)</h6>
+      <p class="text-muted small mb-2">สัปดาห์เริ่มวันจันทร์ (WEEKNUM(date,2)) · % = ผลรวม skip_outbound ÷ ผลรวม Volume ของวันเดียวกัน · Volume ใช้ Tracker รายวันก่อน ถ้าไม่มีใช้จำนวน shipment ในไฟล์ (⚠️)</p>
+      <div id="weeklySkipWarning"></div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover table-bordered align-middle table-custom">
+          <thead class="table-light">
+            <tr>
+              <th>WEEK</th>
+              <th>ช่วงวันที่</th>
+              <th class="text-center">วันที่มีข้อมูล</th>
+              <th class="text-end">SKIP_OUTBOUND</th>
+              <th class="text-end">VOLUME</th>
+              <th class="text-center">% SKIP</th>
+              <th class="text-center">WoW</th>
+            </tr>
+          </thead>
+          <tbody id="weeklySkipBody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <div class="modal fade" id="rawDataModal" tabindex="-1" aria-hidden="true">
@@ -194,6 +219,17 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body p-4">
+          <!-- Auto sync from Performance Dashboard sheet, tab SOC row 11 -->
+          <div class="border rounded-3 p-3 mb-3 bg-light">
+            <div class="fw-bold small mb-1"><i class="fa-solid fa-table text-success me-1"></i> ดึง Volume อัตโนมัติจาก Sheet "SOC" แถว 11 (SOCN Operational Outbound cut-off 1p.m.)</div>
+            <div class="text-muted small mb-2">ใช้วันที่จากแถว 8 ของชีต · บันทึกเป็น Volume รายวันใน Tracker และดึงใหม่ทุกครั้งที่เปิดหน้านี้ · ต้อง Deploy <code>scripts/google_apps_script_socn_volume.js</code> เป็น Web app ก่อน</div>
+            <div class="input-group input-group-sm">
+              <input type="text" class="form-control" id="socnAppsScriptUrl" placeholder="Apps Script Web app URL: https://script.google.com/macros/s/.../exec">
+              <button class="btn btn-success fw-bold" type="button" onclick="syncSocnVolumeFromSheet(true)"><i class="fa-solid fa-rotate me-1"></i> ดึงจาก Sheet SOC</button>
+            </div>
+            <div class="small mt-2" id="socnSyncStatus"></div>
+          </div>
+
           <!-- Type Selector: Daily vs Weekly -->
           <div class="d-flex align-items-center gap-2 mb-3 p-1 bg-light rounded-3 border" style="width:fit-content;">
             <button type="button" class="btn btn-sm btn-primary fw-bold" id="btnTypeDaily" onclick="setVolumeMode('daily')">
@@ -489,7 +525,53 @@
       fetchFileList();
       loadDefaultSkipData();
       loadVolumeHistory();
+      loadSocnSyncConfig();
     });
+
+    // ===== Volume จาก Sheet "SOC" row 11 (ผ่าน Apps Script) =====
+    function setSocnSyncStatus(html) {
+      const el = document.getElementById('socnSyncStatus');
+      if (el) el.innerHTML = html;
+    }
+
+    function loadSocnSyncConfig() {
+      safeFetchJson('/api/volume-history/sync-socn')
+        .then(cfg => {
+          const input = document.getElementById('socnAppsScriptUrl');
+          if (input && cfg.appsScriptUrl) input.value = cfg.appsScriptUrl;
+          if (cfg.appsScriptUrl) {
+            syncSocnVolumeFromSheet(false);
+          } else {
+            setSocnSyncStatus('<span class="text-muted">ยังไม่ได้ตั้งค่า URL — วาง Web app URL แล้วกด "ดึงจาก Sheet SOC"</span>');
+          }
+        })
+        .catch(() => {});
+    }
+
+    function syncSocnVolumeFromSheet(manual) {
+      const input = document.getElementById('socnAppsScriptUrl');
+      const url = (input && input.value || '').trim();
+      setSocnSyncStatus('<span class="text-primary"><i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังดึง Volume จากชีต SOC...</span>');
+      return safeFetchJson('/api/volume-history/sync-socn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(url ? { appsScriptUrl: url } : {})
+      })
+      .then(res => {
+        if (!res.success) {
+          setSocnSyncStatus(`<span class="text-danger fw-bold">⚠️ ${res.error}</span>`);
+          if (manual) showSkipStatus(`ดึง Volume จากชีต SOC ไม่สำเร็จ: ${res.error}`, 'error');
+          return;
+        }
+        const days = res.days || [];
+        const latest = days.slice(-3).map(d => `${d.date}: <b>${d.volume.toLocaleString()}</b>`).join(' · ');
+        setSocnSyncStatus(`<span class="text-success fw-bold">✅ ดึงแล้ว ${days.length} วัน (ใหม่ ${res.added}, อัปเดต ${res.updated}) · ${res.lastSyncAt}</span><br><span class="text-muted">ล่าสุด: ${latest}</span>`);
+        if (res.history) volumeHistoryCache = res.history;
+        loadVolumeHistory();   // re-renders the tracker table + auto Volume on the cards
+        if (manual) showSkipStatus(`✅ ดึง Volume จากชีต SOC row 11 เรียบร้อย (${days.length} วัน)`, 'success');
+      })
+      .catch(err => setSocnSyncStatus(`<span class="text-danger">⚠️ ${err.message}</span>`));
+    }
 
     function safeSetLocalStorage(key, data) {
       if (!key || !data) return;
@@ -1308,30 +1390,147 @@
       }
     }
 
+    // ==========================================
+    // % skip_outbound = skip_outbound ของวัน X ÷ Volume ของวัน X (เหมือน Excel "Reason OB late" แถว 13)
+    // ==========================================
+    let volumeHistoryCache = [];
+    let volumeManualOverride = false;   // true = ผู้ใช้กรอก/เลือก Volume เอง → ห้าม auto ทับ
+    let lastSkipDatasetKey = '';
+    window.lastSkipCalc = null;
+
+    function getSkipOutboundTotal(data) {
+      if (!data) return 0;
+      if (typeof data.skipOutboundCount === 'number') return data.skipOutboundCount;
+      if (typeof data.totalSkipCases === 'number') return data.totalSkipCases;
+      if (typeof data.totalRows === 'number') return data.totalRows;
+      return data.rawRows ? data.rawRows.length : 0;
+    }
+
+    function skipDatasetKey(data) {
+      return [data.filename || '', (data.reportDates || []).join(','), getSkipOutboundTotal(data)].join('|');
+    }
+
+    function findTrackerDailyVolume(dateStr) {
+      if (!dateStr) return null;
+      const e = volumeHistoryCache.find(h => h && String(h.date) === dateStr
+        && (h.type || 'daily') === 'daily' && Number(h.actual) > 0);
+      return e ? Number(e.actual) : null;
+    }
+
+    // ตัวตั้งและตัวหารรายวัน (วันเดียวกันเสมอ): Volume จาก Tracker ก่อน ไม่มีค่อยใช้จำนวน shipment ในไฟล์
+    function buildSkipDailyRows(data) {
+      const byDate = (data && Array.isArray(data.skipByDate)) ? data.skipByDate : [];
+      return byDate.map(d => {
+        const tv = findTrackerDailyVolume(d.date);
+        return {
+          date: d.date || '',
+          skip: Number(d.skipOutbound) || 0,
+          fileVolume: Number(d.fileVolume) || 0,
+          volume: tv !== null ? tv : (Number(d.fileVolume) || 0),
+          fromTracker: tv !== null
+        };
+      });
+    }
+
+    function formatDateRangeLabel(dates) {
+      const ds = dates.filter(Boolean);
+      if (ds.length === 0) return 'ไม่ระบุวันที่';
+      if (ds.length === 1) return ds[0];
+      return `${ds[0]} – ${ds[ds.length - 1]} (${ds.length} วัน)`;
+    }
+
+    function computeSkipCalc(data) {
+      const total = getSkipOutboundTotal(data);
+      const days = buildSkipDailyRows(data);
+      if (volumeManualOverride || days.length === 0) {
+        return { numerator: total, denominator: currentActualVolume || 0, source: 'manual', missingDates: [], days };
+      }
+      let num = 0, den = 0;
+      const missing = [];
+      days.forEach(d => {
+        num += d.skip;
+        den += d.volume;
+        if (!d.fromTracker) missing.push(d.date || 'ไม่ระบุวันที่');
+      });
+      const source = missing.length === 0 ? 'tracker' : (missing.length === days.length ? 'file' : 'mixed');
+      return { numerator: num, denominator: den, source, missingDates: missing, days };
+    }
+
+    function resetVolumeToAuto() {
+      volumeManualOverride = false;
+      updateSkipUI(skipDataState || {});
+      showSkipStatus('✅ กลับไปใช้ Volume อัตโนมัติตาม report_date ของไฟล์', 'success');
+    }
+
     function updateSkipUI(data) {
-      const total = data.totalSkipCases !== undefined ? data.totalSkipCases : (data.totalRows !== undefined ? data.totalRows : (data.rawRows ? data.rawRows.length : 0));
+      data = data || {};
+      const key = skipDatasetKey(data);
+      if (data.skipByDate && key !== lastSkipDatasetKey) {
+        // โหลดชุดข้อมูลใหม่ → คำนวณ Volume อัตโนมัติตามวันที่ของไฟล์ใหม่
+        volumeManualOverride = false;
+        lastSkipDatasetKey = key;
+      }
+
+      const total = getSkipOutboundTotal(data);
       document.getElementById('totalSkipCount').innerText = `${total.toLocaleString()} เคส`;
-      document.getElementById('machineCount').innerText = (data.machineCount || 0).toLocaleString();
-      document.getElementById('systemCount').innerText = (data.systemCount || 0).toLocaleString();
-      
-      const actual = currentActualVolume || data.actualVol || 980457;
+      document.getElementById('skipPackOutCount').innerText = (data.skipPackAndOutboundCount || 0).toLocaleString();
+      document.getElementById('skipPackCount').innerText = (data.skipPackCount || 0).toLocaleString();
+
+      const warnEl = document.getElementById('skipDataWarning');
+      if (warnEl) {
+        const missingFiles = data.missingReasonFiles || [];
+        warnEl.innerHTML = missingFiles.length > 0
+          ? `<div class="alert alert-warning py-1 px-2 small mt-2 mb-0">⚠️ ไม่นับ ${missingFiles.length} ไฟล์ที่ไม่มีคอลัมน์ reason (soc_outbound_late_type_2nd_cutoff): ${missingFiles.join(', ')}</div>`
+          : '';
+      }
+
+      const calc = computeSkipCalc(data);
+      window.lastSkipCalc = calc;
+      const actual = calc.denominator;
+      const dateLabel = formatDateRangeLabel(calc.days.map(d => d.date));
+
+      if (calc.source !== 'manual') {
+        // ให้ SeaTalk / AI payload ใช้ตัวเลขชุดเดียวกับที่แสดง
+        currentActualVolume = actual;
+        currentVolumeMode = 'daily';
+        currentVolumeLabel = `รายวัน: ${dateLabel}`;
+        const lastDate = (data.reportDates || []).slice(-1)[0];
+        const dateInput = document.getElementById('volumeDateInput');
+        if (dateInput && lastDate) dateInput.value = lastDate;
+      }
       document.getElementById('actualVolumeVal').innerText = actual.toLocaleString();
 
       const titleElem = document.getElementById('actualVolumeTitle');
       const subtextElem = document.getElementById('actualVolumeSubtext');
-      if (titleElem && currentVolumeLabel) {
-        if (currentVolumeMode === 'weekly') {
-          titleElem.innerText = `SOCN ACTUAL (${currentVolumeLabel.replace('รายสัปดาห์: ', '')})`;
-          if (subtextElem) subtextElem.innerText = 'ยอดรวม Actual Volume ประจำสัปดาห์';
+      if (titleElem) {
+        if (calc.source === 'manual') {
+          const lbl = (currentVolumeLabel || '').replace('รายสัปดาห์: ', '').replace('รายวัน: ', '');
+          titleElem.innerText = `SOCN ACTUAL (${lbl || 'กำหนดเอง'})`;
+          if (subtextElem) {
+            const autoLink = calc.days.length > 0
+              ? ` · <a href="#" class="fw-bold" onclick="event.stopPropagation(); event.preventDefault(); resetVolumeToAuto();">↺ ใช้ Volume อัตโนมัติ</a>`
+              : '';
+            subtextElem.innerHTML = (currentVolumeMode === 'weekly' ? 'ยอดรวม Actual Volume ประจำสัปดาห์ (เลือกเอง)' : 'ใช้ Volume ที่กรอก/เลือกเอง') + autoLink;
+          }
         } else {
-          titleElem.innerText = `SOCN ACTUAL (${currentVolumeLabel.replace('รายวัน: ', '')})`;
-          if (subtextElem) subtextElem.innerText = 'อ้างอิงจาก Volume Tracker Sheet';
+          titleElem.innerText = `SOCN ACTUAL (${dateLabel})`;
+          if (subtextElem) {
+            if (calc.source === 'tracker') {
+              subtextElem.innerText = calc.days.length > 1
+                ? `อ้างอิงจาก Volume Tracker รายวัน (รวม ${calc.days.length} วัน)`
+                : 'อ้างอิงจาก Volume Tracker รายวัน';
+            } else {
+              subtextElem.innerHTML = `<span class="text-warning fw-bold">⚠️ ไม่พบ Volume ของวันที่ ${calc.missingDates.join(', ')} ใน Tracker</span><br><span class="small">ใช้จำนวน shipment ในไฟล์แทน — คลิกการ์ดนี้เพื่อบันทึก Volume จริง</span>`;
+            }
+          }
         }
       }
-      
-      const pctVal = actual > 0 ? ((total / actual) * 100) : 0;
+
+      const pctVal = actual > 0 ? ((calc.numerator / actual) * 100) : 0;
       const pctStr = pctVal.toFixed(2);
       document.getElementById('skipPercentVal').innerText = `${pctStr} %`;
+      const formulaEl = document.getElementById('skipFormulaText');
+      if (formulaEl) formulaEl.innerText = `skip_outbound ${calc.numerator.toLocaleString()} ÷ Volume ${actual.toLocaleString()}`;
 
       const skipPercentElem = document.getElementById('skipPercentVal');
       const targetCardBorder = document.getElementById('targetCardBorder');
@@ -1353,10 +1552,111 @@
       }
 
       rawSkipRows = data.rawRows || [];
-      renderSummaryTable(total, actual, data.skipCountByZone || {});
+      renderSummaryTable(calc.numerator, actual, data.skipCountByZone || {});
+      renderWeeklySkipTable(calc.days);
+    }
+
+    // WEEKNUM(date,2): สัปดาห์เริ่มวันจันทร์, สัปดาห์ที่ 1 = สัปดาห์ที่มีวันที่ 1 ม.ค.
+    function excelWeekNum(d) {
+      const jan1 = new Date(d.getFullYear(), 0, 1);
+      const jan1Dow = (jan1.getDay() + 6) % 7;
+      const doy = Math.round((d - jan1) / 86400000);
+      return Math.floor((doy + jan1Dow) / 7) + 1;
+    }
+
+    function ymd(d) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function renderWeeklySkipTable(days) {
+      const card = document.getElementById('weeklySkipCard');
+      const tbody = document.getElementById('weeklySkipBody');
+      const warnEl = document.getElementById('weeklySkipWarning');
+      if (!card || !tbody) return;
+      const valid = (days || []).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d.date));
+      if (valid.length <= 1) {
+        card.classList.add('d-none');
+        return;
+      }
+      card.classList.remove('d-none');
+
+      const weeks = {};
+      valid.forEach(d => {
+        const dt = new Date(d.date + 'T00:00:00');
+        const wk = excelWeekNum(dt);
+        const key = `${dt.getFullYear()}-W${String(wk).padStart(2, '0')}`;
+        if (!weeks[key]) {
+          const monday = new Date(dt);
+          monday.setDate(dt.getDate() - ((dt.getDay() + 6) % 7));
+          const sunday = new Date(monday);
+          sunday.setDate(monday.getDate() + 6);
+          weeks[key] = { key, year: dt.getFullYear(), week: wk, start: ymd(monday), end: ymd(sunday), skip: 0, volume: 0, days: [], fileVolDays: [] };
+        }
+        const w = weeks[key];
+        w.skip += d.skip;
+        w.volume += d.volume;
+        w.days.push(d.date);
+        if (!d.fromTracker) w.fileVolDays.push(d.date);
+      });
+
+      const loadedDates = new Set(valid.map(d => d.date));
+      const sorted = Object.values(weeks).sort((a, b) => a.key.localeCompare(b.key));
+      const warnings = [];
+      let prevPct = null;
+
+      tbody.innerHTML = sorted.map(w => {
+        const pct = w.volume > 0 ? (w.skip / w.volume) * 100 : 0;
+        // วันที่ Tracker มี Volume แต่ยังไม่มีข้อมูล reason (ไฟล์ investigate ยังมาไม่ครบ)
+        const noReasonDays = volumeHistoryCache
+          .filter(h => h && (h.type || 'daily') === 'daily' && /^\d{4}-\d{2}-\d{2}$/.test(String(h.date))
+            && h.date >= w.start && h.date <= w.end && !loadedDates.has(h.date))
+          .map(h => h.date).sort();
+        if (noReasonDays.length > 0) {
+          warnings.push(`Week ${w.week}: Tracker มี Volume ของวันที่ ${noReasonDays.join(', ')} แต่ยังไม่ได้โหลดข้อมูล reason — ถ้านำ Volume ทั้งสัปดาห์ไปหารจะได้ % ต่ำผิดปกติ (ตารางนี้นับเฉพาะวันที่มีข้อมูลทั้งตัวตั้งและตัวหาร)`);
+        }
+        if (w.fileVolDays.length > 0) {
+          warnings.push(`Week ${w.week}: ไม่พบ Volume ใน Tracker ของวันที่ ${w.fileVolDays.join(', ')} — ใช้จำนวน shipment ในไฟล์แทน (% อาจสูงกว่าจริง)`);
+        }
+
+        let wowHtml = '<span class="text-muted">-</span>';
+        if (prevPct !== null) {
+          const diff = pct - prevPct;
+          const cls = diff > 0 ? 'text-danger' : (diff < 0 ? 'text-success' : 'text-muted');
+          const arrow = diff > 0 ? '▲' : (diff < 0 ? '▼' : '•');
+          wowHtml = `<span class="${cls} fw-bold">${arrow} ${diff >= 0 ? '+' : ''}${diff.toFixed(2)} pp</span>`;
+        }
+        prevPct = pct;
+
+        const pctCls = pct > OVERALL_TARGET_PERCENT ? 'text-danger fw-bold' : 'text-success fw-bold';
+        const volWarn = w.fileVolDays.length > 0 ? ' <span title="บางวันใช้จำนวน shipment ในไฟล์แทน Volume จริง">⚠️</span>' : '';
+        const dayWarn = (w.days.length < 7 || noReasonDays.length > 0) ? ' <span class="badge bg-warning text-dark">ไม่ครบ</span>' : '';
+
+        return `<tr>
+          <td class="fw-bold text-dark">Week ${w.week}</td>
+          <td class="small">${w.start} – ${w.end}</td>
+          <td class="text-center">${w.days.length}/7${dayWarn}</td>
+          <td class="text-end">${w.skip.toLocaleString()}</td>
+          <td class="text-end">${w.volume.toLocaleString()}${volWarn}</td>
+          <td class="text-center ${pctCls}">${pct.toFixed(2)}%</td>
+          <td class="text-center">${wowHtml}</td>
+        </tr>`;
+      }).join('');
+
+      if (warnEl) {
+        warnEl.innerHTML = warnings.length > 0
+          ? `<div class="alert alert-warning py-2 px-3 small mb-2">${warnings.map(w => `⚠️ ${w}`).join('<br>')}</div>`
+          : '';
+      }
     }
 
     function renderSummaryTable(total, actual, skipCountByZone) {
+      if (actual === undefined) {
+        // เรียกซ้ำจาก Staff Roster loader → ใช้ตัวเลขชุดล่าสุด
+        const c = window.lastSkipCalc;
+        total = c ? c.numerator : 0;
+        actual = c ? c.denominator : 0;
+        skipCountByZone = (skipDataState && skipDataState.skipCountByZone) || {};
+      }
       const tbody = document.getElementById('summaryTableBody');
 
       let counts = { 'A': 0, 'B': 0, 'C': 0, 'INTERSOC': 0, 'RETURN': 0 };
@@ -1441,6 +1741,11 @@
       } else {
         filtered = rawSkipRows;
         document.getElementById('rawDataModalLabel').innerHTML = `<i class="fa-solid fa-file-invoice me-2"></i> รายการ Raw Data ทั้งหมด (ทั้งหมด ${rawSkipRows.length.toLocaleString()} เคส)`;
+      }
+
+      const fullTotal = getSkipOutboundTotal(skipDataState);
+      if (fullTotal > rawSkipRows.length) {
+        document.getElementById('rawDataModalLabel').innerHTML += ` <span class="small fw-normal">— ตัวอย่าง ${rawSkipRows.length.toLocaleString()} แถวแรกจากทั้งหมด ${fullTotal.toLocaleString()} เคส</span>`;
       }
 
       currentRawRows = filtered;
@@ -1622,6 +1927,7 @@
 
       currentActualVolume = val;
       currentVolumeLabel = displayLabel;
+      volumeManualOverride = true;
 
       safeFetchJson('/api/volume-history', {
         method: 'POST',
@@ -1654,7 +1960,8 @@
       currentActualVolume = val;
       currentVolumeMode = type;
       currentVolumeLabel = label || dateStr;
-      
+      volumeManualOverride = true;
+
       setVolumePreset(dateStr, val, type, label);
       updateSkipUI(skipDataState || {});
       const modalEl = bootstrap.Modal.getInstance(document.getElementById('volumeTrackerModal'));
@@ -1676,6 +1983,8 @@
       safeFetchJson('/api/volume-history')
         .then(data => {
           if (data.success && data.history) {
+            volumeHistoryCache = data.history;
+            if (skipDataState && !volumeManualOverride) updateSkipUI(skipDataState);
             const tbody = document.getElementById('volumeHistoryTableBody');
             if (data.history.length === 0) {
               tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">ไม่มีประวัติการบันทึก</td></tr>';

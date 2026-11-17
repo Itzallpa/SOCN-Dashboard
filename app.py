@@ -1326,97 +1326,139 @@ def process_folder(folder_path, folder_name=None, cutoff_round="all"):
     return res
 
 
+# ===== SKIP PROCESS: % skip_outbound (same logic as Excel sheet "Reason OB late", row 13) =====
+# Numerator  = shipments whose soc_outbound_late_type_2nd_cutoff == "skip_outbound" (exact match)
+# Denominator = Volume of the same report_date (resolved on the page from the Volume Tracker)
+SKIP_OUTBOUND_REASON = "skip_outbound"
+SKIP_REASON_COL = "soc_outbound_late_type_2nd_cutoff"
+SKIP_SIDE_REASONS = ["skip_pack_and_outbound", "skip_pack"]
+
+_SKIP_COL_CANDS = {
+    'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
+    SKIP_REASON_COL: [SKIP_REASON_COL],
+    'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
+    'obd_zone': ['obd zone', 'obd_zone', 'zone', 'recieve_team', 'receive_team'],
+    'report_date': ['report_date'],
+}
+_SKIP_ALL_CANDS = {c for cands in _SKIP_COL_CANDS.values() for c in cands}
+
+# Fields the Skip page reads; also copied into the /api/upload response
+SKIP_RESPONSE_KEYS = [
+    "totalRows", "totalSkipCases", "machineCount", "systemCount", "skipCountByZone", "rawRows",
+    "skipOutboundCount", "skipPackAndOutboundCount", "skipPackCount", "fileTotalShipments",
+    "reportDates", "skipByDate", "missingReasonFiles", "rawRowsLimit",
+]
+
+
+def _skip_rename(df):
+    renames, used = {}, set()
+    for col in df.columns:
+        c = str(col).strip().lower()
+        for key, cands in _SKIP_COL_CANDS.items():
+            if c in cands and key not in used:
+                renames[col] = key
+                used.add(key)
+                break
+    df = df.rename(columns=renames)
+    return df.loc[:, ~df.columns.duplicated()]
+
+
+def _skip_norm_dates(series):
+    s = series.fillna('').astype(str).str.strip()
+    mapping = {}
+    for u in s.unique():
+        if not u or u.lower() in ('nan', 'nat', 'none'):
+            mapping[u] = ''
+            continue
+        d = pd.to_datetime(u[:10], errors='coerce', format='%Y-%m-%d')
+        if pd.isna(d):
+            d = pd.to_datetime(u, errors='coerce', dayfirst=True)
+        mapping[u] = '' if pd.isna(d) else d.strftime('%Y-%m-%d')
+    return s.map(mapping)
+
+
+def _skip_scan_frame(frame, source_name, acc):
+    frame = _skip_rename(frame)
+    for n in ['shipment_id', 'dest_station_name', 'obd_zone', 'report_date']:
+        if n not in frame.columns:
+            frame[n] = ''
+    reason = frame[SKIP_REASON_COL].fillna('').astype(str).str.strip().str.lower()
+    dates = _skip_norm_dates(frame['report_date'])
+
+    acc['total'] += int(len(frame))
+    for d, cnt in dates.value_counts().items():
+        acc['volume_by_date'][d] = acc['volume_by_date'].get(d, 0) + int(cnt)
+    for r in SKIP_SIDE_REASONS:
+        acc['side'][r] += int((reason == r).sum())
+
+    mask = reason == SKIP_OUTBOUND_REASON
+    if mask.any():
+        sk = frame.loc[mask, ['shipment_id', 'dest_station_name', 'obd_zone']].copy()
+        sk[SKIP_REASON_COL] = SKIP_OUTBOUND_REASON
+        sk['report_date'] = dates[mask].values
+        sk['source_file'] = source_name
+        acc['skip_dfs'].append(sk)
+
+
 def process_skip_file_list(files_or_names, group_name="กลุ่มไฟล์ที่เลือก"):
     resolved_paths = []
     for fn in files_or_names:
         rp = resolve_file_path(fn)
         if rp and rp not in resolved_paths:
             resolved_paths.append(rp)
-            
+
     if not resolved_paths:
         return {"success": False, "error": "ไม่พบไฟล์ที่เลือกบนเซิร์ฟเวอร์"}
-        
-    dfs = []
-    needed_patterns = ['shipment', 'tracking', 'waybill', 'late', 'reason', 'station', 'dest', 'hub', 'zone', 'team']
-    target_cols = {
-        'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
-        'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
-        'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
-        'obd_zone': ['obd zone', 'obd_zone', 'zone', 'recieve_team', 'receive_team']
-    }
-    
+
+    acc = {'total': 0, 'volume_by_date': {}, 'side': {r: 0 for r in SKIP_SIDE_REASONS}, 'skip_dfs': []}
+    missing_reason_files = []
+    read_error_files = []
+    scanned_files = 0
+
     for f in sorted(resolved_paths):
+        base = os.path.basename(f)
         try:
             if f.lower().endswith('.csv'):
                 h = pd.read_csv(f, nrows=0)
-                usecols = [c for c in h.columns if any(p in str(c).lower() for p in needed_patterns)]
-                for chunk in pd.read_csv(f, usecols=usecols if usecols else None, chunksize=50000, low_memory=False, on_bad_lines='skip'):
-                    if chunk.empty:
-                        continue
-                    renames = {}
-                    used = set()
-                    for col in chunk.columns:
-                        c = str(col).strip().lower()
-                        for key, cands in target_cols.items():
-                            if c in cands and key not in used:
-                                renames[col] = key
-                                used.add(key)
-                                break
-
-                    if renames:
-                        chunk = chunk.rename(columns=renames)
-                    chunk = chunk.loc[:, ~chunk.columns.duplicated()]
-                    
-                    for n in ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name', 'obd_zone']:
-                        if n not in chunk.columns:
-                            chunk[n] = ''
-
-                    reason_s = chunk['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
-                    skip_mask = reason_s.str.contains('skip')
-                    if skip_mask.any():
-                        skip_chunk = chunk[skip_mask].copy()
-                        skip_chunk['source_file'] = os.path.basename(f)
-                        dfs.append(skip_chunk)
+                if SKIP_REASON_COL not in [str(c).strip().lower() for c in h.columns]:
+                    missing_reason_files.append(base)
+                    continue
+                usecols = [c for c in h.columns if str(c).strip().lower() in _SKIP_ALL_CANDS]
+                for chunk in pd.read_csv(f, usecols=usecols, chunksize=100000, low_memory=False,
+                                         on_bad_lines='skip', dtype=str):
+                    if not chunk.empty:
+                        _skip_scan_frame(chunk, base, acc)
             else:
                 sub_df = read_dataframe(f)
-                if sub_df is not None and not sub_df.empty:
-                    renames = {}
-                    used = set()
-                    for col in sub_df.columns:
-                        c = str(col).strip().lower()
-                        for key, cands in target_cols.items():
-                            if c in cands and key not in used:
-                                renames[col] = key
-                                used.add(key)
-                                break
-
-                    if renames:
-                        sub_df = sub_df.rename(columns=renames)
-                    sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
-                    
-                    for n in ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name', 'obd_zone']:
-                        if n not in sub_df.columns:
-                            sub_df[n] = ''
-
-                    reason_s = sub_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
-                    skip_mask = reason_s.str.contains('skip')
-                    if skip_mask.any():
-                        skip_sub = sub_df[skip_mask].copy()
-                        skip_sub['source_file'] = os.path.basename(f)
-                        dfs.append(skip_sub)
+                if sub_df is None or sub_df.empty:
+                    read_error_files.append(base)
+                    continue
+                if SKIP_REASON_COL not in [str(c).strip().lower() for c in sub_df.columns]:
+                    missing_reason_files.append(base)
+                    continue
+                _skip_scan_frame(sub_df, base, acc)
+            scanned_files += 1
         except Exception as e:
             print(f"Error reading skip file {f}:", e)
-            
-    if not dfs:
-        return {"success": False, "error": f"ไม่สามารถอ่านข้อมูลจากไฟล์ที่เลือกได้"}
-        
-    combined_skip = pd.concat(dfs, ignore_index=True)
-    if 'shipment_id' in combined_skip.columns:
-        combined_skip = combined_skip.drop_duplicates(subset=['shipment_id'])
+            read_error_files.append(base)
 
-    reason_s = combined_skip['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
-    machine_count = int(reason_s.str.contains('machine').sum())
-    system_count = int(reason_s.str.contains('system').sum())
+    if scanned_files == 0:
+        if missing_reason_files:
+            err = (f"ไฟล์ไม่มีคอลัมน์ reason ({SKIP_REASON_COL}) จึงคำนวณ skip_outbound ไม่ได้: "
+                   + ", ".join(missing_reason_files)
+                   + " — กรุณาใช้ไฟล์ export SOC-BISOCinvestigateshipment_DownloadTable")
+        else:
+            err = "ไม่สามารถอ่านข้อมูลจากไฟล์ที่เลือกได้"
+        return {"success": False, "error": err, "missingReasonFiles": missing_reason_files}
+
+    if acc['skip_dfs']:
+        combined_skip = pd.concat(acc['skip_dfs'], ignore_index=True)
+        sid = combined_skip['shipment_id'].fillna('').astype(str).str.strip()
+        dup = combined_skip.assign(_sid=sid).duplicated(subset=['_sid']) & sid.ne('') & sid.str.lower().ne('nan')
+        combined_skip = combined_skip[~dup].reset_index(drop=True)
+    else:
+        combined_skip = pd.DataFrame(columns=['shipment_id', 'dest_station_name', 'obd_zone',
+                                              SKIP_REASON_COL, 'report_date', 'source_file'])
 
     hub_map = build_hub_zone_map()
 
@@ -1430,33 +1472,47 @@ def process_skip_file_list(files_or_names, group_name="กลุ่มไฟล�
             return 'RETURN'
         return lookup_obd_zone(hub, hub_map)
 
-    obd_zones = combined_skip['obd_zone'].fillna('').astype(str).tolist()
-    dest_stations = [str(s).strip() if pd.notna(s) and str(s).strip().lower() != 'nan' and str(s).strip() else '-' for s in combined_skip['dest_station_name'].tolist()]
-    resolved_zones = [resolve_row_zone(z, h) for z, h in zip(obd_zones, dest_stations)]
+    def clean(v, default='-'):
+        s = str(v).strip() if pd.notna(v) else ''
+        return s if s and s.lower() != 'nan' else default
 
-    combined_skip['zone'] = resolved_zones
+    obd_zones = combined_skip['obd_zone'].fillna('').astype(str).tolist()
+    dest_stations = [clean(s) for s in combined_skip['dest_station_name'].tolist()]
+    zone_cache = {}
+    resolved_zones = []
+    for z, h in zip(obd_zones, dest_stations):
+        k = (z, h)
+        if k not in zone_cache:
+            zone_cache[k] = resolve_row_zone(z, h)
+        resolved_zones.append(zone_cache[k])
 
     zone_counts = {'A': 0, 'B': 0, 'C': 0, 'INTERSOC': 0, 'RETURN': 0}
     for z in resolved_zones:
         zone_counts[z] = zone_counts.get(z, 0) + 1
 
-    shipment_ids = [str(s).strip() if pd.notna(s) and str(s).strip().lower() != 'nan' else '-' for s in combined_skip['shipment_id'].tolist()]
-    reasons = [str(s).strip() if pd.notna(s) and str(s).strip().lower() != 'nan' else 'skip_outbound' for s in combined_skip['soc_outbound_late_type_2nd_cutoff'].tolist()]
-    sources = [str(s).strip() if pd.notna(s) and str(s).strip().lower() != 'nan' else '-' for s in combined_skip['source_file'].tolist()]
+    skip_total = int(len(combined_skip))
+    skip_by_date_counts = combined_skip['report_date'].value_counts().to_dict() if skip_total else {}
+    all_dates = sorted(set(acc['volume_by_date'].keys()) | set(skip_by_date_counts.keys()))
+    skip_by_date = [
+        {"date": d, "skipOutbound": int(skip_by_date_counts.get(d, 0)), "fileVolume": int(acc['volume_by_date'].get(d, 0))}
+        for d in all_dates
+    ]
+
+    shipment_ids = [clean(s) for s in combined_skip['shipment_id'].tolist()]
+    report_dates_rows = [clean(s, '') for s in combined_skip['report_date'].tolist()]
+    sources = [clean(s) for s in combined_skip['source_file'].tolist()]
 
     limit_preview = 2500
     raw_export_list = [
         {
-            'shipment_id': sid,
-            'shipmentId': sid,
-            'soc_outbound_late_type_2nd_cutoff': rsn,
-            'reason': rsn,
-            'dest_station_name': dst,
-            'hub': dst,
-            'zone': zn,
-            'source_file': src
+            'shipment_id': sid_, 'shipmentId': sid_,
+            'soc_outbound_late_type_2nd_cutoff': SKIP_OUTBOUND_REASON, 'reason': SKIP_OUTBOUND_REASON,
+            'dest_station_name': dst, 'hub': dst, 'zone': zn,
+            'report_date': rd, 'source_file': src
         }
-        for sid, rsn, dst, zn, src in zip(shipment_ids[:limit_preview], reasons[:limit_preview], dest_stations[:limit_preview], resolved_zones[:limit_preview], sources[:limit_preview])
+        for sid_, dst, zn, rd, src in zip(shipment_ids[:limit_preview], dest_stations[:limit_preview],
+                                          resolved_zones[:limit_preview], report_dates_rows[:limit_preview],
+                                          sources[:limit_preview])
     ]
 
     return {
@@ -1467,12 +1523,22 @@ def process_skip_file_list(files_or_names, group_name="กลุ่มไฟล�
         "fileCount": len(resolved_paths),
         "fileList": [os.path.basename(f) for f in resolved_paths],
         "filename": f"custom:{group_name}",
-        "totalRows": len(combined_skip),
-        "totalSkipCases": len(combined_skip),
-        "machineCount": machine_count,
-        "systemCount": system_count,
+        "totalRows": skip_total,
+        "totalSkipCases": skip_total,
+        "skipOutboundCount": skip_total,
+        "skipPackAndOutboundCount": acc['side']['skip_pack_and_outbound'],
+        "skipPackCount": acc['side']['skip_pack'],
+        "fileTotalShipments": acc['total'],
+        "reportDates": [d for d in all_dates if d],
+        "skipByDate": skip_by_date,
+        "missingReasonFiles": missing_reason_files,
+        "readErrorFiles": read_error_files,
+        # kept for compatibility (exact skip_outbound match never contains machine/system)
+        "machineCount": 0,
+        "systemCount": 0,
         "skipCountByZone": zone_counts,
-        "rawRows": raw_export_list
+        "rawRows": raw_export_list,
+        "rawRowsLimit": limit_preview,
     }
 
 
@@ -1561,83 +1627,22 @@ def upload_file():
         data["savedPath"] = save_path
         data["success"] = True
         
-        # Safely extract raw rows for Skip Process Monitor
+        # Skip Process Monitor fields (same exact skip_outbound logic as /api/load-skip)
         try:
-            full_df = read_dataframe(save_path)
-            
-            # Find matching column names case-insensitively
-            target_cols = {
-                'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
-                'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
-                'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
-                'obd_zone': ['obd zone', 'obd_zone', 'zone', 'recieve_team', 'receive_team']
-            }
-            renames = {}
-            target_used_raw = set()
-            for col in full_df.columns:
-                c_clean = str(col).strip().lower()
-                for key, candidates in target_cols.items():
-                    if c_clean in candidates and key not in target_used_raw:
-                        renames[col] = key
-                        target_used_raw.add(key)
-                        break
-            
-            sub_df = full_df.rename(columns=renames)
-            sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
-            needed = ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name']
-            for n in needed:
-                if n not in sub_df.columns:
-                    sub_df[n] = ''
-            
-            # Filter strictly for skip process cases (reason contains 'skip')
-            reason_series = sub_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
-            is_skip_mask = reason_series.str.contains('skip')
-            skip_df = sub_df[is_skip_mask].copy()
-
-            total_skip = len(skip_df)
-            machine_count = int(reason_series[is_skip_mask].str.contains('machine').sum())
-            system_count = int(reason_series[is_skip_mask].str.contains('system').sum())
-
-            hub_map = build_hub_zone_map()
-            
-            # Resolve Zone accurately using Hub master lookup
-            resolved_zones = []
-            for _, r in skip_df.iterrows():
-                explicit_zone = str(r.get('obd_zone', '') or '').strip().upper()
-                if explicit_zone in ['A', 'B', 'C', 'INTERSOC', 'RETURN']:
-                    resolved_zones.append(explicit_zone)
-                elif 'INTER' in explicit_zone:
-                    resolved_zones.append('INTERSOC')
-                elif 'RET' in explicit_zone:
-                    resolved_zones.append('RETURN')
-                else:
-                    hub = r.get('dest_station_name', '')
-                    resolved_zones.append(lookup_obd_zone(hub, hub_map))
-            
-            skip_df['zone'] = resolved_zones
-
-            skip_count_by_zone = {'A': 0, 'B': 0, 'C': 0, 'INTERSOC': 0, 'RETURN': 0}
-            for z in resolved_zones:
-                skip_count_by_zone[z] = skip_count_by_zone.get(z, 0) + 1
-
-            raw_export_list = []
-            for _, r in skip_df.iterrows():
-                raw_export_list.append({
-                    'shipment_id': str(r.get('shipment_id', '-')),
-                    'shipmentId': str(r.get('shipment_id', '-')),
-                    'soc_outbound_late_type_2nd_cutoff': str(r.get('soc_outbound_late_type_2nd_cutoff', 'skip_outbound')),
-                    'reason': str(r.get('soc_outbound_late_type_2nd_cutoff', 'skip_outbound')),
-                    'dest_station_name': str(r.get('dest_station_name', '-')),
-                    'hub': str(r.get('dest_station_name', '-')),
-                    'zone': str(r.get('zone', 'A'))
-                })
-
-            data["totalRows"] = total_skip
-            data["totalSkipCases"] = total_skip
-            data["machineCount"] = machine_count
-            data["systemCount"] = system_count
-            data["skipCountByZone"] = skip_count_by_zone
-            data["rawRows"] = raw_export_list
+            sk = process_skip_file_list([save_path], group_name=file.filename)
+            if sk.get("success"):
+                for k in SKIP_RESPONSE_KEYS:
+                    if k in sk:
+                        data[k] = sk[k]
+            else:
+                data["skipError"] = sk.get("error")
+                data["missingReasonFiles"] = sk.get("missingReasonFiles", [])
+                data["rawRows"] = []
+                data["totalRows"] = 0
+                data["totalSkipCases"] = 0
+                data["skipOutboundCount"] = 0
+                data["skipCountByZone"] = {}
+                data["skipByDate"] = []
         except Exception as ex:
             print("Error processing skip rawRows in upload_file:", ex)
             import traceback
@@ -2608,6 +2613,31 @@ def load_file():
         return jsonify({"success": False, "error": f"ไม่สามารถประมวลผลไฟล์ได้: {str(e)}"}), 200
 
 
+def lookup_raw_df(filename, cutoff):
+    """Find the cleaned late-parcel DataFrame stored by process_dataframe().
+
+    process_dataframe() stores it under "<basename>_<cutoff>" and "<full path>_<cutoff>",
+    custom groups under "custom:<name>_<cutoff>" and folders under "folder:<name>_<cutoff>".
+    The client may send a relative path such as "Inves/file.csv", so try every form.
+    """
+    if not filename:
+        return None
+    cut = str(cutoff).strip().lower()
+    if cut not in ["1", "2", "all"]:
+        cut = "all"
+    candidates = [f"{filename}_{cut}", f"{os.path.basename(filename)}_{cut}"]
+    if not filename.startswith(("folder:", "custom:")):
+        target = resolve_file_path(filename)
+        if target:
+            candidates.insert(0, f"{target}_{cut}")
+    candidates.append(filename)
+    for ck in candidates:
+        df = RAW_DF_STORAGE.get(ck)
+        if isinstance(df, pd.DataFrame):
+            return df
+    return None
+
+
 @app.route("/api/raw-data-page", methods=["GET"])
 def get_raw_data_page():
     filename = request.args.get("filename", "").strip()
@@ -2623,7 +2653,12 @@ def get_raw_data_page():
     if limit < 1 or limit > 200: limit = 50
 
     data = None
-    if filename:
+    raw_df = lookup_raw_df(filename, cutoff)
+    if raw_df is not None:
+        data = {"success": True}
+    elif filename:
+        if filename.startswith("custom:"):
+            return jsonify({"success": False, "error": "ไม่พบข้อมูลกลุ่มไฟล์ในหน่วยความจำ (เซิร์ฟเวอร์อาจรีสตาร์ท) กรุณาโหลดกลุ่มไฟล์ใหม่อีกครั้ง", "rows": [], "totalRows": 0, "totalPages": 1, "page": page})
         if filename.startswith("folder:"):
             folder_name = filename.replace("folder:", "").strip()
             folder_clean = os.path.basename(folder_name)
@@ -2654,14 +2689,8 @@ def get_raw_data_page():
     if not data:
         return jsonify({"success": False, "error": "ไม่พบข้อมูลไฟล์", "rows": [], "totalRows": 0, "totalPages": 1, "page": page})
 
-    raw_df = None
-    candidates = [f"{filename}_{cutoff}", filename]
-    if 'cache_key' in locals() and cache_key:
-        candidates.append(cache_key)
-    for ck in candidates:
-        if ck in RAW_DF_STORAGE:
-            raw_df = RAW_DF_STORAGE[ck]
-            break
+    if raw_df is None:
+        raw_df = lookup_raw_df(filename, cutoff)
     if raw_df is None and isinstance(data, dict):
         raw_df = data.get("_raw_df")
     if raw_df is not None and isinstance(raw_df, pd.DataFrame) and not raw_df.empty:
@@ -2758,7 +2787,10 @@ def export_raw_csv_stream():
     cutoff = str(request.args.get("cutoff", "all")).strip().lower()
 
     data = None
-    if filename:
+    raw_df = lookup_raw_df(filename, cutoff)
+    if raw_df is not None:
+        data = {"success": True}
+    elif filename:
         if filename.startswith("folder:"):
             folder_name = filename.replace("folder:", "").strip()
             folder_clean = os.path.basename(folder_name)
@@ -2769,7 +2801,7 @@ def export_raw_csv_stream():
                 data = process_folder(folder_path, folder_name, cutoff_round=cutoff)
                 if data:
                     data["success"] = True
-        else:
+        elif not filename.startswith("custom:"):
             target = resolve_file_path(filename)
             if target and os.path.exists(target):
                 data = process_csv(target, cutoff_round=cutoff)
@@ -2779,12 +2811,8 @@ def export_raw_csv_stream():
     if not data:
         return "File not found", 404
 
-    raw_df = None
-    candidates = [f"{filename}_{cutoff}", filename]
-    for ck in candidates:
-        if ck in RAW_DF_STORAGE:
-            raw_df = RAW_DF_STORAGE[ck]
-            break
+    if raw_df is None:
+        raw_df = lookup_raw_df(filename, cutoff)
 
     if raw_df is not None and isinstance(raw_df, pd.DataFrame) and not raw_df.empty:
         import io
@@ -3172,6 +3200,99 @@ def volume_history_api():
             save_volume_data_to_file(data)
             return jsonify({"success": True, "history": data["history"], "active": data.get("active")})
         return jsonify({"success": False, "error": "Missing date parameter"}), 400
+
+SOCN_VOLUME_SHEET_URL = "https://docs.google.com/spreadsheets/d/1Z5sAcsGSQBu1A_7crK51a1wnWvSO_NnmXVBrx3te32s/edit?gid=306692657"
+
+
+def sync_socn_volume_from_sheet(apps_script_url):
+    """Pull daily Volume (SOC tab, row 11 "SOCN Operational Outbound cut-off 1p.m.") through the
+    Apps Script web app (scripts/google_apps_script_socn_volume.js) and upsert daily entries
+    into the Volume Tracker. The sheet is not public, so it cannot be read directly."""
+    resp = requests.get(apps_script_url, timeout=60, allow_redirects=True)
+    text = resp.content.decode("utf-8", errors="replace").strip()
+    if resp.status_code != 200 or not text.startswith("{"):
+        if "accounts.google.com" in resp.url or "ServiceLogin" in resp.url or "<html" in text[:200].lower():
+            raise ValueError("Apps Script ต้อง Deploy เป็น Web app แบบ Execute as: Me และ Who has access: Anyone")
+        raise ValueError(f"Apps Script ตอบกลับไม่ถูกต้อง (HTTP {resp.status_code})")
+    payload = json.loads(text)
+    if not payload.get("success"):
+        raise ValueError(payload.get("error") or "Apps Script แจ้งข้อผิดพลาด")
+
+    days = []
+    for d in payload.get("days", []):
+        date_str = str(d.get("date", "")).strip()
+        try:
+            datetime.strptime(date_str, "%Y-%m-%d")
+            vol = int(float(d.get("volume") or 0))
+        except Exception:
+            continue
+        if vol > 0:
+            days.append((date_str, vol))
+    if not days:
+        raise ValueError("ไม่พบตัวเลข Volume รายวันในชีต SOC (แถว Outbound cut-off 1p.m.)")
+
+    data = load_volume_data_from_file()
+    history = data.get("history", [])
+    by_date = {h.get("date"): i for i, h in enumerate(history)}
+    added, updated = 0, 0
+    for date_str, vol in days:
+        entry = {
+            "date": date_str,
+            "actual": vol,
+            "type": "daily",
+            "label": f"รายวัน: {date_str}",
+            "source": "SOC sheet row 11",
+        }
+        if date_str in by_date:
+            if history[by_date[date_str]].get("actual") != vol or history[by_date[date_str]].get("source") != entry["source"]:
+                updated += 1
+            history[by_date[date_str]] = entry
+        else:
+            history.append(entry)
+            added += 1
+    history.sort(key=lambda x: str(x.get("date", "")), reverse=True)
+    data["history"] = history
+    save_volume_data_to_file(data)
+    return {
+        "days": [{"date": d, "volume": v} for d, v in days],
+        "added": added,
+        "updated": updated,
+        "rowLabel": payload.get("rowLabel"),
+        "row": payload.get("row"),
+        "fetchedAt": payload.get("fetchedAt"),
+        "history": history,
+        "active": data.get("active"),
+    }
+
+
+@app.route("/api/volume-history/sync-socn", methods=["GET", "POST"])
+def sync_socn_volume_api():
+    settings = load_system_settings()
+    cfg = settings.get("socnVolumeSync") or {}
+    if request.method == "GET":
+        return jsonify({"success": True, "appsScriptUrl": cfg.get("appsScriptUrl", ""),
+                        "lastSyncAt": cfg.get("lastSyncAt"), "sheetUrl": SOCN_VOLUME_SHEET_URL})
+
+    req = request.get_json(silent=True) or {}
+    url = (req.get("appsScriptUrl") or cfg.get("appsScriptUrl") or "").strip()
+    if not url:
+        return jsonify({"success": False, "needsSetup": True,
+                        "error": "ยังไม่ได้ตั้งค่า Apps Script URL สำหรับดึง Volume จากชีต SOC"}), 200
+    if not url.startswith("https://script.google.com/"):
+        return jsonify({"success": False, "error": "URL ต้องเป็น Apps Script Web app (https://script.google.com/.../exec)"}), 200
+    try:
+        res = sync_socn_volume_from_sheet(url)
+    except Exception as e:
+        return jsonify({"success": False, "error": f"ดึง Volume จากชีต SOC ไม่สำเร็จ: {e}"}), 200
+
+    cfg["appsScriptUrl"] = url
+    cfg["lastSyncAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    settings["socnVolumeSync"] = cfg
+    save_system_settings(settings)
+    if res["added"] or res["updated"]:
+        log_activity("SOCN_VOLUME_SYNC", f"🔄 ดึง Volume จากชีต SOC row 11 ({len(res['days'])} วัน, ใหม่ {res['added']}, อัปเดต {res['updated']})")
+    return jsonify({"success": True, "lastSyncAt": cfg["lastSyncAt"], **res})
+
 
 @app.route("/api/volume-history/active", methods=["POST"])
 def set_active_volume_api():
