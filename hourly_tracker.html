@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⏱️ Productivity Orders ZONE - SOC Operations Portal</title>
+  <title> Productivity Orders ZONE - SOC Operations Portal</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -47,23 +47,27 @@
     .badge-peak { background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; font-weight: 700; font-size: 0.72rem; }
     .badge-normal { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; font-size: 0.72rem; }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="theme.css?v=1" rel="stylesheet">
 </head>
 <body>
 
   <!-- Top Navigation Header -->
   <nav style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:1020;">
     <a href="index.html" style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
-      <span style="font-size:1.4rem;">⏱️</span> SOC Operations Portal - Productivity Orders ZONE
+      <span style="font-size:1.4rem;"></span> SOC Operations Portal - Productivity Orders ZONE
     </a>
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠 Portal Hub</a>
-      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚀 Investigation</a>
-      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📦 Skip Monitor</a>
-      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff Master</a>
-      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
-      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
-      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🔀 OB Backlog Compare</a>
-      <a href="hourly_tracker.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">⏱️ Hourly Tracker</a>
+      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Portal Hub</a>
+      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Investigation</a>
+      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Skip Monitor</a>
+      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Cutoff Master</a>
+      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> LH Trip & OB Late</a>
+      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> OB Backlog (OB BL)</a>
+      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> OB Backlog Compare</a>
+      <a href="hourly_tracker.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;"> Hourly Tracker</a>
     </div>
   </nav>
 
@@ -81,19 +85,19 @@
 
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <button class="btn btn-danger btn-sm fw-bold px-3 shadow-sm admin-only-btn" id="btnManualTriggerHourly" data-role="admin-only" style="background: linear-gradient(135deg, #dc2626, #991b1b); border:none; display:none;" onclick="openAdminManualTriggerModal('hourly')">
-          <i class="fa-solid fa-bolt me-1"></i> ⚡ Manual Trigger (Admin)
+          <i class="fa-solid fa-bolt me-1"></i> Manual Trigger (Admin)
         </button>
         <button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); border:none;" onclick="openAiShiftSummaryModal()">
-          <i class="fa-solid fa-wand-magic-sparkles me-1"></i> ✨ AI Shift Summary
+          <i class="fa-solid fa-wand-magic-sparkles me-1"></i> AI Shift Summary
         </button>
         <button class="btn btn-warning btn-sm fw-bold px-3 shadow-sm text-dark" onclick="openShiftHandoverModal()">
-          <i class="fa-solid fa-clipboard-list me-1"></i> 📋 ส่งมอบกะ (Handover)
+          <i class="fa-solid fa-clipboard-list me-1"></i> ส่งมอบกะ (Handover)
         </button>
         <button class="btn btn-info btn-sm fw-bold px-3 shadow-sm text-white" onclick="openWowComparisonModal()">
-          <i class="fa-solid fa-chart-line me-1"></i> 📈 เทียบ WoW
+          <i class="fa-solid fa-chart-line me-1"></i> เทียบ WoW
         </button>
         <button class="btn btn-secondary btn-sm fw-bold px-3 shadow-sm" onclick="openQuickUploadModal()">
-          <i class="fa-solid fa-camera me-1"></i> 📸 อัปโหลดหลักฐาน
+          <i class="fa-solid fa-camera me-1"></i> อัปโหลดหลักฐาน
         </button>
         <div class="d-flex align-items-center gap-1 bg-light p-1 rounded border">
           <label class="small fw-bold text-muted px-1" for="hourlyDateSelect"><i class="fa-solid fa-calendar-day me-1"></i></label>
@@ -102,7 +106,7 @@
           </select>
         </div>
         <button class="btn btn-success btn-sm fw-bold px-3 shadow-sm" id="btnSyncGoogleSheet" onclick="syncGoogleSheetData()">
-          <i class="fa-solid fa-cloud-arrow-down me-1"></i> 🔄 ซิงค์สด Google Sheet
+          <i class="fa-solid fa-cloud-arrow-down me-1"></i> ซิงค์สด Google Sheet
         </button>
         <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="loadHourlyTrackerData()">
           <i class="fa-solid fa-rotate me-1"></i> รีเฟรช
@@ -121,7 +125,7 @@
               </div>
               <div>
                 <div class="text-secondary text-uppercase fw-bold" style="font-size: 0.72rem; letter-spacing: 1px;">SLA Cutoff Countdown</div>
-                <h5 class="fw-bold mb-0 text-white" id="nextCutoffLabel">⏳ กำลังคำนวณรอบ Cutoff ถัดไป...</h5>
+                <h5 class="fw-bold mb-0 text-white" id="nextCutoffLabel"> กำลังคำนวณรอบ Cutoff ถัดไป...</h5>
               </div>
             </div>
           </div>
@@ -347,13 +351,13 @@
               <div class="p-2 mt-2 bg-white border rounded-3 d-flex align-items-center gap-2" id="modalStaffBox">
                 <div class="fs-4 text-primary"><i class="fa-solid fa-id-badge"></i></div>
                 <div class="small">
-                  <span class="text-muted d-block" style="font-size:0.72rem;">👤 ผู้รับผิดชอบประจำโซน (ใครช้า / Responsible Staff):</span>
+                  <span class="text-muted d-block" style="font-size:0.72rem;"> ผู้รับผิดชอบประจำโซน (ใครช้า / Responsible Staff):</span>
                   <b class="text-slate-800" id="modalStaffNames">กำลังโหลด...</b>
                 </div>
               </div>
 
               <div class="form-text small text-muted mt-1">
-                📁 รูปภาพจะถูกบันทึกแยกโฟลเดอร์ตามโซน: <b class="text-dark">หลักฐาน\Zone A, Zone B, Zone C</b>
+                 รูปภาพจะถูกบันทึกแยกโฟลเดอร์ตามโซน: <b class="text-dark">หลักฐาน\Zone A, Zone B, Zone C</b>
               </div>
             </div>
 
@@ -1845,7 +1849,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
   </script>
 
   <!-- ========================================== -->
-  <!-- ⚡ MODAL: ADMIN MANUAL TRIGGER PANEL       -->
+  <!-- MODAL: ADMIN MANUAL TRIGGER PANEL -->
   <!-- ========================================== -->
   <div class="modal fade" id="adminManualTriggerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -1990,7 +1994,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
         <div class="modal-footer bg-light d-flex justify-content-between">
           <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
           <button type="button" class="btn btn-danger btn-sm fw-bold px-4 shadow-sm" id="btnAmtSubmit" onclick="executeSendAdminTrigger()">
-            <i class="fa-solid fa-paper-plane me-1"></i> 🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที
+            <i class="fa-solid fa-paper-plane me-1"></i> สั่งยิงแจ้งเตือน SeaTalk ทันที
           </button>
         </div>
       </div>
@@ -1998,7 +2002,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
   </div>
 
   <!-- ========================================== -->
-  <!-- 🧠 MODAL: AI SHIFT SUMMARY & ANALYSIS      -->
+  <!-- MODAL: AI SHIFT SUMMARY & ANALYSIS -->
   <!-- ========================================== -->
   <div class="modal fade" id="aiShiftSummaryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -2017,7 +2021,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
               <i class="fa-solid fa-copy me-1"></i> คัดลอกข้อความ (Copy)
             </button>
             <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="sendAiSummaryToSeatalk()">
-              <i class="fa-solid fa-paper-plane me-1"></i> 📢 ส่งเข้า SeaTalk ทันที
+              <i class="fa-solid fa-paper-plane me-1"></i> ส่งเข้า SeaTalk ทันที
             </button>
           </div>
         </div>
@@ -2026,7 +2030,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
   </div>
 
   <!-- ========================================== -->
-  <!-- 📋 MODAL: SHIFT HANDOVER (สมุดส่งมอบกะ)     -->
+  <!-- MODAL: SHIFT HANDOVER (สมุดส่งมอบกะ) -->
   <!-- ========================================== -->
   <div class="modal fade" id="shiftHandoverModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
@@ -2049,8 +2053,8 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
                   <div class="col-6">
                     <label class="form-label small fw-bold text-muted mb-1">รอบกะการทำงาน</label>
                     <select class="form-select form-select-sm" id="hoShift">
-                      <option value="Day Shift (08:00 - 20:00)">☀️ Day Shift (08:00 - 20:00)</option>
-                      <option value="Night Shift (20:00 - 08:00)">🌙 Night Shift (20:00 - 08:00)</option>
+                      <option value="Day Shift (08:00 - 20:00)"> Day Shift (08:00 - 20:00)</option>
+                      <option value="Night Shift (20:00 - 08:00)"> Night Shift (20:00 - 08:00)</option>
                     </select>
                   </div>
                 </div>
@@ -2093,18 +2097,18 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label small fw-bold text-danger mb-1">🚨 ปัญหาสำคัญ/เคสพิเศษ (Critical Issues)</label>
+                  <label class="form-label small fw-bold text-danger mb-1"> ปัญหาสำคัญ/เคสพิเศษ (Critical Issues)</label>
                   <textarea class="form-control form-control-sm" id="hoCriticalIssues" rows="2" placeholder="ระบุเหตุการณ์สำคัญ เช่น รถดีเลย์, ปัญหาพัสดุแตกหัก, หรือปัญหา IT"></textarea>
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label small fw-bold text-primary mb-1">📌 สิ่งที่ฝากกะถัดไปติดตามต่อ (Follow-up Items)</label>
+                  <label class="form-label small fw-bold text-primary mb-1"> สิ่งที่ฝากกะถัดไปติดตามต่อ (Follow-up Items)</label>
                   <textarea class="form-control form-control-sm" id="hoFollowUpItems" rows="2" placeholder="ระบุสิ่งที่ต้องประสานต่อ เช่น ตรวจสอบยอดรอบ Cutoff 2 หรือจัดโซน"></textarea>
                 </div>
 
                 <div class="form-check form-switch mb-3">
                   <input class="form-check-input" type="checkbox" id="hoSendSeatalk" checked>
-                  <label class="form-check-label small fw-semibold text-dark" for="hoSendSeatalk">📢 ส่งรายงานเข้า SeaTalk อัตโนมัติทันที</label>
+                  <label class="form-check-label small fw-semibold text-dark" for="hoSendSeatalk"> ส่งรายงานเข้า SeaTalk อัตโนมัติทันที</label>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-sm fw-bold w-100 py-2 shadow-sm">
@@ -2127,7 +2131,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
   </div>
 
   <!-- ========================================== -->
-  <!-- 📈 MODAL: WoW COMPARISON                   -->
+  <!-- MODAL: WoW COMPARISON -->
   <!-- ========================================== -->
   <div class="modal fade" id="wowComparisonModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">

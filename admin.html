@@ -31,23 +31,27 @@
     .badge-export { background: #e8eaf6; color: #3f51b5; }
     .badge-upload { background: #f3e8ff; color: #7c3aed; }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="theme.css?v=1" rel="stylesheet">
 </head>
 <body>
 
   <!-- Top Navigation Header -->
   <nav style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:1020;">
     <a href="index.html" style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
-      <span style="font-size:1.4rem;">🛡️</span> SOC Operations Portal - Admin Control Panel
+      <span style="font-size:1.4rem;"></span> SOC Operations Portal - Admin Control Panel
     </a>
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠 Portal Hub</a>
-      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚀 Investigation</a>
-      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📦 Skip Monitor</a>
-      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff Master</a>
-      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
-      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
-      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🔀 OB Backlog Compare</a>
-      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏱️ Hourly Tracker</a>
+      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Portal Hub</a>
+      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Investigation</a>
+      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Skip Monitor</a>
+      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Cutoff Master</a>
+      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> LH Trip & OB Late</a>
+      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> OB Backlog (OB BL)</a>
+      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> OB Backlog Compare</a>
+      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Hourly Tracker</a>
     </div>
   </nav>
 
@@ -64,7 +68,7 @@
           <a href="index.html" class="btn btn-outline-secondary px-4 fw-bold rounded-3">
             <i class="fa-solid fa-house me-1"></i> กลับหน้าหลัก Portal Hub
           </a>
-          <button class="btn btn-primary px-4 fw-bold rounded-3 shadow-sm" onclick="window.AuthGuard.showModal('🔒 กรุณาเข้าสู่ระบบ Admin เพื่อเข้าใช้งาน')">
+          <button class="btn btn-primary px-4 fw-bold rounded-3 shadow-sm" onclick="window.AuthGuard.showModal(' กรุณาเข้าสู่ระบบ Admin เพื่อเข้าใช้งาน')">
             <i class="fa-solid fa-key me-1"></i> เข้าสู่ระบบ Admin
           </button>
         </div>
@@ -84,7 +88,7 @@
 
       <div class="d-flex gap-2">
         <button class="btn btn-primary btn-sm fw-bold" onclick="openAddUserModal()"><i class="fa-solid fa-user-plus me-1"></i> เพิ่มสมาชิกใหม่</button>
-        <button class="btn btn-success btn-sm fw-bold" id="btnExportAuditLogs" onclick="exportAuditLogsCSV()"><i class="fa-solid fa-file-csv me-1"></i> 📥 Export Audit Logs CSV</button>
+        <button class="btn btn-success btn-sm fw-bold" id="btnExportAuditLogs" onclick="exportAuditLogsCSV()"><i class="fa-solid fa-file-csv me-1"></i> Export Audit Logs CSV</button>
         <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="refreshAdminData()"><i class="fa-solid fa-rotate me-1"></i> รีเฟรชข้อมูล</button>
       </div>
     </div>
@@ -143,13 +147,13 @@
         <div class="card-custom">
           <div class="row g-2 align-items-center mb-3">
             <div class="col-md-5">
-              <input type="text" id="userSearchInput" class="form-control form-control-sm" placeholder="🔍 ค้นหาชื่อผู้ใช้ หรือ อีเมลสมาชิก..." onkeyup="renderUsersTable()">
+              <input type="text" id="userSearchInput" class="form-control form-control-sm" placeholder=" ค้นหาชื่อผู้ใช้ หรือ อีเมลสมาชิก..." onkeyup="renderUsersTable()">
             </div>
             <div class="col-md-4">
               <select id="userStatusFilter" class="form-select form-select-sm" onchange="renderUsersTable()">
                 <option value="ALL">-- ทุกสถานะ (All Statuses) --</option>
-                <option value="pending_approval">⏳ รออนุมัติ (Pending Approval Only)</option>
-                <option value="approved">✅ อนุมัติแล้ว (Approved Only)</option>
+                <option value="pending_approval"> รออนุมัติ (Pending Approval Only)</option>
+                <option value="approved"> อนุมัติแล้ว (Approved Only)</option>
               </select>
             </div>
             <div class="col-md-3 text-end">
@@ -183,7 +187,7 @@
         <div class="card-custom">
           <div class="row g-2 align-items-center mb-3">
             <div class="col-md-5">
-              <input type="text" id="logSearchInput" class="form-control form-control-sm" placeholder="🔍 ค้นหาประวัติกิจกรรม, อีเมล, ชื่อ หรือรายละเอียด..." onkeyup="renderLogsTable()">
+              <input type="text" id="logSearchInput" class="form-control form-control-sm" placeholder=" ค้นหาประวัติกิจกรรม, อีเมล, ชื่อ หรือรายละเอียด..." onkeyup="renderLogsTable()">
             </div>
             <div class="col-md-4">
               <select id="logActionFilter" class="form-select form-select-sm" onchange="renderLogsTable()">
@@ -481,8 +485,8 @@
                 <div class="d-flex align-items-center gap-2">
                   <span class="small text-muted">ประเภท:</span>
                   <select id="settingWebhookType" class="form-select form-select-sm fw-bold w-auto py-0">
-                    <option value="seatalk">💬 SeaTalk Bot Webhook</option>
-                    <option value="n8n">⚡ n8n Webhook Node</option>
+                    <option value="seatalk"> SeaTalk Bot Webhook</option>
+                    <option value="n8n"> n8n Webhook Node</option>
                   </select>
                 </div>
               </div>
@@ -500,7 +504,7 @@
             </div>
 
             <!-- ========================================== -->
-            <!-- ⏰ FUNCTION 1: HOURLY TRACKER ALERT PAIR   -->
+            <!-- FUNCTION 1: HOURLY TRACKER ALERT PAIR -->
             <!-- ========================================== -->
             <div class="p-3 rounded-3 border mb-4" style="background: #f8fafc; border-left: 5px solid #2563eb !important;">
               <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -518,8 +522,8 @@
               <div class="mb-3">
                 <label class="form-label fw-bold small text-secondary">เงื่อนไขยิงเตือน (Trigger Condition):</label>
                 <select id="settingHourlyCondition" class="form-select form-select-sm">
-                  <option value="below_minimum">🔴 หลุดเกณฑ์ขั้นต่ำ (Actual < Minimum)</option>
-                  <option value="below_target">⚠️ หลุดเป้าหมายปกติ (Actual < Target)</option>
+                  <option value="below_minimum"> หลุดเกณฑ์ขั้นต่ำ (Actual < Minimum)</option>
+                  <option value="below_target"> หลุดเป้าหมายปกติ (Actual < Target)</option>
                 </select>
               </div>
 
@@ -544,13 +548,13 @@
               <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <span class="small text-muted"><i class="fa-solid fa-bolt text-danger me-1"></i> คำสั่งสั่งการด้วยมือเฉพาะฟังก์ชันนี้:</span>
                 <button type="button" class="btn btn-outline-danger btn-sm fw-bold px-3 shadow-sm" onclick="openAdminManualTriggerModal('hourly')">
-                  <i class="fa-solid fa-clock me-1"></i> ⚡ สั่งยิง Hourly Alert ด้วยมือทันที (Manual Trigger)
+                  <i class="fa-solid fa-clock me-1"></i> สั่งยิง Hourly Alert ด้วยมือทันที (Manual Trigger)
                 </button>
               </div>
             </div>
 
             <!-- ========================================== -->
-            <!-- ⚠️ FUNCTION 2: SKIP PROCESS ALERT PAIR     -->
+            <!-- FUNCTION 2: SKIP PROCESS ALERT PAIR -->
             <!-- ========================================== -->
             <div class="p-3 rounded-3 border mb-4" style="background: #fffbeb; border-left: 5px solid #f59e0b !important; border-color: #fef3c7;">
               <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -586,13 +590,13 @@
               <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <span class="small text-muted"><i class="fa-solid fa-bolt text-warning me-1"></i> คำสั่งสั่งการด้วยมือเฉพาะฟังก์ชันนี้:</span>
                 <button type="button" class="btn btn-outline-warning btn-sm fw-bold px-3 text-dark shadow-sm" onclick="openAdminManualTriggerModal('skip')">
-                  <i class="fa-solid fa-triangle-exclamation me-1"></i> ⚡ สั่งยิงแจ้งเตือน Skip Process ด้วยมือ (Manual Trigger)
+                  <i class="fa-solid fa-triangle-exclamation me-1"></i> สั่งยิงแจ้งเตือน Skip Process ด้วยมือ (Manual Trigger)
                 </button>
               </div>
             </div>
 
             <!-- ========================================== -->
-            <!-- 📦 FUNCTION 3: OUTBOUND BACKLOG ALERT PAIR -->
+            <!-- FUNCTION 3: OUTBOUND BACKLOG ALERT PAIR -->
             <!-- ========================================== -->
             <div class="p-3 rounded-3 border mb-4" style="background: #fdf2f8; border-left: 5px solid #db2777 !important; border-color: #fce7f3;">
               <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -628,13 +632,13 @@
               <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <span class="small text-muted"><i class="fa-solid fa-bolt text-danger me-1"></i> คำสั่งสั่งการด้วยมือเฉพาะฟังก์ชันนี้:</span>
                 <button type="button" class="btn btn-outline-primary btn-sm fw-bold px-3 shadow-sm" onclick="openAdminManualTriggerModal('ob_bl')">
-                  <i class="fa-solid fa-boxes-stacked me-1"></i> ⚡ สั่งยิงแจ้งเตือน Outbound Backlog ด้วยมือ (Manual Trigger)
+                  <i class="fa-solid fa-boxes-stacked me-1"></i> สั่งยิงแจ้งเตือน Outbound Backlog ด้วยมือ (Manual Trigger)
                 </button>
               </div>
             </div>
 
             <!-- ========================================== -->
-            <!-- 📢 FUNCTION 4: EMERGENCY BROADCAST & TEST  -->
+            <!-- FUNCTION 4: EMERGENCY BROADCAST & TEST -->
             <!-- ========================================== -->
             <div class="p-3 rounded-3 border mb-2" style="background: #f8fafc; border-left: 5px solid #475569 !important;">
               <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -661,9 +665,9 @@
                 <div class="col-md-6">
                   <label class="form-label fw-bold small text-secondary">รูปแบบการแท็กผู้รับ (Mention Tag):</label>
                   <select id="settingMentionType" class="form-select form-select-sm">
-                    <option value="all">📢 แท็กทุกคนในกลุ่ม (@all)</option>
-                    <option value="specific">👤 แท็กเฉพาะรายชื่อ (Specific Emails)</option>
-                    <option value="none">🔕 ไม่ต้องแท็ก (No Mention)</option>
+                    <option value="all"> แท็กทุกคนในกลุ่ม (@all)</option>
+                    <option value="specific"> แท็กเฉพาะรายชื่อ (Specific Emails)</option>
+                    <option value="none"> ไม่ต้องแท็ก (No Mention)</option>
                   </select>
                 </div>
                 <div class="col-md-6">
@@ -674,10 +678,10 @@
 
               <div class="mt-3 pt-2 border-top d-flex justify-content-end align-items-center flex-wrap gap-2">
                 <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="testSeaTalkWebhook()">
-                  <i class="fa-solid fa-bell me-1"></i> 🔔 ทดสอบส่งข้อความเชื่อมต่อ (Test Webhook)
+                  <i class="fa-solid fa-bell me-1"></i> ทดสอบส่งข้อความเชื่อมต่อ (Test Webhook)
                 </button>
                 <button type="button" class="btn btn-danger btn-sm fw-bold px-3 shadow-sm" onclick="openAdminManualTriggerModal('custom')">
-                  <i class="fa-solid fa-bullhorn me-1"></i> 🚀 บรอดแคสต์ข้อความด่วนเข้า SeaTalk ทันที
+                  <i class="fa-solid fa-bullhorn me-1"></i> บรอดแคสต์ข้อความด่วนเข้า SeaTalk ทันที
                 </button>
               </div>
               <div id="seatalkTestStatus" class="mt-2 small"></div>
@@ -748,9 +752,9 @@
             <div class="col-lg-6">
               <div class="d-flex gap-1 flex-wrap" id="evidenceZoneFilterBtns">
                 <button class="btn btn-sm btn-primary fw-bold active evi-zone-btn" data-zone="ALL" onclick="filterAdminEvidenceZone('ALL')">ทั้งหมด (All Zones)</button>
-                <button class="btn btn-sm btn-outline-danger fw-bold evi-zone-btn" data-zone="Zone A" onclick="filterAdminEvidenceZone('Zone A')">🔴 Zone A (<span id="countEviZoneA">0</span>)</button>
-                <button class="btn btn-sm btn-outline-success fw-bold evi-zone-btn" data-zone="Zone B" onclick="filterAdminEvidenceZone('Zone B')">🟢 Zone B (<span id="countEviZoneB">0</span>)</button>
-                <button class="btn btn-sm btn-outline-warning fw-bold evi-zone-btn" data-zone="Zone C" onclick="filterAdminEvidenceZone('Zone C')">🟡 Zone C (<span id="countEviZoneC">0</span>)</button>
+                <button class="btn btn-sm btn-outline-danger fw-bold evi-zone-btn" data-zone="Zone A" onclick="filterAdminEvidenceZone('Zone A')"> Zone A (<span id="countEviZoneA">0</span>)</button>
+                <button class="btn btn-sm btn-outline-success fw-bold evi-zone-btn" data-zone="Zone B" onclick="filterAdminEvidenceZone('Zone B')"> Zone B (<span id="countEviZoneB">0</span>)</button>
+                <button class="btn btn-sm btn-outline-warning fw-bold evi-zone-btn" data-zone="Zone C" onclick="filterAdminEvidenceZone('Zone C')"> Zone C (<span id="countEviZoneC">0</span>)</button>
               </div>
             </div>
             <div class="col-lg-3 col-md-6">
@@ -802,9 +806,9 @@
             <div class="mb-3">
               <label class="form-label fw-bold small">มอบหมาย Role (สิทธิ์การใช้งาน):</label>
               <select id="addUserRole" class="form-select form-select-sm">
-                <option value="Ground">👤 Ground (เจ้าหน้าที่ปฏิบัติการ)</option>
-                <option value="Supervisor">👔 Supervisor (หัวหน้างาน / จัดการสมาชิก)</option>
-                <option value="Admin">🛡️ Admin (ผู้ดูแลระบบ & Audit Logs)</option>
+                <option value="Ground"> Ground (เจ้าหน้าที่ปฏิบัติการ)</option>
+                <option value="Supervisor"> Supervisor (หัวหน้างาน / จัดการสมาชิก)</option>
+                <option value="Admin"> Admin (ผู้ดูแลระบบ & Audit Logs)</option>
               </select>
             </div>
           </div>
@@ -2601,7 +2605,7 @@ ${body}`;
   </script>
 
   <!-- ========================================== -->
-  <!-- ⚡ MODAL: ADMIN MANUAL TRIGGER PANEL       -->
+  <!-- MODAL: ADMIN MANUAL TRIGGER PANEL -->
   <!-- ========================================== -->
   <div class="modal fade" id="adminManualTriggerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -2746,7 +2750,7 @@ ${body}`;
         <div class="modal-footer bg-light d-flex justify-content-between">
           <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
           <button type="button" class="btn btn-danger btn-sm fw-bold px-4 shadow-sm" id="btnAmtSubmit" onclick="executeSendAdminTrigger()">
-            <i class="fa-solid fa-paper-plane me-1"></i> 🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที
+            <i class="fa-solid fa-paper-plane me-1"></i> สั่งยิงแจ้งเตือน SeaTalk ทันที
           </button>
         </div>
       </div>

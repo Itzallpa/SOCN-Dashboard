@@ -154,23 +154,27 @@
       .card-custom { padding: 12px !important; }
     }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="theme.css?v=1" rel="stylesheet">
 </head>
 <body>
 
   <!-- Top Navigation Header -->
   <nav style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:1020;">
     <a href="index.html" style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
-      <span style="font-size:1.4rem;">📦</span> SOC Operations Portal
+      <span style="font-size:1.4rem;"></span> SOC Operations Portal
     </a>
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠 Portal Hub</a>
-      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚀 Investigation</a>
-      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📦 Skip Monitor</a>
-      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff Master</a>
-      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
-      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
-      <a href="ob_bl_compare.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">🔀 OB Backlog Compare</a>
-      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏱️ Hourly Tracker</a>
+      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Portal Hub</a>
+      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Investigation</a>
+      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Skip Monitor</a>
+      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Cutoff Master</a>
+      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> LH Trip & OB Late</a>
+      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> OB Backlog (OB BL)</a>
+      <a href="ob_bl_compare.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;"> OB Backlog Compare</a>
+      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Hourly Tracker</a>
     </div>
   </nav>
 
@@ -350,7 +354,7 @@
 
           <!-- Table Controls -->
           <div class="d-flex align-items-center gap-2 flex-wrap">
-            <input type="text" id="tableSearchInput" class="form-control form-control-sm" placeholder="🔍 ค้นหา Tracking, สถานี..." style="width: 190px;" oninput="onFilterChanged()">
+            <input type="text" id="tableSearchInput" class="form-control form-control-sm" placeholder=" ค้นหา Tracking, สถานี..." style="width: 190px;" oninput="onFilterChanged()">
             
             <select id="stationFilterSelect" class="form-select form-select-sm" style="width: 150px;" onchange="onFilterChanged()">
               <option value="">ทุกสถานีปลายทาง</option>
@@ -478,7 +482,7 @@
               </div>
             </div>
             <div class="modal-footer p-2 bg-light d-flex justify-content-between">
-              <div class="text-muted small" id="rawModalFooterNote">💡 คลิกไอคอน Copy ข้าง Tracking ID เพื่อคัดลอกได้ทันที</div>
+              <div class="text-muted small" id="rawModalFooterNote"> คลิกไอคอน Copy ข้าง Tracking ID เพื่อคัดลอกได้ทันที</div>
               <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
             </div>
           </div>

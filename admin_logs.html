@@ -21,6 +21,10 @@
     .table-custom { font-size: 0.88rem; }
     .table-custom th { background-color: #0f172a; color: #ffffff; font-weight: 600; vertical-align: middle; }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="theme.css?v=1" rel="stylesheet">
 </head>
 <body>
 
@@ -28,18 +32,18 @@
   <!-- Top Navigation Header -->
   <nav style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:9999;">
     <a href="index.html" style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
-      <span style="font-size:1.4rem;">📦</span> SOC Operations Portal
+      <span style="font-size:1.4rem;"></span> SOC Operations Portal
     </a>
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠 Portal Hub</a>
-      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚀 Investigation</a>
-      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📦 Skip Monitor</a>
-      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff Master</a>
-      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
-      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
-      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🔀 OB Backlog Compare</a>
-      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏱️ Hourly Tracker</a>
-      <a href="/admin/logs" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">🛡️ Activity Logs</a>
+      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Portal Hub</a>
+      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Investigation</a>
+      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Skip Monitor</a>
+      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Cutoff Master</a>
+      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> LH Trip & OB Late</a>
+      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> OB Backlog (OB BL)</a>
+      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> OB Backlog Compare</a>
+      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Hourly Tracker</a>
+      <a href="/admin/logs" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;"> Activity Logs</a>
 
       <div class="dropdown ms-2">
         <button class="btn btn-sm btn-outline-light dropdown-toggle d-flex align-items-center gap-2 py-1 px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius:20px; font-size:0.82rem;">
@@ -116,7 +120,7 @@
     <div class="card-custom">
       <div class="row g-2 mb-3">
         <div class="col-md-5">
-          <input type="text" class="form-control form-control-sm" id="logSearchInput" placeholder="🔍 ค้นหาตาม อีเมลผู้ใช้ / ชื่อ / การกระทำ / รายละเอียด..." onkeyup="filterAndRenderLogs()">
+          <input type="text" class="form-control form-control-sm" id="logSearchInput" placeholder=" ค้นหาตาม อีเมลผู้ใช้ / ชื่อ / การกระทำ / รายละเอียด..." onkeyup="filterAndRenderLogs()">
         </div>
         <div class="col-md-4">
           <select class="form-select form-select-sm" id="actionFilterSelect" onchange="filterAndRenderLogs()">

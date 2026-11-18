@@ -51,6 +51,10 @@
       animation: pulseGlow 1.8s ease-in-out;
     }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="theme.css?v=1" rel="stylesheet">
 </head>
 <body>
 
@@ -58,17 +62,17 @@
   <!-- Top Navigation Header -->
   <nav style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:1020;">
     <a href="index.html" style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
-      <span style="font-size:1.4rem;">📦</span> SOC Operations Portal
+      <span style="font-size:1.4rem;"></span> SOC Operations Portal
     </a>
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠 Portal Hub</a>
-      <a href="investigation.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">🚀 Investigation</a>
-      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📦 Skip Monitor</a>
-      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff Master</a>
-      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
-      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
-      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🔀 OB Backlog Compare</a>
-      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏱️ Hourly Tracker</a>
+      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Portal Hub</a>
+      <a href="investigation.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;"> Investigation</a>
+      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Skip Monitor</a>
+      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Cutoff Master</a>
+      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> LH Trip & OB Late</a>
+      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> OB Backlog (OB BL)</a>
+      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> OB Backlog Compare</a>
+      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Hourly Tracker</a>
     </div>
   </nav>
   <script src="auth_guard.js"></script>
@@ -178,13 +182,13 @@
                 <i class="fa-solid fa-layer-group me-1"></i> ทุกสาเหตุ (All)
               </button>
               <button type="button" class="btn btn-outline-danger fw-bold px-2 py-1" id="tabRank-receive_late" onclick="switchRankingLateTypeTab('receive_late')">
-                🔴 Receive Late (รับเข้า)
+                 Receive Late (รับเข้า)
               </button>
               <button type="button" class="btn btn-outline-warning text-dark fw-bold px-2 py-1" id="tabRank-outbound_late" onclick="switchRankingLateTypeTab('outbound_late')">
-                🟡 Outbound Late (กระจายออก)
+                 Outbound Late (กระจายออก)
               </button>
               <button type="button" class="btn btn-outline-primary fw-bold px-2 py-1" id="tabRank-pack_late" onclick="switchRankingLateTypeTab('pack_late')">
-                🔵 Pack Late (แพ็กถุง)
+                 Pack Late (แพ็กถุง)
               </button>
             </div>
           </div>
@@ -260,7 +264,7 @@
         <div class="modal-body p-3">
           <div class="row g-2 mb-3">
             <div class="col-md-3">
-              <input type="text" class="form-control form-control-sm" id="rawSearchInput" placeholder="🔍 ค้นหา Tracking ID / เลข TO / สถานี..." onkeyup="filterAndRenderRawData()">
+              <input type="text" class="form-control form-control-sm" id="rawSearchInput" placeholder=" ค้นหา Tracking ID / เลข TO / สถานี..." onkeyup="filterAndRenderRawData()">
             </div>
             <div class="col-md-3">
               <select class="form-select form-select-sm" id="rawStationFilter" onchange="filterAndRenderRawData()">
@@ -270,25 +274,25 @@
             <div class="col-md-2">
               <select class="form-select form-select-sm" id="rawCutoffLateFilter" onchange="filterAndRenderRawData()">
                 <option value="">ทุกรอบ Cutoff (All Cutoffs)</option>
-                <option value="CUT2">🔴 เฉพาะ Late Cut 2</option>
-                <option value="CUT1">🟡 เฉพาะ Late Cut 1</option>
+                <option value="CUT2"> เฉพาะ Late Cut 2</option>
+                <option value="CUT1"> เฉพาะ Late Cut 1</option>
               </select>
             </div>
             <div class="col-md-2">
               <select class="form-select form-select-sm" id="rawLateTypeFilter" onchange="filterAndRenderRawData()">
                 <option value="">ทุกสาเหตุล่าช้า (All Late Types)</option>
-                <option value="receive_late">🔴 Receive Late (รับเข้าล่าช้า)</option>
-                <option value="outbound_late">🟡 Outbound Late (กระจายออกล่าช้า)</option>
-                <option value="pack_late">🔵 Pack Late (แพ็กถุงล่าช้า)</option>
+                <option value="receive_late"> Receive Late (รับเข้าล่าช้า)</option>
+                <option value="outbound_late"> Outbound Late (กระจายออกล่าช้า)</option>
+                <option value="pack_late"> Pack Late (แพ็กถุงล่าช้า)</option>
               </select>
             </div>
             <div class="col-md-2">
               <select class="form-select form-select-sm" id="rawRouteTypeFilter" onchange="filterAndRenderRawData()">
                 <option value="">ทุกเส้นทาง (All Routes)</option>
-                <option value="GBKK">🟢 GBKK (กทม.และปริมณฑล)</option>
-                <option value="UPC-RC">🔵 UPC-RC (ตจว.สายรอง RC)</option>
-                <option value="UPC">🟡 UPC (ตจว.สายตรง)</option>
-                <option value="SOC">⚪ SOC (ระหว่าง SOC)</option>
+                <option value="GBKK"> GBKK (กทม.และปริมณฑล)</option>
+                <option value="UPC-RC"> UPC-RC (ตจว.สายรอง RC)</option>
+                <option value="UPC"> UPC (ตจว.สายตรง)</option>
+                <option value="SOC"> SOC (ระหว่าง SOC)</option>
               </select>
             </div>
           </div>
@@ -303,8 +307,8 @@
                   <th>เวลารับเข้า</th>
                   <th>เวลาแพ็ก (FIRST PACKED)</th>
                   <th>เวลากระจายออก</th>
-                  <th class="text-warning">🟡 CUTOFF 1 & ดีเลย์</th>
-                  <th class="text-danger" id="rawTargetHeader">🔴 CUTOFF 2 & ดีเลย์</th>
+                  <th class="text-warning"> CUTOFF 1 & ดีเลย์</th>
+                  <th class="text-danger" id="rawTargetHeader"> CUTOFF 2 & ดีเลย์</th>
                   <th>รอบ CUTOFF ที่ LATE</th>
                   <th>สาเหตุล่าช้า</th>
                   <th>เส้นทาง</th>
@@ -448,7 +452,7 @@
                     <i class="fa-solid fa-folder-plus me-1"></i> สร้างโฟลเดอร์
                   </button>
                 </div>
-                <div class="small text-muted">💡 เมื่อสร้างเสร็จ คุณสามารถอัปโหลดไฟล์ CSV/Excel เข้าโฟลเดอร์นี้เพื่อประมวลผลเป็นชุดได้ทันที</div>
+                <div class="small text-muted"> เมื่อสร้างเสร็จ คุณสามารถอัปโหลดไฟล์ CSV/Excel เข้าโฟลเดอร์นี้เพื่อประมวลผลเป็นชุดได้ทันที</div>
               </div>
             </div>
 

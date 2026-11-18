@@ -17,24 +17,28 @@
     .badge-export { background: #e8eaf6; color: #3f51b5; }
     .badge-upload { background: #f3e8ff; color: #7c3aed; }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="theme.css?v=1" rel="stylesheet">
 </head>
 <body>
 
   <!-- Top Navigation Header -->
   <nav style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:1020;">
     <a href="index.html" style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
-      <span style="font-size:1.4rem;">🛡️</span> Admin Security & Audit Control Center
+      <span style="font-size:1.4rem;"></span> Admin Security & Audit Control Center
     </a>
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠 Portal Hub</a>
-      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚀 Investigation</a>
-      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📦 Skip Monitor</a>
-      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff Master</a>
-      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
-      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
-      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🔀 OB Backlog Compare</a>
-      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏱️ Hourly Tracker</a>
-      <a href="audit_logs.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#d0311d; transition:all 0.2s;">🛡️ Audit Logs</a>
+      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Portal Hub</a>
+      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Investigation</a>
+      <a href="skip_process.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Skip Monitor</a>
+      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Cutoff Master</a>
+      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> LH Trip & OB Late</a>
+      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> OB Backlog (OB BL)</a>
+      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> OB Backlog Compare</a>
+      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Hourly Tracker</a>
+      <a href="audit_logs.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#d0311d; transition:all 0.2s;"> Audit Logs</a>
     </div>
   </nav>
 
@@ -51,7 +55,7 @@
           <a href="index.html" class="btn btn-outline-secondary px-4 fw-bold rounded-3">
             <i class="fa-solid fa-house me-1"></i> กลับหน้าหลัก Portal Hub
           </a>
-          <button class="btn btn-primary px-4 fw-bold rounded-3 shadow-sm" onclick="window.AuthGuard.showModal('🔒 กรุณาเข้าสู่ระบบ Admin เพื่อเข้าใช้งาน')">
+          <button class="btn btn-primary px-4 fw-bold rounded-3 shadow-sm" onclick="window.AuthGuard.showModal(' กรุณาเข้าสู่ระบบ Admin เพื่อเข้าใช้งาน')">
             <i class="fa-solid fa-key me-1"></i> เข้าสู่ระบบ Admin
           </button>
         </div>
@@ -70,7 +74,7 @@
       </div>
 
       <div class="d-flex gap-2">
-        <button class="btn btn-success btn-sm fw-bold" onclick="exportAuditLogsCSV()"><i class="fa-solid fa-file-csv me-1"></i> 📥 Export Audit Logs CSV</button>
+        <button class="btn btn-success btn-sm fw-bold" onclick="exportAuditLogsCSV()"><i class="fa-solid fa-file-csv me-1"></i> Export Audit Logs CSV</button>
         <button class="btn btn-outline-primary btn-sm fw-bold" onclick="loadAuditLogs()"><i class="fa-solid fa-rotate me-1"></i> Refresh Logs</button>
       </div>
     </div>
@@ -79,7 +83,7 @@
     <div class="card-custom mb-3">
       <div class="row g-2 align-items-center">
         <div class="col-md-4">
-          <input type="text" id="logSearchInput" class="form-control form-control-sm" placeholder="🔍 ค้นหาตาม อีเมล, ชื่อผู้ใช้, กิจกรรม หรือรายละเอียด..." onkeyup="filterLogs()">
+          <input type="text" id="logSearchInput" class="form-control form-control-sm" placeholder=" ค้นหาตาม อีเมล, ชื่อผู้ใช้, กิจกรรม หรือรายละเอียด..." onkeyup="filterLogs()">
         </div>
         <div class="col-md-3">
           <select id="actionFilter" class="form-select form-select-sm" onchange="filterLogs()">

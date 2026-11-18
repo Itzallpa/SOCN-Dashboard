@@ -543,7 +543,10 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="theme.css?v=1" rel="stylesheet">
 </head>
 
 <body>
@@ -553,32 +556,32 @@
     style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:1020;">
     <a href="index.html"
       style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
-      <span style="font-size:1.4rem;">📦</span> SOC Operations Portal
+      <span style="font-size:1.4rem;"></span> SOC Operations Portal
     </a>
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
       <a href="index.html"
-        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠
+        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">
         Portal Hub</a>
       <a href="investigation.html"
-        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚀
+        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">
         Investigation</a>
       <a href="skip_process.html"
-        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📦
+        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">
         Skip Monitor</a>
       <a href="cutoff_master.html"
-        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰
+        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">
         Cutoff Master</a>
       <a href="lh_trip.html"
-        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚
+        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">
         LH Trip & OB Late</a>
       <a href="ob_bl.html"
-        style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">📊
+        style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">
         OB Backlog (OB BL)</a>
       <a href="ob_bl_compare.html"
-        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🔀
+        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">
         OB Backlog Compare</a>
       <a href="hourly_tracker.html"
-        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏱️
+        style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">
         Hourly Tracker</a>
     </div>
   </nav>
@@ -590,23 +593,23 @@
     <header
       style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background:linear-gradient(120deg, #0d1b2a, #1e293b); border-radius:14px; padding:16px 22px; color:#fff; box-shadow:0 8px 20px -8px rgba(13,27,42,.4); margin-bottom:14px;">
       <div>
-        <h1 style="font-size:21px; margin:0 0 2px; font-weight:800; color:#fff;">📊 OB Backlog (OB BL) Dashboard</h1>
+        <h1 style="font-size:21px; margin:0 0 2px; font-weight:800; color:#fff;"> OB Backlog (OB BL) Dashboard</h1>
         <div class="subtitle" id="subtitle" style="color:#94a3b8;">ระบบติดตามพัสดุค้าง OB Backlog
           และวิเคราะห์ตามทีม/ชั่วโมง</div>
       </div>
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
         <button onclick="openAdminManualTriggerModal('ob_bl')" class="admin-only-btn" id="btnManualTriggerObBl" data-role="admin-only"
           style="background:linear-gradient(135deg, #dc2626, #991b1b); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px; display:none;"><i
-            class="fa-solid fa-bolt"></i> ⚡ Manual Trigger (Admin)</button>
+            class="fa-solid fa-bolt"></i> Manual Trigger (Admin)</button>
         <button onclick="openExecutiveSummaryModal()"
           style="background:linear-gradient(135deg, #0284c7, #0369a1); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
-            class="fa-solid fa-file-invoice"></i> 📊 สรุปรายงาน (Summary)</button>
+            class="fa-solid fa-file-invoice"></i> สรุปรายงาน (Summary)</button>
         <button onclick="openAiObBlAnalysisModal()"
           style="background:linear-gradient(135deg, #4f46e5, #7c3aed); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
-            class="fa-solid fa-wand-magic-sparkles"></i> ✨ AI Backlog</button>
+            class="fa-solid fa-wand-magic-sparkles"></i> AI Backlog</button>
         <button onclick="sendObBlSeatalkAlert()" class="admin-only-btn" id="btnSendObBlSeatalk" data-role="admin-only"
           style="background:#059669; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px; display:none;"><i
-            class="fa-solid fa-paper-plane"></i> 📢 แจ้งเตือน SeaTalk</button>
+            class="fa-solid fa-paper-plane"></i> แจ้งเตือน SeaTalk</button>
         <button onclick="openGoogleSheetModal()"
           style="background:#10b981; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
             class="fa-solid fa-link"></i> Sync Google Sheet</button>
@@ -679,11 +682,11 @@
         </div>
       </div>
 
-      <!-- ⏳ Day in SOC Breakdown (Column N) -->
+      <!-- Day in SOC Breakdown (Column N) -->
       <div class="card">
         <div class="card-title-row">
           <div>
-            <div class="card-title">⏳ Day in SOC (Column N / Aging)</div>
+            <div class="card-title"> Day in SOC (Column N / Aging)</div>
             <div class="card-sub" id="daySocSub">วิเคราะห์ระยะเวลาตกค้างในศูนย์คัดแยกตาม Column N · คลิกตัวเลขเพื่อดู raw data</div>
           </div>
           <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -694,8 +697,8 @@
               <option value="_04_pending_reworked">Pending Reworked</option>
             </select>
             <div class="tabs" id="daySocViewTabs">
-              <button id="daySocTabTeam" class="active" onclick="switchDaySocView('team')">🏢 แยกตามแผนก (Team)</button>
-              <button id="daySocTabAction" onclick="switchDaySocView('action')">🏷️ แยกตาม Action Flag</button>
+              <button id="daySocTabTeam" class="active" onclick="switchDaySocView('team')"> แยกตามแผนก (Team)</button>
+              <button id="daySocTabAction" onclick="switchDaySocView('action')"> แยกตาม Action Flag</button>
             </div>
             <button id="daySocExportBtn" onclick="exportDaySocCsv()" class="small-btn">⇩ Export CSV</button>
           </div>
@@ -2998,7 +3001,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
   </script>
 
   <!-- ========================================== -->
-  <!-- ⚡ MODAL: ADMIN MANUAL TRIGGER PANEL       -->
+  <!-- MODAL: ADMIN MANUAL TRIGGER PANEL -->
   <!-- ========================================== -->
   <div id="adminManualTriggerModalOverlay" class="modal-overlay" onclick="if(event.target.id==='adminManualTriggerModalOverlay') closeAdminManualTriggerModal();" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(15,23,42,0.85); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
     <div class="modal-box" style="max-width:760px; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
@@ -3126,13 +3129,13 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
       </div>
       <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 20px; background:#f8fafc; border-top:1px solid #e2e8f0;">
         <button onclick="closeAdminManualTriggerModal()" style="background:#e2e8f0; color:#334155; border:none; border-radius:6px; padding:8px 16px; font-weight:700; cursor:pointer;">ยกเลิก</button>
-        <button id="btnAmtSubmit" onclick="executeSendAdminTrigger()" style="background:#dc2626; color:#ffffff; border:none; border-radius:6px; padding:8px 20px; font-weight:700; cursor:pointer; box-shadow:0 4px 6px -1px rgba(220,38,38,0.3);"><i class="fa-solid fa-paper-plane"></i> 🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที</button>
+        <button id="btnAmtSubmit" onclick="executeSendAdminTrigger()" style="background:#dc2626; color:#ffffff; border:none; border-radius:6px; padding:8px 20px; font-weight:700; cursor:pointer; box-shadow:0 4px 6px -1px rgba(220,38,38,0.3);"><i class="fa-solid fa-paper-plane"></i> สั่งยิงแจ้งเตือน SeaTalk ทันที</button>
       </div>
     </div>
   </div>
 
   <!-- ========================================== -->
-  <!-- 🧠 MODAL: AI OUTBOUND BACKLOG ANALYSIS     -->
+  <!-- MODAL: AI OUTBOUND BACKLOG ANALYSIS -->
   <!-- ========================================== -->
   <div id="aiObBlModalOverlay" class="modal-overlay" onclick="if(event.target.id==='aiObBlModalOverlay') closeAiObBlModal();">
     <div class="modal-box" style="max-width:760px;">
@@ -3150,14 +3153,14 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
         <button onclick="closeAiObBlModal()" style="background:#e2e8f0; color:#334155; border:none; border-radius:6px; padding:8px 16px; font-weight:700; cursor:pointer;">ปิด</button>
         <div style="display:flex; gap:8px;">
           <button onclick="copyAiObBlText()" style="background:#2563eb; color:#ffffff; border:none; border-radius:6px; padding:8px 16px; font-weight:700; cursor:pointer;"><i class="fa-solid fa-copy"></i> คัดลอกข้อความ</button>
-          <button onclick="sendAiObBlToSeatalk()" style="background:#059669; color:#ffffff; border:none; border-radius:6px; padding:8px 16px; font-weight:700; cursor:pointer;"><i class="fa-solid fa-paper-plane"></i> 📢 ส่งเข้า SeaTalk</button>
+          <button onclick="sendAiObBlToSeatalk()" style="background:#059669; color:#ffffff; border:none; border-radius:6px; padding:8px 16px; font-weight:700; cursor:pointer;"><i class="fa-solid fa-paper-plane"></i> ส่งเข้า SeaTalk</button>
         </div>
       </div>
     </div>
   </div>
 
   <!-- ========================================== -->
-  <!-- 📊 MODAL: EXECUTIVE SUMMARY & MULTI-BREAKDOWN -->
+  <!-- MODAL: EXECUTIVE SUMMARY & MULTI-BREAKDOWN -->
   <!-- ========================================== -->
   <div id="executiveSummaryModalOverlay" class="modal-overlay" onclick="if(event.target.id==='executiveSummaryModalOverlay') closeExecutiveSummaryModal();" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(15,23,42,0.85); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
     <div class="modal-box" style="max-width:840px; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">

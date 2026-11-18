@@ -22,6 +22,10 @@
     .table-custom { font-size: 0.88rem; }
     .table-custom th { background-color: #0f172a; color: #ffffff; font-weight: 600; vertical-align: middle; }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="theme.css?v=1" rel="stylesheet">
 </head>
 <body>
 
@@ -29,17 +33,17 @@
   <!-- Top Navigation Header -->
   <nav style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:1020;">
     <a href="index.html" style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
-      <span style="font-size:1.4rem;">📦</span> SOC Operations Portal
+      <span style="font-size:1.4rem;"></span> SOC Operations Portal
     </a>
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠 Portal Hub</a>
-      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚀 Investigation</a>
-      <a href="skip_process.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">📦 Skip Monitor</a>
-      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff Master</a>
-      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
-      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
-      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🔀 OB Backlog Compare</a>
-      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏱️ Hourly Tracker</a>
+      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Portal Hub</a>
+      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Investigation</a>
+      <a href="skip_process.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;"> Skip Monitor</a>
+      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Cutoff Master</a>
+      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> LH Trip & OB Late</a>
+      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> OB Backlog (OB BL)</a>
+      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> OB Backlog Compare</a>
+      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Hourly Tracker</a>
     </div>
   </nav>
   <script src="auth_guard.js"></script>
@@ -71,7 +75,7 @@
           <input type="file" id="skipFileInput" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleSkipFileUpload(this.files[0])">
         </label>
         <button class="btn btn-outline-primary btn-sm fw-bold" onclick="openVolumeHistoryModal()">
-          <i class="fa-solid fa-database me-1"></i> 📅 SOCN Volume Tracker
+          <i class="fa-solid fa-database me-1"></i> SOCN Volume Tracker
         </button>
       </div>
     </div>
@@ -84,7 +88,7 @@
           <div class="metric-title">TOTAL SKIP CASES</div>
           <div class="metric-value text-danger" id="totalSkipCount">9,409 เคส</div>
           <div class="metric-subtext">นับเฉพาะ reason = <b>skip_outbound</b></div>
-          <div class="metric-subtext small text-muted" title="แสดงแยก ไม่นับรวมใน % skip_outbound">📦 skip_pack_and_outbound: <b id="skipPackOutCount" class="text-dark">0</b> | skip_pack: <b id="skipPackCount" class="text-dark">0</b> <span class="fst-italic">(ไม่นับรวมใน %)</span></div>
+          <div class="metric-subtext small text-muted" title="แสดงแยก ไม่นับรวมใน % skip_outbound"> skip_pack_and_outbound: <b id="skipPackOutCount" class="text-dark">0</b> | skip_pack: <b id="skipPackCount" class="text-dark">0</b> <span class="fst-italic">(ไม่นับรวมใน %)</span></div>
           <div id="skipDataWarning"></div>
         </div>
       </div>
@@ -102,11 +106,11 @@
         <div class="card metric-card p-3 bg-white border-start border-4 border-danger" id="targetCardBorder">
           <div class="d-flex justify-content-between align-items-start">
             <div class="metric-title">% SKIP OUTBOUND VS ACTUAL</div>
-            <span class="badge bg-danger fw-bold" id="targetBadge">🎯 Overall Target: < 0.80%</span>
+            <span class="badge bg-danger fw-bold" id="targetBadge"> Overall Target: < 0.80%</span>
           </div>
           <div class="metric-value text-danger" id="skipPercentVal">0.96 %</div>
           <div class="metric-subtext d-flex align-items-center gap-1" id="targetStatusText">
-            <span class="badge bg-danger">🔴 Exceeded</span> <span class="text-muted small">เกินเป้าหมายภาพรวม (> 0.80%)</span>
+            <span class="badge bg-danger"> Exceeded</span> <span class="text-muted small">เกินเป้าหมายภาพรวม (> 0.80%)</span>
           </div>
           <div class="metric-subtext small text-muted mt-1" id="skipFormulaText"></div>
         </div>
@@ -119,7 +123,7 @@
           <i class="fa-solid fa-user-gear"></i>
         </div>
         <div>
-          <h5 class="m-0 fw-bold text-warning">🎯 OVERALL TARGET < 0.80% (ZONE TARGET < 0.27%)</h5>
+          <h5 class="m-0 fw-bold text-warning"> OVERALL TARGET < 0.80% (ZONE TARGET < 0.27%)</h5>
           <p class="m-0 text-light small" style="opacity: 0.9;">
             คุมเข้มคุณภาพสแกนพัสดุ โดยแบ่งเป้าหมายราย Zone (A, B, C) ไม่เกิน Zone ละ 0.27% เพื่อให้ภาพรวมไม่เกิน 0.80%
           </p>
@@ -127,13 +131,13 @@
       </div>
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <button class="btn btn-danger btn-sm fw-bold px-3 shadow-sm admin-only-btn" id="btnManualTriggerSkip" data-role="admin-only" style="background: linear-gradient(135deg, #dc2626, #991b1b); border:none; display:none;" onclick="openAdminManualTriggerModal('skip')">
-          <i class="fa-solid fa-bolt me-1"></i> ⚡ Manual Trigger (Admin)
+          <i class="fa-solid fa-bolt me-1"></i> Manual Trigger (Admin)
         </button>
         <button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); border:none;" onclick="openAiSkipAnalysisModal()">
-          <i class="fa-solid fa-wand-magic-sparkles me-1"></i> ✨ AI Skip Analysis
+          <i class="fa-solid fa-wand-magic-sparkles me-1"></i> AI Skip Analysis
         </button>
         <button class="btn btn-success btn-sm fw-bold px-3 shadow-sm admin-only-btn" id="btnSendSkipSeatalk" data-role="admin-only" style="display:none;" onclick="sendSkipProcessSeatalkAlert()">
-          <i class="fa-solid fa-paper-plane me-1"></i> 📢 แจ้งเตือน SeaTalk
+          <i class="fa-solid fa-paper-plane me-1"></i> แจ้งเตือน SeaTalk
         </button>
       </div>
     </div>
@@ -159,7 +163,7 @@
 
     <div class="card-custom d-none" id="weeklySkipCard">
       <h6 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-calendar-week text-primary me-2"></i> % skip_outbound รายสัปดาห์ (Week-over-Week)</h6>
-      <p class="text-muted small mb-2">สัปดาห์เริ่มวันจันทร์ (WEEKNUM(date,2)) · % = ผลรวม skip_outbound ÷ ผลรวม Volume ของวันเดียวกัน · Volume ใช้ Tracker รายวันก่อน ถ้าไม่มีใช้จำนวน shipment ในไฟล์ (⚠️)</p>
+      <p class="text-muted small mb-2">สัปดาห์เริ่มวันจันทร์ (WEEKNUM(date,2)) · % = ผลรวม skip_outbound ÷ ผลรวม Volume ของวันเดียวกัน · Volume ใช้ Tracker รายวันก่อน ถ้าไม่มีใช้จำนวน shipment ในไฟล์ ()</p>
       <div id="weeklySkipWarning"></div>
       <div class="table-responsive">
         <table class="table table-sm table-hover table-bordered align-middle table-custom">
@@ -189,7 +193,7 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body p-3">
-          <input type="text" id="searchRaw" class="form-control form-control-sm mb-3" placeholder="🔍 ค้นหา Shipment ID / Zone / Hub / Reason..." onkeyup="filterRawTable()">
+          <input type="text" id="searchRaw" class="form-control form-control-sm mb-3" placeholder=" ค้นหา Shipment ID / Zone / Hub / Reason..." onkeyup="filterRawTable()">
           <div class="table-responsive">
             <table class="table table-sm table-hover table-bordered text-nowrap" id="rawTable">
               <thead class="table-dark">
@@ -243,39 +247,39 @@
           <div class="row g-3 mb-4">
             <!-- Daily Input -->
             <div class="col-md-5" id="dailyInputCol">
-              <label class="form-label fw-bold small text-muted">📅 วันที่รายงาน (Report Date)</label>
+              <label class="form-label fw-bold small text-muted"> วันที่รายงาน (Report Date)</label>
               <input type="date" class="form-control" id="volumeDateInput">
             </div>
 
             <!-- Weekly Input -->
             <div class="col-md-5 d-none" id="weeklyInputCol">
-              <label class="form-label fw-bold small text-muted">🗓️ สัปดาห์ (Week / อาทิตย์)</label>
+              <label class="form-label fw-bold small text-muted"> สัปดาห์ (Week / อาทิตย์)</label>
               <select class="form-select" id="volumeWeekSelect" onchange="onWeekSelectChange(this.value)">
                 <option value="Week 36 (31 ส.ค. - 06 ก.ย. 2026)">Week 36 (31 ส.ค. - 06 ก.ย. 2026)</option>
                 <option value="Week 35 (24 ส.ค. - 30 ส.ค. 2026)" selected>Week 35 (24 ส.ค. - 30 ส.ค. 2026)</option>
                 <option value="Week 34 (17 ส.ค. - 23 ส.ค. 2026)">Week 34 (17 ส.ค. - 23 ส.ค. 2026)</option>
                 <option value="Week 33 (10 ส.ค. - 16 ส.ค. 2026)">Week 33 (10 ส.ค. - 16 ส.ค. 2026)</option>
-                <option value="custom">✏️ ระบุชื่อสัปดาห์เอง...</option>
+                <option value="custom"> ระบุชื่อสัปดาห์เอง...</option>
               </select>
               <input type="text" class="form-control mt-2 d-none" id="volumeWeekCustomInput" placeholder="เช่น Week 35 หรือ 24-30 ส.ค.">
             </div>
 
             <!-- Volume Input -->
             <div class="col-md-7">
-              <label class="form-label fw-bold small text-muted">🔢 ตัวเลข SOCN Actual Volume (จำนวนชิ้น)</label>
+              <label class="form-label fw-bold small text-muted"> ตัวเลข SOCN Actual Volume (จำนวนชิ้น)</label>
               <input type="number" class="form-control form-control-lg fw-bold text-primary" id="volumeInputVal" placeholder="กรอกตัวเลข Volume เช่น 980457">
             </div>
           </div>
 
           <!-- Presets -->
           <div class="mb-3">
-            <label class="form-label small text-muted fw-bold">⚡ ตัวเลือกทางลัด (Presets)</label>
+            <label class="form-label small text-muted fw-bold"> ตัวเลือกทางลัด (Presets)</label>
             <div class="d-flex gap-2 flex-wrap">
-              <button class="btn btn-sm btn-outline-secondary" onclick="setVolumePreset('2026-08-30', 980457, 'daily', '30 Aug 2026')">📅 980,457 (30 Aug - รายวัน)</button>
-              <button class="btn btn-sm btn-outline-secondary" onclick="setVolumePreset('2026-09-01', 1814121, 'daily', '1 Sep 2026')">📅 1,814,121 (1 Sep - รายวัน)</button>
-              <button class="btn btn-sm btn-outline-secondary" onclick="setVolumePreset('2026-09-04', 1600547, 'daily', '4 Sep 2026')">📅 1,600,547 (4 Sep - รายวัน)</button>
-              <button class="btn btn-sm btn-outline-primary fw-bold" onclick="setVolumePreset('Week 35 (24 ส.ค. - 30 ส.ค. 2026)', 6860000, 'weekly', 'Week 35')">🗓️ 6,860,000 (Week 35 - รายสัปดาห์)</button>
-              <button class="btn btn-sm btn-outline-primary fw-bold" onclick="setVolumePreset('Week 36 (31 ส.ค. - 06 ก.ย. 2026)', 7200000, 'weekly', 'Week 36')">🗓️ 7,200,000 (Week 36 - รายสัปดาห์)</button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="setVolumePreset('2026-08-30', 980457, 'daily', '30 Aug 2026')"> 980,457 (30 Aug - รายวัน)</button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="setVolumePreset('2026-09-01', 1814121, 'daily', '1 Sep 2026')"> 1,814,121 (1 Sep - รายวัน)</button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="setVolumePreset('2026-09-04', 1600547, 'daily', '4 Sep 2026')"> 1,600,547 (4 Sep - รายวัน)</button>
+              <button class="btn btn-sm btn-outline-primary fw-bold" onclick="setVolumePreset('Week 35 (24 ส.ค. - 30 ส.ค. 2026)', 6860000, 'weekly', 'Week 35')"> 6,860,000 (Week 35 - รายสัปดาห์)</button>
+              <button class="btn btn-sm btn-outline-primary fw-bold" onclick="setVolumePreset('Week 36 (31 ส.ค. - 06 ก.ย. 2026)', 7200000, 'weekly', 'Week 36')"> 7,200,000 (Week 36 - รายสัปดาห์)</button>
             </div>
           </div>
 
@@ -388,7 +392,7 @@
                     <i class="fa-solid fa-folder-plus me-1"></i> สร้างโฟลเดอร์
                   </button>
                 </div>
-                <div class="small text-muted">💡 เมื่อสร้างเสร็จ คุณสามารถอัปโหลดไฟล์ CSV/Excel เข้าโฟลเดอร์นี้เพื่อประมวลผลเป็นชุดได้ทันที</div>
+                <div class="small text-muted"> เมื่อสร้างเสร็จ คุณสามารถอัปโหลดไฟล์ CSV/Excel เข้าโฟลเดอร์นี้เพื่อประมวลผลเป็นชุดได้ทันที</div>
               </div>
             </div>
 
@@ -2571,7 +2575,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
   </script>
 
   <!-- ========================================== -->
-  <!-- ⚡ MODAL: ADMIN MANUAL TRIGGER PANEL       -->
+  <!-- MODAL: ADMIN MANUAL TRIGGER PANEL -->
   <!-- ========================================== -->
   <div class="modal fade" id="adminManualTriggerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -2716,7 +2720,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
         <div class="modal-footer bg-light d-flex justify-content-between">
           <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
           <button type="button" class="btn btn-danger btn-sm fw-bold px-4 shadow-sm" id="btnAmtSubmit" onclick="executeSendAdminTrigger()">
-            <i class="fa-solid fa-paper-plane me-1"></i> 🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที
+            <i class="fa-solid fa-paper-plane me-1"></i> สั่งยิงแจ้งเตือน SeaTalk ทันที
           </button>
         </div>
       </div>
@@ -2724,7 +2728,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
   </div>
 
   <!-- ========================================== -->
-  <!-- 🧠 MODAL: AI SKIP PROCESS ANALYSIS         -->
+  <!-- MODAL: AI SKIP PROCESS ANALYSIS -->
   <!-- ========================================== -->
   <div class="modal fade" id="aiSkipAnalysisModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -2743,7 +2747,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
               <i class="fa-solid fa-copy me-1"></i> คัดลอกข้อความ (Copy)
             </button>
             <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="sendAiSkipToSeatalk()">
-              <i class="fa-solid fa-paper-plane me-1"></i> 📢 ส่งเข้า SeaTalk ทันที
+              <i class="fa-solid fa-paper-plane me-1"></i> ส่งเข้า SeaTalk ทันที
             </button>
           </div>
         </div>

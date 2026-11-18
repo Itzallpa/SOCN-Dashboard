@@ -1315,7 +1315,7 @@
       }
     }
 
-    document.querySelectorAll('.top-nav, nav, .portal-status-bar').forEach(function (nav) {
+    document.querySelectorAll('.top-nav, nav, .app-nav, .portal-status-bar').forEach(function (nav) {
       var badge = nav.querySelector('.user-profile-badge');
       if (!badge) {
         badge = document.createElement('div');
@@ -1331,10 +1331,10 @@
 
         badge.innerHTML = `
           <div class="socn-profile-dropdown" style="position:relative; display:inline-flex; align-items:center;">
-            <button type="button" onclick="window.AuthGuard.toggleProfileDropdown(event)" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); padding:5px 12px; border-radius:24px; color:#fff; display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:0.83rem; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.25);">
-              <img src="${user.picture}" style="width:24px; height:24px; border-radius:50%; object-fit:cover;">
-              <span style="max-width:130px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(user.name)}</span>
-              <span style="background:${roleBg}; color:#fff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; text-transform:uppercase;">${user.role}</span>
+            <button type="button" class="socn-profile-btn" aria-label="เมนูบัญชีผู้ใช้" onclick="window.AuthGuard.toggleProfileDropdown(event)" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); padding:5px 12px; border-radius:24px; color:#fff; display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:0.83rem; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.25);">
+              <img src="${user.picture}" alt="" style="width:24px; height:24px; border-radius:50%; object-fit:cover;">
+              <span class="socn-name" style="max-width:130px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(user.name)}</span>
+              <span class="socn-role-chip" style="background:${roleBg}; color:#fff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; text-transform:uppercase;">${user.role}</span>
               ${(canManageUsers && pendingCount > 0) ? `<span style="background:#dc2626; color:#fff; font-size:10px; font-weight:800; border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 0 6px #dc2626;" title="${pendingCount} รออนุมัติ">${pendingCount}</span>` : ''}
               <i class="fa-solid fa-chevron-down ms-1" style="font-size:0.7rem; color:#94a3b8;"></i>
             </button>
@@ -1381,7 +1381,7 @@
         `;
       } else {
         badge.innerHTML = `
-          <button onclick="window.AuthGuard.showModal('🔑 เข้าสู่ระบบ / ลงทะเบียน')" style="background:#2563eb; color:#fff; border:none; padding:6px 14px; border-radius:8px; font-weight:700; font-size:0.82rem; cursor:pointer; box-shadow:0 2px 6px rgba(37,99,235,0.4);"><i class="fa-solid fa-key me-1"></i> 🔑 เข้าสู่ระบบ / ลงทะเบียน</button>
+          <button class="socn-login-btn" onclick="window.AuthGuard.showModal('🔑 เข้าสู่ระบบ / ลงทะเบียน')" style="background:#2563eb; color:#fff; border:none; padding:6px 14px; border-radius:8px; font-weight:700; font-size:0.82rem; cursor:pointer; box-shadow:0 2px 6px rgba(37,99,235,0.4);"><i class="fa-solid fa-key me-1"></i> เข้าสู่ระบบ</button>
         `;
       }
     });
@@ -1402,8 +1402,9 @@
         padding: 0 !important;
       }
 
-      /* Navbar & Portal Status Bar Layout to ensure User Badge & Logout are ALWAYS visible */
-      nav, .top-nav {
+      /* Navbar & Portal Status Bar Layout to ensure User Badge & Logout are ALWAYS visible
+         (.app-nav = shared nav rendered by renderAppNav, styled by theme.css) */
+      nav:not(.app-nav), .top-nav:not(.app-nav) {
         display: flex !important;
         align-items: center !important;
         justify-content: space-between !important;
@@ -1437,7 +1438,7 @@
 
       /* Mobile & Tablet Navigation Auto Wrapping */
       @media (max-width: 1200px) {
-        nav, .top-nav {
+        nav:not(.app-nav), .top-nav:not(.app-nav) {
           padding: 8px 14px !important;
         }
         .user-profile-badge {
@@ -1446,18 +1447,18 @@
       }
 
       @media (max-width: 992px) {
-        .top-nav, nav {
+        .top-nav:not(.app-nav), nav:not(.app-nav) {
           padding: 10px 14px !important;
           flex-direction: column !important;
           align-items: flex-start !important;
           gap: 10px !important;
         }
-        .top-nav a.brand-title, nav a {
+        .top-nav:not(.app-nav) a.brand-title, nav:not(.app-nav) a {
           font-size: 0.92rem !important;
           max-width: 100% !important;
           word-break: break-word !important;
         }
-        .user-profile-badge {
+        :not(.app-nav) > .user-profile-badge {
           width: 100% !important;
           margin-left: 0 !important;
           justify-content: flex-start !important;
@@ -1483,8 +1484,66 @@
     document.head.appendChild(style);
   }
 
+  /* ─── Shared top navigation (one definition for every module page; styled by theme.css) ─── */
+  var APP_NAV_LINKS = [
+    { href: 'index.html',          label: 'Portal Hub',     icon: 'fa-house' },
+    { href: 'investigation.html',  label: 'Investigation',  icon: 'fa-magnifying-glass' },
+    { href: 'skip_process.html',   label: 'Skip Monitor',   icon: 'fa-forward' },
+    { href: 'cutoff_master.html',  label: 'Cutoff Master',  icon: 'fa-clock' },
+    { href: 'lh_trip.html',        label: 'LH Trip & OB Late', icon: 'fa-truck' },
+    { href: 'ob_bl.html',          label: 'OB Backlog',     icon: 'fa-boxes-stacked' },
+    { href: 'ob_bl_compare.html',  label: 'Backlog Compare', icon: 'fa-code-compare' },
+    { href: 'hourly_tracker.html', label: 'Hourly Tracker', icon: 'fa-chart-line' },
+    { href: 'obi_monitor.html',    label: 'OBI Monitor',    icon: 'fa-gauge-high' }
+  ];
+
+  function ensureThemeStylesheet() {
+    // pages carry <link href="theme.css"> in <head>; this is a fallback for pages that don't
+    if (!document.querySelector('link[href*="theme.css"]')) {
+      var l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = 'theme.css';
+      document.head.appendChild(l);
+    }
+  }
+
+  function renderAppNav() {
+    var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+    if (page === 'login.html' || !document.body) return;
+    if (document.querySelector('.app-nav')) return;
+    var nav = document.querySelector('body > nav, body > .top-nav, body > header.portal-status-bar');
+    if (!nav) {
+      // page without its own nav bar (e.g. OBI Monitor) → add the shared one at the top
+      nav = document.createElement('nav');
+      document.body.insertBefore(nav, document.body.firstChild);
+    } else if (nav.tagName !== 'NAV') {
+      var replacement = document.createElement('nav');
+      nav.parentNode.replaceChild(replacement, nav);
+      nav = replacement;
+    }
+    var links = APP_NAV_LINKS.map(function (l) {
+      var active = page === l.href;
+      return '<a class="app-link' + (active ? ' active' : '') + '" href="' + l.href + '"' + (active ? ' aria-current="page"' : '') + '>' +
+             '<i class="fa-solid ' + l.icon + '" aria-hidden="true"></i><span>' + l.label + '</span></a>';
+    }).join('');
+    nav.className = 'app-nav';
+    nav.removeAttribute('style');
+    nav.setAttribute('aria-label', 'Main navigation');
+    nav.innerHTML =
+      '<a class="app-brand" href="index.html"><span class="app-brand-mark"><i class="fa-solid fa-cube" aria-hidden="true"></i></span>' +
+      '<span class="app-brand-text">SOC Operations</span></a>' +
+      '<div class="app-links">' + links + '</div>';
+    var active = nav.querySelector('.app-link.active');
+    if (active && active.scrollIntoView) { try { active.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e) {} }
+  }
+
+  // run as early as possible (script tag sits right after the <nav>) to avoid a flash of the old nav
+  try { ensureThemeStylesheet(); renderAppNav(); } catch (e) {}
+
   /* ─── Init ─── */
   function initAuthSystem() {
+    ensureThemeStylesheet();
+    renderAppNav();
     injectResponsiveMobileStyles();
     getUsersDatabase(); // Initialize local database
     checkPagePermissions();
