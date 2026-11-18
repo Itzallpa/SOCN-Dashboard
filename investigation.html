@@ -54,7 +54,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="theme.css?v=2" rel="stylesheet">
+  <link href="theme.css?v=3" rel="stylesheet">
 </head>
 <body>
 
@@ -100,31 +100,29 @@
           </button>
         </div>
       </div>
-      <div class="d-flex align-items-center gap-2 flex-wrap">
-        <button class="btn btn-success btn-sm fw-bold" onclick="openGoogleSheetModal()"><i class="fa-solid fa-link me-1"></i> Sync Google Sheet</button>
-        <select class="form-select form-select-sm" id="outboundFileSelect" style="width: auto; max-width: 280px;" onchange="switchOutboundFile(this.value)">
+      <div class="page-head-actions">
+        <select class="form-select form-select-sm" id="outboundFileSelect" style="width: auto; max-width: 280px;" onchange="switchOutboundFile(this.value)" aria-label="เลือกไฟล์ Outbound">
           <option value="">-- เลือกไฟล์หรือโฟลเดอร์ Outbound --</option>
         </select>
-        <button class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="openCustomGroupModal()" title="เลือกจัดกลุ่มหลายไฟล์พร้อมกันเพื่อสรุปรายงานภาพรวม">
-          <i class="fa-solid fa-layer-group me-1"></i> จัดกลุ่มไฟล์เอง
-        </button>
-        <button class="btn btn-outline-danger btn-sm fw-bold" onclick="deleteSelectedOutboundFile()" title="ลบไฟล์หรือโฟลเดอร์ที่เลือกออกจากระบบ">
-          <i class="fa-solid fa-trash me-1"></i> ลบที่เลือก
-        </button>
-        <button class="btn btn-warning btn-sm fw-bold text-dark shadow-sm" onclick="openFolderManagerModal()" title="สร้างและจัดการโฟลเดอร์ อัปโหลดไฟล์เข้าโฟลเดอร์ หรือย้ายไฟล์">
-          <i class="fa-solid fa-folder-tree me-1"></i> จัดการ Folder
-        </button>
-        <label class="btn btn-outline-warning btn-sm fw-bold text-dark mb-0 shadow-sm" title="เลือกทั้งโฟลเดอร์จากเครื่องเพื่ออัปโหลด">
-          <i class="fa-solid fa-folder-open me-1"></i> อัปโหลด Folder
-          <input type="file" id="outboundFolderInput" webkitdirectory directory multiple style="display: none;" onchange="handleOutboundFolderUpload(this.files)">
-        </label>
-        <label class="btn btn-outline-secondary btn-sm fw-bold mb-0">
+        <label class="btn btn-primary btn-sm mb-0">
           <i class="fa-solid fa-upload me-1"></i> อัปโหลด CSV/Excel
           <input type="file" id="outboundFileInput" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleOutboundFileUpload(this.files[0])">
         </label>
-        <button class="btn btn-outline-danger btn-sm fw-bold" onclick="openRawDataModal('ALL')">
-          <i class="fa-solid fa-table-list me-1"></i> ดู Raw Data ล่าช้าทั้งหมด
-        </button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="openGoogleSheetModal()"><i class="fa-solid fa-link me-1"></i> Sync Google Sheet</button>
+        <div class="dropdown">
+          <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-ellipsis me-1"></i> เพิ่มเติม</button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><button class="dropdown-item" type="button" onclick="openRawDataModal('ALL')"><i class="fa-solid fa-table-list fa-fw me-2"></i>ดู Raw Data ล่าช้าทั้งหมด</button></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><h6 class="dropdown-header">ไฟล์ &amp; โฟลเดอร์</h6></li>
+            <li><button class="dropdown-item" type="button" onclick="openCustomGroupModal()"><i class="fa-solid fa-layer-group fa-fw me-2"></i>จัดกลุ่มไฟล์เอง</button></li>
+            <li><button class="dropdown-item" type="button" onclick="openFolderManagerModal()"><i class="fa-solid fa-folder-tree fa-fw me-2"></i>จัดการ Folder</button></li>
+            <li><label class="dropdown-item mb-0" style="cursor:pointer;"><i class="fa-solid fa-folder-open fa-fw me-2"></i>อัปโหลดทั้ง Folder
+              <input type="file" id="outboundFolderInput" webkitdirectory directory multiple style="display: none;" onchange="handleOutboundFolderUpload(this.files)"></label></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><button class="dropdown-item text-danger" type="button" onclick="deleteSelectedOutboundFile()"><i class="fa-solid fa-trash fa-fw me-2"></i>ลบไฟล์ที่เลือก</button></li>
+          </ul>
+        </div>
       </div>
     </div>
 
@@ -478,7 +476,7 @@
                     <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" id="folderUploadProgressBar" style="width: 0%;"></div>
                   </div>
                 </div>
-                <button class="btn btn-purple btn-sm fw-bold text-white w-100" style="background:#7c3aed;" id="btnStartFolderUpload" onclick="startUploadFilesToFolder()" disabled>
+                <button class="btn btn-outline-secondary btn-sm fw-bold text-white w-100"  id="btnStartFolderUpload" onclick="startUploadFilesToFolder()" disabled>
                   <i class="fa-solid fa-cloud-arrow-up me-1"></i> เริ่มอัปโหลดไฟล์เข้าโฟลเดอร์ที่เลือก
                 </button>
               </div>
@@ -509,7 +507,7 @@
           <!-- Existing Folders Directory List -->
           <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
             <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-folder-tree text-primary me-1"></i> รายการโฟลเดอร์ทั้งหมดบนระบบ</h6>
-            <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:12px;" onclick="refreshFolderManager()"><i class="fa-solid fa-rotate me-1"></i> รีเฟรช</button>
+            <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:12px" onclick="refreshFolderManager()"><i class="fa-solid fa-rotate me-1"></i> รีเฟรช</button>
           </div>
           <div class="card border p-2 bg-white rounded-3 shadow-xs" style="max-height: 280px; overflow-y: auto;" id="folderManagerListContainer">
             <!-- Rendered by JS -->

@@ -684,7 +684,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="theme.css?v=2" rel="stylesheet">
+  <link href="theme.css?v=3" rel="stylesheet">
 </head>
 <body>
 
@@ -700,27 +700,27 @@
 
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <!-- Universal Raw Data Explorer Button -->
-      <button class="btn btn-outline-light btn-sm d-flex align-items-center gap-2 fw-bold px-3 py-2 rounded-3 shadow-sm" onclick="openAllRawDataModal('calc')" style="border: 1px solid #475569; background: #1e293b; color: #f8fafc;" title="เปิดดูตาราง Raw Data ครบทุก Sheet">
+      <button class="btn btn-outline-light btn-sm d-flex align-items-center gap-2 fw-bold px-3 py-2 rounded-3 shadow-sm" onclick="openAllRawDataModal('calc')"  title="เปิดดูตาราง Raw Data ครบทุก Sheet">
         <i class="fa-solid fa-table-cells text-warning"></i>
         <span> ตาราง Raw Data ทุกแท็บ</span>
       </button>
 
-      <button class="btn btn-warning btn-sm d-flex align-items-center gap-2 fw-bold text-dark px-3 py-2 rounded-3 shadow-sm" id="btnSyncLive" onclick="fetchLivePublishedCsv(true)" style="background: linear-gradient(135deg, #f59e0b, #ea580c); border: none; color: #fff !important;" title="Sync ข้อมูลสดล่าสุดจาก Google Sheet">
+      <button class="btn btn-warning btn-sm d-flex align-items-center gap-2 fw-bold text-dark px-3 py-2 rounded-3 shadow-sm" id="btnSyncLive" onclick="fetchLivePublishedCsv(true)"  title="Sync ข้อมูลสดล่าสุดจาก Google Sheet">
         <i class="fa-solid fa-rotate" id="syncIcon"></i>
         <span>Sync ข้อมูลสด</span>
       </button>
 
-      <button class="btn btn-primary btn-sm d-flex align-items-center gap-2 fw-bold text-white px-3 py-2 rounded-3 shadow-sm" id="btnSaveFolder" onclick="saveAllTabsToLocalFolder()" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); border: none;" title="ดาวน์โหลดทุกแท็บและบันทึกลง Folder ในเครื่องอัตโนมัติ">
+      <button class="btn btn-primary btn-sm d-flex align-items-center gap-2 fw-bold text-white px-3 py-2 rounded-3 shadow-sm" id="btnSaveFolder" onclick="saveAllTabsToLocalFolder()"  title="ดาวน์โหลดทุกแท็บและบันทึกลง Folder ในเครื่องอัตโนมัติ">
         <i class="fa-solid fa-folder-arrow-down"></i>
         <span> โหลด & เก็บใน Folder</span>
       </button>
 
-      <button class="btn btn-success btn-sm d-flex align-items-center gap-2 fw-bold text-white px-3 py-2 rounded-3 shadow-sm" id="btnExportExcel" onclick="downloadSingleExcelWorkbook()" style="background: linear-gradient(135deg, #10b981, #059669); border: none;" title="ดาวน์โหลดไฟล์ Excel (.xlsx) ไฟล์เดียวที่มีครบทุกแท็บ">
+      <button class="btn btn-success btn-sm d-flex align-items-center gap-2 fw-bold text-white px-3 py-2 rounded-3 shadow-sm" id="btnExportExcel" onclick="downloadSingleExcelWorkbook()"  title="ดาวน์โหลดไฟล์ Excel (.xlsx) ไฟล์เดียวที่มีครบทุกแท็บ">
         <i class="fa-solid fa-file-excel"></i>
         <span>Export Excel (.xlsx)</span>
       </button>
 
-      <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2 fw-bold text-white px-2 py-2 rounded-3 shadow-sm" id="btnOpenFolder" onclick="openLocalFolder()" style="background: #334155; border: none;" title="เปิดโฟลเดอร์ที่เก็บไฟล์ในเครื่องคอมพิวเตอร์">
+      <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2 fw-bold text-white px-2 py-2 rounded-3 shadow-sm" id="btnOpenFolder" onclick="openLocalFolder()"  title="เปิดโฟลเดอร์ที่เก็บไฟล์ในเครื่องคอมพิวเตอร์">
         <i class="fa-regular fa-folder-open"></i>
         <span>เปิด Folder</span>
       </button>
@@ -818,7 +818,7 @@
               <div class="content-sub">แสดง Actual เทียบ Target 3,600 และ Capacity 4,000 ชิ้น/ชม. <span class="text-primary fw-semibold ms-1">(คลิกจุดบนกราฟเพื่อดู Raw Data รายชั่วโมง)</span></div>
             </div>
             <div class="d-flex align-items-center gap-3">
-              <button class="btn btn-sm btn-outline-secondary py-1 px-2 fw-semibold rounded-2" onclick="openAllRawDataModal('hourly')" style="font-size: 0.78rem;">
+              <button class="btn btn-sm btn-outline-secondary py-1 px-2 fw-semibold rounded-2" onclick="openAllRawDataModal('hourly')" style="font-size: 0.78rem">
                 <i class="fa-solid fa-list-ol me-1"></i> ดูตาราง 24 ชม.
               </button>
               <div class="chart-legend-top">
@@ -848,7 +848,7 @@
               <div class="content-title">Performance by Zone</div>
               <div class="content-sub">Average Actual เทียบ Target 900 ชิ้น/ชม./Zone</div>
             </div>
-            <button class="btn btn-sm btn-outline-secondary py-1 px-2 fw-semibold rounded-2" onclick="openAllRawDataModal('stations')" style="font-size: 0.78rem;">
+            <button class="btn btn-sm btn-outline-secondary py-1 px-2 fw-semibold rounded-2" onclick="openAllRawDataModal('stations')" style="font-size: 0.78rem">
               <i class="fa-solid fa-layer-group me-1"></i> ดูทุก Zone
             </button>
           </div>

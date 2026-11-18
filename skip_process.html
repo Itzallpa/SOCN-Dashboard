@@ -25,7 +25,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="theme.css?v=2" rel="stylesheet">
+  <link href="theme.css?v=3" rel="stylesheet">
 </head>
 <body>
 
@@ -51,34 +51,33 @@
 
   <div class="container-fluid px-3 py-3" style="max-width: 1560px; margin: 0 auto;">
 
-    <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-2 px-3 rounded-3 shadow-sm border flex-wrap gap-2">
-      <div>
-        <h4 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-box-open text-purple me-2"></i> SOC Skip Process & Zone Assignment Monitor</h4>
-        <p class="text-muted small mb-0">ระบบติดตามเคสพัสดุข้ามขั้นตอน (Skip Process), ตารางบันทึกตัวเลข SOCN Actual รายวัน และการคำนวณ % Skip ตามโซน</p>
+    <header class="page-head">
+      <div class="page-head-title">
+        <h1 class="page-title">Skip Process &amp; Zone Assignment</h1>
+        <p class="page-subtitle">ติดตามเคสพัสดุข้ามขั้นตอน (Skip Process), ตัวเลข SOCN Actual รายวัน และ % Skip ตามโซน</p>
       </div>
-      <div class="d-flex align-items-center gap-2 flex-wrap">
-        <select class="form-select form-select-sm" id="skipDateSelect" style="width: auto; max-width: 280px;" onchange="onSkipDateChange(this.value)">
+      <div class="page-head-actions">
+        <select class="form-select form-select-sm" id="skipDateSelect" style="width: auto; max-width: 280px;" onchange="onSkipDateChange(this.value)" aria-label="เลือกไฟล์ Skip Process">
           <option value="">-- เลือกไฟล์หรือโฟลเดอร์ Skip Process --</option>
         </select>
-        <button class="btn btn-purple btn-sm fw-bold text-white shadow-sm" style="background:#7c3aed;" onclick="openCustomGroupModal()" title="เลือกจัดกลุ่มหลายไฟล์พร้อมกันเพื่อสรุปรายงานภาพรวม">
-          <i class="fa-solid fa-layer-group me-1"></i> จัดกลุ่มไฟล์เอง
-        </button>
-        <button class="btn btn-warning btn-sm fw-bold text-dark shadow-sm" onclick="openFolderManagerModal()" title="สร้างและจัดการโฟลเดอร์ อัปโหลดไฟล์เข้าโฟลเดอร์ หรือย้ายไฟล์">
-          <i class="fa-solid fa-folder-tree me-1"></i> จัดการ Folder
-        </button>
-        <label class="btn btn-outline-warning btn-sm fw-bold text-dark mb-0 shadow-sm" title="เลือกทั้งโฟลเดอร์เพื่อสรุปข้อมูลรวมทุกไฟล์ในโฟลเดอร์">
-          <i class="fa-solid fa-folder-open me-1"></i> อัปโหลด Folder
-          <input type="file" id="skipFolderInput" webkitdirectory directory multiple style="display: none;" onchange="handleSkipFolderUpload(this.files)">
-        </label>
-        <label class="btn btn-outline-secondary btn-sm fw-bold mb-0">
-          <i class="fa-solid fa-upload me-1"></i> อัปโหลด CSV Skip Process
+        <label class="btn btn-primary btn-sm mb-0">
+          <i class="fa-solid fa-upload me-1"></i> อัปโหลด CSV
           <input type="file" id="skipFileInput" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleSkipFileUpload(this.files[0])">
         </label>
-        <button class="btn btn-outline-primary btn-sm fw-bold" onclick="openVolumeHistoryModal()">
+        <button class="btn btn-outline-secondary btn-sm" onclick="openVolumeHistoryModal()">
           <i class="fa-solid fa-database me-1"></i> SOCN Volume Tracker
         </button>
+        <div class="dropdown">
+          <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-folder-tree me-1"></i> ไฟล์ &amp; โฟลเดอร์</button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><button class="dropdown-item" type="button" onclick="openCustomGroupModal()"><i class="fa-solid fa-layer-group fa-fw me-2"></i>จัดกลุ่มไฟล์เอง</button></li>
+            <li><button class="dropdown-item" type="button" onclick="openFolderManagerModal()"><i class="fa-solid fa-folder-tree fa-fw me-2"></i>จัดการ Folder</button></li>
+            <li><label class="dropdown-item mb-0" style="cursor:pointer;"><i class="fa-solid fa-folder-open fa-fw me-2"></i>อัปโหลดทั้ง Folder
+              <input type="file" id="skipFolderInput" webkitdirectory directory multiple style="display: none;" onchange="handleSkipFolderUpload(this.files)"></label></li>
+          </ul>
+        </div>
       </div>
-    </div>
+    </header>
 
     <div id="skipUploadStatus" class="mb-3"></div>
 
@@ -130,13 +129,13 @@
         </div>
       </div>
       <div class="d-flex align-items-center gap-2 flex-wrap">
-        <button class="btn btn-danger btn-sm fw-bold px-3 shadow-sm admin-only-btn" id="btnManualTriggerSkip" data-role="admin-only" style="background: linear-gradient(135deg, #dc2626, #991b1b); border:none; display:none;" onclick="openAdminManualTriggerModal('skip')">
+        <button class="btn btn-danger btn-sm fw-bold px-3 shadow-sm admin-only-btn" id="btnManualTriggerSkip" data-role="admin-only" style="display:none" onclick="openAdminManualTriggerModal('skip')">
           <i class="fa-solid fa-bolt me-1"></i> Manual Trigger (Admin)
         </button>
-        <button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); border:none;" onclick="openAiSkipAnalysisModal()">
+        <button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm"  onclick="openAiSkipAnalysisModal()">
           <i class="fa-solid fa-wand-magic-sparkles me-1"></i> AI Skip Analysis
         </button>
-        <button class="btn btn-success btn-sm fw-bold px-3 shadow-sm admin-only-btn" id="btnSendSkipSeatalk" data-role="admin-only" style="display:none;" onclick="sendSkipProcessSeatalkAlert()">
+        <button class="btn btn-success btn-sm fw-bold px-3 shadow-sm admin-only-btn" id="btnSendSkipSeatalk" data-role="admin-only" style="display:none" onclick="sendSkipProcessSeatalkAlert()">
           <i class="fa-solid fa-paper-plane me-1"></i> แจ้งเตือน SeaTalk
         </button>
       </div>
@@ -346,7 +345,7 @@
         </div>
         <div class="modal-footer bg-white border-top p-2 px-3">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
-          <button type="button" class="btn btn-purple btn-sm fw-bold text-white px-3" style="background:#7c3aed;" onclick="submitCustomGroup()"><i class="fa-solid fa-chart-pie me-1"></i> สรุปและประมวลผลกลุ่มที่เลือก</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm fw-bold text-white px-3"  onclick="submitCustomGroup()"><i class="fa-solid fa-chart-pie me-1"></i> สรุปและประมวลผลกลุ่มที่เลือก</button>
         </div>
       </div>
     </div>
@@ -418,7 +417,7 @@
                     <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" id="folderUploadProgressBar" style="width: 0%;"></div>
                   </div>
                 </div>
-                <button class="btn btn-purple btn-sm fw-bold text-white w-100" style="background:#7c3aed;" id="btnStartFolderUpload" onclick="startUploadFilesToFolder()" disabled>
+                <button class="btn btn-outline-secondary btn-sm fw-bold text-white w-100"  id="btnStartFolderUpload" onclick="startUploadFilesToFolder()" disabled>
                   <i class="fa-solid fa-cloud-arrow-up me-1"></i> เริ่มอัปโหลดไฟล์เข้าโฟลเดอร์ที่เลือก
                 </button>
               </div>
@@ -449,7 +448,7 @@
           <!-- Existing Folders Directory List -->
           <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
             <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-folder-tree text-primary me-1"></i> รายการโฟลเดอร์ทั้งหมดบนระบบ</h6>
-            <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:12px;" onclick="refreshFolderManager()"><i class="fa-solid fa-rotate me-1"></i> รีเฟรช</button>
+            <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:12px" onclick="refreshFolderManager()"><i class="fa-solid fa-rotate me-1"></i> รีเฟรช</button>
           </div>
           <div class="card border p-2 bg-white rounded-3 shadow-xs" style="max-height: 280px; overflow-y: auto;" id="folderManagerListContainer">
             <!-- Rendered by JS -->
@@ -2580,7 +2579,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
   <div class="modal fade" id="adminManualTriggerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-        <div class="modal-header text-white" style="background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%);">
+        <div class="modal-header text-white" style="background: #991b1b;">
           <div>
             <h5 class="modal-title fw-bold mb-0"><i class="fa-solid fa-bolt text-warning me-2"></i> Admin SeaTalk Manual Trigger Control</h5>
             <small class="text-white-50">ศูนย์ควบคุมการสั่งยิงแจ้งเตือนด่วน (สำหรับผู้ใช้งานยศ Admin เท่านั้น)</small>
@@ -2733,7 +2732,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
   <div class="modal fade" id="aiSkipAnalysisModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content border-0 shadow-lg rounded-4">
-        <div class="modal-header text-white" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);">
+        <div class="modal-header text-white" style="background: #101828;">
           <h5 class="modal-title fw-bold"><i class="fa-solid fa-wand-magic-sparkles text-warning me-2"></i> AI Skip Process Analysis & Hotspots</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>

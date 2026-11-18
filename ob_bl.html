@@ -546,7 +546,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="theme.css?v=2" rel="stylesheet">
+  <link href="theme.css?v=3" rel="stylesheet">
 </head>
 
 <body>
@@ -589,51 +589,33 @@
 
   <div class="app">
 
-    <!-- Header Banner & Controls (SOC Blue Theme) -->
-    <header
-      style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background:linear-gradient(120deg, #0d1b2a, #1e293b); border-radius:14px; padding:16px 22px; color:#fff; box-shadow:0 8px 20px -8px rgba(13,27,42,.4); margin-bottom:14px;">
-      <div>
-        <h1 style="font-size:21px; margin:0 0 2px; font-weight:800; color:#fff;"> OB Backlog (OB BL) Dashboard</h1>
-        <div class="subtitle" id="subtitle" style="color:#94a3b8;">ระบบติดตามพัสดุค้าง OB Backlog
-          และวิเคราะห์ตามทีม/ชั่วโมง</div>
+    <!-- Page header -->
+    <header class="page-head">
+      <div class="page-head-title">
+        <h1 class="page-title">OB Backlog</h1>
+        <div class="page-subtitle subtitle" id="subtitle">ระบบติดตามพัสดุค้าง OB Backlog และวิเคราะห์ตามทีม/ชั่วโมง</div>
       </div>
-      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <button onclick="openAdminManualTriggerModal('ob_bl')" class="admin-only-btn" id="btnManualTriggerObBl" data-role="admin-only"
-          style="background:linear-gradient(135deg, #dc2626, #991b1b); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px; display:none;"><i
-            class="fa-solid fa-bolt"></i> Manual Trigger (Admin)</button>
-        <button onclick="openExecutiveSummaryModal()"
-          style="background:linear-gradient(135deg, #0284c7, #0369a1); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
-            class="fa-solid fa-file-invoice"></i> สรุปรายงาน (Summary)</button>
-        <button onclick="openAiObBlAnalysisModal()"
-          style="background:linear-gradient(135deg, #4f46e5, #7c3aed); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
-            class="fa-solid fa-wand-magic-sparkles"></i> AI Backlog</button>
-        <button onclick="sendObBlSeatalkAlert()" class="admin-only-btn" id="btnSendObBlSeatalk" data-role="admin-only"
-          style="background:#059669; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px; display:none;"><i
-            class="fa-solid fa-paper-plane"></i> แจ้งเตือน SeaTalk</button>
-        <button onclick="openGoogleSheetModal()"
-          style="background:#10b981; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
-            class="fa-solid fa-link"></i> Sync Google Sheet</button>
-        <select id="fileSelectDropdown" onchange="onFileDropdownChange(this.value)"
-          style="padding:7px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:#1e293b; color:#ffffff; font-weight:700; font-size:13px; max-width:240px;">
+      <div class="page-head-actions">
+        <select id="fileSelectDropdown" class="form-select form-select-sm" onchange="onFileDropdownChange(this.value)" style="width:auto; max-width:240px;" aria-label="เลือกไฟล์รายงาน OB BL">
           <option value="">-- เลือกไฟล์รายงาน OB BL --</option>
         </select>
-        <button id="deleteFileBtn" onclick="deleteSelectedObBlFile()"
-          style="background:#dc2626; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px; font-size:12px;"><i
-            class="fa-solid fa-trash"></i> ลบไฟล์ที่เลือก</button>
-        <button onclick="document.getElementById('csvFileInput').click()"
-          style="background:#2563eb; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
-            class="fa-solid fa-upload"></i> อัปโหลด CSV/Excel</button>
-        <input type="file" id="csvFileInput" accept=".csv, .xlsx, .xls" style="display:none;"
-          onchange="handleFileUpload(event)">
-        <button id="refreshBtn" onclick="forceRefresh()"
-          style="background:rgba(255,255,255,0.12); color:#ffffff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;">↻
-          Refresh</button>
-        <button id="exportSummaryBtn" onclick="exportSummaryExcel()"
-          style="background:linear-gradient(135deg, #10b981, #059669); color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;"><i
-            class="fa-solid fa-file-excel"></i> ⇩ Export สรุป (Excel)</button>
-        <button id="exportBtn" class="export-btn" disabled
-          style="background:#334155; color:#fff; font-weight:700; border:none; padding:8px 14px; border-radius:8px;">⇩
-          Export Raw (CSV)</button>
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('csvFileInput').click()"><i class="fa-solid fa-upload me-1"></i> อัปโหลด CSV/Excel</button>
+        <input type="file" id="csvFileInput" accept=".csv, .xlsx, .xls" style="display:none;" onchange="handleFileUpload(event)">
+        <button id="refreshBtn" class="btn btn-outline-secondary btn-sm" onclick="forceRefresh()" title="Refresh" aria-label="Refresh"><i class="fa-solid fa-arrows-rotate"></i></button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="openGoogleSheetModal()"><i class="fa-solid fa-link me-1"></i> Sync Google Sheet</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="openExecutiveSummaryModal()"><i class="fa-solid fa-file-invoice me-1"></i> สรุปรายงาน</button>
+        <button onclick="openAdminManualTriggerModal('ob_bl')" class="btn btn-outline-secondary btn-sm admin-only-btn" id="btnManualTriggerObBl" data-role="admin-only" style="display:none;"><i class="fa-solid fa-bolt me-1"></i> Manual Trigger</button>
+        <button onclick="sendObBlSeatalkAlert()" class="btn btn-outline-secondary btn-sm admin-only-btn" id="btnSendObBlSeatalk" data-role="admin-only" style="display:none;"><i class="fa-solid fa-paper-plane me-1"></i> แจ้งเตือน SeaTalk</button>
+        <details class="menu-details">
+          <summary class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-ellipsis me-1"></i> เพิ่มเติม</summary>
+          <div class="menu-panel">
+            <button type="button" class="dropdown-item" onclick="openAiObBlAnalysisModal()"><i class="fa-solid fa-wand-magic-sparkles fa-fw me-2"></i>AI Backlog</button>
+            <button type="button" class="dropdown-item" id="exportSummaryBtn" onclick="exportSummaryExcel()"><i class="fa-solid fa-file-excel fa-fw me-2"></i>Export สรุป (Excel)</button>
+            <button type="button" class="dropdown-item export-btn" id="exportBtn" disabled><i class="fa-solid fa-download fa-fw me-2"></i>Export Raw (CSV)</button>
+            <hr class="dropdown-divider">
+            <button type="button" class="dropdown-item text-danger" id="deleteFileBtn" onclick="deleteSelectedObBlFile()"><i class="fa-solid fa-trash fa-fw me-2"></i>ลบไฟล์ที่เลือก</button>
+          </div>
+        </details>
       </div>
     </header>
 
@@ -3005,7 +2987,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
   <!-- ========================================== -->
   <div id="adminManualTriggerModalOverlay" class="modal-overlay" onclick="if(event.target.id==='adminManualTriggerModalOverlay') closeAdminManualTriggerModal();" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(15,23,42,0.85); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
     <div class="modal-box" style="max-width:760px; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
-      <div class="modal-header" style="background:linear-gradient(135deg, #991b1b, #dc2626); color:#ffffff; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <div class="modal-header" style="background:#991b1b; color:#ffffff; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
         <div>
           <div class="modal-title" style="color:#ffffff; font-weight:800; font-size:1.1rem;"><i class="fa-solid fa-bolt" style="color:#fbbf24; margin-right:8px;"></i> Admin SeaTalk Manual Trigger Control</div>
           <div class="modal-sub" style="color:rgba(255,255,255,0.8); font-size:0.8rem;">ศูนย์ควบคุมการสั่งยิงแจ้งเตือนด่วน (สำหรับผู้ใช้งานยศ Admin เท่านั้น)</div>
@@ -3139,7 +3121,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
   <!-- ========================================== -->
   <div id="aiObBlModalOverlay" class="modal-overlay" onclick="if(event.target.id==='aiObBlModalOverlay') closeAiObBlModal();">
     <div class="modal-box" style="max-width:760px;">
-      <div class="modal-header" style="background:linear-gradient(135deg, #1e1b4b, #312e81); color:#ffffff;">
+      <div class="modal-header" style="background:#101828; color:#ffffff;">
         <div>
           <div class="modal-title" style="color:#ffffff;"><i class="fa-solid fa-wand-magic-sparkles" style="color:#fbbf24; margin-right:8px;"></i> AI Outbound Backlog Analysis & Bottlenecks</div>
           <div class="modal-sub" style="color:#cbd5e1;">ประมวลผลความหนาแน่นและสถานีปลายทางที่ตกค้างสูงสุด</div>
@@ -3164,7 +3146,7 @@ CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
   <!-- ========================================== -->
   <div id="executiveSummaryModalOverlay" class="modal-overlay" onclick="if(event.target.id==='executiveSummaryModalOverlay') closeExecutiveSummaryModal();" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(15,23,42,0.85); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
     <div class="modal-box" style="max-width:840px; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
-      <div class="modal-header" style="background:linear-gradient(135deg, #0369a1, #0284c7); color:#ffffff; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <div class="modal-header" style="background:#0369a1; color:#ffffff; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
         <div>
           <div class="modal-title" style="color:#ffffff; font-weight:800; font-size:1.15rem;"><i class="fa-solid fa-file-invoice" style="color:#fbbf24; margin-right:8px;"></i> สรุปรายงานผู้บริหาร (Executive Summary Report)</div>
           <div class="modal-sub" style="color:rgba(255,255,255,0.85); font-size:0.8rem;">สรุปภาพรวมพัสดุตกค้าง OB BL, มิติแผนก, ระยะเวลา Day in SOC, และสถานีปลายทางหลัก</div>

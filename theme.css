@@ -42,6 +42,10 @@
   --app-font: "Inter", "IBM Plex Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
   --app-nav-h: 56px;
 
+  /* OB Backlog page variables (only ob_bl.html defines/uses these) */
+  --accent: #D73211;
+  --accent2: #EE4D2D;
+
   /* Bootstrap variable bridge */
   --bs-body-font-family: var(--app-font);
   --bs-body-color: var(--app-text);
@@ -367,6 +371,9 @@ hr { border-color: var(--app-border); opacity: 1; }
   flex-wrap: wrap; gap: 12px 24px;
   padding: 8px 2px 16px; margin-bottom: 4px;
 }
+header.page-head, .page-head { background: transparent !important; color: var(--app-text) !important; border-radius: 0 !important; box-shadow: none !important; border: 0 !important; }
+.page-head .page-subtitle, .page-head .subtitle { color: var(--app-muted) !important; font-size: 0.85rem !important; }
+.menu-panel .export-btn, .menu-panel .export-btn:hover { background: none !important; color: var(--app-text-2) !important; }
 .page-head-title { min-width: 0; }
 .page-title { font-size: 1.375rem !important; font-weight: 650 !important; margin: 0 0 2px !important; letter-spacing: -0.02em; color: var(--app-text) !important; }
 .page-subtitle { margin: 0; color: var(--app-muted); font-size: 0.85rem; }
@@ -390,6 +397,19 @@ hr { border-color: var(--app-border); opacity: 1; }
 .dropdown-item:hover, .dropdown-item:focus { background: var(--app-surface-2); color: var(--app-text); }
 .dropdown-header { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--app-faint); font-weight: 600; }
 
+/* no-JS "More" menu (<details>) for pages without Bootstrap JS */
+.menu-details { position: relative; }
+.menu-details > summary { list-style: none; display: inline-flex; align-items: center; }
+.menu-details > summary::-webkit-details-marker { display: none; }
+.menu-details > summary::after { content: "\25BE"; margin-left: 6px; font-size: .7rem; color: var(--app-muted); }
+.menu-details .menu-panel {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 1050; min-width: 220px;
+  background: var(--app-surface); border: 1px solid var(--app-border); border-radius: 10px;
+  box-shadow: var(--app-shadow-md); padding: 6px 0;
+}
+.menu-details .menu-panel .dropdown-item { width: 100%; background: none; border: 0; text-align: left; }
+.menu-details .menu-panel .dropdown-item:disabled { opacity: .45; pointer-events: none; }
+
 .section-title { font-size: 0.95rem !important; font-weight: 650 !important; color: var(--app-text) !important; margin: 0 !important; }
 .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
 .metric-lg { font-size: 2rem; font-weight: 650; letter-spacing: -0.02em; color: var(--app-text); line-height: 1.1; font-variant-numeric: tabular-nums; }
@@ -399,6 +419,92 @@ hr { border-color: var(--app-border); opacity: 1; }
   .page-head { align-items: flex-start; }
   .data-bar-meta { margin-left: 0; width: 100%; }
 }
+
+/* ---------- legacy page headers → page-head look (first white bar in the page container) ---------- */
+.container-fluid > .d-flex.bg-white.rounded-3.shadow-sm.border:first-child,
+.container-fluid > .d-flex.bg-white.rounded-3.shadow-sm.border:first-of-type {
+  background: transparent !important; border: 0 !important; box-shadow: none !important;
+  padding: 8px 2px 16px !important; margin-bottom: 4px !important; align-items: flex-end !important;
+}
+.container-fluid > .d-flex.bg-white.rounded-3.shadow-sm.border:first-child h4,
+.container-fluid > .d-flex.bg-white.rounded-3.shadow-sm.border:first-of-type h4 {
+  font-size: 1.375rem !important; font-weight: 650 !important; letter-spacing: -0.02em; margin-bottom: 2px !important;
+}
+.container-fluid > .d-flex.bg-white.rounded-3.shadow-sm.border:first-child h4 > i:first-child,
+.container-fluid > .d-flex.bg-white.rounded-3.shadow-sm.border:first-of-type h4 > i:first-child { display: none; }
+.container-fluid > .d-flex.bg-white.rounded-3.shadow-sm.border:first-child p.small,
+.container-fluid > .d-flex.bg-white.rounded-3.shadow-sm.border:first-of-type p.small { font-size: 0.85rem !important; max-width: 760px; }
+.btn-group.rounded-pill { border-radius: 9px !important; padding: 2px !important; background: var(--app-surface) !important; border-color: var(--app-border-strong) !important; box-shadow: none !important; }
+.btn-group.rounded-pill .btn { border-radius: 7px !important; border: 0 !important; }
+.btn-group.rounded-pill .btn-light { background: transparent !important; color: var(--app-muted) !important; }
+.btn-group.rounded-pill .btn-light i { color: inherit !important; }
+.btn-group.rounded-pill .btn-primary, .btn-group.rounded-pill .btn-warning { background: var(--app-text) !important; color: #fff !important; }
+.btn-group.rounded-pill .btn-warning i, .btn-group.rounded-pill .btn-primary i { color: #fff !important; }
+
+/* ---------- page-specific cards mapped to the shared look ---------- */
+.metric-card, .content-card, .login-card, .target-banner, .dropzone-box, .urgent-card, .warning-card, .drill-kpi-box, .cbs-stat-box {
+  background: var(--app-surface) !important;
+  border: 1px solid var(--app-border) !important;
+  border-radius: var(--app-radius) !important;
+  box-shadow: var(--app-shadow) !important;
+}
+.metric-card { border-left-width: 3px !important; transform: none !important; }
+.metric-card.metric-danger { border-left-color: var(--app-danger) !important; }
+.metric-card.metric-warning { border-left-color: #F79009 !important; }
+.metric-card.metric-success { border-left-color: var(--app-success) !important; }
+.metric-card.metric-primary, .metric-card.metric-info { border-left-color: var(--app-brand) !important; }
+.metric-title { font-size: 0.72rem !important; font-weight: 600 !important; color: var(--app-muted) !important; text-transform: uppercase; letter-spacing: .04em; }
+.metric-value { font-weight: 650 !important; color: var(--app-text) !important; letter-spacing: -0.02em; }
+.urgent-card { border-left: 3px solid var(--app-danger) !important; }
+.warning-card { border-left: 3px solid #F79009 !important; }
+.clock-widget { background: var(--app-surface) !important; border: 1px solid var(--app-border-strong) !important; color: var(--app-text) !important; border-radius: 8px !important; font-variant-numeric: tabular-nums; box-shadow: none !important; }
+.dropzone-box { border-style: dashed !important; border-color: var(--app-border-strong) !important; }
+
+/* OBI Monitor dark header → light page header */
+.top-header {
+  background: transparent !important; color: var(--app-text) !important; box-shadow: none !important;
+  border: 0 !important; border-bottom: 1px solid var(--app-border) !important; border-radius: 0 !important;
+}
+.top-header h1 { color: var(--app-text) !important; font-size: 1.25rem !important; font-weight: 650 !important; }
+.top-header p { color: var(--app-muted) !important; }
+.top-header .brand-icon-box { background: var(--app-brand) !important; color: #fff !important; box-shadow: none !important; }
+.btn-outline-light {
+  background: var(--app-surface) !important; border: 1px solid var(--app-border-strong) !important; color: var(--app-text-2) !important;
+}
+.btn-outline-light:hover { background: var(--app-surface-2) !important; color: var(--app-text) !important; }
+.btn-outline-light i, .btn-outline-light .text-warning { color: var(--app-muted) !important; }
+
+/* ---------- Portal Hub (index.html) — light app launcher ---------- */
+.portal-container { max-width: 1120px !important; width: 100%; margin: 0 auto !important; padding: 40px 20px 48px !important; flex: 1 0 auto; }
+.portal-header-title { text-align: left !important; margin-bottom: 24px !important; }
+.portal-header-title h1 { color: var(--app-text) !important; font-size: 1.5rem !important; font-weight: 650 !important; letter-spacing: -0.02em; background: none !important; -webkit-text-fill-color: currentColor !important; }
+.portal-header-title p { color: var(--app-muted) !important; font-size: 0.9rem !important; margin-top: 4px !important; }
+.apps-grid {
+  display: grid !important; gap: 12px !important;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+  justify-items: stretch !important; max-width: none !important;
+}
+.app-item {
+  display: grid !important; grid-template-columns: 40px 1fr; grid-template-rows: auto auto;
+  column-gap: 12px; row-gap: 1px; align-items: center !important; text-align: left !important;
+  background: var(--app-surface) !important; border: 1px solid var(--app-border) !important;
+  border-radius: var(--app-radius) !important; padding: 14px 16px !important;
+  color: var(--app-text) !important; text-decoration: none !important; box-shadow: var(--app-shadow) !important;
+  transform: none !important; transition: border-color .15s ease, box-shadow .15s ease !important;
+}
+.app-item[style*="display: none"], .app-item[style*="display:none"] { display: none !important; }   /* admin tile stays hidden until auth_guard shows it */
+.portal-dots { display: none !important; }
+.app-item:hover { border-color: var(--app-border-strong) !important; box-shadow: var(--app-shadow-md) !important; }
+.app-item:hover .app-icon-tile { transform: none !important; }
+.app-icon-tile {
+  grid-row: 1 / span 2; width: 40px !important; height: 40px !important; margin: 0 !important;
+  border-radius: 9px !important; font-size: 1.05rem !important; box-shadow: none !important;
+  background: var(--app-primary-soft) !important; color: var(--app-brand) !important; border: 0 !important;
+}
+.app-icon-tile i { color: var(--app-brand) !important; filter: none !important; }
+.app-label { color: var(--app-text) !important; font-size: 0.9rem !important; font-weight: 600 !important; margin: 0 !important; text-shadow: none !important; }
+.app-sublabel { color: var(--app-muted) !important; font-size: 0.78rem !important; margin: 0 !important; opacity: 1 !important; }
+.portal-footer, footer { color: var(--app-faint) !important; background: transparent !important; border-color: var(--app-border) !important; }
 
 /* ---------- misc ---------- */
 .dropdown-menu { border: 1px solid var(--app-border) !important; border-radius: 10px !important; box-shadow: var(--app-shadow-md) !important; font-size: 0.85rem; }
