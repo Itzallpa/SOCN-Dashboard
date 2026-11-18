@@ -290,20 +290,17 @@
           <h6 class="fw-bold mb-3 text-slate-800 d-flex justify-content-between align-items-center">
             <span><i class="fa-solid fa-clock-rotate-left me-1 text-primary"></i> ประวัติการบันทึก Volume ย้อนหลัง (รายวัน / รายสัปดาห์)</span>
           </h6>
-          <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle table-bordered">
-              <thead class="table-light">
-                <tr>
-                  <th style="width:130px;">ประเภท</th>
-                  <th>วันที่ / สัปดาห์</th>
-                  <th class="text-end">SOCN Actual Volume</th>
-                  <th class="text-center" style="width:150px;">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody id="volumeHistoryTableBody">
-                <tr><td colspan="4" class="text-center py-3 text-muted">กำลังโหลดประวัติ...</td></tr>
-              </tbody>
-            </table>
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <select id="volumeHistorySelect" class="form-select form-select-sm fw-bold" style="flex:1 1 260px; min-width:0;" onchange="onVolumeHistorySelectChange()">
+              <option value="">กำลังโหลดประวัติ...</option>
+            </select>
+            <span id="volumeHistorySelectedValue" class="fw-bold text-primary fs-6 text-nowrap"></span>
+            <button id="volumeHistoryUseBtn" class="btn btn-sm btn-outline-success fw-bold text-nowrap" onclick="applySelectedVolumeEntry()" disabled>
+              <i class="fa-solid fa-check me-1"></i> ใช้เลขนี้
+            </button>
+            <button id="volumeHistoryDeleteBtn" class="btn btn-sm btn-outline-danger" title="ลบรายการนี้" onclick="deleteSelectedVolumeEntry()" disabled>
+              <i class="fa-solid fa-trash"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -2021,41 +2018,70 @@
           if (data.success && data.history) {
             volumeHistoryCache = data.history;
             if (skipDataState && !volumeManualOverride) updateSkipUI(skipDataState);
-            const tbody = document.getElementById('volumeHistoryTableBody');
-            if (data.history.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">ไม่มีประวัติการบันทึก</td></tr>';
-              return;
-            }
-            tbody.innerHTML = data.history.map(item => {
-              const isWeekly = item.type === 'weekly' || String(item.date).toLowerCase().includes('week');
-              const typeBadge = isWeekly 
-                ? '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-2 py-1 fw-bold"><i class="fa-solid fa-calendar-week me-1"></i> รายสัปดาห์</span>'
-                : '<span class="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1 fw-bold"><i class="fa-solid fa-calendar-day me-1"></i> รายวัน</span>';
-              
-              const itemLabel = item.label || item.date;
-              const dateEscaped = (item.date || '').replace(/'/g, "\\'");
-              const labelEscaped = (itemLabel || '').replace(/'/g, "\\'");
-              const itemType = item.type || (isWeekly ? 'weekly' : 'daily');
-
-              return `<tr>
-                <td>${typeBadge}</td>
-                <td class="fw-bold text-dark">${itemLabel}</td>
-                <td class="text-end fw-bold text-primary fs-6">${item.actual.toLocaleString()}</td>
-                <td class="text-center">
-                  <div class="d-flex justify-content-center gap-1">
-                    <button class="btn btn-sm btn-outline-success py-0 px-2 fw-bold" onclick="applyVolumeEntry('${dateEscaped}', ${item.actual}, '${itemType}', '${labelEscaped}')">
-                      <i class="fa-solid fa-check me-1"></i> ใช้เลขนี้
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger py-0 px-1" title="ลบรายการนี้" onclick="deleteVolumeEntry('${dateEscaped}')">
-                      <i class="fa-solid fa-trash"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>`;
-            }).join('');
+            renderVolumeHistorySelect(data.history);
           }
         })
         .catch(err => console.error(err));
+    }
+
+    // ===== ประวัติ Volume แบบ Dropdown (แยกกลุ่ม รายวัน / รายสัปดาห์) =====
+    function isWeeklyVolumeItem(item) {
+      return item.type === 'weekly' || String(item.date).toLowerCase().includes('week');
+    }
+
+    function escHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function renderVolumeHistorySelect(history) {
+      const sel = document.getElementById('volumeHistorySelect');
+      if (!sel) return;
+      const prev = sel.value;
+      if (!history || history.length === 0) {
+        sel.innerHTML = '<option value="">ไม่มีประวัติการบันทึก</option>';
+        onVolumeHistorySelectChange();
+        return;
+      }
+      const opt = (item, i) => `<option value="${i}">${escHtml(item.label || item.date)} — ${Number(item.actual || 0).toLocaleString()}</option>`;
+      const daily = [], weekly = [];
+      history.forEach((item, i) => (isWeeklyVolumeItem(item) ? weekly : daily).push(opt(item, i)));
+      sel.innerHTML = '<option value="">— เลือกวันที่ / สัปดาห์ (' + history.length + ' รายการ) —</option>'
+        + (daily.length ? `<optgroup label="📅 รายวัน (${daily.length})">${daily.join('')}</optgroup>` : '')
+        + (weekly.length ? `<optgroup label="🗓️ รายสัปดาห์ (${weekly.length})">${weekly.join('')}</optgroup>` : '');
+      // keep the same entry selected after a reload, if it still exists
+      const prevItem = prev !== '' && sel.dataset.prevDate ? history.findIndex(h => h.date === sel.dataset.prevDate) : -1;
+      sel.value = prevItem >= 0 ? String(prevItem) : '';
+      onVolumeHistorySelectChange();
+    }
+
+    function getSelectedVolumeEntry() {
+      const sel = document.getElementById('volumeHistorySelect');
+      if (!sel || sel.value === '') return null;
+      return (volumeHistoryCache || [])[Number(sel.value)] || null;
+    }
+
+    function onVolumeHistorySelectChange() {
+      const sel = document.getElementById('volumeHistorySelect');
+      const item = getSelectedVolumeEntry();
+      if (sel) sel.dataset.prevDate = item ? item.date : '';
+      const valEl = document.getElementById('volumeHistorySelectedValue');
+      if (valEl) valEl.textContent = item ? Number(item.actual || 0).toLocaleString() + ' ชิ้น' : '';
+      const useBtn = document.getElementById('volumeHistoryUseBtn');
+      const delBtn = document.getElementById('volumeHistoryDeleteBtn');
+      if (useBtn) useBtn.disabled = !item;
+      if (delBtn) delBtn.disabled = !item;
+    }
+
+    function applySelectedVolumeEntry() {
+      const item = getSelectedVolumeEntry();
+      if (!item) return;
+      const type = item.type || (isWeeklyVolumeItem(item) ? 'weekly' : 'daily');
+      applyVolumeEntry(item.date, item.actual, type, item.label || item.date);
+    }
+
+    function deleteSelectedVolumeEntry() {
+      const item = getSelectedVolumeEntry();
+      if (item) deleteVolumeEntry(item.date);
     }
 
     function openVolumeHistoryModal() {
