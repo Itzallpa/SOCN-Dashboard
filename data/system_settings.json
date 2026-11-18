@@ -1,5 +1,9 @@
 {
+<<<<<<< Updated upstream
   "updatedAt": "2026-11-18 11:38:33",
+=======
+  "updatedAt": "2026-11-17 23:08:00",
+>>>>>>> Stashed changes
   "hourlyTarget": 45000,
   "hourlyMinimum": 40000,
   "hourlyMinimumPct": 90,
@@ -78,7 +82,8 @@
           "https://openapi.seatalk.io/webhook/group/ISfK_B7MQeODPJHWrtQpqA"
         ],
         "mentionEmails": [
-          "guy.panmanee@spxexpress.com"
+          "chain.kedsirin@spxexpress.com",
+          "big.amorntee@spxexpress.com"
         ]
       },
       "ob_bl": {
@@ -105,8 +110,8 @@
     }
   },
   "googleSheetSync": {
-    "enabled": false,
-    "url": ""
+    "enabled": true,
+    "url": "https://docs.google.com/spreadsheets/d/1JGCjTul7xhBmtF9JIJZ9yN7xfadQfPD_yByscgebQzo/edit?gid=661458134#gid=661458134"
   },
   "ttbSync": {
     "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTgblrQVq9E7KcSf_gd_PGfGRwh-7HZBWXzRnXcZUYmnQ_WiX7xPHgWL_I5_TkUl0FHLy7zGxebGedq/pub?output=csv",
@@ -118,14 +123,19 @@
   },
   "lhTripDriveSync": {
     "enabled": true,
-    "sourceSheetUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTTO9c6WUEftB0bua-dyM9XiQV74qVhQm7v6as6Pz6IP9h-p0XOmK2XL1uDFvOvJx1cMypb9cML2ExI/pub?output=csv",
+    "sourceSheetUrl": "https://docs.google.com/spreadsheets/d/1gH3gDAuf0CWKYthnua50qLWC3gUWYovMVMN1hUKyFJo/edit?gid=28011242#gid=28011242",
     "folderId": "1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1",
     "folderUrl": "https://drive.google.com/drive/folders/1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1",
     "appsScriptUrl": "https://script.google.com/macros/s/AKfycbyuzY7nDG0MiKUniN0YUrIBdPPmo6wt5RDWuC4YBDb3mmr_CfuDUdhrz6mPl46oPeeAuw/exec",
+<<<<<<< Updated upstream
     "autoUpload1400": true
   },
   "socnVolumeSync": {
     "appsScriptUrl": "https://script.google.com/a/macros/spxexpress.com/s/AKfycbw3pa6cxMxsBTvdf7_swZvPxts7VBwib6lgrNR2AUcin1ntvY9FY77m7jyrqFL47mSB/exec",
     "lastSyncAt": "2026-11-18 11:38:33"
+=======
+    "autoUpload1400": true,
+    "sheetRelayUrl": "https://script.google.com/a/macros/spxexpress.com/s/AKfycbzk8JXsWiwUcfiaHEZVBthiFuTP1s_cLuaOCjPHhtjmcRNU3xxHl6i8rpuyq_s2UE0O/exec"
+>>>>>>> Stashed changes
   }
 }

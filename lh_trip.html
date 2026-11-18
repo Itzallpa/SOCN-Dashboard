@@ -105,6 +105,8 @@
 
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <button class="btn btn-primary btn-sm fw-bold" onclick="syncAppsScriptDataToDashboard()"><i class="fa-solid fa-rotate me-1"></i> ⚡ Sync Google Sheet สด</button>
+        <button class="btn btn-outline-success btn-sm fw-bold" onclick="openCompanyLoginPopup()" title="เปิดหน้าต่าง Login เมลบริษัท แล้วดึงข้อมูลจาก Google Sheet บริษัท (Sync อัตโนมัติทุก 10 นาทีขณะเปิดไว้)"><i class="fa-solid fa-right-to-bracket me-1"></i> 🔐 Login เมลบริษัท & Sync</button>
+        <button class="btn btn-outline-primary btn-sm fw-bold" onclick="promptForSourceSheetUrl()" title="ตั้งค่าลิงก์ Google Sheet / Apps Script (เมลบริษัท)"><i class="fa-solid fa-gear me-1"></i> ตั้งค่าแหล่งข้อมูล</button>
         <button class="btn btn-warning btn-sm fw-bold text-dark" onclick="openGoogleDriveSyncModal()"><i class="fa-brands fa-google-drive me-1"></i> ☁️ ส่งไฟล์เข้า Google Drive</button>
         <button class="btn btn-outline-danger btn-sm fw-bold" onclick="openAllLateModal()"><i class="fa-solid fa-eye me-1"></i> 👁️ ดู Raw Data ล่าช้า</button>
         <button class="btn btn-success btn-sm fw-bold" onclick="exportExcelWithCharts()"><i class="fa-solid fa-file-excel me-1"></i> 📊 Export Excel</button>
@@ -606,40 +608,52 @@
 
     async function promptForSourceSheetUrl() {
       let currentUrl = '';
+      let currentRelay = '';
       try {
         const setRes = await safeApiFetch('/api/lh-trip/drive-settings');
-        if (setRes && setRes.settings && setRes.settings.sourceSheetUrl) {
-          currentUrl = setRes.settings.sourceSheetUrl.trim();
+        if (setRes && setRes.settings) {
+          currentUrl = (setRes.settings.sourceSheetUrl || '').trim();
+          currentRelay = (setRes.settings.sheetRelayUrl || '').trim();
         }
       } catch(e) {}
       if (!currentUrl) {
         currentUrl = localStorage.getItem('lh_trip_source_sheet_url') || '';
       }
+      const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
-      const { value: sheetUrl } = await Swal.fire({
+      const { value: formVals } = await Swal.fire({
         title: '⚡ เชื่อมต่อ Google Sheet ข้อมูลสด',
-        html: `<div class="text-start small text-muted mb-2">
-                 กรุณาวาง <b>Google Sheet URL (CSV / Published / Edit URL)</b> หรือ <b>Apps Script Web App URL</b> สำหรับดึงข้อมูลสด LH Trip:
+        width: 680,
+        html: `<div class="text-start small">
+                 <label class="fw-bold mb-1">1) ลิงก์ Google Sheet ของ LH Trip</label>
+                 <div class="text-muted mb-1">ลิงก์ชีตบริษัท (แท็บ "Table") เช่น https://docs.google.com/spreadsheets/d/.../edit?gid=... — หรือลิงก์ Published CSV แบบเดิม</div>
+                 <input id="swalSheetUrl" class="form-control form-control-sm mb-3" value="${esc(currentUrl)}" placeholder="https://docs.google.com/spreadsheets/d/.../edit?gid=...">
+                 <label class="fw-bold mb-1">2) Apps Script URL (เมลบริษัท)</label>
+                 <div class="text-muted mb-1">จำเป็นสำหรับชีตบริษัทที่ไม่ได้เปิด Public — Deploy <code>scripts/google_apps_script_lh_trip_source.js</code> ด้วยเมลบริษัท (Execute as: Me, Who has access: Anyone within Shopee Mobile) แล้ววางลิงก์ .../exec · Browser ที่เปิดหน้านี้ต้อง login เมลบริษัท</div>
+                 <input id="swalRelayUrl" class="form-control form-control-sm" value="${esc(currentRelay)}" placeholder="https://script.google.com/macros/s/.../exec">
                </div>`,
-        input: 'url',
-        inputValue: currentUrl,
-        inputPlaceholder: 'https://docs.google.com/spreadsheets/d/.../pub?output=csv',
         showCancelButton: true,
-        confirmButtonText: '🚀 ซิงค์ข้อมูลเดี๋ยวนี้',
+        confirmButtonText: '🚀 บันทึกและซิงค์ข้อมูล',
         cancelButtonText: 'ยกเลิก',
-        inputValidator: (val) => {
-          if (!val || !val.trim()) return 'กรุณาระบุ URL ของ Google Sheet หรือ Apps Script';
+        preConfirm: () => {
+          const sheet = (document.getElementById('swalSheetUrl').value || '').trim();
+          const relay = (document.getElementById('swalRelayUrl').value || '').trim();
+          if (!sheet) { Swal.showValidationMessage('กรุณาระบุลิงก์ Google Sheet'); return false; }
+          if (relay && !relay.startsWith('https://script.google.com/')) { Swal.showValidationMessage('Apps Script URL ต้องขึ้นต้นด้วย https://script.google.com/'); return false; }
+          const isPrivateSheet = /docs\.google\.com\/spreadsheets\/d\/(?!e\/)/.test(sheet) && !sheet.includes('output=csv');
+          if (isPrivateSheet && !relay) { Swal.showValidationMessage('ชีตบริษัทต้องใส่ Apps Script URL (ข้อ 2) ด้วย'); return false; }
+          return { sheet, relay };
         }
       });
 
-      if (sheetUrl && sheetUrl.trim()) {
-        const target = sheetUrl.trim();
+      if (formVals && formVals.sheet) {
+        const target = formVals.sheet;
         localStorage.setItem('lh_trip_source_sheet_url', target);
         try {
           await safeApiFetch('/api/lh-trip/drive-settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sourceSheetUrl: target })
+            body: JSON.stringify({ sourceSheetUrl: target, sheetRelayUrl: formVals.relay })
           });
         } catch(e) {}
         syncAppsScriptDataToDashboard(target);
@@ -973,16 +987,199 @@
       triggerSaveToGoogleDriveAndSnapshot();
     }
 
+    // ===== Company Google Sheet via Apps Script (JSONP, browser logged in with company email) =====
+    // The Apps Script is "Anyone within Shopee Mobile", so only a company-logged-in browser can call it.
+    function isPrivateSheetUrl(u) {
+      return /docs\.google\.com\/spreadsheets\/d\/(?!e\/)/.test(u || '') && !String(u).includes('output=csv');
+    }
+
+    function fetchCompanySheetViaJsonp(relayUrl, key, sheetUrl) {
+      return new Promise((resolve, reject) => {
+        const cbName = '__lhRelayCb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
+        const idMatch = String(sheetUrl).match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+        const gidMatch = String(sheetUrl).match(/gid=([0-9]+)/);
+        const params = new URLSearchParams({
+          key: key || '', page: 'lhtrip', callback: cbName,
+          spreadsheetId: idMatch ? idMatch[1] : '', gid: gidMatch ? gidMatch[1] : '', _: Date.now()
+        });
+        const s = document.createElement('script');
+        const cleanup = () => { clearTimeout(timer); try { delete window[cbName]; } catch (e) { window[cbName] = undefined; } s.remove(); };
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(new Error('Apps Script ไม่ตอบกลับ — ตรวจสอบว่า Browser login ด้วยเมลบริษัท (spxexpress.com) แล้ว'));
+        }, 90000);
+        window[cbName] = (data) => { cleanup(); resolve(data); };
+        s.onerror = () => { cleanup(); reject(new Error('เรียก Apps Script ไม่ได้ — กรุณา login Google ด้วยเมลบริษัท (spxexpress.com) ใน Browser นี้ก่อน')); };
+        s.src = relayUrl + (relayUrl.includes('?') ? '&' : '?') + params.toString();
+        document.head.appendChild(s);
+      });
+    }
+
+    function applyLhSyncedData(data, silent) {
+      latestSyncedData = data;
+      if (data.outboundRawRows && data.outboundRawRows.length > 0) {
+        rawTripRecords = data.outboundRawRows;
+      } else if (data.rows && data.rows.length > 0) {
+        rawTripRecords = data.rows;
+      }
+      renderRealSummaryData(data);
+      if (!silent && typeof switchView === 'function') switchView('dashboard');
+      const banner = document.getElementById('lhStatusMsg');
+      if (banner) banner.innerHTML = '';
+      if (!silent) {
+        const totalCount = data.totalTrips || (data.rows ? data.rows.length : 0);
+        Swal.fire({ icon: 'success', title: 'Sync สำเร็จ! 🚀', text: `ดึงข้อมูลสดสำเร็จ ${totalCount.toLocaleString()} รายการ`, timer: 2000, showConfirmButton: false });
+      }
+    }
+
+    let companyRelayAutoTimer = null;
+
+    async function syncLhTripViaCompanyRelay(sheetUrl, relayUrl, key, silent = false) {
+      if (!silent) {
+        Swal.fire({
+          title: 'กำลัง Sync ข้อมูลสด (Google Sheet บริษัท)...',
+          text: 'ดึงข้อมูลผ่าน Apps Script ด้วยบัญชีเมลบริษัทใน Browser นี้ (อาจใช้เวลา 10-30 วินาที)',
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading()
+        });
+      }
+      try {
+        const sheet = await fetchCompanySheetViaJsonp(relayUrl, key, sheetUrl);
+        if (!sheet || !sheet.success) throw new Error((sheet && sheet.error) || 'Apps Script แจ้งข้อผิดพลาด');
+        const data = await safeApiFetch('/api/lh-trip/ingest-sheet', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ headers: sheet.headers, rows: sheet.rows, fetchedAt: sheet.fetchedAt, sheet: sheet.sheet })
+        });
+        if (!data || !data.success) throw new Error((data && data.error) || 'Server ประมวลผลไม่สำเร็จ');
+        applyLhSyncedData(data, silent);
+        if (data.archived1400 && data.archived1400.success && typeof loadHistoryDatesDropdown === 'function') loadHistoryDatesDropdown();
+        // keep the dashboard (and the 14:00 snapshot) fresh while this page is open
+        if (!companyRelayAutoTimer) {
+          companyRelayAutoTimer = setInterval(() => {
+            syncLhTripViaCompanyRelay(sheetUrl, relayUrl, key, true).catch(() => {});
+          }, 10 * 60 * 1000);
+        }
+      } catch (err) {
+        console.warn('Company sheet sync (background) failed:', err);
+        if (!silent) {
+          // background call blocked (not logged in / third-party cookies) → log in through a popup
+          Swal.fire({
+            icon: 'info',
+            title: '🔐 Login ด้วยเมลบริษัท',
+            html: `ต้องให้บัญชีเมลบริษัท (spxexpress.com) อนุญาตดึงข้อมูล<br>กดปุ่มด้านล่าง → หน้าต่างเล็กจะเปิดขึ้น → Login (ถ้าถูกถาม) → ข้อมูลจะเข้า Dashboard อัตโนมัติ<br><span class="small text-muted">เปิดหน้าต่างนั้นทิ้งไว้ (ย่อได้) เพื่อ Sync อัตโนมัติทุก 10 นาที</span>`,
+            confirmButtonText: '🔐 Login เมลบริษัท & Sync',
+            showCancelButton: true,
+            cancelButtonText: 'ยกเลิก'
+          }).then(r => { if (r.isConfirmed) openCompanyLoginPopup(); });
+        }
+      }
+    }
+
+    // ===== Login popup: first-party visit to the Apps Script (works without third-party cookies) =====
+    let lhRelayCfg = null;          // { sheetUrl, relayUrl, key } cached so the popup opens inside the click
+    let lhPopupWin = null;
+    let lhLastReceivedAt = '';
+    let lhPopupPollTimer = null;
+    let lhPopupDelivered = false;
+
+    async function loadLhRelayCfg() {
+      try {
+        const setRes = await safeApiFetch('/api/lh-trip/drive-settings');
+        const s = (setRes && setRes.settings) || {};
+        lhRelayCfg = { sheetUrl: (s.sourceSheetUrl || '').trim(), relayUrl: (s.sheetRelayUrl || '').trim(), key: (setRes && setRes.relayKey) || '' };
+      } catch (e) {}
+      return lhRelayCfg;
+    }
+
+    function buildLhPopupUrl(cfg) {
+      const idMatch = String(cfg.sheetUrl).match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+      const gidMatch = String(cfg.sheetUrl).match(/gid=([0-9]+)/);
+      const params = new URLSearchParams({
+        mode: 'popup', key: cfg.key, origin: window.location.origin,
+        spreadsheetId: idMatch ? idMatch[1] : '', gid: gidMatch ? gidMatch[1] : ''
+      });
+      return cfg.relayUrl + (cfg.relayUrl.includes('?') ? '&' : '?') + params.toString();
+    }
+
+    function openCompanyLoginPopup() {
+      if (lhPopupWin && !lhPopupWin.closed) { lhPopupWin.focus(); return; }
+      // open synchronously (inside the click) so the popup blocker allows it
+      lhPopupWin = window.open(lhRelayCfg && lhRelayCfg.relayUrl ? buildLhPopupUrl(lhRelayCfg) : 'about:blank',
+        'socnLhTripLogin', 'width=520,height=640');
+      if (!lhPopupWin) {
+        Swal.fire({ icon: 'warning', title: 'Browser บล็อก Popup', text: 'กรุณาอนุญาต Popup สำหรับหน้านี้ (ไอคอนที่แถบ URL) แล้วกดอีกครั้ง' });
+        return;
+      }
+      if (!(lhRelayCfg && lhRelayCfg.relayUrl)) {
+        loadLhRelayCfg().then(cfg => {
+          if (cfg && cfg.relayUrl && cfg.sheetUrl) lhPopupWin.location.href = buildLhPopupUrl(cfg);
+          else { lhPopupWin.close(); promptForSourceSheetUrl(); }
+        });
+      }
+      lhPopupDelivered = false;
+      Swal.fire({ title: 'รอ Login / ดึงข้อมูลในหน้าต่าง Popup...', text: 'Login ด้วยเมลบริษัทในหน้าต่างที่เปิดขึ้น ข้อมูลจะเข้ามาอัตโนมัติ', allowOutsideClick: true, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+      // fallback when the popup cannot reach this window (it then POSTs to the server instead)
+      if (!lhPopupPollTimer) lhPopupPollTimer = setInterval(pollLhLatestIngest, 15000);
+    }
+
+    async function ingestLhRows(result, silent) {
+      const data = await safeApiFetch('/api/lh-trip/ingest-sheet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ headers: result.headers, rows: result.rows, fetchedAt: result.fetchedAt, sheet: result.sheet, via: 'popup-message' })
+      });
+      if (!data || !data.success) throw new Error((data && data.error) || 'Server ประมวลผลไม่สำเร็จ');
+      lhLastReceivedAt = data.receivedAt || lhLastReceivedAt;
+      applyLhSyncedData(data, silent);
+      if (data.archived1400 && data.archived1400.success && typeof loadHistoryDatesDropdown === 'function') loadHistoryDatesDropdown();
+    }
+
+    async function pollLhLatestIngest() {
+      const popupOpen = lhPopupWin && !lhPopupWin.closed;
+      if (!popupOpen && lhPopupDelivered) { clearInterval(lhPopupPollTimer); lhPopupPollTimer = null; return; }
+      try {
+        const data = await safeApiFetch('/api/lh-trip/ingest-sheet/latest?since=' + encodeURIComponent(lhLastReceivedAt));
+        if (data && data.success && data.changed) {
+          lhLastReceivedAt = data.receivedAt;
+          applyLhSyncedData(data, lhPopupDelivered);
+          lhPopupDelivered = true;
+        }
+      } catch (e) {}
+      if (!popupOpen && !lhPopupDelivered) { clearInterval(lhPopupPollTimer); lhPopupPollTimer = null; }
+    }
+
+    window.addEventListener('message', (ev) => {
+      let host = '';
+      try { host = new URL(ev.origin).hostname; } catch (e) { return; }
+      if (!(host.endsWith('.googleusercontent.com') || host === 'script.google.com')) return;
+      const d = ev.data;
+      if (!d || d.type !== 'socn-lhtrip' || !d.result) return;
+      if (!d.result.success) {
+        Swal.fire({ icon: 'warning', title: 'อ่าน Google Sheet ไม่สำเร็จ', text: d.result.error || '' });
+        return;
+      }
+      const silent = lhPopupDelivered;   // first delivery shows the success popup, later ones are quiet
+      lhPopupDelivered = true;
+      ingestLhRows(d.result, silent).catch(err => {
+        if (!silent) Swal.fire({ icon: 'error', title: 'บันทึกข้อมูลไม่สำเร็จ', text: err.message });
+      });
+    });
+
+    document.addEventListener('DOMContentLoaded', () => { loadLhRelayCfg(); });
+
     async function syncAppsScriptDataToDashboard(url) {
       let targetUrl = url;
-      if (!targetUrl) {
-        try {
-          const setRes = await safeApiFetch('/api/lh-trip/drive-settings');
-          if (setRes && setRes.settings && setRes.settings.sourceSheetUrl) {
-            targetUrl = setRes.settings.sourceSheetUrl.trim();
-          }
-        } catch(e) {}
-      }
+      let relayUrl = '';
+      let relayKey = '';
+      try {
+        const setRes = await safeApiFetch('/api/lh-trip/drive-settings');
+        if (setRes && setRes.settings) {
+          if (!targetUrl && setRes.settings.sourceSheetUrl) targetUrl = setRes.settings.sourceSheetUrl.trim();
+          relayUrl = (setRes.settings.sheetRelayUrl || '').trim();
+        }
+        relayKey = (setRes && setRes.relayKey) || '';
+      } catch(e) {}
       if (!targetUrl) {
         targetUrl = localStorage.getItem('lh_trip_source_sheet_url') || '';
       }
@@ -992,10 +1189,15 @@
         return;
       }
 
+<<<<<<< Updated upstream
       // Apps Script Web App → ดึงผ่าน JSONP ใน Browser (ใช้ Cookie Login Google ของ Browser, ไม่ต้องเปิด Popup)
       if (isAppsScriptUrl(targetUrl)) {
         syncLhTripViaJsonp(targetUrl);
         return;
+=======
+      if (relayUrl && isPrivateSheetUrl(targetUrl)) {
+        return syncLhTripViaCompanyRelay(targetUrl, relayUrl, relayKey);
+>>>>>>> Stashed changes
       }
 
       Swal.fire({

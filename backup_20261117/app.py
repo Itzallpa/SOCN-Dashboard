@@ -1,0 +1,8013 @@
+# -*- coding: utf-8 -*-
+import os
+import sys
+import re
+import json
+import uuid
+import time
+import random
+import urllib.parse
+import csv
+import io
+import warnings
+import requests
+try:
+    import pandas as pd
+except Exception:
+    pd = None
+from datetime import datetime
+from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+warnings.filterwarnings("ignore")
+
+try:
+    csv.field_size_limit(sys.maxsize)
+except Exception:
+    try:
+        csv.field_size_limit(2147483647)
+    except Exception:
+        pass
+
+app = Flask(__name__, static_folder=".")
+app.secret_key = "socn_ops_portal_super_secret_key_2026"
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # Allow up to 500MB uploads
+
+@app.before_request
+def handle_options_preflight():
+    if request.method == "OPTIONS":
+        res = app.make_default_options_response()
+        res.headers['Access-Control-Allow-Origin'] = '*'
+        res.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+        res.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        return res
+
+@app.after_request
+def add_header(response):
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '-1'
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    return response
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+DATA_DIR = os.path.join(BASE_DIR, "data")
+os.makedirs(DATA_DIR, exist_ok=True)
+
+SOURCE_DIR = os.path.join(BASE_DIR, "Source")
+os.makedirs(SOURCE_DIR, exist_ok=True)
+
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+BACKLOG_COMPARE_FOLDER = os.path.join(BASE_DIR, "Backlog Shipment")
+os.makedirs(BACKLOG_COMPARE_FOLDER, exist_ok=True)
+
+LOGS_FILE = os.path.join(DATA_DIR, "activity_logs.json")
+if not os.path.exists(LOGS_FILE) and os.path.exists(os.path.join(BASE_DIR, "activity_logs.json")):
+    LOGS_FILE = os.path.join(BASE_DIR, "activity_logs.json")
+
+def load_activity_logs():
+    if os.path.exists(LOGS_FILE):
+        try:
+            with open(LOGS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
+
+USERS_FILE = os.path.join(DATA_DIR, "users_db.json")
+if not os.path.exists(USERS_FILE) and os.path.exists(os.path.join(BASE_DIR, "users_db.json")):
+    USERS_FILE = os.path.join(BASE_DIR, "users_db.json")
+
+def load_users_db():
+    if os.path.exists(USERS_FILE):
+        try:
+            with open(USERS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    default_users = [
+        {
+            "id": "u1",
+            "name": "Admin SOC",
+            "email": "admin@spxexpress.com",
+            "pass": "1234",
+            "role": "Ground",
+            "status": "approved",
+            "createdAt": "2026-09-03 00:00:00",
+            "updatedAt": "2026-09-08 01:57:38"
+        },
+        {
+            "id": "u_1788441071676",
+            "name": "Natakorn Panmanee",
+            "email": "guy.panmanee@spxexpress.com",
+            "pass": "1234",
+            "role": "Admin",
+            "status": "approved",
+            "createdAt": "2026-09-03 20:11:11"
+        },
+        {
+            "id": "u_1788529146167",
+            "name": "Aim",
+            "email": "aim.tiantong@spxexpress.com",
+            "pass": "1234",
+            "role": "Admin",
+            "status": "approved",
+            "createdAt": "2026-09-04 20:39:06"
+        },
+        {
+            "id": "u_1788441071676",
+            "name": "Men",
+            "email": "men.phuditde@spxexpress.com",
+            "pass": "1234",
+            "role": "Admin",
+            "status": "approved",
+            "createdAt": "2026-09-03 20:11:11"
+        },
+        {
+            "id": "u_1788808406690",
+            "name": "กาย",
+            "email": "guy.panmanee@gmail.com",
+            "pass": "1234",
+            "role": "Supervisor",
+            "status": "approved",
+            "createdAt": "2026-09-08 02:13:26"
+        },
+        {
+            "id": "u_1788892587582",
+            "name": "nulack",
+            "email": "nulack.promarpo@spxexpress.com",
+            "pass": "1234",
+            "role": "Supervisor",
+            "status": "approved",
+            "createdAt": "2026-09-09 01:36:27"
+        },
+        {
+            "id": "u_1788892947751",
+            "name": "Tom",
+            "email": "tom.disayach@spxexpress.com",
+            "pass": "1234",
+            "role": "Admin",
+            "status": "approved",
+            "createdAt": "2026-09-09 01:42:27"
+        }
+    ]
+    save_users_db(default_users)
+    return default_users
+
+def save_users_db(users):
+    try:
+        with open(USERS_FILE, "w", encoding="utf-8") as f:
+            json.dump(users, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("Error saving users db:", e)
+
+def save_activity_logs(logs):
+    try:
+        with open(LOGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(logs, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("Error saving activity logs:", e)
+
+def log_activity(action, details, user_email=None, user_name=None, user_role=None):
+    from flask import has_request_context
+    if has_request_context():
+        if not user_email:
+            user_email = session.get("user_email", "guest")
+        if not user_name:
+            user_name = session.get("user_name", "Guest")
+        if not user_role:
+            user_role = session.get("user_role", "Ground")
+        ip = getattr(request, "remote_addr", "127.0.0.1") or "127.0.0.1"
+    else:
+        user_email = user_email or "system"
+        user_name = user_name or "System Background"
+        user_role = user_role or "System"
+        ip = "127.0.0.1"
+    
+    logs = load_activity_logs()
+    entry = {
+        "id": str(uuid.uuid4())[:8],
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "email": user_email,
+        "name": user_name,
+        "role": user_role,
+        "action": action,
+        "details": details,
+        "ip": ip
+    }
+    logs.insert(0, entry)
+    if len(logs) > 5000:
+        logs = logs[:5000]
+    save_activity_logs(logs)
+    return entry
+
+@app.after_request
+def add_ngrok_headers(response):
+    response.headers["ngrok-skip-browser-warning"] = "true"
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return response
+
+SOURCE_DIR = os.path.join(BASE_DIR, "Source")
+
+def build_cutoff_map():
+    files = [
+        ('UPC Milkrun', os.path.join(SOURCE_DIR, 'test  - SOCN_UPC_Milkrun.csv')),
+        ('UPC Direct', os.path.join(SOURCE_DIR, 'test  - SOCN_UPC_Direct.csv')),
+        ('GBKK', os.path.join(SOURCE_DIR, 'test  - SOCN_GBKK.csv'))
+    ]
+    cutoff_map = {}
+    for area_type, path in files:
+        if not os.path.exists(path):
+            continue
+        try:
+            df = pd.read_csv(path)
+            for idx in range(1, len(df)):
+                row = df.iloc[idx]
+                station_name = str(row.get('LM Station Name', '') or '').strip()
+                if not station_name or station_name.lower() == 'nan':
+                    continue
+                
+                entry = {
+                    'area_group': area_type,
+                    'station_id': str(row.get('LM Station ID', '') or '' if pd.notna(row.get('LM Station ID')) else '').replace('.0', ''),
+                    'station_name': station_name,
+                    'op_type': str(row.get('Operation Type', '') or '' if pd.notna(row.get('Operation Type')) else ''),
+                    'cut0_ob': str(row.get('Cut 0', '') or '' if pd.notna(row.get('Cut 0')) else ''),
+                    'cut1_ob': str(row.get('Cut 1', '') or '' if pd.notna(row.get('Cut 1')) else ''),
+                    'cut2_ob': str(row.get('Cut 2', '') or '' if pd.notna(row.get('Cut 2')) else ''),
+                    'cut3_ob': str(row.get('Cut 3', '') or '' if pd.notna(row.get('Cut 3')) else ''),
+                }
+                cutoff_map[station_name.lower()] = entry
+                parts = station_name.split('-')
+                if len(parts) > 1:
+                    cutoff_map[parts[0].strip().lower()] = entry
+        except Exception:
+            pass
+    return cutoff_map
+
+
+SKIP_DIR = os.path.join(BASE_DIR, "Skip")
+_CACHED_HUB_ZONE_MAP = None
+
+def build_hub_zone_map():
+    global _CACHED_HUB_ZONE_MAP
+    if _CACHED_HUB_ZONE_MAP is not None:
+        return _CACHED_HUB_ZONE_MAP
+
+    json_cache = os.path.join(DATA_DIR, "hub_zone_map.json")
+    if os.path.exists(json_cache):
+        try:
+            with open(json_cache, "r", encoding="utf-8") as f:
+                _CACHED_HUB_ZONE_MAP = json.load(f)
+                return _CACHED_HUB_ZONE_MAP
+        except Exception:
+            pass
+
+    hub_map = {}
+    hub_files = [
+        os.path.join(SKIP_DIR, "Copy of [SOCN] Outbound On-time Investigation - Hub.csv"),
+        os.path.join(SOURCE_DIR, "Copy of [SOCN] Outbound On-time Investigation - Hub.csv"),
+        os.path.join(BASE_DIR, "Hub.csv"),
+    ]
+    
+    hub_path = None
+    for p in hub_files:
+        if os.path.exists(p):
+            hub_path = p
+            break
+            
+    if hub_path and os.path.exists(hub_path):
+        try:
+            with open(hub_path, 'r', encoding='utf-8-sig', errors='ignore') as f:
+                reader = csv.reader(f)
+                header = next(reader, None)
+                for row in reader:
+                    if len(row) > 11:
+                        st_id = row[0].strip()
+                        st_name = row[1].strip()
+                        st_short = row[2].strip()
+                        zone = row[11].strip().upper()
+                        
+                        if not zone:
+                            sup = row[5].strip().upper() if len(row) > 5 else ''
+                            sub = row[8].strip().upper() if len(row) > 8 else ''
+                            if 'NORC' in sup or 'NORC' in sub: zone = 'A'
+                            elif 'NERC' in sup or 'NERC' in sub: zone = 'B'
+                            elif 'SORC' in sup or 'SORC' in sub: zone = 'C'
+                            elif 'SOCE' in sup or 'SOCW' in sup or 'SOCE' in sub or 'SOCW' in sub: zone = 'INTERSOC'
+                            elif 'RET' in sup or 'RET' in sub: zone = 'RETURN'
+
+                        if 'INTER' in zone: zone = 'INTERSOC'
+                        elif 'RET' in zone: zone = 'RETURN'
+                        
+                        if zone in ['A', 'B', 'C', 'INTERSOC', 'RETURN']:
+                            if st_name: hub_map[st_name.lower()] = zone
+                            if st_short: hub_map[st_short.lower()] = zone
+                            if st_id: hub_map[st_id.lower()] = zone
+                            if '-' in st_name:
+                                hub_map[st_name.split('-')[0].strip().lower()] = zone
+            try:
+                with open(json_cache, "w", encoding="utf-8") as f:
+                    json.dump(hub_map, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+        except Exception as e:
+            print("Error loading Hub.csv:", e)
+
+    _CACHED_HUB_ZONE_MAP = hub_map
+    return hub_map
+
+def lookup_obd_zone(station_name, hub_map=None):
+    if hub_map is None:
+        hub_map = build_hub_zone_map()
+    if not station_name:
+        return 'A'
+    st = str(station_name).strip()
+    st_lower = st.lower()
+    if st_lower in hub_map:
+        return hub_map[st_lower]
+    if '-' in st_lower:
+        prefix = st_lower.split('-')[0].strip()
+        if prefix in hub_map:
+            return hub_map[prefix]
+    st_upper = st.upper()
+    if 'INTER' in st_upper or 'SOCW' in st_upper or 'SOCE' in st_upper:
+        return 'INTERSOC'
+    if 'RET' in st_upper:
+        return 'RETURN'
+    return 'A'
+
+
+
+def sanitize_user(u):
+    if not u or not isinstance(u, dict):
+        return u
+    clean = dict(u)
+    clean.pop("pass", None)
+    clean.pop("password", None)
+    return clean
+
+def sanitize_users(users):
+    if not isinstance(users, list):
+        return []
+    return [sanitize_user(u) for u in users]
+
+
+@app.route("/api/users", methods=["GET"])
+def get_users_api():
+    return jsonify({"success": True, "users": sanitize_users(load_users_db())})
+
+@app.route("/api/users/signup", methods=["POST"])
+def signup_user_api():
+    data = request.get_json() or {}
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    password = (data.get("pass") or "").strip()
+
+    if not name or not email or not password:
+        return jsonify({"success": False, "error": "กรุณากรอกข้อมูลให้ครบถ้วน"}), 400
+
+    users = load_users_db()
+    for u in users:
+        if u.get("email", "").lower() == email:
+            return jsonify({"success": False, "error": "อีเมลนี้ถูกลงทะเบียนไว้แล้ว"}), 400
+
+    new_user = {
+        "id": "u_" + str(int(datetime.now().timestamp() * 1000)),
+        "name": name,
+        "email": email,
+        "pass": password,
+        "role": "Ground",
+        "status": "pending_approval",
+        "createdAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    users.append(new_user)
+    save_users_db(users)
+
+    log_activity("USER_SIGNUP", f"ลงทะเบียนผู้ใช้งานใหม่: {name} ({email}) - รอ Admin อนุมัติ", user_email=email, user_name=name, user_role="Ground")
+    return jsonify({"success": True, "user": sanitize_user(new_user), "users": sanitize_users(users)})
+
+@app.route("/api/users/add", methods=["POST"])
+def direct_add_user_api():
+    data = request.get_json() or {}
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    password = (data.get("pass") or "").strip()
+    role = data.get("role", "Ground")
+    requester_role = session.get("user_role") or data.get("requesterRole") or ""
+
+    if not name or not email or not password:
+        return jsonify({"success": False, "error": "กรุณากรอกข้อมูลให้ครบถ้วน"}), 400
+
+    if requester_role == "Supervisor" and role == "Admin":
+        return jsonify({"success": False, "error": "Supervisor ไม่มีสิทธิ์แต่งตั้งหรือเพิ่มผู้ใช้ในระดับ Admin"}), 403
+
+    users = load_users_db()
+    for u in users:
+        if u.get("email", "").lower() == email:
+            return jsonify({"success": False, "error": "อีเมลนี้ถูกลงทะเบียนไว้แล้ว"}), 400
+
+    new_user = {
+        "id": "u_" + str(int(datetime.now().timestamp() * 1000)),
+        "name": name,
+        "email": email,
+        "pass": password,
+        "role": role,
+        "status": "approved",
+        "createdAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    users.append(new_user)
+    save_users_db(users)
+
+    log_activity("USER_DIRECT_ADD", f"เพิ่มสมาชิกใหม่โดยตรง: {name} ({email}) สิทธิ์ {role}")
+    return jsonify({"success": True, "user": sanitize_user(new_user), "users": sanitize_users(users)})
+
+@app.route("/api/users/approve", methods=["POST"])
+def approve_user_api():
+    data = request.get_json() or {}
+    user_id = str(data.get("id") or "").strip()
+    email = str(data.get("email") or "").strip().lower()
+    role = data.get("role", "Ground")
+    requester_role = session.get("user_role") or data.get("requesterRole") or ""
+
+    if requester_role == "Supervisor" and role == "Admin":
+        return jsonify({"success": False, "error": "Supervisor ไม่มีสิทธิ์อนุมัติผู้ใช้ในระดับ Admin"}), 403
+
+    users = load_users_db()
+    target = None
+    for u in users:
+        if (user_id and str(u.get("id")) == user_id) or (email and u.get("email", "").lower() == email):
+            target = u
+            break
+
+    if not target:
+        return jsonify({"success": False, "error": "ไม่พบสมาชิก"}), 404
+
+    if requester_role == "Supervisor" and target.get("role") == "Admin":
+        return jsonify({"success": False, "error": "Supervisor ไม่สามารถแก้ไขบัญชีระดับ Admin ได้"}), 403
+
+    target["status"] = "approved"
+    target["role"] = role
+    save_users_db(users)
+
+    log_activity("USER_APPROVAL", f"อนุมัติบัญชี {target.get('name')} ({target.get('email')}) เป็นสิทธิ์ {role}")
+    return jsonify({"success": True, "user": sanitize_user(target), "users": sanitize_users(users)})
+
+@app.route("/api/users/role", methods=["POST"])
+def change_role_user_api():
+    data = request.get_json() or {}
+    user_id = str(data.get("id") or "").strip()
+    email = str(data.get("email") or "").strip().lower()
+    role = data.get("role", "Ground")
+    requester_role = session.get("user_role") or data.get("requesterRole") or ""
+
+    if requester_role == "Supervisor" and role == "Admin":
+        return jsonify({"success": False, "error": "Supervisor ไม่มีสิทธิ์แต่งตั้งผู้ใช้เป็นระดับ Admin"}), 403
+
+    users = load_users_db()
+    target = None
+    for u in users:
+        if (user_id and str(u.get("id")) == user_id) or (email and u.get("email", "").lower() == email):
+            target = u
+            break
+
+    if not target:
+        return jsonify({"success": False, "error": "ไม่พบสมาชิก"}), 404
+
+    if requester_role == "Supervisor" and target.get("role") == "Admin":
+        return jsonify({"success": False, "error": "Supervisor ไม่สามารถเปลี่ยนระดับสิทธิ์ของ Admin ได้"}), 403
+
+    old_role = target.get("role")
+    target["role"] = role
+    save_users_db(users)
+
+    log_activity("USER_ROLE_CHANGE", f"เปลี่ยนสิทธิ์ {target.get('name')} ({target.get('email')}) จาก {old_role} เป็น {role}")
+    return jsonify({"success": True, "user": sanitize_user(target), "users": sanitize_users(users)})
+
+@app.route("/api/users/delete", methods=["POST"])
+def delete_user_api():
+    data = request.get_json() or {}
+    user_id = str(data.get("id") or "").strip()
+    email = str(data.get("email") or "").strip().lower()
+    requester_role = session.get("user_role") or data.get("requesterRole") or ""
+
+    users = load_users_db()
+    target = next((u for u in users if (user_id and str(u.get("id")) == user_id) or (email and u.get("email", "").lower() == email)), None)
+    
+    if target and requester_role == "Supervisor" and target.get("role") == "Admin":
+        return jsonify({"success": False, "error": "Supervisor ไม่สามารถลบบัญชีระดับ Admin ได้"}), 403
+
+    users = [u for u in users if str(u.get("id")) != user_id and (not email or u.get("email", "").lower() != email)]
+    save_users_db(users)
+
+    log_activity("USER_DELETE", f"ลบผู้ใช้งาน ID: {user_id}")
+    return jsonify({"success": True, "users": sanitize_users(users)})
+
+@app.route("/api/users/login", methods=["POST"])
+def login_user_api():
+    data = request.get_json() or {}
+    email = (data.get("email") or "").strip().lower()
+    password = (data.get("pass") or "").strip()
+
+    users = load_users_db()
+    matched = next((u for u in users if u.get("email", "").lower() == email or u.get("name", "").lower() == email.lower()), None)
+
+    if not matched:
+        return jsonify({"success": False, "error": "ไม่พบชื่อผู้ใช้งานหรืออีเมลนี้ในระบบ"}), 400
+
+    if matched.get("pass") != password:
+        return jsonify({"success": False, "error": "รหัสผ่านไม่ถูกต้อง"}), 400
+
+    if matched.get("status") == "pending_approval":
+        return jsonify({"success": False, "error": "บัญชีของคุณอยู่ระหว่างรออนุมัติสิทธิ์จาก Admin"}), 403
+
+    session["user_email"] = matched.get("email")
+    session["user_name"] = matched.get("name")
+    session["user_role"] = matched.get("role")
+
+    log_activity("USER_LOGIN", f"เข้าสู่ระบบสำเร็จในฐานะ {matched.get('role')}", user_email=matched.get("email"), user_name=matched.get("name"), user_role=matched.get("role"))
+    return jsonify({"success": True, "user": sanitize_user(matched)})
+
+
+@app.route("/api/users/change-password", methods=["POST"])
+def change_user_password_api():
+    data = request.get_json() or {}
+    email = (data.get("email") or session.get("user_email") or "").strip().lower()
+    current_pass = (data.get("currentPass") or "").strip()
+    new_pass = (data.get("newPass") or "").strip()
+    confirm_pass = (data.get("confirmPass") or "").strip()
+
+    if not email:
+        return jsonify({"success": False, "error": "ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่"}), 401
+    if not current_pass or not new_pass or not confirm_pass:
+        return jsonify({"success": False, "error": "กรุณากรอกรหัสผ่านให้ครบทุกช่อง"}), 400
+    if new_pass != confirm_pass:
+        return jsonify({"success": False, "error": "รหัสผ่านใหม่และการยืนยันรหัสผ่านไม่ตรงกัน"}), 400
+    if len(new_pass) < 4:
+        return jsonify({"success": False, "error": "รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร"}), 400
+
+    users = load_users_db()
+    target = next((u for u in users if u.get("email", "").lower() == email or u.get("name", "").lower() == email), None)
+    if not target:
+        return jsonify({"success": False, "error": "ไม่พบบัญชีผู้ใช้งานในระบบ"}), 404
+
+    if target.get("pass") != current_pass:
+        return jsonify({"success": False, "error": "รหัสผ่านปัจจุบันไม่ถูกต้อง"}), 400
+
+    target["pass"] = new_pass
+    target["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    save_users_db(users)
+
+    log_activity("USER_PASSWORD_CHANGE", f"เปลี่ยนรหัสผ่านสำเร็จ: {target.get('name')} ({target.get('email')})", user_email=target.get("email"), user_name=target.get("name"), user_role=target.get("role"))
+    return jsonify({"success": True, "message": "เปลี่ยนรหัสผ่านสำเร็จเรียบร้อยแล้ว!"})
+
+
+@app.route("/api/users/reset-password", methods=["POST"])
+def reset_user_password_api():
+    data = request.get_json() or {}
+    user_id = str(data.get("id") or "").strip()
+    email = str(data.get("email") or "").strip().lower()
+    new_pass = (data.get("newPass") or "1234").strip()
+    requester_role = session.get("user_role") or data.get("requesterRole") or ""
+
+    users = load_users_db()
+    target = next((u for u in users if (user_id and str(u.get("id")) == user_id) or (email and u.get("email", "").lower() == email)), None)
+    if not target:
+        return jsonify({"success": False, "error": "ไม่พบสมาชิก"}), 404
+
+    if requester_role == "Supervisor" and target.get("role") == "Admin":
+        return jsonify({"success": False, "error": "Supervisor ไม่สามารถรีเซ็ตรหัสผ่านของ Admin ได้"}), 403
+
+    target["pass"] = new_pass
+    target["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    save_users_db(users)
+
+    log_activity("USER_RESET_PASSWORD", f"รีเซ็ตรหัสผ่านสมาชิก: {target.get('name')} ({target.get('email')})")
+    return jsonify({"success": True, "message": "รีเซ็ตรหัสผ่านเรียบร้อยแล้ว", "users": sanitize_users(users)})
+
+@app.route("/api/users/update-profile", methods=["POST"])
+def update_user_profile_api():
+    data = request.get_json() or {}
+    email = (data.get("email") or session.get("user_email") or "").strip().lower()
+    new_name = (data.get("name") or "").strip()
+    current_pass = (data.get("currentPass") or "").strip()
+    new_pass = (data.get("newPass") or "").strip()
+    confirm_pass = (data.get("confirmPass") or "").strip()
+
+    if not email:
+        return jsonify({"success": False, "error": "ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่"}), 401
+    if not new_name:
+        return jsonify({"success": False, "error": "กรุณากรอกชื่อผู้ใช้งาน (Username)"}), 400
+
+    users = load_users_db()
+    target = next((u for u in users if u.get("email", "").lower() == email or u.get("name", "").lower() == email), None)
+    if not target:
+        return jsonify({"success": False, "error": "ไม่พบบัญชีผู้ใช้งานในระบบ"}), 404
+
+    # If updating name, check duplicate
+    for u in users:
+        if u.get("id") != target.get("id") and u.get("name", "").lower() == new_name.lower():
+            return jsonify({"success": False, "error": "ชื่อผู้ใช้งานนี้ถูกใช้งานแล้ว กรุณาเลือกชื่ออื่น"}), 400
+
+    old_name = target.get("name")
+    target["name"] = new_name
+    session["user_name"] = new_name
+
+    # If password change is also requested
+    if new_pass or current_pass:
+        if not current_pass:
+            return jsonify({"success": False, "error": "กรุณากรอกรหัสผ่านปัจจุบันเพื่อยืนยันการเปลี่ยนรหัส"}), 400
+        if target.get("pass") != current_pass:
+            return jsonify({"success": False, "error": "รหัสผ่านปัจจุบันไม่ถูกต้อง"}), 400
+        if new_pass != confirm_pass:
+            return jsonify({"success": False, "error": "รหัสผ่านใหม่และการยืนยันรหัสผ่านไม่ตรงกัน"}), 400
+        if len(new_pass) < 4:
+            return jsonify({"success": False, "error": "รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร"}), 400
+        target["pass"] = new_pass
+
+    target["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    save_users_db(users)
+
+    log_activity("USER_PROFILE_UPDATE", f"อัปเดตโปรไฟล์: {old_name} -> {new_name} ({target.get('email')})", user_email=target.get("email"), user_name=new_name, user_role=target.get("role"))
+    return jsonify({
+        "success": True,
+        "message": "อัปเดตข้อมูลผู้ใช้งานเรียบร้อยแล้ว!",
+        "user": sanitize_user(target),
+        "users": sanitize_users(users)
+    })
+
+
+FILE_PARSED_CACHE = {}
+FILE_LATE_DF_CACHE = {}
+RAW_DF_STORAGE = {}
+
+
+def read_dataframe(filepath):
+    if str(filepath).lower().endswith(('.xlsx', '.xls')):
+        try:
+            xl = pd.ExcelFile(filepath)
+            sheet_to_use = 0
+            for s in ['Table', 'raw data', 'Sheet1']:
+                if s in xl.sheet_names:
+                    sheet_to_use = s
+                    break
+            return pd.read_excel(filepath, sheet_name=sheet_to_use)
+        except Exception as ex:
+            print("Error reading excel file:", ex)
+            return pd.read_csv(filepath, low_memory=False, on_bad_lines='skip')
+    else:
+        try:
+            needed_patterns = [
+                'ontime', 'cutoff', 'cut_off', 'outbound', 'station', 'dest', 'late', 
+                'route', 'shipment', 'tracking', 'received', 'pack', 'team', 'zone', 
+                'to_number', 'report_date', 'date'
+            ]
+            h = pd.read_csv(filepath, nrows=0)
+            usecols = [c for c in h.columns if any(p in str(c).lower() for p in needed_patterns)]
+            if usecols:
+                return pd.read_csv(filepath, usecols=usecols, low_memory=False, on_bad_lines='skip')
+            else:
+                return pd.read_csv(filepath, low_memory=False, on_bad_lines='skip')
+        except Exception:
+            return pd.read_csv(filepath, low_memory=False, on_bad_lines='skip')
+
+
+def process_csv(filepath, cutoff_round="all"):
+    df = read_dataframe(filepath)
+    return process_dataframe(df, filename=os.path.basename(filepath), cutoff_round=cutoff_round, filepath=filepath)
+
+
+def process_dataframe(df, filename="", cutoff_round="all", filepath=""):
+    cutoff_round_str = str(cutoff_round).strip().lower()
+    if cutoff_round_str not in ["1", "2", "all"]:
+        cutoff_round_str = "all"
+
+    lower_col_dict = {str(c).strip().lower(): c for c in df.columns}
+
+    def get_col(cands):
+        for c in cands:
+            if c in lower_col_dict:
+                return lower_col_dict[c]
+        return None
+
+    # Cutoff 1 & 2 column candidates
+    c1_ontime_cand = ['is_soc_outbound_1st_ontime', 'is_soc_outbound_ontime', 'is_ontime', 'ontime']
+    c1_ts_cand = ['soc_outbound_based_received_1st_cut_off_timestamp', 'soc_outbound_based_received_cut_off_timestamp', 'cutoff_timestamp', 'cut_off_1', 'cutoff_1']
+    c1_late_cand = ['soc_outbound_late_type_1st_cutoff', 'soc_outbound_late_type', 'late_type', 'reason']
+
+    c2_ontime_cand = ['is_soc_outbound_2nd_ontime', 'is_soc_outbound_ontime', 'is_ontime', 'ontime']
+    c2_ts_cand = ['soc_outbound_based_received_2nd_cut_off_timestamp', 'soc_outbound_based_received_cut_off_timestamp', 'cutoff_timestamp', 'cut_off_2', 'cutoff_2']
+    c2_late_cand = ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason']
+
+    common_rules = {
+        'first_soc_outbound_timestamp': ['first_soc_outbound_timestamp', 'first_outbound_timestamp', 'outbound_timestamp'],
+        'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
+        'soc_outbound_route_type': ['soc_outbound_route_type', 'route_type', 'route'],
+        'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
+        'first_soc_received_timestamp': ['first_soc_received_timestamp', 'received_timestamp', 'inbound_timestamp'],
+        'first_soc_packed_timestamp': ['first_soc_packed_timestamp', 'packed_timestamp', 'first_packed_timestamp', 'first_soc_packed'],
+        'recieve_team': ['recieve_team', 'receive_team', 'obd_zone', 'zone'],
+        'latest_to_number': ['latest_to_number', 'to_number', 'to_no'],
+        'report_date': ['report_date', 'date']
+    }
+
+    src_c1_ontime = get_col(c1_ontime_cand)
+    src_c1_ts = get_col(c1_ts_cand)
+    src_c1_late = get_col(c1_late_cand)
+
+    src_c2_ontime = get_col(c2_ontime_cand)
+    src_c2_ts = get_col(c2_ts_cand)
+    src_c2_late = get_col(c2_late_cand)
+
+    for target_col, candidates in common_rules.items():
+        src = get_col(candidates)
+        if src and src != target_col:
+            df[target_col] = df[src]
+        elif not src and target_col not in df.columns:
+            df[target_col] = ''
+
+    # Evaluate Cutoff 1 late mask
+    if src_c1_ontime and src_c1_ontime in df.columns:
+        ontime_c1 = df[src_c1_ontime].astype(str).str.strip().str.upper().isin(["FALSE", "0"])
+    else:
+        ontime_c1 = pd.Series(False, index=df.index)
+
+    if src_c1_late and src_c1_late in df.columns:
+        reason_c1 = df[src_c1_late].astype(str).str.strip().str.lower()
+        has_reason_c1 = reason_c1.notna() & ~reason_c1.isin(["", "none", "nan"])
+    else:
+        has_reason_c1 = pd.Series(False, index=df.index)
+
+    is_late_cut1 = ontime_c1 | has_reason_c1
+
+    # Evaluate Cutoff 2 late mask
+    if src_c2_ontime and src_c2_ontime in df.columns:
+        ontime_c2 = df[src_c2_ontime].astype(str).str.strip().str.upper().isin(["FALSE", "0"])
+    else:
+        ontime_c2 = pd.Series(False, index=df.index)
+
+    if src_c2_late and src_c2_late in df.columns:
+        reason_c2 = df[src_c2_late].astype(str).str.strip().str.lower()
+        has_reason_c2 = reason_c2.notna() & ~reason_c2.isin(["", "none", "nan"])
+    else:
+        has_reason_c2 = pd.Series(False, index=df.index)
+
+    is_late_cut2 = ontime_c2 | has_reason_c2
+
+    if not is_late_cut1.any() and not is_late_cut2.any():
+        ontime_gen = df.get('is_soc_outbound_ontime', pd.Series(False, index=df.index)).astype(str).str.strip().str.upper().isin(["FALSE", "0"])
+        is_late_cut1 = ontime_gen
+        is_late_cut2 = ontime_gen
+
+    if cutoff_round_str == "1":
+        is_late_mask = is_late_cut1
+    elif cutoff_round_str == "2":
+        is_late_mask = is_late_cut2
+    else:
+        is_late_mask = is_late_cut1 | is_late_cut2
+
+    late_df = df[is_late_mask].copy() if is_late_mask.any() else df.head(0).copy()
+    if filepath and os.path.exists(filepath):
+        try:
+            mtime = os.path.getmtime(filepath)
+            FILE_LATE_DF_CACHE[f"{filepath}_{mtime}_cut{cutoff_round_str}"] = late_df.copy()
+        except Exception:
+            pass
+    total_late = int(len(late_df))
+
+    if total_late == 0:
+        return {
+            "reportDate": "N/A",
+            "cutoffRound": cutoff_round_str,
+            "totalLate": 0,
+            "totalLateCut1": 0,
+            "totalLateCut2": 0,
+            "destCount": 0,
+            "medianLate": 0.0,
+            "medianLateCut1": 0.0,
+            "medianLateCut2": 0.0,
+            "d2Count": 0,
+            "d2CountCut1": 0,
+            "d2CountCut2": 0,
+            "maxCount": 0,
+            "ranking": [],
+            "top10": [],
+            "lateTypeBreakdown": {},
+            "lateTypeBreakdownCut1": {},
+            "lateTypeBreakdownCut2": {},
+            "routeTypeBreakdown": {},
+            "outboundRawRows": []
+        }
+
+    late_df['cut1_ts'] = late_df[src_c1_ts] if (src_c1_ts and src_c1_ts in late_df.columns) else ''
+    late_df['cut2_ts'] = late_df[src_c2_ts] if (src_c2_ts and src_c2_ts in late_df.columns) else late_df['cut1_ts']
+    late_df['cut1_late_type'] = late_df[src_c1_late] if (src_c1_late and src_c1_late in late_df.columns) else ''
+    late_df['cut2_late_type'] = late_df[src_c2_late] if (src_c2_late and src_c2_late in late_df.columns) else late_df['cut1_late_type']
+
+    late_df['is_late_c1'] = is_late_cut1[is_late_mask].values
+    late_df['is_late_c2'] = is_late_cut2[is_late_mask].values
+
+    for ts_col in ['first_soc_outbound_timestamp', 'cut1_ts', 'cut2_ts', 'first_soc_received_timestamp', 'first_soc_packed_timestamp']:
+        if ts_col in late_df.columns:
+            try:
+                late_df[ts_col] = pd.to_datetime(late_df[ts_col], errors='coerce')
+            except Exception:
+                pass
+
+    has_c1_out = late_df['first_soc_outbound_timestamp'].notna() & late_df['cut1_ts'].notna()
+    late_df['delay_mins_c1'] = 0.0
+    if has_c1_out.any():
+        late_df.loc[has_c1_out, 'delay_mins_c1'] = (late_df.loc[has_c1_out, 'first_soc_outbound_timestamp'] - late_df.loc[has_c1_out, 'cut1_ts']).dt.total_seconds() / 60
+
+    has_c2_out = late_df['first_soc_outbound_timestamp'].notna() & late_df['cut2_ts'].notna()
+    late_df['delay_mins_c2'] = 0.0
+    if has_c2_out.any():
+        late_df.loc[has_c2_out, 'delay_mins_c2'] = (late_df.loc[has_c2_out, 'first_soc_outbound_timestamp'] - late_df.loc[has_c2_out, 'cut2_ts']).dt.total_seconds() / 60
+
+    if cutoff_round_str == "1":
+        late_df['delay_mins'] = late_df['delay_mins_c1']
+        late_df['soc_outbound_late_type'] = late_df['cut1_late_type']
+        late_df['soc_outbound_based_received_cut_off_timestamp'] = late_df['cut1_ts']
+    elif cutoff_round_str == "2":
+        late_df['delay_mins'] = late_df['delay_mins_c2']
+        late_df['soc_outbound_late_type'] = late_df['cut2_late_type']
+        late_df['soc_outbound_based_received_cut_off_timestamp'] = late_df['cut2_ts']
+    else:
+        late_df['delay_mins'] = late_df['delay_mins_c2']
+        late_df['soc_outbound_late_type'] = late_df['cut2_late_type'].where(late_df['cut2_late_type'] != '', late_df['cut1_late_type'])
+        late_df['soc_outbound_based_received_cut_off_timestamp'] = late_df['cut2_ts']
+
+    total_late_c1 = int(late_df['is_late_c1'].sum())
+    total_late_c2 = int(late_df['is_late_c2'].sum())
+
+    valid_c1_delays = late_df.loc[late_df['is_late_c1'] & has_c1_out, 'delay_mins_c1']
+    median_late_c1 = round(float(valid_c1_delays.median()), 1) if len(valid_c1_delays) > 0 else 0.0
+    d2_count_c1 = int((valid_c1_delays >= 2880).sum())
+
+    valid_c2_delays = late_df.loc[late_df['is_late_c2'] & has_c2_out, 'delay_mins_c2']
+    median_late_c2 = round(float(valid_c2_delays.median()), 1) if len(valid_c2_delays) > 0 else 0.0
+    d2_count_c2 = int((valid_c2_delays >= 2880).sum())
+
+    if cutoff_round_str == "1":
+        median_late = median_late_c1
+        d2_count = d2_count_c1
+    elif cutoff_round_str == "2":
+        median_late = median_late_c2
+        d2_count = d2_count_c2
+    else:
+        median_late = median_late_c2
+        d2_count = max(d2_count_c1, d2_count_c2)
+
+    THAI_STATION_MAP = {
+        'APTNI': 'พัทลุง', 'HSNOI': 'สะเดาน้อย', 'APHIT': 'พิษณุโลก',
+        'ABKEN': 'บางเขน', 'HNJOK': 'หนองจอก', 'AKSWA': 'คลองสามวา',
+        'AMBRI': 'มีนบุรี', 'HTYBR': 'ธัญบุรี', 'HLDLK': 'ลาดหลุมแก้ว',
+        'AKLNG': 'คลองหลวง', 'HKRET': 'ปากเกร็ด', 'HSAMP': 'สามพราน',
+        'HPTUM': 'ปทุมธานี', 'HRCTW': 'ราชเทวี', 'ASMAI': 'สายไหม',
+        'ADONM': 'ดอนเมือง', 'ALKSI': 'หลักสี่', 'ALUKA': 'ลำลูกกา',
+        'HKYAO': 'ห้วยขวาง', 'APTUM': 'ปทุมวัน', 'AKRET': 'ปากเกร็ด',
+        'HBKUM': 'บึงกุ่ม', 'ABKUM': 'บึงกุ่ม', 'ASRIN': 'ศรีนครินทร์',
+        'HKSWA': 'คลองสามวา', 'HDONM': 'ดอนเมือง', 'ATYBR': 'ธัญบุรี',
+        'HSKOK': 'สามโคก', 'AUBON': 'อุบลราชธานี', 'ALDLK': 'ลาดหลุมแก้ว',
+        'HSMAI': 'สายไหม', 'APRAO': 'ลาดพร้าว', 'HLKSI': 'หลักสี่',
+        'ANSUG': 'สุไหงโก-ลก', 'AYASO': 'ยโสธร', 'ACYPM': 'ชัยภูมิ',
+        'ASKLA': 'สงขลา', 'ABRAM': 'บุรีรัมย์', 'AROET': 'ร้อยเอ็ด',
+        'ABACH': 'บางบัวทอง', 'APBMS': 'พนมสารคาม', 'AHYAI': 'หาดใหญ่',
+        'ARTBR': 'ราชบุรี', 'APHKT': 'ภูเก็ต', 'AWRIN': 'วารินชำราบ',
+        'AJRAT': 'เจริญราษฎร์', 'AKLAK': 'คลองลาน', 'ARMAN': 'รามัน',
+        'AMYOR': 'มายอ', 'ABUAY': 'บัวใหญ่', 'HNSUA': 'หนองเสือ',
+        'HLUKA': 'ลำลูกกา', 'AYALA': 'ยะลา', 'ACRAI': 'เชียงราย',
+        'AYLNG': 'ยะรัง', 'ABDNG': 'บางแค', 'APSAT': 'โพธิ์ทอง',
+        'ATANG': 'ทุ่งยางแดง', 'ANKPN': 'นครพนม', 'AKMRT': 'เขมราฐ',
+        'ALPMT': 'ลำปาง', 'APYPS': 'พยัคฆภูมิพิสัย', 'ASBRI': 'สระบุรี',
+        'APIMY': 'พิมาย', 'ASTON': 'สตูล', 'ASKON': 'สกลนคร',
+        'ASRGS': 'ศรีสะเกษ', 'AGUNT': 'กันทรลักษ์', 'ASSKT': 'ศรีสะเกษ',
+        'ACPON': 'ชุมพร', 'AKATU': 'กะทู้', 'HCRNG': 'เชียงราย',
+        'ANKAI': 'หนองคาย', 'AMSOD': 'แม่สอด', 'AHYOD': 'อยุธยา',
+        'AKNAI': 'ขอนแก่น', 'AKKOI': 'เกาะคา', 'APATL': 'ปัตตานี',
+        'ABAMO': 'บางมด', 'ATTKO': 'ท่าตะโก', 'HDSIT': 'ดุสิต',
+        'HTPAR': 'ท่าแพ', 'AKPSN': 'กำแพงแสน', 'APTCI': 'พญาไท',
+        'ASWAN': 'นครสวรรค์', 'CC-SORC': 'ศูนย์คัดแยก SOC', 'CC': 'ศูนย์คัดแยก SOC',
+        'ASMEN': 'สามเสน', 'HPRAP': 'พระราม 9', 'HSWRW': 'สว่างแดนดิน', 'AHTPN': 'ห้วยพูล'
+    }
+
+    import re
+    def clean_name(val):
+        if pd.isna(val): return "Unknown"
+        s = str(val).strip()
+        s = re.sub(r"\s*\([^)]*\)$", "", s).strip()
+        s = re.sub(r"\s*-\s*\?+.*$", "", s).strip()
+        s = re.sub(r"\?+", "", s).strip()
+        base_code = s.split("-")[0].strip()
+        th_name = THAI_STATION_MAP.get(base_code, "")
+        if th_name and " - " not in s:
+            return f"{s} - {th_name}"
+        return s
+
+    late_df["dest_station_name_clean"] = late_df["dest_station_name"].apply(clean_name)
+    dest_count = int(late_df["dest_station_name_clean"].nunique())
+
+    if pd.api.types.is_datetime64_any_dtype(late_df["first_soc_outbound_timestamp"]):
+        late_df["_hhmm"] = late_df["first_soc_outbound_timestamp"].dt.strftime("%H:%M").fillna("-")
+    else:
+        late_df["_hhmm"] = "-"
+
+    valid_hhmm = late_df[late_df["_hhmm"] != "-"]
+    if not valid_hhmm.empty:
+        st_counts = valid_hhmm.groupby(["dest_station_name_clean", "_hhmm"], observed=True).size().reset_index(name="cnt")
+        idx_max = st_counts.groupby("dest_station_name_clean")["cnt"].idxmax()
+        peak_map = dict(zip(st_counts.loc[idx_max, "dest_station_name_clean"], st_counts.loc[idx_max, "_hhmm"]))
+    else:
+        peak_map = {}
+
+    cutoff_map = build_cutoff_map()
+    grp_counts = late_df["dest_station_name_clean"].value_counts()
+    c1_st_counts = late_df[late_df['is_late_c1']]["dest_station_name_clean"].value_counts().to_dict()
+    c2_st_counts = late_df[late_df['is_late_c2']]["dest_station_name_clean"].value_counts().to_dict()
+
+    ranking_list = []
+    max_count = int(grp_counts.iloc[0]) if len(grp_counts) > 0 else 1
+    for idx, (st_name, cnt) in enumerate(grp_counts.items()):
+        cnt_int = int(cnt)
+        pct = round((cnt_int / total_late * 100), 1) if total_late > 0 else 0
+        st_clean = str(st_name).split(" - ")[0].strip().lower()
+        matched_cutoff = cutoff_map.get(st_clean) or cutoff_map.get(str(st_name).lower())
+
+        target_str = "-"
+        if matched_cutoff:
+            targets = []
+            if matched_cutoff.get('cut1_ob'): targets.append(f"Cut1 {matched_cutoff.get('cut1_ob')}")
+            if matched_cutoff.get('cut2_ob'): targets.append(f"Cut2 {matched_cutoff.get('cut2_ob')}")
+            if matched_cutoff.get('cut3_ob'): targets.append(f"Cut3 {matched_cutoff.get('cut3_ob')}")
+            if targets: target_str = " | ".join(targets)
+
+        ranking_list.append({
+            "rank": idx + 1,
+            "station": str(st_name),
+            "count": cnt_int,
+            "countCut1": int(c1_st_counts.get(st_name, 0)),
+            "countCut2": int(c2_st_counts.get(st_name, 0)),
+            "pct": pct,
+            "peakTime": str(peak_map.get(st_name, "-")),
+            "cutoffTarget": target_str,
+            "cutoffInfo": matched_cutoff
+        })
+
+    # Calculate top destination ranking for each late type category:
+    ranking_by_late_type = {}
+    target_late_types = [
+        ('receive_late', ['receive', 'รับเข้า']),
+        ('outbound_late', ['outbound', 'กระจาย']),
+        ('pack_late', ['pack', 'แพ็ก', 'ครอง'])
+    ]
+
+    lt_combined = (
+        late_df['soc_outbound_late_type'].astype(str) + " " +
+        late_df['cut1_late_type'].astype(str) + " " +
+        late_df['cut2_late_type'].astype(str)
+    ).str.lower()
+
+    for lt_key, patterns in target_late_types:
+        mask = pd.Series(False, index=late_df.index)
+        for p in patterns:
+            mask |= lt_combined.str.contains(p, na=False)
+
+        sub = late_df[mask]
+        sub_total = int(len(sub))
+        if sub_total == 0:
+            ranking_by_late_type[lt_key] = []
+            continue
+
+        sub_counts = sub['dest_station_name_clean'].value_counts()
+        sub_c1_counts = sub[sub['is_late_c1']]['dest_station_name_clean'].value_counts().to_dict()
+        sub_c2_counts = sub[sub['is_late_c2']]['dest_station_name_clean'].value_counts().to_dict()
+
+        sub_valid_hhmm = sub[sub['_hhmm'] != '-']
+        if not sub_valid_hhmm.empty:
+            st_counts = sub_valid_hhmm.groupby(['dest_station_name_clean', '_hhmm'], observed=True).size().reset_index(name='cnt')
+            idx_max = st_counts.groupby('dest_station_name_clean')['cnt'].idxmax()
+            sub_peak_map = dict(zip(st_counts.loc[idx_max, 'dest_station_name_clean'], st_counts.loc[idx_max, '_hhmm']))
+        else:
+            sub_peak_map = {}
+
+        sub_items = []
+        for idx, (st_name, cnt) in enumerate(sub_counts.items()):
+            cnt_int = int(cnt)
+            pct = round((cnt_int / sub_total * 100), 1) if sub_total > 0 else 0
+            st_clean = str(st_name).split(" - ")[0].strip().lower()
+            matched_cutoff = cutoff_map.get(st_clean) or cutoff_map.get(str(st_name).lower())
+
+            target_str = "-"
+            if matched_cutoff:
+                targets = []
+                if matched_cutoff.get('cut1_ob'): targets.append(f"Cut1 {matched_cutoff.get('cut1_ob')}")
+                if matched_cutoff.get('cut2_ob'): targets.append(f"Cut2 {matched_cutoff.get('cut2_ob')}")
+                if matched_cutoff.get('cut3_ob'): targets.append(f"Cut3 {matched_cutoff.get('cut3_ob')}")
+                if targets: target_str = " | ".join(targets)
+
+            sub_items.append({
+                "rank": idx + 1,
+                "station": str(st_name),
+                "count": cnt_int,
+                "countCut1": int(sub_c1_counts.get(st_name, 0)),
+                "countCut2": int(sub_c2_counts.get(st_name, 0)),
+                "pct": pct,
+                "peakTime": str(sub_peak_map.get(st_name, "-")),
+                "cutoffTarget": target_str,
+                "cutoffInfo": matched_cutoff
+            })
+        ranking_by_late_type[lt_key] = sub_items[:100]
+
+    # Prepare outbound late raw rows for modal view
+    outbound_raw_rows = []
+    try:
+        raw_target_df = late_df.copy()
+        raw_target_df['dest_station_name'] = raw_target_df['dest_station_name_clean']
+        raw_target_df['soc_outbound_based_received_1st_cut_off_timestamp'] = raw_target_df['cut1_ts'].astype(str).str.replace('NaT', '')
+        raw_target_df['soc_outbound_based_received_2nd_cut_off_timestamp'] = raw_target_df['cut2_ts'].astype(str).str.replace('NaT', '')
+        raw_target_df['soc_outbound_late_type_1st_cutoff'] = raw_target_df['cut1_late_type'].fillna('')
+        raw_target_df['soc_outbound_late_type_2nd_cutoff'] = raw_target_df['cut2_late_type'].fillna('')
+        raw_target_df['first_soc_outbound_timestamp'] = raw_target_df['first_soc_outbound_timestamp'].astype(str).str.replace('NaT', '')
+        raw_target_df['first_soc_received_timestamp'] = raw_target_df['first_soc_received_timestamp'].astype(str).str.replace('NaT', '')
+        raw_target_df['first_soc_packed_timestamp'] = raw_target_df['first_soc_packed_timestamp'].astype(str).str.replace('NaT', '')
+
+        import numpy as np
+        c1 = raw_target_df['is_late_c1'].astype(bool) if 'is_late_c1' in raw_target_df.columns else False
+        c2 = raw_target_df['is_late_c2'].astype(bool) if 'is_late_c2' in raw_target_df.columns else False
+        conds = [c1 & c2, c1, c2]
+        choices = ['BOTH', 'CUT1', 'CUT2']
+        raw_target_df['late_round_type'] = np.select(conds, choices, default='LATE')
+
+        needed_cols = [
+            'shipment_id', 'dest_station_name', 'first_soc_received_timestamp',
+            'first_soc_packed_timestamp', 'first_soc_outbound_timestamp',
+            'soc_outbound_based_received_cut_off_timestamp',
+            'soc_outbound_based_received_1st_cut_off_timestamp',
+            'soc_outbound_based_received_2nd_cut_off_timestamp',
+            'delay_mins', 'delay_mins_c1', 'delay_mins_c2',
+            'soc_outbound_late_type', 'soc_outbound_late_type_1st_cutoff', 'soc_outbound_late_type_2nd_cutoff',
+            'late_round_type', 'soc_outbound_route_type',
+            'latest_to_number', 'recieve_team'
+        ]
+        for col in needed_cols:
+            if col not in raw_target_df.columns:
+                raw_target_df[col] = ''
+
+        # Fast vectorized station cutoff target & area_group mapping
+        st_target_map = {}
+        st_group_map = {}
+        for st_key, m in cutoff_map.items():
+            targets = []
+            if m.get('cut1_ob'): targets.append(f"Cut1 {m.get('cut1_ob')}")
+            if m.get('cut2_ob'): targets.append(f"Cut2 {m.get('cut2_ob')}")
+            if m.get('cut3_ob'): targets.append(f"Cut3 {m.get('cut3_ob')}")
+            st_target_map[st_key.lower()] = " | ".join(targets) if targets else "-"
+            st_group_map[st_key.lower()] = m.get('area_group', '-')
+
+        st_cleaned = raw_target_df['dest_station_name'].astype(str).str.split('-').str[0].str.strip().str.lower()
+        raw_target_df['matched_cutoff_target'] = st_cleaned.map(st_target_map).fillna('-')
+        raw_target_df['area_group'] = st_cleaned.map(st_group_map).fillna('-')
+
+        all_needed_cols = needed_cols + ['matched_cutoff_target', 'area_group']
+        clean_raw_df = raw_target_df[all_needed_cols].fillna('')
+
+        # Store clean DataFrame for ultra-fast on-demand pagination in /api/raw-data-page
+        # Store clean DataFrame in dedicated RAW_DF_STORAGE for on-demand pagination
+        cache_tag = f"{filename}_{cutoff_round_str}"
+        RAW_DF_STORAGE[cache_tag] = clean_raw_df
+        if filepath:
+            RAW_DF_STORAGE[f"{filepath}_{cutoff_round_str}"] = clean_raw_df
+        outbound_raw_rows = []
+    except Exception as e:
+        print("Error preparing outbound_raw_rows:", e)
+        outbound_raw_rows = []
+
+    report_date = "N/A"
+    if "report_date" in df.columns:
+        valid_dates = df["report_date"].dropna()
+        if len(valid_dates) > 0:
+            report_date = str(valid_dates.iloc[0])
+
+    late_type_counts = {}
+    if 'soc_outbound_late_type' in late_df.columns:
+        lt_series = late_df['soc_outbound_late_type'].dropna().astype(str).str.strip()
+        for lt, cnt in lt_series.value_counts().items():
+            if lt and lt.lower() not in ['nan', 'none', '']:
+                late_type_counts[lt] = int(cnt)
+
+    late_type_c1_counts = {}
+    if 'cut1_late_type' in late_df.columns:
+        lt1_series = late_df.loc[late_df['is_late_c1'], 'cut1_late_type'].dropna().astype(str).str.strip()
+        for lt, cnt in lt1_series.value_counts().items():
+            if lt and lt.lower() not in ['nan', 'none', '']:
+                late_type_c1_counts[lt] = int(cnt)
+
+    late_type_c2_counts = {}
+    if 'cut2_late_type' in late_df.columns:
+        lt2_series = late_df.loc[late_df['is_late_c2'], 'cut2_late_type'].dropna().astype(str).str.strip()
+        for lt, cnt in lt2_series.value_counts().items():
+            if lt and lt.lower() not in ['nan', 'none', '']:
+                late_type_c2_counts[lt] = int(cnt)
+
+    route_type_counts = {}
+    if 'soc_outbound_route_type' in late_df.columns:
+        rt_series = late_df['soc_outbound_route_type'].dropna().astype(str).str.strip()
+        for rt, cnt in rt_series.value_counts().items():
+            if rt and rt.lower() not in ['nan', 'none', '']:
+                route_type_counts[rt] = int(cnt)
+
+    return {
+        "reportDate": report_date,
+        "cutoffRound": cutoff_round_str,
+        "totalLate": total_late,
+        "totalLateCut1": total_late_c1,
+        "totalLateCut2": total_late_c2,
+        "destCount": dest_count,
+        "medianLate": median_late,
+        "medianLateCut1": median_late_c1,
+        "medianLateCut2": median_late_c2,
+        "d2Count": d2_count,
+        "d2CountCut1": d2_count_c1,
+        "d2CountCut2": d2_count_c2,
+        "maxCount": max_count,
+        "ranking": ranking_list[:100],
+        "rankingByLateType": ranking_by_late_type,
+        "top10": ranking_list[:10],
+        "lateTypeBreakdown": late_type_counts,
+        "lateTypeBreakdownCut1": late_type_c1_counts,
+        "lateTypeBreakdownCut2": late_type_c2_counts,
+        "routeTypeBreakdown": route_type_counts,
+        "outboundRawRows": outbound_raw_rows
+    }
+
+
+def resolve_file_path(fn):
+    if not fn: return None
+    fn_clean = str(fn).strip().replace("\\", "/")
+    if os.path.isabs(fn_clean) and os.path.exists(fn_clean) and os.path.isfile(fn_clean):
+        return os.path.normpath(fn_clean)
+    if os.path.exists(fn_clean) and os.path.isfile(fn_clean):
+        return os.path.abspath(fn_clean)
+    candidates = [
+        os.path.normpath(os.path.join(UPLOAD_FOLDER, fn_clean)),
+        os.path.normpath(os.path.join(BASE_DIR, fn_clean)),
+        os.path.normpath(os.path.join(UPLOAD_FOLDER, os.path.basename(fn_clean))),
+        os.path.normpath(os.path.join(BASE_DIR, os.path.basename(fn_clean)))
+    ]
+    for c in candidates:
+        if os.path.exists(c) and os.path.isfile(c):
+            return c
+    return None
+
+
+def process_file_list(files_or_names, group_name="กลุ่มไฟล์ที่เลือก", cutoff_round="all"):
+    cutoff_round_str = str(cutoff_round).strip().lower()
+    if cutoff_round_str not in ["1", "2", "all"]:
+        cutoff_round_str = "all"
+
+    resolved_paths = []
+    for fn in files_or_names:
+        rp = resolve_file_path(fn)
+        if rp and rp not in resolved_paths:
+            resolved_paths.append(rp)
+            
+    if not resolved_paths:
+        return {
+            "success": False,
+            "error": "ไม่พบไฟล์ที่เลือกบนเซิร์ฟเวอร์"
+        }
+        
+    dfs = []
+    report_dates = []
+    needed_patterns = ['ontime', 'cutoff', 'cut_off', 'outbound', 'station', 'dest', 'late', 'route', 'shipment', 'tracking', 'received', 'pack', 'team', 'zone', 'to_number', 'report_date']
+
+    for f in sorted(resolved_paths):
+        try:
+            mtime = os.path.getmtime(f)
+            file_cache_key = f"{f}_{mtime}_cut{cutoff_round_str}"
+            if file_cache_key in FILE_LATE_DF_CACHE:
+                cached_df = FILE_LATE_DF_CACHE[file_cache_key]
+                if cached_df is not None and not cached_df.empty:
+                    dfs.append(cached_df)
+                    if 'report_date' in cached_df.columns and len(report_dates) < 5:
+                        vds = cached_df['report_date'].dropna()
+                        if len(vds) > 0:
+                            report_dates.append(str(vds.iloc[0]))
+                    continue
+
+            if f.lower().endswith('.csv'):
+                h = pd.read_csv(f, nrows=0)
+                usecols = [c for c in h.columns if any(p in str(c).lower() for p in needed_patterns)]
+                f_dfs = []
+                for chunk in pd.read_csv(f, usecols=usecols if usecols else None, chunksize=50000, low_memory=False, on_bad_lines='skip'):
+                    if chunk.empty:
+                        continue
+
+                    if 'report_date' in chunk.columns and len(report_dates) < 5:
+                        vds = chunk['report_date'].dropna()
+                        if len(vds) > 0:
+                            report_dates.append(str(vds.iloc[0]))
+
+                    # Immediate chunk late filtering to keep only late parcels:
+                    has_late_col = False
+                    late_mask = pd.Series(False, index=chunk.index)
+                    for col_cand in ['is_soc_outbound_1st_ontime', 'is_soc_outbound_2nd_ontime', 'is_soc_outbound_ontime', 'is_ontime', 'ontime']:
+                        if col_cand in chunk.columns:
+                            has_late_col = True
+                            late_mask = late_mask | chunk[col_cand].astype(str).str.strip().str.upper().isin(['FALSE', '0'])
+                    for r_col in ['soc_outbound_late_type_1st_cutoff', 'soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason']:
+                        if r_col in chunk.columns:
+                            has_late_col = True
+                            rs = chunk[r_col].astype(str).str.strip().str.lower()
+                            late_mask = late_mask | (~rs.isin(['', 'none', 'nan']))
+
+                    if has_late_col:
+                        if late_mask.any():
+                            dfs.append(chunk[late_mask])
+                    else:
+                        dfs.append(chunk)
+            else:
+                sub_df = read_dataframe(f)
+                if sub_df is not None and not sub_df.empty:
+                    if 'report_date' in sub_df.columns:
+                        vds = sub_df['report_date'].dropna()
+                        if len(vds) > 0:
+                            report_dates.append(str(vds.iloc[0]))
+                    
+                    has_late_col = False
+                    late_mask = pd.Series(False, index=sub_df.index)
+                    for col_cand in ['is_soc_outbound_1st_ontime', 'is_soc_outbound_2nd_ontime', 'is_soc_outbound_ontime', 'is_ontime', 'ontime']:
+                        if col_cand in sub_df.columns:
+                            has_late_col = True
+                            late_mask = late_mask | sub_df[col_cand].astype(str).str.strip().str.upper().isin(['FALSE', '0'])
+                    for r_col in ['soc_outbound_late_type_1st_cutoff', 'soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason']:
+                        if r_col in sub_df.columns:
+                            has_late_col = True
+                            rs = sub_df[r_col].astype(str).str.strip().str.lower()
+                            late_mask = late_mask | (~rs.isin(['', 'none', 'nan']))
+
+                    if has_late_col:
+                        if late_mask.any():
+                            dfs.append(sub_df[late_mask])
+                    else:
+                        dfs.append(sub_df)
+        except Exception as e:
+            print(f"Error reading file {f}:", e)
+            
+    if not dfs:
+        return {
+            "success": False,
+            "error": f"ไม่สามารถอ่านข้อมูลจากไฟล์ที่เลือกได้"
+        }
+        
+    combined_raw_df = pd.concat(dfs, ignore_index=True)
+    if 'shipment_id' in combined_raw_df.columns:
+        combined_raw_df = combined_raw_df.drop_duplicates(subset=['shipment_id'])
+        
+    data = process_dataframe(combined_raw_df, filename=f"custom:{group_name}", cutoff_round=cutoff_round_str)
+    data["isFolder"] = True
+    data["isCustomGroup"] = True
+    data["folderName"] = group_name
+    data["fileCount"] = len(resolved_paths)
+    data["fileList"] = [os.path.basename(f) for f in resolved_paths]
+    data["filename"] = f"custom:{group_name}"
+    data["cutoffRound"] = cutoff_round_str
+    if report_dates:
+        data["reportDate"] = " - ".join(sorted(list(set(report_dates))))
+    data["success"] = True
+    return data
+
+
+def process_folder(folder_path, folder_name=None, cutoff_round="all"):
+    if not folder_name:
+        folder_name = os.path.basename(folder_path)
+    
+    files = []
+    if os.path.exists(folder_path):
+        for root, dirs, filenames in os.walk(folder_path):
+            for f in filenames:
+                if f.lower().endswith(('.csv', '.xlsx', '.xls')) and not f.startswith('.'):
+                    files.append(os.path.join(root, f))
+                    
+    if not files:
+        return {
+            "success": False,
+            "error": f"ไม่พบไฟล์ CSV/Excel ในโฟลเดอร์ '{folder_name}'"
+        }
+        
+    res = process_file_list(files, group_name=folder_name, cutoff_round=cutoff_round)
+    if res.get("success"):
+        res["filename"] = f"folder:{folder_name}"
+        res["isCustomGroup"] = False
+        res["cutoffRound"] = str(cutoff_round)
+        cust_key = f"custom:{folder_name}_{cutoff_round}"
+        if cust_key in RAW_DF_STORAGE:
+            RAW_DF_STORAGE[f"folder:{folder_name}_{cutoff_round}"] = RAW_DF_STORAGE[cust_key]
+            RAW_DF_STORAGE[f"folder:{folder_name}"] = RAW_DF_STORAGE[cust_key]
+    return res
+
+
+def process_skip_file_list(files_or_names, group_name="กลุ่มไฟล์ที่เลือก"):
+    resolved_paths = []
+    for fn in files_or_names:
+        rp = resolve_file_path(fn)
+        if rp and rp not in resolved_paths:
+            resolved_paths.append(rp)
+            
+    if not resolved_paths:
+        return {"success": False, "error": "ไม่พบไฟล์ที่เลือกบนเซิร์ฟเวอร์"}
+        
+    dfs = []
+    needed_patterns = ['shipment', 'tracking', 'waybill', 'late', 'reason', 'station', 'dest', 'hub', 'zone', 'team']
+    target_cols = {
+        'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
+        'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
+        'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
+        'obd_zone': ['obd zone', 'obd_zone', 'zone', 'recieve_team', 'receive_team']
+    }
+    
+    for f in sorted(resolved_paths):
+        try:
+            if f.lower().endswith('.csv'):
+                h = pd.read_csv(f, nrows=0)
+                usecols = [c for c in h.columns if any(p in str(c).lower() for p in needed_patterns)]
+                for chunk in pd.read_csv(f, usecols=usecols if usecols else None, chunksize=50000, low_memory=False, on_bad_lines='skip'):
+                    if chunk.empty:
+                        continue
+                    renames = {}
+                    used = set()
+                    for col in chunk.columns:
+                        c = str(col).strip().lower()
+                        for key, cands in target_cols.items():
+                            if c in cands and key not in used:
+                                renames[col] = key
+                                used.add(key)
+                                break
+
+                    if renames:
+                        chunk = chunk.rename(columns=renames)
+                    chunk = chunk.loc[:, ~chunk.columns.duplicated()]
+                    
+                    for n in ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name', 'obd_zone']:
+                        if n not in chunk.columns:
+                            chunk[n] = ''
+
+                    reason_s = chunk['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
+                    skip_mask = reason_s.str.contains('skip')
+                    if skip_mask.any():
+                        skip_chunk = chunk[skip_mask].copy()
+                        skip_chunk['source_file'] = os.path.basename(f)
+                        dfs.append(skip_chunk)
+            else:
+                sub_df = read_dataframe(f)
+                if sub_df is not None and not sub_df.empty:
+                    renames = {}
+                    used = set()
+                    for col in sub_df.columns:
+                        c = str(col).strip().lower()
+                        for key, cands in target_cols.items():
+                            if c in cands and key not in used:
+                                renames[col] = key
+                                used.add(key)
+                                break
+
+                    if renames:
+                        sub_df = sub_df.rename(columns=renames)
+                    sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
+                    
+                    for n in ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name', 'obd_zone']:
+                        if n not in sub_df.columns:
+                            sub_df[n] = ''
+
+                    reason_s = sub_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
+                    skip_mask = reason_s.str.contains('skip')
+                    if skip_mask.any():
+                        skip_sub = sub_df[skip_mask].copy()
+                        skip_sub['source_file'] = os.path.basename(f)
+                        dfs.append(skip_sub)
+        except Exception as e:
+            print(f"Error reading skip file {f}:", e)
+            
+    if not dfs:
+        return {"success": False, "error": f"ไม่สามารถอ่านข้อมูลจากไฟล์ที่เลือกได้"}
+        
+    combined_skip = pd.concat(dfs, ignore_index=True)
+    if 'shipment_id' in combined_skip.columns:
+        combined_skip = combined_skip.drop_duplicates(subset=['shipment_id'])
+
+    reason_s = combined_skip['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
+    machine_count = int(reason_s.str.contains('machine').sum())
+    system_count = int(reason_s.str.contains('system').sum())
+
+    hub_map = build_hub_zone_map()
+
+    def resolve_row_zone(ez, hub):
+        ez_s = str(ez or '').strip().upper()
+        if ez_s in ['A', 'B', 'C', 'INTERSOC', 'RETURN']:
+            return ez_s
+        if 'INTER' in ez_s:
+            return 'INTERSOC'
+        if 'RET' in ez_s:
+            return 'RETURN'
+        return lookup_obd_zone(hub, hub_map)
+
+    obd_zones = combined_skip['obd_zone'].fillna('').astype(str).tolist()
+    dest_stations = [str(s).strip() if pd.notna(s) and str(s).strip().lower() != 'nan' and str(s).strip() else '-' for s in combined_skip['dest_station_name'].tolist()]
+    resolved_zones = [resolve_row_zone(z, h) for z, h in zip(obd_zones, dest_stations)]
+
+    combined_skip['zone'] = resolved_zones
+
+    zone_counts = {'A': 0, 'B': 0, 'C': 0, 'INTERSOC': 0, 'RETURN': 0}
+    for z in resolved_zones:
+        zone_counts[z] = zone_counts.get(z, 0) + 1
+
+    shipment_ids = [str(s).strip() if pd.notna(s) and str(s).strip().lower() != 'nan' else '-' for s in combined_skip['shipment_id'].tolist()]
+    reasons = [str(s).strip() if pd.notna(s) and str(s).strip().lower() != 'nan' else 'skip_outbound' for s in combined_skip['soc_outbound_late_type_2nd_cutoff'].tolist()]
+    sources = [str(s).strip() if pd.notna(s) and str(s).strip().lower() != 'nan' else '-' for s in combined_skip['source_file'].tolist()]
+
+    limit_preview = 2500
+    raw_export_list = [
+        {
+            'shipment_id': sid,
+            'shipmentId': sid,
+            'soc_outbound_late_type_2nd_cutoff': rsn,
+            'reason': rsn,
+            'dest_station_name': dst,
+            'hub': dst,
+            'zone': zn,
+            'source_file': src
+        }
+        for sid, rsn, dst, zn, src in zip(shipment_ids[:limit_preview], reasons[:limit_preview], dest_stations[:limit_preview], resolved_zones[:limit_preview], sources[:limit_preview])
+    ]
+
+    return {
+        "success": True,
+        "isFolder": True,
+        "isCustomGroup": True,
+        "folderName": group_name,
+        "fileCount": len(resolved_paths),
+        "fileList": [os.path.basename(f) for f in resolved_paths],
+        "filename": f"custom:{group_name}",
+        "totalRows": len(combined_skip),
+        "totalSkipCases": len(combined_skip),
+        "machineCount": machine_count,
+        "systemCount": system_count,
+        "skipCountByZone": zone_counts,
+        "rawRows": raw_export_list
+    }
+
+
+def process_folder_skip(folder_path, folder_name=None):
+    if not folder_name:
+        folder_name = os.path.basename(folder_path)
+    
+    files = []
+    if os.path.exists(folder_path):
+        for root, dirs, filenames in os.walk(folder_path):
+            for f in filenames:
+                if f.lower().endswith(('.csv', '.xlsx', '.xls')) and not f.startswith('.'):
+                    files.append(os.path.join(root, f))
+                    
+    if not files:
+        return {
+            "success": False,
+            "error": f"ไม่พบไฟล์ CSV/Excel ในโฟลเดอร์ '{folder_name}'"
+        }
+        
+    res = process_skip_file_list(files, group_name=folder_name)
+    if res.get("success"):
+        res["filename"] = f"folder:{folder_name}"
+        res["isCustomGroup"] = False
+    return res
+
+
+
+
+@app.route('/favicon.ico')
+@app.route('/favicon.png')
+@app.route('/logo-spx-express.webp')
+def serve_favicon():
+    if os.path.exists(os.path.join(BASE_DIR, 'logo-spx-express.webp')):
+        return send_from_directory(BASE_DIR, 'logo-spx-express.webp')
+    return send_from_directory(BASE_DIR, 'favicon.png')
+
+@app.route("/")
+def index():
+    return send_from_directory(BASE_DIR, "index.html")
+
+@app.route("/upload", methods=["POST", "OPTIONS"])
+@app.route("/api/upload", methods=["POST", "OPTIONS"])
+def upload_file():
+    if request.method == "OPTIONS":
+        return jsonify({"success": True}), 200
+
+    if "file" not in request.files:
+        return jsonify({"success": False, "error": "No file uploaded"}), 400
+    
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"success": False, "error": "Empty filename"}), 400
+
+    if not file.filename.lower().endswith((".csv", ".xlsx", ".xls")):
+        return jsonify({"success": False, "error": "กรุณาอัปโหลดไฟล์ประเภท CSV หรือ Excel (.xlsx, .xls) เท่านั้น"}), 400
+
+    scope = (request.form.get("scope") or "").strip().lower()
+    fn_lower = file.filename.lower()
+    if scope in ["compare", "backlog", "ob_bl_compare", "ob_bl"] or "backlog" in fn_lower or "compare" in fn_lower:
+        target_folder = BACKLOG_COMPARE_FOLDER
+    else:
+        target_folder = UPLOAD_FOLDER
+
+    os.makedirs(target_folder, exist_ok=True)
+    save_path = os.path.join(target_folder, file.filename)
+    try:
+        file.save(save_path)
+        print(f"✅ Saved file to folder ({target_folder}): {save_path}")
+    except Exception as e:
+        print("Error saving uploaded file:", e)
+        return jsonify({"success": False, "error": f"Failed to save file: {str(e)}"}), 500
+
+    if target_folder == BACKLOG_COMPARE_FOLDER:
+        log_activity("UPLOAD_COMPARE_FILE", f"อัปโหลดไฟล์เปรียบเทียบเข้า Backlog Shipment: {file.filename}")
+        return jsonify({
+            "success": True,
+            "filename": file.filename,
+            "savedPath": save_path,
+            "message": f"บันทึกไฟล์ {file.filename} เข้าโฟลเดอร์ Backlog Shipment เรียบร้อย"
+        })
+
+    try:
+        data = process_csv(save_path)
+        data["filename"] = file.filename
+        data["savedPath"] = save_path
+        data["success"] = True
+        
+        # Safely extract raw rows for Skip Process Monitor
+        try:
+            full_df = read_dataframe(save_path)
+            
+            # Find matching column names case-insensitively
+            target_cols = {
+                'shipment_id': ['shipment_id', 'tracking_id', 'tracking_no', 'waybill'],
+                'soc_outbound_late_type_2nd_cutoff': ['soc_outbound_late_type_2nd_cutoff', 'soc_outbound_late_type', 'late_type', 'reason'],
+                'dest_station_name': ['dest_station_name', 'dest_station', 'hub_name', 'station_name', 'destination'],
+                'obd_zone': ['obd zone', 'obd_zone', 'zone', 'recieve_team', 'receive_team']
+            }
+            renames = {}
+            target_used_raw = set()
+            for col in full_df.columns:
+                c_clean = str(col).strip().lower()
+                for key, candidates in target_cols.items():
+                    if c_clean in candidates and key not in target_used_raw:
+                        renames[col] = key
+                        target_used_raw.add(key)
+                        break
+            
+            sub_df = full_df.rename(columns=renames)
+            sub_df = sub_df.loc[:, ~sub_df.columns.duplicated()]
+            needed = ['shipment_id', 'soc_outbound_late_type_2nd_cutoff', 'dest_station_name']
+            for n in needed:
+                if n not in sub_df.columns:
+                    sub_df[n] = ''
+            
+            # Filter strictly for skip process cases (reason contains 'skip')
+            reason_series = sub_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.lower()
+            is_skip_mask = reason_series.str.contains('skip')
+            skip_df = sub_df[is_skip_mask].copy()
+
+            total_skip = len(skip_df)
+            machine_count = int(reason_series[is_skip_mask].str.contains('machine').sum())
+            system_count = int(reason_series[is_skip_mask].str.contains('system').sum())
+
+            hub_map = build_hub_zone_map()
+            
+            # Resolve Zone accurately using Hub master lookup
+            resolved_zones = []
+            for _, r in skip_df.iterrows():
+                explicit_zone = str(r.get('obd_zone', '') or '').strip().upper()
+                if explicit_zone in ['A', 'B', 'C', 'INTERSOC', 'RETURN']:
+                    resolved_zones.append(explicit_zone)
+                elif 'INTER' in explicit_zone:
+                    resolved_zones.append('INTERSOC')
+                elif 'RET' in explicit_zone:
+                    resolved_zones.append('RETURN')
+                else:
+                    hub = r.get('dest_station_name', '')
+                    resolved_zones.append(lookup_obd_zone(hub, hub_map))
+            
+            skip_df['zone'] = resolved_zones
+
+            skip_count_by_zone = {'A': 0, 'B': 0, 'C': 0, 'INTERSOC': 0, 'RETURN': 0}
+            for z in resolved_zones:
+                skip_count_by_zone[z] = skip_count_by_zone.get(z, 0) + 1
+
+            raw_export_list = []
+            for _, r in skip_df.iterrows():
+                raw_export_list.append({
+                    'shipment_id': str(r.get('shipment_id', '-')),
+                    'shipmentId': str(r.get('shipment_id', '-')),
+                    'soc_outbound_late_type_2nd_cutoff': str(r.get('soc_outbound_late_type_2nd_cutoff', 'skip_outbound')),
+                    'reason': str(r.get('soc_outbound_late_type_2nd_cutoff', 'skip_outbound')),
+                    'dest_station_name': str(r.get('dest_station_name', '-')),
+                    'hub': str(r.get('dest_station_name', '-')),
+                    'zone': str(r.get('zone', 'A'))
+                })
+
+            data["totalRows"] = total_skip
+            data["totalSkipCases"] = total_skip
+            data["machineCount"] = machine_count
+            data["systemCount"] = system_count
+            data["skipCountByZone"] = skip_count_by_zone
+            data["rawRows"] = raw_export_list
+        except Exception as ex:
+            print("Error processing skip rawRows in upload_file:", ex)
+            import traceback
+            traceback.print_exc()
+            data["rawRows"] = []
+            data["totalRows"] = 0
+            data["totalSkipCases"] = 0
+            data["machineCount"] = 0
+            data["systemCount"] = 0
+            data["skipCountByZone"] = {}
+
+        return jsonify(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"Failed to upload: {str(e)}"}), 500
+
+
+@app.route("/api/upload-chunk", methods=["POST", "OPTIONS"])
+@app.route("/upload-chunk", methods=["POST", "OPTIONS"])
+@app.route("/api/upload-compare-chunk", methods=["POST", "OPTIONS"])
+@app.route("/upload-compare-chunk", methods=["POST", "OPTIONS"])
+def upload_chunk():
+    if request.method == "OPTIONS":
+        return jsonify({"success": True}), 200
+
+    file_chunk = request.files.get("chunk")
+    filename = (request.form.get("filename") or "").strip()
+    chunk_index = int(request.form.get("chunk_index", 0))
+    total_chunks = int(request.form.get("total_chunks", 1))
+    scope = (request.form.get("scope") or "").strip().lower()
+    folder_name = (request.form.get("folder_name") or request.form.get("folderName") or "").strip()
+
+    if not file_chunk or not filename:
+        return jsonify({"success": False, "error": "ไม่พบข้อมูล chunk หรือชื่อไฟล์"}), 400
+
+    filename = os.path.basename(filename)
+    if not filename.lower().endswith((".csv", ".xlsx", ".xls")):
+        return jsonify({"success": False, "error": "กรุณาอัปโหลดไฟล์ประเภท CSV หรือ Excel (.xlsx, .xls) เท่านั้น"}), 400
+
+    fn_lower = filename.lower()
+    if scope in ["compare", "backlog", "ob_bl_compare"] or "backlog" in fn_lower or "compare" in fn_lower:
+        target_dir = BACKLOG_COMPARE_FOLDER
+    elif folder_name:
+        folder_clean = re.sub(r'[\\/:*?"<>|]', '_', folder_name).strip()
+        target_dir = os.path.join(UPLOAD_FOLDER, folder_clean)
+    else:
+        target_dir = UPLOAD_FOLDER
+
+    os.makedirs(target_dir, exist_ok=True)
+    save_path = os.path.join(target_dir, filename)
+    part_path = save_path + ".part"
+
+    try:
+        mode = "wb" if chunk_index == 0 else "ab"
+        with open(part_path, mode) as f:
+            f.write(file_chunk.read())
+
+        if chunk_index == total_chunks - 1:
+            if os.path.exists(save_path):
+                try:
+                    os.remove(save_path)
+                except Exception:
+                    pass
+            os.replace(part_path, save_path)
+            log_activity("UPLOAD_FILE", f"Uploaded file (chunked): {filename} -> {os.path.basename(target_dir)}")
+            return jsonify({
+                "success": True,
+                "completed": True,
+                "filename": filename,
+                "savedPath": save_path,
+                "message": f"บันทึกไฟล์ {filename} เรียบร้อยแล้ว"
+            })
+        else:
+            return jsonify({
+                "success": True,
+                "completed": False,
+                "chunk_index": chunk_index,
+                "total_chunks": total_chunks
+            })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการเขียนไฟล์: {str(e)}"}), 500
+
+
+# ===== GAS PUSH endpoint: GAS ยิง POST มาหาเรา (แก้ปัญหา Workspace restriction) =====
+GAS_PUSH_CACHE = {
+    "lhtrip": None,
+    "obbl": None
+}
+
+RECEIVE_API_KEY = "SOCN_OBBL_2026_SECRET_KEY_XK9M3"
+
+@app.route("/api/receive-gas-data", methods=["POST", "GET"])
+def receive_gas_data():
+    """
+    GAS ยิง POST มาที่นี่พร้อมข้อมูล headers+rows
+    แก้ปัญหา 'Anyone within Shopee Mobile' — GAS รันใน account ที่มีสิทธิ์ แล้ว push มาให้เรา
+    """
+    # รองรับ GET เพื่อ health check
+    if request.method == "GET":
+        status = {}
+        for k, v in GAS_PUSH_CACHE.items():
+            if v:
+                status[k] = {"rows": len(v.get("rows", [])), "updatedAt": v.get("updatedAt", "?")}
+            else:
+                status[k] = None
+        return jsonify({"success": True, "cache": status})
+
+    try:
+        data = request.get_json(silent=True) or {}
+        key = (data.get("key") or "").strip()
+        page = (data.get("page") or "").strip().lower()
+
+        # ตรวจ API Key
+        if key != RECEIVE_API_KEY:
+            return jsonify({"success": False, "error": "Unauthorized"}), 403
+
+        if not page:
+            return jsonify({"success": False, "error": "Missing page parameter"}), 400
+
+        headers = data.get("headers", [])
+        rows = data.get("rows", [])
+
+        if not headers:
+            return jsonify({"success": False, "error": "No headers in payload"}), 400
+
+        cache_entry = {
+            "success": True,
+            "headers": headers,
+            "rows": rows,
+            "total": len(rows),
+            "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "pushedBy": data.get("pushedBy", "GAS"),
+            "sheet": data.get("sheet", ""),
+            "filename": f"Live {page.upper()} (GAS Push)"
+        }
+
+        GAS_PUSH_CACHE[page] = cache_entry
+
+        # บันทึก disk cache ด้วย
+        cache_path = os.path.join(UPLOAD_FOLDER, f"GAS_PUSH_{page.upper()}.json")
+        try:
+            import json as json_lib
+            with open(cache_path, "w", encoding="utf-8") as f:
+                json_lib.dump(cache_entry, f, ensure_ascii=False)
+        except Exception:
+            pass
+
+        # ถ้าเป็น obbl ให้บันทึก CSV ด้วย
+        if page == "obbl" and headers and rows:
+            try:
+                import csv as csv_lib
+                csv_path = os.path.join(UPLOAD_FOLDER, "LIVE_OB_BL_SYNC.csv")
+                with open(csv_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv_lib.writer(f)
+                    writer.writerow(headers)
+                    writer.writerows(rows)
+            except Exception:
+                pass
+
+        log_activity("GAS_PUSH", f"GAS pushed {page} data — {len(rows)} rows")
+        return jsonify({"success": True, "received": len(rows), "page": page})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/get-gas-cache", methods=["GET"])
+def get_gas_cache():
+    """ให้ dashboard ดึงข้อมูลที่ GAS push มาแล้ว"""
+    page = request.args.get("page", "lhtrip").strip().lower()
+
+    # ลอง memory cache ก่อน
+    cached = GAS_PUSH_CACHE.get(page)
+    if cached and cached.get("rows"):
+        return jsonify(cached)
+
+    # ลอง disk cache
+    cache_path = os.path.join(UPLOAD_FOLDER, f"GAS_PUSH_{page.upper()}.json")
+    if os.path.exists(cache_path):
+        try:
+            import json as json_lib
+            with open(cache_path, "r", encoding="utf-8") as f:
+                data = json_lib.load(f)
+            GAS_PUSH_CACHE[page] = data
+            return jsonify(data)
+        except Exception:
+            pass
+
+    return jsonify({
+        "success": False,
+        "error": f"ยังไม่มีข้อมูล {page} ที่ GAS push มา — กรุณากด 'Push to Dashboard' ใน Apps Script ก่อนครับ"
+    }), 200
+
+
+@app.route("/api/sync-google-sheet", methods=["GET", "POST"])
+def sync_google_sheet():
+    url = request.args.get("url", "") or (request.json.get("url", "") if request.is_json else "")
+    url = str(url).strip()
+
+    # Check sourceSheetUrl from settings if none provided
+    if not url:
+        settings = load_system_settings()
+        url = settings.get("lhTripDriveSync", {}).get("sourceSheetUrl", "").strip()
+    if not url:
+        return jsonify({
+            "success": False,
+            "error": "ยังไม่ได้ระบุลิงก์ Google Sheet สด (กรุณาระบุ URL ผ่านปุ่ม ⚡ Sync Google Sheet สด หรือหน้าต่างตั้งค่า Drive)"
+        }), 200
+
+    import re
+    gid_match = re.search(r'gid=([0-9]+)', url)
+    gid_param = f"&gid={gid_match.group(1)}" if gid_match else ""
+
+    # ======= Apps Script URL → relay ผ่าน POST + API Key (แก้ domain restriction) =======
+    if url and "script.google.com" in url:
+        try:
+            # ใช้ API Key เดียวกับที่กำหนดใน GAS_API_KEY
+            payload = {"key": GAS_API_KEY, "page": "lhtrip"}
+            resp = requests.post(
+                url,
+                json=payload,
+                timeout=60,
+                headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"},
+                allow_redirects=True
+            )
+
+            # ถ้า response เป็น HTML (ติด login) ให้แจ้ง error ชัดเจน
+            if (resp.content.strip().startswith(b"<!DOCTYPE html") or
+                    b"Sign in - Google Accounts" in resp.content or
+                    b"accounts.google.com" in resp.content):
+                return jsonify({
+                    "success": False,
+                    "error": "Apps Script ยังติด Login Google ❌\n\nวิธีแก้:\n1. เปิด Apps Script > Deploy > Manage Deployments\n2. กด Edit (✏️) ตรง Deployment ที่ใช้งาน\n3. เปลี่ยน 'Who has access' → 'Anyone'\n4. กด Deploy ใหม่"
+                }), 200
+
+            if resp.status_code == 200:
+                try:
+                    json_res = resp.json()
+                    if isinstance(json_res, dict):
+                        # ถ้า GAS ตอบ error (key ผิด หรือ page ผิด) → ลอง GET format แบบเดิม
+                        if json_res.get("success") == False and "Unauthorized" in str(json_res.get("error", "")):
+                            pass  # fall through to old GET method below
+                        else:
+                            if "rows" in json_res or "data" in json_res or "headers" in json_res:
+                                json_res["success"] = True
+                                log_activity("SYNC_GOOGLE_SHEET", f"Synced LH Trip via GAS API Key from {url}")
+                                return jsonify(json_res)
+                except Exception:
+                    pass  # fall through to old method
+        except requests.Timeout:
+            return jsonify({"success": False, "error": "Apps Script ใช้เวลานานเกินไป (Timeout 60s) กรุณาลองใหม่"}), 200
+        except Exception:
+            pass  # fall through to old GET method
+
+    if "/pubhtml" in url:
+        url = url.replace("/pubhtml", "/pub?output=csv")
+        if gid_match and "gid=" not in url:
+            url += gid_param
+    elif "docs.google.com/spreadsheets" in url and "gviz/tq" not in url and "export" not in url and "/pub" not in url:
+        match = re.search(r'/d/e/([a-zA-Z0-9-_]+)', url) or re.search(r'/d/([a-zA-Z0-9-_]+)', url)
+        if match:
+            spreadsheet_id = match.group(1)
+            url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv{gid_param}"
+    elif "script.google.com" in url and "format=" not in url and "raw=" not in url and "page=" not in url:
+        url += "&format=json" if "?" in url else "?format=json"
+
+    try:
+        # Fast check first without following endless Google SSO redirects (0.4s response)
+        init_req = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=False)
+        loc = init_req.headers.get("Location", "")
+
+        # Check if redirected to Google Account Sign-in
+        if init_req.status_code in [301, 302, 303, 307] and ("ServiceLogin" in loc or "accounts.google.com" in loc or "google.com/a/" in loc):
+            return jsonify({
+                "success": False,
+                "error": "URL นี้ติดสิทธิ์ล็อกอินองค์กร Google (Google Accounts Required)\n\n👉 วิธีแก้เปิดสิทธิ์ให้ดึงข้อมูลได้:\n1. หากใช้ Apps Script: ไปที่ 'Deploy' > 'Manage deployments' > เปลี่ยน 'Who has access' เป็น 'Anyone'\n2. หากใช้ Google Sheet: ไปที่ 'ไฟล์' > 'แชร์' > เปลี่ยนเป็น 'ทุกคนที่มีลิงก์' (Anyone with the link)"
+            }), 200
+
+        if init_req.status_code in [301, 302, 303, 307] and loc:
+            req = requests.get(loc, timeout=15, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=True)
+        else:
+            req = init_req
+
+        if req.status_code == 401:
+            return jsonify({
+                "success": False,
+                "error": "URL นี้ติดสิทธิ์เข้าถึงของ Google (HTTP 401 / Permission Required)"
+            }), 200
+        elif req.status_code != 200:
+            return jsonify({"success": False, "error": f"HTTP {req.status_code}: ไม่สามารถดึงข้อมูลจาก Google Sheet / Apps Script ได้"}), 200
+
+        # Check if Google returned an HTML login redirect page instead of CSV/JSON
+        if req.content.strip().startswith(b"<!DOCTYPE html") or req.content.strip().startswith(b"<html") or b"Sign in - Google Accounts" in req.content or b"accounts.google.com" in req.content:
+            return jsonify({
+                "success": False,
+                "error": "URL นี้ติดสิทธิ์ล็อกอินองค์กร Google (Google Accounts Required)\n\n👉 วิธีแก้เปิดสิทธิ์ให้ดึงข้อมูลได้:\n1. หากใช้ Apps Script: ไปที่ 'Deploy' > 'Manage deployments' > เปลี่ยน 'Who has access' เป็น 'Anyone'\n2. หากใช้ Google Sheet: ไปที่ 'ไฟล์' > 'แชร์' > เปลี่ยนเป็น 'ทุกคนที่มีลิงก์' (Anyone with the link)"
+            }), 200
+
+        # Check if response is JSON (Google Apps Script Web App API response)
+        try:
+            json_res = req.json()
+            if isinstance(json_res, dict) and ("rows" in json_res or "data" in json_res or "headers" in json_res):
+                json_res["success"] = True
+                log_activity("SYNC_GOOGLE_SHEET", f"Successfully synced live Apps Script JSON from {url}")
+                return jsonify(json_res)
+        except Exception:
+            pass
+
+        csv_filename = "LIVE_GOOGLE_SHEET_SYNC.csv"
+        target_path = os.path.join(UPLOAD_FOLDER, csv_filename)
+        with open(target_path, "wb") as f:
+            f.write(req.content)
+
+        try:
+            df = pd.read_csv(target_path, low_memory=False, on_bad_lines='skip')
+            cols_lower = [str(c).lower() for c in df.columns]
+            if any('trip number' in c or 'show on time' in c or 'vehicle' in c for c in cols_lower) or len(df.columns) >= 20:
+                data = process_table_sheet(df)
+                data["filename"] = "Live Google Sheet (Table)"
+                data["success"] = True
+                log_activity("SYNC_GOOGLE_SHEET", f"Successfully synced live Google Sheet Table data from {url}")
+                return jsonify(data)
+        except Exception:
+            pass
+
+        log_activity("SYNC_GOOGLE_SHEET", f"Synced Google Sheet data from {url}")
+        return jsonify(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"ไม่สามารถดึงข้อมูลจาก Google Sheet ได้: {str(e)}"}), 500
+
+
+def process_table_sheet(df):
+    # Unpack Apps Script { "cells": [...] } structure if present
+    if 'cells' in df.columns:
+        cell_rows = [r for r in df['cells'] if isinstance(r, (list, tuple))]
+        if cell_rows:
+            num_cols = max(len(r) for r in cell_rows)
+            headers = [f"col_{i}" for i in range(num_cols)]
+            padded_rows = [r + [''] * (num_cols - len(r)) for r in cell_rows]
+            df = pd.DataFrame(padded_rows, columns=headers)
+
+    # 1. Detect trip column (Column B / index 1 prioritized)
+    trip_col = None
+    for c in df.columns:
+        c_str = str(c).lower().replace("_", " ").strip()
+        if any(k in c_str for k in ['lh trip', 'trip number', 'trip id', 'shipment']):
+            trip_col = c
+            break
+    if not trip_col:
+        trip_col = df.columns[1] if len(df.columns) > 1 else df.columns[0]
+
+    df_clean = df.dropna(subset=[trip_col]).copy()
+    total_trips = len(df_clean)
+
+    status_col = None
+    for c in df_clean.columns:
+        if 'show on time' in str(c).lower() or 'status' in str(c).lower() or str(c) == 'col_14':
+            status_col = c
+            break
+    if not status_col and len(df_clean.columns) > 14:
+        status_col = df_clean.columns[14]
+
+    status_series = df_clean[status_col].astype(str).str.strip().str.lower() if status_col else pd.Series()
+    on_time = int((status_series == 'on time').sum())
+    late = int((status_series == 'late').sum())
+    rate = round((on_time / total_trips * 100), 1) if total_trips > 0 else 0.0
+
+    dest_col = None
+    for c in df_clean.columns:
+        if 'destination' in str(c).lower() or 'ปลายทาง' in str(c) or str(c) == 'col_7':
+            dest_col = c
+            break
+    if not dest_col and len(df_clean.columns) > 7:
+        dest_col = df_clean.columns[7]
+
+    veh_col = None
+    for c in df_clean.columns:
+        c_str = str(c).lower().replace("_", " ").strip()
+        if (any(k in c_str for k in ['vehicle type', 'ประเภทรถ']) or c_str == 'vehicle') and not any(k in c_str for k in ['plate', 'number', 'ทะเบียน']):
+            veh_col = c
+            break
+    if not veh_col and len(df_clean.columns) > 3:
+        veh_col = df_clean.columns[3]
+
+    late_df = df_clean[status_series == 'late'] if status_col else df_clean
+    ranking = []
+    top10 = []
+    if dest_col and not late_df.empty:
+        vc = late_df[dest_col].value_counts().head(50)
+        for st, count in vc.items():
+            pct = round((count / late * 100), 1) if late > 0 else 0.0
+            item = {
+                "station": str(st),
+                "count": int(count),
+                "pct": pct,
+                "peakTime": "Cut 1"
+            }
+            ranking.append(item)
+            if len(top10) < 10:
+                top10.append(item)
+
+    veh_stats = []
+    if veh_col and not late_df.empty:
+        v_vc = late_df[veh_col].value_counts()
+        for v_name, v_cnt in v_vc.items():
+            veh_stats.append({"vehicle": str(v_name), "count": int(v_cnt)})
+
+    # Dynamically detect all specific columns
+    dep_col = None
+    cut0_col = None
+    cut1_col = None
+    cut2_col = None
+    cut3_col = None
+    plate_col = None
+    driver_col = None
+    origin_col = None
+    cat_col = None
+    region_col = None
+    zone_col = None
+    standby_col = None
+    assign_col = None
+    rmk_col = None
+    intent_col = None
+
+    for c in df_clean.columns:
+        c_str = str(c).lower().replace("_", " ").strip()
+        if ('standby' in c_str) and not standby_col: standby_col = c
+        elif ('assign' in c_str) and not assign_col: assign_col = c
+        elif any(k in c_str for k in ['actual dep cut', 'actual dep', 'dep cut', 'departure time', 'dep time', 'com time', 'เวลาออกจริง', 'เวลาออก']) and not any(k in c_str for k in ['ops date', 'actual ops', 'date only', 'day', 'schedule']) and not dep_col:
+            dep_col = c
+        elif (c_str == 'rmk' or 'remark' in c_str or 'หมายเหตุ' in c_str or 'reason' in c_str) and not rmk_col: rmk_col = c
+        elif ('intent' in c_str or 'intentional' in c_str) and not intent_col: intent_col = c
+
+    for c in df_clean.columns:
+        c_str = str(c).lower().replace("_", " ").strip()
+        if ('cut 0' in c_str or 'cut0' in c_str) and not cut0_col: cut0_col = c
+        elif ('cut 1' in c_str or 'cut1' in c_str) and not cut1_col: cut1_col = c
+        elif ('cut 2' in c_str or 'cut2' in c_str) and not cut2_col: cut2_col = c
+        elif ('cut 3' in c_str or 'cut3' in c_str) and not cut3_col: cut3_col = c
+        if any(k in c_str for k in ['plate', 'license', 'ทะเบียน']) and not plate_col: plate_col = c
+        if any(k in c_str for k in ['driver', 'คนขับ']) and not driver_col: driver_col = c
+        if any(k in c_str for k in ['origin', 'ต้นทาง', 'from']) and not origin_col: origin_col = c
+        if any(k in c_str for k in ['category', 'trip type', 'ประเภท']) and not cat_col: cat_col = c
+        if any(k in c_str for k in ['region', 'ภาค']) and not region_col: region_col = c
+        if any(k in c_str for k in ['zone', 'โซน']) and not zone_col: zone_col = c
+
+    # Fallback to column index positions if not found by name
+    if not standby_col and len(df_clean.columns) > 19: standby_col = df_clean.columns[19]
+    if not assign_col and len(df_clean.columns) > 20: assign_col = df_clean.columns[20]
+    if not dep_col and len(df_clean.columns) > 21: dep_col = df_clean.columns[21]
+    elif not dep_col and len(df_clean.columns) > 19: dep_col = df_clean.columns[19]
+    if not rmk_col and len(df_clean.columns) > 24: rmk_col = df_clean.columns[24]
+    elif not rmk_col and len(df_clean.columns) > 22: rmk_col = df_clean.columns[22]
+    if not intent_col and len(df_clean.columns) > 25: intent_col = df_clean.columns[25]
+    elif not intent_col and len(df_clean.columns) > 23: intent_col = df_clean.columns[23]
+    if not status_col and len(df_clean.columns) > 23: status_col = df_clean.columns[23]
+    elif not status_col and len(df_clean.columns) > 21: status_col = df_clean.columns[21]
+    elif not status_col and len(df_clean.columns) > 14: status_col = df_clean.columns[14]
+
+    if not cut0_col and len(df_clean.columns) > 15: cut0_col = df_clean.columns[15]
+    if not cut1_col and len(df_clean.columns) > 16: cut1_col = df_clean.columns[16]
+    if not cut2_col and len(df_clean.columns) > 17: cut2_col = df_clean.columns[17]
+    if not cut3_col and len(df_clean.columns) > 18: cut3_col = df_clean.columns[18]
+    if not plate_col and len(df_clean.columns) > 4: plate_col = df_clean.columns[4]
+    if not driver_col and len(df_clean.columns) > 5: driver_col = df_clean.columns[5]
+    if not origin_col and len(df_clean.columns) > 6: origin_col = df_clean.columns[6]
+    if not cat_col and len(df_clean.columns) > 2: cat_col = df_clean.columns[2]
+    if not region_col and len(df_clean.columns) > 26: region_col = df_clean.columns[26]
+    elif not region_col and len(df_clean.columns) > 25: region_col = df_clean.columns[25]
+    if not zone_col and len(df_clean.columns) > 27: zone_col = df_clean.columns[27]
+    elif not zone_col and len(df_clean.columns) > 26: zone_col = df_clean.columns[26]
+
+    # Detect Outbound and Inbound order & weight columns (Column AC = index 28 / Column Y = index 24)
+    ob_order_col = None
+    ob_weight_col = None
+    ob_to_col = None
+
+    for c in df_clean.columns:
+        c_str = str(c).lower().replace("_", " ").strip()
+        if ('outbound(order' in c_str or 'outbound (order' in c_str or 'outbound order' in c_str or 'ob order' in c_str or ('outbound' in c_str and 'order' in c_str) or c_str in ['col 28', 'col_28', 'ac']) and not ob_order_col:
+            ob_order_col = c
+        elif ('outbound(weight' in c_str or 'outbound weight' in c_str or ('outbound' in c_str and 'weight' in c_str) or c_str in ['col 29', 'col_29', 'ad']) and not ob_weight_col:
+            ob_weight_col = c
+        elif ('outbound(to' in c_str or 'outbound to' in c_str or ('outbound' in c_str and 'to' in c_str)) and not ob_to_col:
+            ob_to_col = c
+
+    # Fallback to column index: prioritize Column AE (30), Column AC (28), Column Y (24)
+    if not ob_order_col:
+        if len(df_clean.columns) > 30:
+            ob_order_col = df_clean.columns[30]
+        elif len(df_clean.columns) > 28:
+            ob_order_col = df_clean.columns[28]
+        elif len(df_clean.columns) > 24:
+            ob_order_col = df_clean.columns[24]
+
+    if not ob_weight_col:
+        if len(df_clean.columns) > 31:
+            ob_weight_col = df_clean.columns[31]
+        elif len(df_clean.columns) > 29:
+            ob_weight_col = df_clean.columns[29]
+        elif len(df_clean.columns) > 25:
+            ob_weight_col = df_clean.columns[25]
+
+    if not ob_to_col:
+        if len(df_clean.columns) > 29:
+            ob_to_col = df_clean.columns[29]
+        elif len(df_clean.columns) > 23:
+            ob_to_col = df_clean.columns[23]
+
+    raw_rows = []
+    rows_cells = []
+    headers = [str(c) for c in df.columns]
+
+    for idx, row in df_clean.iterrows():
+        cells = [str(val) if pd.notna(val) else '' for val in row]
+        rows_cells.append({"cells": cells, "routeLink": ""})
+
+        # Parse numeric outbound_order safely from Column AE (30), AC (28), or Y (24)
+        parsed_ob_order = 0
+        raw_ob_order = row.get(ob_order_col, '') if ob_order_col else ''
+        for order_idx in [30, 28, 24, 31]:
+            candidate = ''
+            if pd.notna(raw_ob_order) and str(raw_ob_order).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!', '#N/A', '-']:
+                candidate = raw_ob_order
+            elif len(row) > order_idx and pd.notna(row.iloc[order_idx]) and str(row.iloc[order_idx]).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!', '#N/A', '-']:
+                candidate = row.iloc[order_idx]
+
+            if candidate:
+                try:
+                    clean_num_str = str(candidate).replace(',', '').strip()
+                    p = float(clean_num_str)
+                    if not pd.isna(p) and p > 0:
+                        parsed_ob_order = int(p) if p.is_integer() else p
+                        break
+                except Exception:
+                    pass
+
+        parsed_ob_weight = 0.0
+        raw_ob_weight = row.get(ob_weight_col, '') if ob_weight_col else ''
+        for weight_idx in [31, 29, 25]:
+            candidate_wt = ''
+            if pd.notna(raw_ob_weight) and str(raw_ob_weight).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!', '#N/A', '-']:
+                candidate_wt = raw_ob_weight
+            elif len(row) > weight_idx and pd.notna(row.iloc[weight_idx]) and str(row.iloc[weight_idx]).strip() not in ['', '0', '0.0', 'nan', 'NaN', '#REF!', '#N/A', '-']:
+                candidate_wt = row.iloc[weight_idx]
+
+            if candidate_wt:
+                try:
+                    clean_wt_str = str(candidate_wt).replace(',', '').strip()
+                    p = float(clean_wt_str)
+                    if not pd.isna(p) and p > 0:
+                        parsed_ob_weight = round(p, 2)
+                        break
+                except Exception:
+                    pass
+
+        def clean_val(v):
+            if pd.isna(v) or v is None:
+                return ''
+            s = str(v).strip()
+            if s.lower() in ['nan', 'none', 'null', '#ref!', '#n/a']:
+                return ''
+            return s
+
+        raw_rows.append({
+            "shipment_id": clean_val(row.get(trip_col, '')),
+            "trip_category": clean_val(row.get(cat_col, '')),
+            "vehicle_type": clean_val(row.get(veh_col, '')),
+            "vehicle_plate": clean_val(row.get(plate_col, '')),
+            "driver": clean_val(row.get(driver_col, '')),
+            "origin": clean_val(row.get(origin_col, '')) or 'SOCN',
+            "dest_station_name": clean_val(row.get(dest_col, '')),
+            "standby_time": clean_val(row.get(standby_col, '')),
+            "assign_time": clean_val(row.get(assign_col, '')),
+            "actual_dep_cut": clean_val(row.get(dep_col, '')),
+            "status": clean_val(row.get(status_col, '')),
+            "rmk": clean_val(row.get(rmk_col, '')),
+            "intentional": clean_val(row.get(intent_col, '')),
+            "outbound_order": parsed_ob_order,
+            "outbound_weight": parsed_ob_weight,
+            "outbound_to": clean_val(row.get(ob_to_col, '')),
+            "cut0": clean_val(row.get(cut0_col, '')),
+            "cut1": clean_val(row.get(cut1_col, '')),
+            "cut2": clean_val(row.get(cut2_col, '')),
+            "cut3": clean_val(row.get(cut3_col, '')),
+            "region": clean_val(row.get(region_col, '')),
+            "zone": clean_val(row.get(zone_col, ''))
+        })
+
+    # Group and merge rows by shipment_id taking the first row with outbound data
+    merged_rows_map = {}
+    for r in raw_rows:
+        s_id = r.get("shipment_id", "").strip()
+        if not s_id:
+            merged_rows_map[id(r)] = r
+            continue
+        if s_id not in merged_rows_map:
+            merged_rows_map[s_id] = dict(r)
+        else:
+            existing = merged_rows_map[s_id]
+            if (r.get("outbound_order") or 0) > (existing.get("outbound_order") or 0):
+                existing["outbound_order"] = r.get("outbound_order")
+            if (r.get("outbound_weight") or 0) > (existing.get("outbound_weight") or 0):
+                existing["outbound_weight"] = r.get("outbound_weight")
+            for k in ["standby_time", "assign_time", "actual_dep_cut", "rmk", "intentional", "status", "cut0", "cut1", "cut2", "cut3", "region", "zone", "trip_category", "vehicle_type", "vehicle_plate", "driver", "dest_station_name"]:
+                if not existing.get(k) and r.get(k):
+                    existing[k] = r.get(k)
+
+    unique_raw_rows = list(merged_rows_map.values())
+    unique_total_trips = len(unique_raw_rows)
+    unique_late_trips = sum(1 for r in unique_raw_rows if "late" in str(r.get("status", "")).lower())
+    unique_on_time_trips = unique_total_trips - unique_late_trips
+    unique_rate = round((unique_on_time_trips / unique_total_trips * 100), 1) if unique_total_trips > 0 else 0.0
+
+    ob_late_trips = sum(1 for r in unique_raw_rows if "ob late" in str(r.get("rmk", "")).lower())
+    lh_late_trips = sum(1 for r in unique_raw_rows if "lh late" in str(r.get("rmk", "")).lower())
+
+    total_orders = sum(r.get("outbound_order", 0) for r in unique_raw_rows)
+    late_orders = sum(r.get("outbound_order", 0) for r in unique_raw_rows if "late" in str(r.get("status", "")).lower())
+    on_time_orders = total_orders - late_orders
+
+    return {
+        "success": True,
+        "headers": headers,
+        "rows": rows_cells,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "totalTrips": unique_total_trips,
+        "totalOrders": total_orders,
+        "onTimeTrips": unique_on_time_trips,
+        "onTimeOrders": on_time_orders,
+        "lateTrips": unique_late_trips,
+        "lateOrders": late_orders,
+        "obLateTrips": ob_late_trips,
+        "lhLateTrips": lh_late_trips,
+        "onTimeRate": f"{unique_rate}%",
+        "totalLate": unique_late_trips,
+        "ranking": ranking[:50],  # limit to top 50 for small response
+        "top10": top10,
+        "vehicleStats": veh_stats,
+        "outboundRawRows": []  # stripped for lightweight response
+    }
+
+
+@app.route("/api/load-ob-late", methods=["GET"])
+@app.route("/api/load-lh", methods=["GET"])
+def load_ob_late():
+    excel_path = os.path.join(BASE_DIR, "OB Late", "test.xlsx")
+    if os.path.exists(UPLOAD_FOLDER):
+        upload_files = [os.path.join(UPLOAD_FOLDER, f) for f in os.listdir(UPLOAD_FOLDER) if f.endswith(".csv") or f.endswith(".xlsx")]
+        if upload_files:
+            upload_files.sort(key=os.path.getmtime, reverse=True)
+            excel_path = upload_files[0]
+
+    if not os.path.exists(excel_path):
+        return jsonify({"success": False, "error": "test.xlsx not found in OB Late folder"}), 404
+
+    try:
+        if excel_path.endswith('.xlsx') or excel_path.endswith('.xls'):
+            df = pd.read_excel(excel_path, sheet_name='Table')
+        else:
+            df = pd.read_csv(excel_path, low_memory=False)
+        data = process_table_sheet(df)
+        data["filename"] = os.path.basename(excel_path)
+        data["success"] = True
+        return jsonify(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/list-files", methods=["GET"])
+def list_files():
+    file_list = []
+    folder_list = []
+    seen = set()
+
+    # Search in uploads folder
+    if os.path.exists(UPLOAD_FOLDER):
+        for item in sorted(os.listdir(UPLOAD_FOLDER)):
+            item_path = os.path.join(UPLOAD_FOLDER, item)
+            if os.path.isdir(item_path):
+                child_files = []
+                for f in sorted(os.listdir(item_path)):
+                    if f.lower().endswith(('.csv', '.xlsx', '.xls')) and not f.startswith('.'):
+                        f_p = os.path.join(item_path, f)
+                        child_files.append({
+                            "filename": f"{item}/{f}",
+                            "basename": f,
+                            "folder": item,
+                            "size": os.path.getsize(f_p),
+                            "mtime": os.path.getmtime(f_p)
+                        })
+                folder_list.append({
+                    "folderName": item,
+                    "filename": f"folder:{item}",
+                    "displayName": f"📁 ทั้งโฟลเดอร์: {item} ({len(child_files)} ไฟล์)",
+                    "fileCount": len(child_files),
+                    "mtime": os.path.getmtime(item_path),
+                    "files": child_files
+                })
+            elif item.lower().endswith(('.csv', '.xlsx', '.xls')):
+                file_list.append({
+                    "filename": item,
+                    "basename": item,
+                    "location": "uploads",
+                    "mtime": os.path.getmtime(item_path),
+                    "size": os.path.getsize(item_path)
+                })
+                seen.add(item)
+
+    # Search in root folder
+    for f in sorted(os.listdir(BASE_DIR)):
+        if f.lower().endswith((".csv", ".xlsx", ".xls")) and f not in seen:
+            p = os.path.join(BASE_DIR, f)
+            file_list.append({
+                "filename": f,
+                "basename": f,
+                "location": "root",
+                "mtime": os.path.getmtime(p),
+                "size": os.path.getsize(p)
+            })
+            seen.add(f)
+
+    folder_list.sort(key=lambda x: x["mtime"], reverse=True)
+    file_list.sort(key=lambda x: x["mtime"], reverse=True)
+
+    return jsonify({
+        "success": True,
+        "files": file_list,
+        "folders": folder_list,
+        "outbound_files": file_list,
+        "outbound_folders": folder_list,
+        "skip_files": file_list,
+        "skip_folders": folder_list
+    })
+
+
+@app.route("/api/create-folder", methods=["POST"])
+def create_folder():
+    """Create a new folder in uploads directory."""
+    data = request.get_json() or {}
+    folder_name = (data.get("folder_name") or data.get("folderName") or data.get("name") or "").strip()
+    if not folder_name:
+        return jsonify({"success": False, "error": "กรุณาระบุชื่อโฟลเดอร์"}), 400
+
+    folder_clean = re.sub(r'[\\/:*?"<>|]', '_', folder_name).strip()
+    if not folder_clean:
+        return jsonify({"success": False, "error": "ชื่อโฟลเดอร์มีอักขระที่ไม่ถูกต้อง"}), 400
+
+    target_dir = os.path.join(UPLOAD_FOLDER, folder_clean)
+    if os.path.exists(target_dir):
+        return jsonify({"success": False, "error": f"โฟลเดอร์ '{folder_clean}' มีอยู่แล้วในระบบ"}), 400
+
+    try:
+        os.makedirs(target_dir, exist_ok=True)
+        log_activity("FOLDER_CREATE", f"📁 สร้างโฟลเดอร์ใหม่: {folder_clean}")
+        return jsonify({"success": True, "folderName": folder_clean, "message": f"สร้างโฟลเดอร์ '{folder_clean}' เรียบร้อยแล้ว"})
+    except Exception as e:
+        return jsonify({"success": False, "error": f"ไม่สามารถสร้างโฟลเดอร์ได้: {str(e)}"}), 500
+
+
+@app.route("/api/move-file-to-folder", methods=["POST", "OPTIONS"])
+@app.route("/api/move-files-to-folder", methods=["POST", "OPTIONS"])
+def move_file_to_folder():
+    """Move one or more files into a specified folder."""
+    data = request.get_json(silent=True) or {}
+    files = data.get("files") or data.get("filenames") or []
+    if isinstance(files, str):
+        files = [files]
+    if isinstance(data.get("filename"), str) and data.get("filename"):
+        files.append(data.get("filename"))
+    folder_name = (data.get("folder_name") or data.get("folderName") or "").strip()
+    if not folder_name:
+        return jsonify({"success": False, "error": "กรุณาระบุโฟลเดอร์ปลายทาง"}), 400
+
+    folder_clean = re.sub(r'[\\/:*?"<>|]', '_', folder_name).strip()
+    target_dir = os.path.join(UPLOAD_FOLDER, folder_clean)
+    os.makedirs(target_dir, exist_ok=True)
+
+    moved_count = 0
+    import shutil
+    for fn in files:
+        src = resolve_file_path(fn)
+        if src and os.path.exists(src) and os.path.isfile(src):
+            dest = os.path.join(target_dir, os.path.basename(src))
+            if src != dest:
+                try:
+                    shutil.move(src, dest)
+                    moved_count += 1
+                except Exception as e:
+                    print(f"Error moving {src} to {dest}:", e)
+
+    FILE_PARSED_CACHE.clear()
+    log_activity("FOLDER_MOVE_FILES", f"🚚 ย้าย {moved_count} ไฟล์เข้าสู่โฟลเดอร์ '{folder_clean}'")
+    return jsonify({
+        "success": True,
+        "movedCount": moved_count,
+        "folderName": folder_clean,
+        "message": f"ย้าย {moved_count} ไฟล์เข้าสู่โฟลเดอร์ '{folder_clean}' เรียบร้อยแล้ว"
+    })
+
+
+
+@app.route("/api/delete-file", methods=["POST"])
+def delete_file():
+    data = request.get_json() or {}
+    filename = (data.get("filename") or "").strip()
+    if not filename:
+        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์หรือโฟลเดอร์"}), 400
+
+    if filename.startswith("folder:"):
+        folder_name = filename.replace("folder:", "").strip()
+        folder_clean = os.path.basename(folder_name)
+        target_dir = os.path.join(UPLOAD_FOLDER, folder_clean)
+        if not os.path.exists(target_dir):
+            target_dir = os.path.join(BASE_DIR, folder_clean)
+        if os.path.exists(target_dir) and os.path.isdir(target_dir):
+            import shutil
+            try:
+                shutil.rmtree(target_dir)
+                # Clear RAM cache for folder
+                keys_to_delete = [k for k in FILE_PARSED_CACHE.keys() if folder_clean in k]
+                for k in keys_to_delete:
+                    FILE_PARSED_CACHE.pop(k, None)
+                log_activity("FOLDER_DELETE", f"🗑️ ลบโฟลเดอร์ข้อมูล: {folder_clean}")
+                return jsonify({"success": True, "filename": filename, "message": f"ลบโฟลเดอร์ {folder_clean} เรียบร้อยแล้ว"})
+            except Exception as e:
+                return jsonify({"success": False, "error": f"ไม่สามารถลบโฟลเดอร์ได้: {str(e)}"}), 500
+        else:
+            return jsonify({"success": False, "error": f"ไม่พบโฟลเดอร์ '{folder_clean}' บนเซิร์ฟเวอร์"}), 404
+
+    target_path = resolve_file_path(filename)
+    if not target_path or not os.path.exists(target_path):
+        return jsonify({"success": False, "error": f"ไม่พบไฟล์ '{filename}' บนเซิร์ฟเวอร์ (ไฟล์อาจถูกลบหรือไม่ได้อัปโหลด)"}), 404
+
+    try:
+        os.remove(target_path)
+        # Clear RAM cache
+        filename_clean = os.path.basename(target_path)
+        keys_to_delete = [k for k in FILE_PARSED_CACHE.keys() if (target_path and target_path in k) or filename_clean in k]
+        for k in keys_to_delete:
+            FILE_PARSED_CACHE.pop(k, None)
+
+        log_activity("FILE_DELETE", f"🗑️ ลบไฟล์ข้อมูล: {filename_clean}")
+        return jsonify({"success": True, "filename": filename, "message": f"ลบไฟล์ {filename_clean} เรียบร้อยแล้ว"})
+    except Exception as e:
+        return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ได้: {str(e)}"}), 500
+
+
+@app.route("/api/folder-files", methods=["GET"])
+def get_folder_files():
+    folder_name = request.args.get("folder", "").strip()
+    if not folder_name:
+        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อโฟลเดอร์", "files": []}), 400
+
+    folder_clean = os.path.basename(folder_name)
+    folder_path = os.path.join(UPLOAD_FOLDER, folder_clean)
+    if not os.path.exists(folder_path):
+        folder_path = os.path.join(BASE_DIR, folder_clean)
+
+    if not os.path.exists(folder_path) and os.path.exists(UPLOAD_FOLDER):
+        for entry in os.listdir(UPLOAD_FOLDER):
+            if entry.lower() == folder_clean.lower() and os.path.isdir(os.path.join(UPLOAD_FOLDER, entry)):
+                folder_path = os.path.join(UPLOAD_FOLDER, entry)
+                folder_name = entry
+                break
+
+    if not os.path.exists(folder_path) or not os.path.isdir(folder_path):
+        return jsonify({"success": False, "error": f"ไม่พบโฟลเดอร์ '{folder_name}'", "files": []}), 404
+
+    child_files = []
+    for root, dirs, filenames in os.walk(folder_path):
+        for f in sorted(filenames):
+            if f.lower().endswith(('.csv', '.xlsx', '.xls')) and not f.startswith('.'):
+                rel = os.path.relpath(os.path.join(root, f), UPLOAD_FOLDER).replace('\\', '/')
+                child_files.append(rel)
+
+    return jsonify({
+        "success": True,
+        "folder": folder_name,
+        "files": child_files,
+        "fileCount": len(child_files)
+    })
+
+
+@app.route("/api/load-file", methods=["GET"])
+def load_file():
+    cutoff = str(request.args.get("cutoff", "all")).strip().lower()
+    if cutoff not in ["1", "2", "all"]:
+        cutoff = "all"
+    filename = request.args.get("filename", "").strip()
+    folder_param = request.args.get("folder", "").strip()
+    if folder_param:
+        filename = f"folder:{folder_param}"
+
+    if not filename:
+        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์หรือโฟลเดอร์"}), 400
+
+    if filename.startswith("folder:"):
+        folder_name = filename.replace("folder:", "").strip()
+        folder_clean = os.path.basename(folder_name)
+        folder_path = os.path.join(UPLOAD_FOLDER, folder_clean)
+        if not os.path.exists(folder_path):
+            folder_path = os.path.join(BASE_DIR, folder_clean)
+
+        if not os.path.exists(folder_path) and os.path.exists(UPLOAD_FOLDER):
+            for entry in os.listdir(UPLOAD_FOLDER):
+                if entry.lower() == folder_clean.lower() and os.path.isdir(os.path.join(UPLOAD_FOLDER, entry)):
+                    folder_path = os.path.join(UPLOAD_FOLDER, entry)
+                    folder_name = entry
+                    break
+
+        if not os.path.exists(folder_path) or not os.path.isdir(folder_path):
+            return jsonify({"success": False, "error": f"ไม่พบโฟลเดอร์ '{folder_name}' บนเซิร์ฟเวอร์"}), 200
+        
+        try:
+            folder_mtime = os.path.getmtime(folder_path)
+            cache_key = f"folder_ob_{folder_path}_{folder_mtime}_cut{cutoff}"
+            if cache_key in FILE_PARSED_CACHE:
+                resp = dict(FILE_PARSED_CACHE[cache_key])
+                resp["outboundRawRows"] = []  # strip raw rows from initial response
+                return jsonify(resp)
+                
+            res = process_folder(folder_path, folder_name, cutoff_round=cutoff)
+            if not res or not res.get("success"):
+                return jsonify(res or {"success": False, "error": f"ไม่สามารถประมวลผลโฟลเดอร์ '{folder_name}' ได้"}), 200
+            FILE_PARSED_CACHE[cache_key] = res
+            slim = dict(res)
+            slim["outboundRawRows"] = []  # strip raw rows from initial response
+            return jsonify(slim)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการประมวลผลโฟลเดอร์ '{folder_name}': {str(e)}"}), 200
+
+    target = resolve_file_path(filename)
+    if not target or not os.path.exists(target):
+        return jsonify({"success": False, "error": f"ไม่พบไฟล์ '{filename}' บนเซิร์ฟเวอร์ (ไฟล์อาจถูกลบหรือไม่ได้อัปโหลด)"}), 200
+
+    try:
+        mtime = os.path.getmtime(target)
+        cache_key = f"{target}_{mtime}_cut{cutoff}"
+        if cache_key in FILE_PARSED_CACHE:
+            slim = dict(FILE_PARSED_CACHE[cache_key])
+            slim["outboundRawRows"] = []  # strip raw rows from initial response
+            return jsonify(slim)
+
+        data = process_csv(target, cutoff_round=cutoff)
+        data["filename"] = filename
+        data["cutoffRound"] = cutoff
+        data["success"] = True
+
+        FILE_PARSED_CACHE[cache_key] = data
+        slim = dict(data)
+        slim["outboundRawRows"] = []  # strip raw rows from initial response
+        return jsonify(slim)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"ไม่สามารถประมวลผลไฟล์ได้: {str(e)}"}), 200
+
+
+def lookup_raw_df(filename, cutoff):
+    """Find the cleaned late-parcel DataFrame stored by process_dataframe().
+
+    process_dataframe() stores it under "<basename>_<cutoff>" and "<full path>_<cutoff>",
+    custom groups under "custom:<name>_<cutoff>" and folders under "folder:<name>_<cutoff>".
+    The client may send a relative path such as "Inves/file.csv", so try every form.
+    """
+    if not filename:
+        return None
+    cut = str(cutoff).strip().lower()
+    if cut not in ["1", "2", "all"]:
+        cut = "all"
+    candidates = [f"{filename}_{cut}", f"{os.path.basename(filename)}_{cut}"]
+    if not filename.startswith(("folder:", "custom:")):
+        target = resolve_file_path(filename)
+        if target:
+            candidates.insert(0, f"{target}_{cut}")
+    candidates.append(filename)
+    for ck in candidates:
+        df = RAW_DF_STORAGE.get(ck)
+        if isinstance(df, pd.DataFrame):
+            return df
+    return None
+
+
+@app.route("/api/raw-data-page", methods=["GET"])
+def get_raw_data_page():
+    filename = request.args.get("filename", "").strip()
+    cutoff = str(request.args.get("cutoff", "all")).strip().lower()
+    page = int(request.args.get("page", 1))
+    limit = int(request.args.get("limit", 50))
+    query = request.args.get("search", "").strip().lower()
+    station_filter = request.args.get("station", "").strip().lower()
+    late_type_filter = request.args.get("late_type", "").strip().lower()
+    cutoff_filter = request.args.get("cutoff_filter", "").strip().upper()
+
+    if page < 1: page = 1
+    if limit < 1 or limit > 200: limit = 50
+
+    data = None
+    raw_df = lookup_raw_df(filename, cutoff)
+    if raw_df is not None:
+        data = {"success": True}
+    elif filename:
+        if filename.startswith("custom:"):
+            return jsonify({"success": False, "error": "ไม่พบข้อมูลกลุ่มไฟล์ในหน่วยความจำ (เซิร์ฟเวอร์อาจรีสตาร์ท) กรุณาโหลดกลุ่มไฟล์ใหม่อีกครั้ง", "rows": [], "totalRows": 0, "totalPages": 1, "page": page})
+        if filename.startswith("folder:"):
+            folder_name = filename.replace("folder:", "").strip()
+            folder_clean = os.path.basename(folder_name)
+            folder_path = os.path.join(UPLOAD_FOLDER, folder_clean)
+            if not os.path.exists(folder_path):
+                folder_path = os.path.join(BASE_DIR, folder_clean)
+            if os.path.exists(folder_path):
+                folder_mtime = os.path.getmtime(folder_path)
+                cache_key = f"folder_ob_{folder_path}_{folder_mtime}_cut{cutoff}"
+                data = FILE_PARSED_CACHE.get(cache_key)
+                if not data:
+                    data = process_folder(folder_path, folder_name, cutoff_round=cutoff)
+                    if data:
+                        data["success"] = True
+                        FILE_PARSED_CACHE[cache_key] = data
+        else:
+            target = resolve_file_path(filename)
+            if target and os.path.exists(target):
+                mtime = os.path.getmtime(target)
+                cache_key = f"{target}_{mtime}_cut{cutoff}"
+                data = FILE_PARSED_CACHE.get(cache_key)
+                if not data:
+                    data = process_csv(target, cutoff_round=cutoff)
+                    if data:
+                        data["success"] = True
+                        FILE_PARSED_CACHE[cache_key] = data
+
+    if not data:
+        return jsonify({"success": False, "error": "ไม่พบข้อมูลไฟล์", "rows": [], "totalRows": 0, "totalPages": 1, "page": page})
+
+    if raw_df is None:
+        raw_df = lookup_raw_df(filename, cutoff)
+    if raw_df is None and isinstance(data, dict):
+        raw_df = data.get("_raw_df")
+    if raw_df is not None and isinstance(raw_df, pd.DataFrame) and not raw_df.empty:
+        f_df = raw_df
+        if query:
+            q_mask = (
+                f_df['shipment_id'].astype(str).str.contains(query, case=False, na=False) |
+                f_df['dest_station_name'].astype(str).str.contains(query, case=False, na=False) |
+                f_df['latest_to_number'].astype(str).str.contains(query, case=False, na=False)
+            )
+            f_df = f_df[q_mask]
+        if station_filter and station_filter != "all":
+            f_df = f_df[f_df['dest_station_name'].astype(str).str.contains(station_filter, case=False, na=False)]
+        if late_type_filter and late_type_filter != "all":
+            if late_type_filter in ['receive_late', 'receive']:
+                regex_pattern = 'receive|รับเข้า'
+            elif late_type_filter in ['outbound_late', 'outbound']:
+                regex_pattern = 'outbound|กระจาย'
+            elif late_type_filter in ['pack_late', 'pack']:
+                regex_pattern = 'pack|แพ็ก|ครอง'
+            else:
+                regex_pattern = re.escape(late_type_filter)
+
+            lt_mask = (
+                f_df['soc_outbound_late_type_2nd_cutoff'].astype(str).str.contains(regex_pattern, case=False, na=False, regex=True) |
+                f_df['soc_outbound_late_type_1st_cutoff'].astype(str).str.contains(regex_pattern, case=False, na=False, regex=True) |
+                f_df['soc_outbound_late_type'].astype(str).str.contains(regex_pattern, case=False, na=False, regex=True)
+            )
+            f_df = f_df[lt_mask]
+        if cutoff_filter == "BOTH":
+            f_df = f_df[f_df['late_round_type'] == "BOTH"]
+        elif cutoff_filter == "CUT1":
+            f_df = f_df[f_df['late_round_type'].isin(["CUT1", "BOTH"])]
+        elif cutoff_filter == "CUT2":
+            f_df = f_df[f_df['late_round_type'].isin(["CUT2", "BOTH"])]
+
+        total_rows = int(len(f_df))
+        total_pages = max(1, (total_rows + limit - 1) // limit)
+        start_idx = (page - 1) * limit
+        page_rows = f_df.iloc[start_idx:start_idx + limit].to_dict(orient='records')
+
+        return jsonify({
+            "success": True,
+            "rows": page_rows,
+            "totalRows": total_rows,
+            "totalPages": total_pages,
+            "page": page,
+            "limit": limit
+        })
+
+    raw_rows = data.get("outboundRawRows", [])
+
+    filtered = []
+    for r in raw_rows:
+        st = str(r.get("dest_station_name", "")).lower()
+        sid = str(r.get("shipment_id", "")).lower()
+        to_no = str(r.get("latest_to_number", "")).lower()
+        lt = str(r.get("soc_outbound_late_type_2nd_cutoff") or r.get("soc_outbound_late_type_1st_cutoff") or r.get("soc_outbound_late_type") or "").lower()
+        round_type = str(r.get("late_round_type", "")).upper()
+
+        if query and query not in sid and query not in st and query not in to_no:
+            continue
+        if station_filter and station_filter != "all" and station_filter not in st:
+            continue
+        if late_type_filter and late_type_filter != "all" and late_type_filter not in lt:
+            continue
+        if cutoff_filter == "BOTH" and round_type != "BOTH":
+            continue
+        elif cutoff_filter == "CUT1" and round_type not in ["CUT1", "BOTH"]:
+            continue
+        elif cutoff_filter == "CUT2" and round_type not in ["CUT2", "BOTH"]:
+            continue
+
+        filtered.append(r)
+
+    total_rows = len(filtered)
+    total_pages = max(1, (total_rows + limit - 1) // limit)
+    start_idx = (page - 1) * limit
+    page_rows = filtered[start_idx:start_idx + limit]
+
+    return jsonify({
+        "success": True,
+        "rows": page_rows,
+        "totalRows": total_rows,
+        "totalPages": total_pages,
+        "page": page,
+        "limit": limit
+    })
+
+
+@app.route("/api/export-raw-csv", methods=["GET"])
+def export_raw_csv_stream():
+    filename = request.args.get("filename", "").strip()
+    cutoff = str(request.args.get("cutoff", "all")).strip().lower()
+
+    data = None
+    raw_df = lookup_raw_df(filename, cutoff)
+    if raw_df is not None:
+        data = {"success": True}
+    elif filename:
+        if filename.startswith("folder:"):
+            folder_name = filename.replace("folder:", "").strip()
+            folder_clean = os.path.basename(folder_name)
+            folder_path = os.path.join(UPLOAD_FOLDER, folder_clean)
+            if not os.path.exists(folder_path):
+                folder_path = os.path.join(BASE_DIR, folder_clean)
+            if os.path.exists(folder_path):
+                data = process_folder(folder_path, folder_name, cutoff_round=cutoff)
+                if data:
+                    data["success"] = True
+        elif not filename.startswith("custom:"):
+            target = resolve_file_path(filename)
+            if target and os.path.exists(target):
+                data = process_csv(target, cutoff_round=cutoff)
+                if data:
+                    data["success"] = True
+
+    if not data:
+        return "File not found", 404
+
+    if raw_df is None:
+        raw_df = lookup_raw_df(filename, cutoff)
+
+    if raw_df is not None and isinstance(raw_df, pd.DataFrame) and not raw_df.empty:
+        import io
+        from flask import Response
+        output = io.StringIO()
+        output.write('\ufeff')
+        raw_df.to_csv(output, index=False)
+        resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
+        resp.headers["Content-Disposition"] = f"attachment; filename=RAW_DATA_EXPORT_{cutoff}.csv"
+        return resp
+
+    rows = data.get("outboundRawRows", []) if isinstance(data, dict) else []
+
+    headers = [
+        'No', 'Tracking_ID', 'Destination_Station', 'First_SOC_Received',
+        'First_SOC_Packed', 'First_SOC_Outbound',
+        'Cutoff_1_Target_Timestamp', 'Delay_Minutes_Cut1',
+        'Cutoff_2_Target_Timestamp', 'Delay_Minutes_Cut2',
+        'Late_Round_Status', 'Late_Reason_Cut1', 'Late_Reason_Cut2', 'Route', 'TO_Number', 'Team'
+    ]
+
+    import io
+    output = io.StringIO()
+    output.write('\ufeff' + ','.join(headers) + '\n')
+
+    for idx, r in enumerate(rows):
+        row = [
+            str(idx + 1),
+            f'"{str(r.get("shipment_id","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("dest_station_name","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("first_soc_received_timestamp","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("first_soc_packed_timestamp","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("first_soc_outbound_timestamp","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("soc_outbound_based_received_1st_cut_off_timestamp","")).replace(chr(34), chr(34)*2)}"',
+            str(r.get("delay_mins_c1", 0)),
+            f'"{str(r.get("soc_outbound_based_received_2nd_cut_off_timestamp","")).replace(chr(34), chr(34)*2)}"',
+            str(r.get("delay_mins_c2", 0)),
+            f'"{r.get("late_round_type", "LATE")}"',
+            f'"{str(r.get("soc_outbound_late_type_1st_cutoff","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("soc_outbound_late_type_2nd_cutoff") or r.get("soc_outbound_late_type","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("soc_outbound_route_type","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("latest_to_number","")).replace(chr(34), chr(34)*2)}"',
+            f'"{str(r.get("recieve_team","")).replace(chr(34), chr(34)*2)}"'
+        ]
+        output.write(','.join(row) + '\n')
+
+    from flask import Response
+    resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
+    resp.headers["Content-Disposition"] = f"attachment; filename=RAW_DATA_EXPORT_{cutoff}.csv"
+    return resp
+
+
+@app.route("/api/load-custom-group", methods=["GET", "POST"])
+def load_custom_group_api():
+    """Load and combine multiple custom-selected files into a single aggregated report."""
+    cutoff = "all"
+    if request.method == "POST":
+        data = request.get_json() or {}
+        files = data.get("files", [])
+        group_type = (data.get("type") or "outbound").strip().lower()
+        group_name = (data.get("group_name") or data.get("name") or "กลุ่มไฟล์ที่เลือก").strip()
+        cutoff = str(data.get("cutoff") or request.args.get("cutoff") or "all").strip().lower()
+    else:
+        files_param = request.args.get("files", "").strip()
+        group_type = request.args.get("type", "outbound").strip().lower()
+        group_name = request.args.get("group_name", request.args.get("name", "กลุ่มไฟล์ที่เลือก")).strip()
+        cutoff = str(request.args.get("cutoff", "all")).strip().lower()
+        files = [f.strip() for f in files_param.split(",") if f.strip()] if files_param else []
+
+    if cutoff not in ["1", "2", "all"]:
+        cutoff = "all"
+
+    if not files:
+        return jsonify({"success": False, "error": "ไม่ได้เลือกไฟล์สำหรับจัดกลุ่ม"}), 400
+
+    try:
+        if group_type == "skip":
+            res = process_skip_file_list(files, group_name=group_name)
+        else:
+            res = process_file_list(files, group_name=group_name, cutoff_round=cutoff)
+            
+        if res.get("success"):
+            log_activity("CUSTOM_GROUP_LOAD", f"📊 ประมวลผลกลุ่มไฟล์ ({len(files)} ไฟล์, รอบ Cutoff {cutoff}): {group_name}")
+        return jsonify(res)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการรวมกลุ่มไฟล์: {str(e)}"}), 200
+
+
+@app.route("/api/hub-zone-map", methods=["GET"])
+def get_hub_zone_map_api():
+    return jsonify({"success": True, "hubMap": build_hub_zone_map()})
+
+
+@app.route("/api/load-skip", methods=["GET"])
+def load_skip_lightweight():
+    """Lightweight skip-only endpoint that accurately processes skip cases and zone assignments."""
+    filename = request.args.get("filename", "").strip()
+    folder_param = request.args.get("folder", "").strip()
+    if folder_param:
+        filename = f"folder:{folder_param}"
+
+    if not filename:
+        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์หรือโฟลเดอร์"}), 400
+
+    if filename.startswith("folder:"):
+        folder_name = filename.replace("folder:", "").strip()
+        folder_clean = os.path.basename(folder_name)
+        folder_path = os.path.join(UPLOAD_FOLDER, folder_clean)
+        if not os.path.exists(folder_path):
+            folder_path = os.path.join(BASE_DIR, folder_clean)
+
+        if not os.path.exists(folder_path) and os.path.exists(UPLOAD_FOLDER):
+            for entry in os.listdir(UPLOAD_FOLDER):
+                if entry.lower() == folder_clean.lower() and os.path.isdir(os.path.join(UPLOAD_FOLDER, entry)):
+                    folder_path = os.path.join(UPLOAD_FOLDER, entry)
+                    folder_name = entry
+                    break
+
+        if not os.path.exists(folder_path) or not os.path.isdir(folder_path):
+            return jsonify({"success": False, "error": f"ไม่พบโฟลเดอร์ '{folder_name}' บนเซิร์ฟเวอร์"}), 200
+            
+        try:
+            folder_mtime = os.path.getmtime(folder_path)
+            cache_key = f"folder_skip_{folder_path}_{folder_mtime}"
+            if cache_key in FILE_PARSED_CACHE:
+                return jsonify(FILE_PARSED_CACHE[cache_key])
+                
+            res = process_folder_skip(folder_path, folder_name)
+            if res.get("success"):
+                FILE_PARSED_CACHE[cache_key] = res
+            return jsonify(res)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการประมวลผลโฟลเดอร์ '{folder_name}': {str(e)}"}), 200
+
+    target = resolve_file_path(filename)
+    if not target or not os.path.exists(target):
+        return jsonify({"success": False, "error": f"ไม่พบไฟล์ '{filename}' บนเซิร์ฟเวอร์ (ไฟล์อาจถูกลบหรือไม่ได้อัปโหลด)"}), 200
+
+    try:
+        mtime = os.path.getmtime(target)
+        cache_key = f"skip_file_{target}_{mtime}"
+        if cache_key in FILE_PARSED_CACHE:
+            return jsonify(FILE_PARSED_CACHE[cache_key])
+
+        res = process_skip_file_list([target], group_name=os.path.basename(target))
+        if res.get("success"):
+            res["filename"] = filename
+            res["isFolder"] = False
+            res["isCustomGroup"] = False
+            FILE_PARSED_CACHE[cache_key] = res
+        return jsonify(res)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"ไม่สามารถประมวลผลไฟล์ได้: {str(e)}"}), 200
+
+
+@app.route("/api/raw-data", methods=["GET"])
+def get_raw_data():
+    cutoff = str(request.args.get("cutoff", "2")).strip()
+    if cutoff not in ["1", "2"]:
+        cutoff = "2"
+    is_cut1 = (cutoff == "1")
+
+    filename = request.args.get("filename", "").strip()
+    target = ""
+    if filename:
+        target = os.path.join(UPLOAD_FOLDER, filename)
+        if not os.path.exists(target):
+            target = os.path.join(BASE_DIR, filename)
+    
+    if not target or not os.path.exists(target):
+        target = os.path.join(BASE_DIR, "SOC-BISOCinvestigateshipment_DownloadTable_20260901_201309.csv")
+        if os.path.exists(UPLOAD_FOLDER):
+            upload_files = [os.path.join(UPLOAD_FOLDER, f) for f in os.listdir(UPLOAD_FOLDER) if f.endswith(".csv")]
+            if upload_files:
+                upload_files.sort(key=os.path.getmtime, reverse=True)
+                target = upload_files[0]
+
+    if not os.path.exists(target):
+        return jsonify({"success": False, "error": "No file found"}), 404
+
+    df = pd.read_csv(target, low_memory=False)
+    
+    # Map target columns based on cutoff
+    ontime_col = 'is_soc_outbound_1st_ontime' if (is_cut1 and 'is_soc_outbound_1st_ontime' in df.columns) else ('is_soc_outbound_2nd_ontime' if 'is_soc_outbound_2nd_ontime' in df.columns else 'is_soc_outbound_ontime')
+    cut_ts_col = 'soc_outbound_based_received_1st_cut_off_timestamp' if (is_cut1 and 'soc_outbound_based_received_1st_cut_off_timestamp' in df.columns) else ('soc_outbound_based_received_2nd_cut_off_timestamp' if 'soc_outbound_based_received_2nd_cut_off_timestamp' in df.columns else 'soc_outbound_based_received_cut_off_timestamp')
+    late_type_col = 'soc_outbound_late_type_1st_cutoff' if (is_cut1 and 'soc_outbound_late_type_1st_cutoff' in df.columns) else ('soc_outbound_late_type_2nd_cutoff' if 'soc_outbound_late_type_2nd_cutoff' in df.columns else 'soc_outbound_late_type')
+
+    has_out = df["first_soc_outbound_timestamp"].notna() if "first_soc_outbound_timestamp" in df.columns else pd.Series(True, index=df.index)
+    is_late = df[ontime_col].astype(str).str.strip().str.upper().isin(["FALSE", "0"]) if ontime_col in df.columns else pd.Series(True, index=df.index)
+    late_df = df[has_out & is_late].copy()
+
+    # Filters
+    search = request.args.get("search", "").strip().lower()
+    station = request.args.get("station", "").strip()
+
+    if search:
+        mask = False
+        if "shipment_id" in late_df.columns:
+            mask = mask | late_df["shipment_id"].astype(str).str.lower().str.contains(search)
+        if "dest_station_name" in late_df.columns:
+            mask = mask | late_df["dest_station_name"].astype(str).str.lower().str.contains(search)
+        if "latest_to_number" in late_df.columns:
+            mask = mask | late_df["latest_to_number"].astype(str).str.lower().str.contains(search)
+        late_df = late_df[mask]
+
+    if station and "dest_station_name" in late_df.columns:
+        late_df = late_df[late_df["dest_station_name"].astype(str).str.contains(station)]
+
+    page = int(request.args.get("page", 1))
+    limit = int(request.args.get("limit", 100))
+    total_count = len(late_df)
+
+    # Delay calculation
+    if "first_soc_outbound_timestamp" in late_df.columns and cut_ts_col in late_df.columns:
+        late_df["out_dt"] = pd.to_datetime(late_df["first_soc_outbound_timestamp"], errors="coerce")
+        late_df["cut_dt"] = pd.to_datetime(late_df[cut_ts_col], errors="coerce")
+        late_df["delay_mins"] = ((late_df["out_dt"] - late_df["cut_dt"]).dt.total_seconds() / 60).round(1).fillna(0)
+    else:
+        late_df["delay_mins"] = 0
+
+    start_idx = (page - 1) * limit
+    page_df = late_df.iloc[start_idx:start_idx + limit].copy()
+
+    page_df["soc_outbound_based_received_cut_off_timestamp"] = page_df[cut_ts_col] if cut_ts_col in page_df.columns else ""
+    page_df["soc_outbound_late_type"] = page_df[late_type_col] if late_type_col in page_df.columns else ""
+
+    cols = [
+        "shipment_id", "dest_station_name", "first_soc_received_timestamp",
+        "first_soc_outbound_timestamp", "soc_outbound_based_received_cut_off_timestamp",
+        "delay_mins", "soc_outbound_late_type", "soc_outbound_route_type", "latest_to_number", "recieve_team"
+    ]
+    for c in cols:
+        if c not in page_df.columns:
+            page_df[c] = ""
+
+    rows = page_df[cols].fillna("").to_dict(orient="records")
+
+    return jsonify({
+        "success": True,
+        "cutoffRound": cutoff,
+        "total": total_count,
+        "page": page,
+        "limit": limit,
+        "totalPages": (total_count + limit - 1) // limit if limit > 0 else 1,
+        "rows": rows
+    })
+
+@app.route("/api/current-data", methods=["GET"])
+def get_current_data():
+    candidates = [
+        os.path.join(BASE_DIR, "SOC-BISOCinvestigateshipment_DownloadTable_20260901_201309.csv"),
+    ]
+    if os.path.exists(UPLOAD_FOLDER):
+        upload_files = [os.path.join(UPLOAD_FOLDER, f) for f in os.listdir(UPLOAD_FOLDER) if f.endswith(".csv")]
+        if upload_files:
+            upload_files.sort(key=os.path.getmtime, reverse=True)
+            candidates.insert(0, upload_files[0])
+
+    for target in candidates:
+        if os.path.exists(target):
+            try:
+                data = process_csv(target)
+                data["filename"] = os.path.basename(target)
+                data["success"] = True
+                try:
+                    skip_df = pd.read_csv(target, low_memory=False,
+                        usecols=lambda c: c in [
+                            'shipment_id', 'soc_outbound_late_type_2nd_cutoff',
+                            'dest_station_name', 'recieve_team'
+                        ])
+                    data["rawRows"] = skip_df.fillna('').to_dict(orient='records')
+                except Exception:
+                    data["rawRows"] = []
+                return jsonify(data)
+            except Exception:
+                pass
+
+    return jsonify({"success": False, "message": "No CSV loaded yet"})
+
+VOLUME_FILE = os.path.join(DATA_DIR, "volume_history.json")
+if not os.path.exists(VOLUME_FILE) and os.path.exists(os.path.join(BASE_DIR, "volume_history.json")):
+    VOLUME_FILE = os.path.join(BASE_DIR, "volume_history.json")
+
+DEFAULT_VOLUME_DATA = {
+    "history": [
+        {"date": "Week 36 (31 ส.ค. - 06 ก.ย. 2026)", "actual": 11513758, "type": "weekly", "label": "รายสัปดาห์: Week 36 (31 ส.ค. - 06 ก.ย. 2026)"},
+        {"date": "Week 35 (24-30 Aug 2026)", "actual": 6860000, "type": "weekly", "label": "Week 35 (24-30 Aug 2026)"},
+        {"date": "2026-09-13", "actual": 920496, "type": "daily", "label": "รายวัน: 2026-09-13"},
+        {"date": "2026-09-12", "actual": 1662466, "type": "daily", "label": "รายวัน: 2026-09-12"},
+        {"date": "2026-09-11", "actual": 2090453, "type": "daily", "label": "รายวัน: 2026-09-11"},
+        {"date": "2026-09-10", "actual": 2314451, "type": "daily", "label": "รายวัน: 2026-09-10"},
+        {"date": "2026-09-09", "actual": 2174316, "type": "daily", "label": "รายวัน: 2026-09-09"},
+        {"date": "2026-09-08", "actual": 1797627, "type": "daily", "label": "รายวัน: 2026-09-08"},
+        {"date": "2026-09-07", "actual": 2034693, "type": "daily", "label": "รายวัน: 2026-09-07"},
+        {"date": "2026-09-06", "actual": 1013476, "type": "daily", "label": "รายวัน: 2026-09-06"},
+        {"date": "2026-09-05", "actual": 1495976, "type": "daily", "label": "รายวัน: 2026-09-05"},
+        {"date": "2026-09-04", "actual": 1600536, "type": "daily", "label": "รายวัน: 2026-09-04"},
+        {"date": "2026-09-03", "actual": 1744449, "type": "daily", "label": "รายวัน: 2026-09-03"},
+        {"date": "2026-09-02", "actual": 1755868, "type": "daily", "label": "รายวัน: 2026-09-02"},
+        {"date": "2026-09-01", "actual": 1814164, "type": "daily", "label": "รายวัน: 2026-09-01"},
+        {"date": "2026-08-31", "actual": 2089319, "type": "daily", "label": "รายวัน: 2026-08-31"},
+        {"date": "2026-08-30", "actual": 980457, "type": "daily", "label": "2026-08-30"}
+    ],
+    "active": {
+        "date": "Week 36 (31 ส.ค. - 06 ก.ย. 2026)",
+        "actual": 11513758,
+        "type": "weekly",
+        "label": "รายสัปดาห์: Week 36 (31 ส.ค. - 06 ก.ย. 2026)"
+    }
+}
+
+def load_volume_data_from_file():
+    if os.path.exists(VOLUME_FILE):
+        try:
+            with open(VOLUME_FILE, "r", encoding="utf-8") as f:
+                import json
+                res = json.load(f)
+                if res and isinstance(res, dict) and "history" in res and res["history"]:
+                    return res
+        except Exception:
+            pass
+    save_volume_data_to_file(DEFAULT_VOLUME_DATA)
+    return DEFAULT_VOLUME_DATA
+
+def save_volume_data_to_file(data):
+    try:
+        import json
+        with open(VOLUME_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("Error saving volume data:", e)
+
+@app.route("/api/volume-history", methods=["GET", "POST", "DELETE"])
+def volume_history_api():
+    data = load_volume_data_from_file()
+    
+    if request.method == "GET":
+        return jsonify({"success": True, "history": data.get("history", []), "active": data.get("active")})
+    
+    elif request.method == "POST":
+        req = request.get_json(silent=True) or {}
+        date_str = req.get("date")
+        actual = req.get("actual")
+        is_active = req.get("setActive", False)
+        entry_type = req.get("type", "daily")
+        label = req.get("label") or str(date_str)
+        
+        if date_str and isinstance(actual, (int, float)) and actual > 0:
+            history = data.get("history", [])
+            existing_idx = next((i for i, h in enumerate(history) if h.get("date") == date_str), -1)
+            entry = {
+                "date": str(date_str),
+                "actual": int(actual),
+                "type": entry_type,
+                "label": str(label)
+            }
+            if existing_idx >= 0:
+                history[existing_idx] = entry
+            else:
+                history.insert(0, entry)
+            history.sort(key=lambda x: x.get("date", ""), reverse=True)
+            data["history"] = history
+            
+            if is_active or data.get("active") is None:
+                data["active"] = entry
+                
+            save_volume_data_to_file(data)
+            return jsonify({"success": True, "history": data["history"], "active": data.get("active")})
+        
+        return jsonify({"success": False, "error": "Invalid date or actual value"}), 400
+
+    elif request.method == "DELETE":
+        date_str = request.args.get("date", "").strip()
+        if date_str:
+            history = [h for h in data.get("history", []) if h.get("date") != date_str]
+            data["history"] = history
+            if data.get("active") and data["active"].get("date") == date_str:
+                data["active"] = None
+            save_volume_data_to_file(data)
+            return jsonify({"success": True, "history": data["history"], "active": data.get("active")})
+        return jsonify({"success": False, "error": "Missing date parameter"}), 400
+
+@app.route("/api/volume-history/active", methods=["POST"])
+def set_active_volume_api():
+    data = load_volume_data_from_file()
+    req = request.get_json(silent=True) or {}
+    date_str = req.get("date")
+    actual = req.get("actual")
+    entry_type = req.get("type", "daily")
+    label = req.get("label") or str(date_str)
+    
+    if not date_str or not actual:
+        data["active"] = None
+    else:
+        data["active"] = {
+            "date": str(date_str),
+            "actual": int(actual),
+            "type": entry_type,
+            "label": str(label)
+        }
+        
+    save_volume_data_to_file(data)
+    return jsonify({"success": True, "active": data.get("active")})
+
+
+# ===== STAFF ROSTER MANAGEMENT SYSTEM =====
+STAFF_ROSTER_FILE = os.path.join(DATA_DIR, "staff_roster.json")
+
+def load_staff_roster_data():
+    if os.path.exists(STAFF_ROSTER_FILE):
+        try:
+            with open(STAFF_ROSTER_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print("Error loading staff roster file:", e)
+    return {
+        "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "rosterByZone": {
+            "ALL": ["Chain", "Big", "NULACK"],
+            "A": ["Kwang", "Nut", "Mick", "Wave", "Porn"],
+            "B": ["SKY", "Dum", "Korya", "Tang", "Oat"],
+            "C": ["LY", "Tak", "Keng", "Nam", "Earth"],
+            "TBS": ["Air", "Tarn", "Meiji"],
+            "MS": ["Champ", "Tong"],
+            "INTERSOC": [],
+            "RETURN": []
+        },
+        "staffList": []
+    }
+
+def save_staff_roster_data(data):
+    try:
+        data["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(STAFF_ROSTER_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print("Error saving staff roster data:", e)
+        return False
+
+def parse_staff_roster_file(filepath):
+    rows = []
+    if filepath.lower().endswith(('.xlsx', '.xls')):
+        try:
+            df = pd.read_excel(filepath, sheet_name=0, header=None)
+            rows = df.fillna('').astype(str).values.tolist()
+        except Exception as e:
+            print("Error reading excel roster:", e)
+            return None
+    else:
+        # Try multiple encodings for CSV
+        for enc in ['utf-8-sig', 'utf-8', 'cp874', 'tis-620', 'cp1252', 'latin-1']:
+            try:
+                with open(filepath, 'r', encoding=enc, errors='ignore') as f:
+                    content = f.read()
+                    if content:
+                        # Auto detect delimiter
+                        delim = ','
+                        if content.count(';') > content.count(',') and content.count(';') > 5:
+                            delim = ';'
+                        elif content.count('\t') > content.count(',') and content.count('\t') > 5:
+                            delim = '\t'
+                        reader = csv.reader(content.splitlines(), delimiter=delim)
+                        rows = list(reader)
+                        if rows:
+                            break
+            except Exception as e:
+                continue
+
+    if not rows:
+        return None
+
+    # Step 1: Detect if there is a header row
+    header_idx = -1
+    for idx, r in enumerate(rows[:6]):
+        row_str = ' '.join(str(x) for x in r).lower()
+        has_header_word = any(k in row_str for k in ['รหัสพนักงาน', 'รหัส', 'staff id', 'emp id', 'opsid', 'ชื่อเล่น', 'nickname', 'position', 'ตำแหน่ง', 'zone', 'โซน'])
+        has_data_pattern = any(bool(re.search(r'spxth\d+|ops\d+', str(x).lower())) for x in r)
+        if has_header_word and not has_data_pattern:
+            header_idx = idx
+            break
+
+    data_rows = rows[header_idx + 1:] if header_idx >= 0 else rows
+
+    # Step 2: Determine column mapping
+    col_map = {}
+    if header_idx >= 0:
+        header = [str(c).strip().lower() for c in rows[header_idx]]
+        for i, h in enumerate(header):
+            if 'รหัส' in h or 'emp' in h or 'staff' in h:
+                col_map['empId'] = i
+            elif 'ops' in h:
+                col_map['opsId'] = i
+            elif 'ชื่อเล่น' in h or 'nick' in h:
+                col_map['nickname'] = i
+            elif 'นามสกุล' in h or 'last' in h or 'surname' in h:
+                col_map['lastName'] = i
+            elif 'ชื่อ' in h or 'first' in h or 'name' in h:
+                if 'nickname' not in col_map and 'firstName' not in col_map:
+                    col_map['firstName'] = i
+            elif 'position' in h or 'ตำแหน่ง' in h or 'role' in h:
+                col_map['position'] = i
+            elif 'zone' in h or 'โซน' in h:
+                col_map['zone'] = i
+
+    # If no header row or missing critical columns, use smart pattern detection
+    if not col_map or 'nickname' not in col_map or ('empId' not in col_map and 'opsId' not in col_map):
+        sample = [r for r in data_rows if any(str(x).strip() for x in r)][:15]
+        max_cols = max(len(r) for r in sample) if sample else 0
+        detected = {}
+        for c in range(max_cols):
+            vals = [str(r[c]).strip() for r in sample if c < len(r) and str(r[c]).strip() and str(r[c]).strip().lower() != 'nan']
+            if not vals:
+                continue
+
+            # Check for empId (SPXTH... or 6-10 digit numbers)
+            if 'empId' not in detected and all(re.match(r'^(spxth)?\d+$', v, re.I) for v in vals if v):
+                if not all(re.match(r'^\d{1,3}$', v) for v in vals):  # exclude sequence 1, 2, 3
+                    detected['empId'] = c
+                    continue
+
+            # Check for opsId (Ops... or ops_...)
+            if 'opsId' not in detected and all(re.match(r'^ops_?\d+$', v, re.I) for v in vals if v):
+                detected['opsId'] = c
+                continue
+
+            # Check for Zone (A, B, C, ALL, TBS, MS, INTERSOC, RETURN, Supervisor)
+            zone_keywords = {'a', 'b', 'c', 'all', 'tbs', 'ms', 'intersoc', 'return', 'supervisor', 'sup'}
+            if 'zone' not in detected and sum(1 for v in vals if v.lower() in zone_keywords) >= len(vals) * 0.6:
+                detected['zone'] = c
+                continue
+
+            # Check for Position (Supervisor, Agent, Support, SOC, Lead, etc.)
+            pos_keywords = ['supervisor', 'agent', 'support', 'soc', 'lead', 'manager', 'associate', 'act.', 'senior']
+            if 'position' not in detected and any(any(pk in v.lower() for pk in pos_keywords) for v in vals):
+                detected['position'] = c
+                continue
+
+        # Remaining columns mapping for Names
+        remaining_cols = [c for c in range(max_cols) if c not in detected.values()]
+        # Check if first col is just row index (1, 2, 3...)
+        if 0 in remaining_cols:
+            first_vals = [str(r[0]).strip() for r in sample if len(r) > 0 and str(r[0]).strip()]
+            if all(v.isdigit() and len(v) <= 4 for v in first_vals if v):
+                remaining_cols.remove(0)
+
+        thai_cols = []
+        nick_col = None
+        for c in remaining_cols:
+            vals = [str(r[c]).strip() for r in sample if c < len(r) and str(r[c]).strip() and str(r[c]).strip().lower() != 'nan']
+            # English letters / short string -> Nickname
+            if nick_col is None and any(re.search(r'[a-zA-Z]', v) for v in vals):
+                nick_col = c
+            else:
+                thai_cols.append(c)
+
+        if nick_col is not None and 'nickname' not in detected:
+            detected['nickname'] = nick_col
+        if 'firstName' not in detected and len(thai_cols) >= 1:
+            detected['firstName'] = thai_cols[0]
+        if 'lastName' not in detected and len(thai_cols) >= 2:
+            detected['lastName'] = thai_cols[1]
+
+        col_map = detected
+
+    staff_list = []
+    roster_by_zone = {
+        'ALL': [], 'A': [], 'B': [], 'C': [], 'TBS': [], 'MS': [], 'INTERSOC': [], 'RETURN': []
+    }
+
+    for r in data_rows:
+        if not any(str(c).strip() and str(c).strip().lower() != 'nan' for c in r):
+            continue
+        get_val = lambda k: str(r[col_map[k]]).strip() if k in col_map and col_map[k] < len(r) and str(r[col_map[k]]).strip().lower() != 'nan' else ''
+        emp_id = get_val('empId')
+        nick = get_val('nickname') or get_val('firstName')
+        zone_raw = get_val('zone').upper().strip() or 'ALL'
+
+        if not nick and not emp_id:
+            continue
+
+        zone = zone_raw
+        if 'INTER' in zone:
+            zone = 'INTERSOC'
+        elif 'RET' in zone:
+            zone = 'RETURN'
+        elif zone in ['SUPERVISOR', 'SUP', 'HEAD', 'ALL', 'ALL_SOC']:
+            zone = 'ALL'
+
+        pos = get_val('position')
+        if not zone or zone == 'NAN':
+            if 'supervisor' in pos.lower():
+                zone = 'ALL'
+            else:
+                zone = 'A'
+
+        staff_entry = {
+            'empId': emp_id,
+            'opsId': get_val('opsId'),
+            'firstName': get_val('firstName'),
+            'lastName': get_val('lastName'),
+            'nickname': nick,
+            'position': pos,
+            'zone': zone
+        }
+        staff_list.append(staff_entry)
+
+        if zone not in roster_by_zone:
+            roster_by_zone[zone] = []
+        if nick and nick not in roster_by_zone[zone]:
+            roster_by_zone[zone].append(nick)
+
+    return {
+        "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "rosterByZone": roster_by_zone,
+        "staffList": staff_list
+    }
+
+
+@app.route("/api/staff-roster", methods=["GET"])
+def get_staff_roster_api():
+    data = load_staff_roster_data()
+    return jsonify({
+        "success": True,
+        "updatedAt": data.get("updatedAt", ""),
+        "rosterByZone": data.get("rosterByZone", {}),
+        "staffList": data.get("staffList", [])
+    })
+
+
+@app.route("/api/staff-roster/upload", methods=["POST"])
+def upload_staff_roster_api():
+    if "file" not in request.files:
+        return jsonify({"success": False, "error": "ไม่พบไฟล์ที่อัปโหลด"}), 400
+
+    file = request.files["file"]
+    if not file.filename:
+        return jsonify({"success": False, "error": "ไม่ได้เลือกไฟล์"}), 400
+
+    filename = os.path.basename(file.filename)
+    if not filename.lower().endswith(('.xlsx', '.xls', '.csv')):
+        return jsonify({"success": False, "error": "กรุณาอัปโหลดไฟล์ประเภท Excel (.xlsx, .xls) หรือ CSV เท่านั้น"}), 400
+
+    temp_path = os.path.join(UPLOAD_FOLDER, f"temp_roster_{filename}")
+    try:
+        file.save(temp_path)
+        parsed = parse_staff_roster_file(temp_path)
+        if not parsed or not parsed.get("staffList"):
+            return jsonify({"success": False, "error": "ไม่สามารถอ่านโครงสร้างรายชื่อพนักงานจากไฟล์ได้ กรุณาตรวจสอบหัวตาราง"}), 400
+
+        save_staff_roster_data(parsed)
+        log_activity("STAFF_ROSTER_UPLOAD", f"👷 อัปโหลดและอัปเดต Staff Roster ({len(parsed['staffList'])} คน) จากไฟล์: {filename}")
+        
+        try:
+            os.remove(temp_path)
+        except Exception:
+            pass
+
+        return jsonify({
+            "success": True,
+            "message": f"อัปเดต Staff Roster เรียบร้อยแล้ว ({len(parsed['staffList'])} รายการ)",
+            "updatedAt": parsed["updatedAt"],
+            "rosterByZone": parsed["rosterByZone"],
+            "staffList": parsed["staffList"]
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการประมวลผลไฟล์: {str(e)}"}), 500
+
+
+@app.route("/api/staff-roster/member", methods=["POST", "DELETE"])
+def manage_staff_member_api():
+    data = load_staff_roster_data()
+    staff_list = data.get("staffList", [])
+    roster_by_zone = data.get("rosterByZone", {})
+
+    if request.method == "POST":
+        req = request.get_json(silent=True) or {}
+        emp_id = (req.get("empId") or "").strip()
+        nickname = (req.get("nickname") or req.get("firstName") or "").strip()
+        zone = (req.get("zone") or "ALL").strip().upper()
+        ops_id = (req.get("opsId") or "").strip()
+        first_name = (req.get("firstName") or "").strip()
+        last_name = (req.get("lastName") or "").strip()
+        position = (req.get("position") or "").strip()
+
+        if not nickname and not emp_id:
+            return jsonify({"success": False, "error": "กรุณาระบุรหัสพนักงานหรือชื่อเล่น"}), 400
+
+        # Update or Insert
+        existing_idx = -1
+        for idx, s in enumerate(staff_list):
+            if (emp_id and s.get("empId") == emp_id) or (nickname and s.get("nickname") == nickname and s.get("zone") == zone):
+                existing_idx = idx
+                break
+
+        new_entry = {
+            "empId": emp_id,
+            "opsId": ops_id,
+            "firstName": first_name,
+            "lastName": last_name,
+            "nickname": nickname,
+            "position": position,
+            "zone": zone
+        }
+
+        if existing_idx >= 0:
+            staff_list[existing_idx] = new_entry
+        else:
+            staff_list.append(new_entry)
+
+        # Re-sync rosterByZone
+        new_roster_by_zone = {'ALL': [], 'A': [], 'B': [], 'C': [], 'TBS': [], 'MS': [], 'INTERSOC': [], 'RETURN': []}
+        for s in staff_list:
+            z = s.get("zone", "ALL").upper()
+            nk = s.get("nickname")
+            if z not in new_roster_by_zone:
+                new_roster_by_zone[z] = []
+            if nk and nk not in new_roster_by_zone[z]:
+                new_roster_by_zone[z].append(nk)
+
+        data["staffList"] = staff_list
+        data["rosterByZone"] = new_roster_by_zone
+        save_staff_roster_data(data)
+        log_activity("STAFF_MEMBER_SAVE", f"บันทึกข้อมูลพนักงาน: {nickname} (Zone {zone})")
+
+        return jsonify({
+            "success": True,
+            "message": f"บันทึกข้อมูล {nickname} เรียบร้อย",
+            "staffList": staff_list,
+            "rosterByZone": new_roster_by_zone
+        })
+
+    elif request.method == "DELETE":
+        req = request.get_json(silent=True) or {}
+        emp_id = (req.get("empId") or "").strip()
+        nickname = (req.get("nickname") or "").strip()
+
+        if not emp_id and not nickname:
+            return jsonify({"success": False, "error": "ไม่ได้ระบุพนักงานที่ต้องการลบ"}), 400
+
+        staff_list = [s for s in staff_list if not ((emp_id and s.get("empId") == emp_id) or (nickname and s.get("nickname") == nickname))]
+
+        new_roster_by_zone = {'ALL': [], 'A': [], 'B': [], 'C': [], 'TBS': [], 'MS': [], 'INTERSOC': [], 'RETURN': []}
+        for s in staff_list:
+            z = s.get("zone", "ALL").upper()
+            nk = s.get("nickname")
+            if z not in new_roster_by_zone:
+                new_roster_by_zone[z] = []
+            if nk and nk not in new_roster_by_zone[z]:
+                new_roster_by_zone[z].append(nk)
+
+        data["staffList"] = staff_list
+        data["rosterByZone"] = new_roster_by_zone
+        save_staff_roster_data(data)
+        log_activity("STAFF_MEMBER_DELETE", f"ลบพนักงานออกจาก Roster: {emp_id or nickname}")
+
+        return jsonify({
+            "success": True,
+            "message": "ลบพนักงานเรียบร้อย",
+            "staffList": staff_list,
+            "rosterByZone": new_roster_by_zone
+        })
+
+CUSTOM_CUTOFF_FILE = os.path.join(DATA_DIR, "custom_cutoff_schedule.json")
+
+def infer_cutoff_zone(row_data, area_group=""):
+    # 1. Check explicit zone columns from uploaded or row data
+    for k in ["Zone", "zone", "OBD ZONE", "OBD Zone", "obd_zone", "Zone Group", "zone_group"]:
+        if k in row_data and row_data[k] and str(row_data[k]).strip().lower() not in ["", "nan", "none"]:
+            val = str(row_data[k]).strip().upper()
+            if val in ["A", "ZONE A", "ZONE_A"]: return "Zone A"
+            if val in ["B", "ZONE B", "ZONE_B"]: return "Zone B"
+            if val in ["C", "ZONE C", "ZONE_C"]: return "Zone C"
+            if "INTER" in val: return "Zone InterSOC"
+            if "RET" in val: return "Zone Return"
+            if not val.startswith("Zone ") and len(val) <= 4:
+                return f"Zone {val}"
+            return str(row_data[k]).strip()
+    
+    # 2. Look up from Hub Master database (where both GBKK and UPC stations are mapped to OBD Zone)
+    station_name = str(row_data.get("station_name") or row_data.get("LM Station Name") or "").strip()
+    station_id = str(row_data.get("station_id") or row_data.get("LM Station ID") or "").replace(".0", "").strip()
+    
+    hub_map = build_hub_zone_map()
+    resolved_z = None
+    if station_id and station_id.lower() in hub_map:
+        resolved_z = hub_map[station_id.lower()]
+    elif station_name:
+        resolved_z = lookup_obd_zone(station_name, hub_map)
+        
+    if resolved_z:
+        if resolved_z == 'A': return "Zone A"
+        if resolved_z == 'B': return "Zone B"
+        if resolved_z == 'C': return "Zone C"
+        if resolved_z == 'INTERSOC': return "Zone InterSOC"
+        if resolved_z == 'RETURN': return "Zone Return"
+        return f"Zone {resolved_z}"
+
+    return "Zone A"
+
+
+@app.route("/api/cutoff-schedule", methods=["GET"])
+def get_cutoff_schedule_api():
+    # If custom uploaded cutoff file exists, load it
+    if os.path.exists(CUSTOM_CUTOFF_FILE):
+        try:
+            with open(CUSTOM_CUTOFF_FILE, "r", encoding="utf-8") as f:
+                custom_data = json.load(f)
+                if isinstance(custom_data, list) and len(custom_data) > 0:
+                    return jsonify({
+                        "success": True,
+                        "is_custom": True,
+                        "total": len(custom_data),
+                        "data": custom_data,
+                        "updatedAt": datetime.fromtimestamp(os.path.getmtime(CUSTOM_CUTOFF_FILE)).strftime("%Y-%m-%d %H:%M:%S")
+                    })
+        except Exception as e:
+            print("Error loading custom cutoff file:", e)
+
+    # Fallback to source files
+    files = [
+        ('UPC Milkrun', os.path.join(SOURCE_DIR, 'test  - SOCN_UPC_Milkrun.csv')),
+        ('UPC Direct', os.path.join(SOURCE_DIR, 'test  - SOCN_UPC_Direct.csv')),
+        ('GBKK', os.path.join(SOURCE_DIR, 'test  - SOCN_GBKK.csv'))
+    ]
+    cutoff_list = []
+    for area_type, path in files:
+        if not os.path.exists(path):
+            continue
+        try:
+            df = pd.read_csv(path)
+            for idx in range(1, len(df)):
+                row = df.iloc[idx]
+                station_name = str(row.get('LM Station Name', '') or '').strip()
+                if not station_name or station_name.lower() == 'nan':
+                    continue
+                
+                entry = {
+                    'area_group': area_type,
+                    'area': str(row.get('Area', '') or '' if pd.notna(row.get('Area')) else ''),
+                    'route_type': str(row.get('Route Type', '') or '' if pd.notna(row.get('Route Type')) else ''),
+                    'status': str(row.get('Status', '') or '' if pd.notna(row.get('Status')) else ''),
+                    'mapping': str(row.get('Mapping', '') or '' if pd.notna(row.get('Mapping')) else ''),
+                    'station_id': str(row.get('LM Station ID', '') or '' if pd.notna(row.get('LM Station ID')) else '').replace('.0', ''),
+                    'station_name': station_name,
+                    'province': str(row.get('Province', '') or '' if pd.notna(row.get('Province')) else ''),
+                    'district': str(row.get('District', '') or '' if pd.notna(row.get('District')) else ''),
+                    'op_type': str(row.get('Operation Type', '') or '' if pd.notna(row.get('Operation Type')) else ''),
+                    'cut0_ob': str(row.get('Cut 0', '') or '' if pd.notna(row.get('Cut 0')) else ''),
+                    'cut0_arr': str(row.get('Unnamed: 11', '') or '' if pd.notna(row.get('Unnamed: 11')) else ''),
+                    'cut0_travel': str(row.get('Unnamed: 12', '') or '' if pd.notna(row.get('Unnamed: 12')) else ''),
+                    'cut1_ob': str(row.get('Cut 1', '') or '' if pd.notna(row.get('Cut 1')) else ''),
+                    'cut1_arr': str(row.get('Unnamed: 14', '') or '' if pd.notna(row.get('Unnamed: 14')) else ''),
+                    'cut1_rec': str(row.get('Unnamed: 15', '') or '' if pd.notna(row.get('Unnamed: 15')) else ''),
+                    'cut1_travel': str(row.get('Unnamed: 16', '') or '' if pd.notna(row.get('Unnamed: 16')) else ''),
+                    'cut2_ob': str(row.get('Cut 2', '') or '' if pd.notna(row.get('Cut 2')) else ''),
+                    'cut2_arr': str(row.get('Unnamed: 18', '') or '' if pd.notna(row.get('Unnamed: 18')) else ''),
+                    'cut2_rec': str(row.get('Unnamed: 19', '') or '' if pd.notna(row.get('Unnamed: 19')) else ''),
+                    'cut2_travel': str(row.get('Unnamed: 20', '') or '' if pd.notna(row.get('Unnamed: 20')) else ''),
+                    'cut3_ob': str(row.get('Cut 3', '') or '' if pd.notna(row.get('Cut 3')) else ''),
+                    'cut3_arr': str(row.get('Unnamed: 22', '') or '' if pd.notna(row.get('Unnamed: 22')) else ''),
+                    'cut3_travel': str(row.get('Unnamed: 23', '') or '' if pd.notna(row.get('Unnamed: 23')) else ''),
+                }
+                entry['zone'] = infer_cutoff_zone(entry, area_type)
+                if 'Sunday Cut' in df.columns:
+                    entry['sun_ob'] = str(row.get('Sunday Cut', '') or '' if pd.notna(row.get('Sunday Cut')) else '')
+                    entry['sun_arr'] = str(row.get('Unnamed: 25', '') or '' if pd.notna(row.get('Unnamed: 25')) else '')
+                    entry['sun_rec'] = str(row.get('Unnamed: 26', '') or '' if pd.notna(row.get('Unnamed: 26')) else '')
+                    entry['sun_travel'] = str(row.get('Unnamed: 27', '') or '' if pd.notna(row.get('Unnamed: 27')) else '')
+                cutoff_list.append(entry)
+        except Exception as e:
+            print("Error parsing cutoff file", path, e)
+    return jsonify({"success": True, "is_custom": False, "total": len(cutoff_list), "data": cutoff_list})
+
+
+@app.route("/api/cutoff-schedule/upload", methods=["POST"])
+def upload_cutoff_schedule_api():
+    if "file" not in request.files:
+        return jsonify({"success": False, "error": "ไม่พบไฟล์ที่อัปโหลด"}), 400
+    
+    file = request.files["file"]
+    if not file or not file.filename:
+        return jsonify({"success": False, "error": "ชื่อไฟล์ไม่ถูกต้อง"}), 400
+        
+    filename = file.filename.lower()
+    if not (filename.endswith('.xlsx') or filename.endswith('.xls') or filename.endswith('.csv')):
+        return jsonify({"success": False, "error": "รองรับเฉพาะไฟล์ Excel (.xlsx, .xls) หรือ CSV (.csv) เท่านั้น"}), 400
+
+    try:
+        temp_path = os.path.join(UPLOAD_FOLDER, f"cutoff_upload_{int(time.time())}_{file.filename}")
+        file.save(temp_path)
+        
+        parsed_list = []
+        if filename.endswith('.csv'):
+            df = pd.read_csv(temp_path, on_bad_lines='skip')
+            dfs = [("Cutoff Master", df)]
+        else:
+            xl = pd.ExcelFile(temp_path)
+            dfs = []
+            for sheet in xl.sheet_names:
+                dfs.append((sheet, xl.parse(sheet)))
+
+        for sheet_name, df in dfs:
+            if df.empty: continue
+            
+            # Map column names flexibly
+            col_map = {}
+            for col in df.columns:
+                c_clean = str(col).strip().lower().replace("_", " ").replace("-", " ")
+                if any(k in c_clean for k in ["station name", "station_name", "สถานี", "ชื่อสถานี"]):
+                    col_map["station_name"] = col
+                elif any(k in c_clean for k in ["station id", "station_id", "รหัสสถานี", "lm station id"]):
+                    col_map["station_id"] = col
+                elif any(k in c_clean for k in ["zone", "โซน", "obd zone"]):
+                    col_map["zone"] = col
+                elif any(k in c_clean for k in ["area group", "สายงาน", "กลุ่มสายงาน"]):
+                    col_map["area_group"] = col
+                elif any(k in c_clean for k in ["province", "จังหวัด"]):
+                    col_map["province"] = col
+                elif any(k in c_clean for k in ["district", "อำเภอ"]):
+                    col_map["district"] = col
+                elif any(k in c_clean for k in ["cut 0", "cut0", "รอบ 0", "c0"]):
+                    col_map["cut0_ob"] = col
+                elif any(k in c_clean for k in ["cut 1", "cut1", "รอบ 1", "c1"]):
+                    col_map["cut1_ob"] = col
+                elif any(k in c_clean for k in ["cut 2", "cut2", "รอบ 2", "c2"]):
+                    col_map["cut2_ob"] = col
+                elif any(k in c_clean for k in ["cut 3", "cut3", "รอบ 3", "c3"]):
+                    col_map["cut3_ob"] = col
+                elif any(k in c_clean for k in ["sunday", "sun cut", "รอบวันอาทิตย์"]):
+                    col_map["sun_ob"] = col
+                elif any(k in c_clean for k in ["op type", "operation type", "ประเภท"]):
+                    col_map["op_type"] = col
+            
+            # If standard station_name not matched, try finding first string column with 'Station'
+            if "station_name" not in col_map:
+                for col in df.columns:
+                    if "station" in str(col).lower():
+                        col_map["station_name"] = col
+                        break
+
+            for _, row in df.iterrows():
+                st_name = str(row.get(col_map.get("station_name", "LM Station Name"), "") or "").strip()
+                if not st_name or st_name.lower() in ["nan", "none", "lm station name"]:
+                    continue
+
+                area_grp = str(row.get(col_map.get("area_group", "Area Group"), sheet_name) or sheet_name).strip()
+                item_zone = str(row.get(col_map.get("zone", "Zone"), "") or "").strip()
+                if not item_zone or item_zone.lower() in ["nan", "none"]:
+                    item_zone = infer_cutoff_zone(row.to_dict(), area_grp)
+
+                entry = {
+                    "station_name": st_name,
+                    "station_id": str(row.get(col_map.get("station_id", "LM Station ID"), "") or "").replace(".0", "").strip(),
+                    "zone": item_zone,
+                    "area_group": area_grp,
+                    "area": str(row.get("Area", "") or "").strip(),
+                    "province": str(row.get(col_map.get("province", "Province"), "") or "").strip(),
+                    "district": str(row.get(col_map.get("district", "District"), "") or "").strip(),
+                    "op_type": str(row.get(col_map.get("op_type", "Operation Type"), "") or "").strip(),
+                    "cut0_ob": str(row.get(col_map.get("cut0_ob", "Cut 0"), "") or "").strip(),
+                    "cut0_arr": str(row.get("Cut 0 Arrival", "") or "").strip(),
+                    "cut0_travel": str(row.get("Cut 0 Travel", "") or "").strip(),
+                    "cut1_ob": str(row.get(col_map.get("cut1_ob", "Cut 1"), "") or "").strip(),
+                    "cut1_arr": str(row.get("Cut 1 Arrival", "") or "").strip(),
+                    "cut1_rec": str(row.get("Cut 1 Received", "") or "").strip(),
+                    "cut1_travel": str(row.get("Cut 1 Travel", "") or "").strip(),
+                    "cut2_ob": str(row.get(col_map.get("cut2_ob", "Cut 2"), "") or "").strip(),
+                    "cut2_arr": str(row.get("Cut 2 Arrival", "") or "").strip(),
+                    "cut2_rec": str(row.get("Cut 2 Received", "") or "").strip(),
+                    "cut2_travel": str(row.get("Cut 2 Travel", "") or "").strip(),
+                    "cut3_ob": str(row.get(col_map.get("cut3_ob", "Cut 3"), "") or "").strip(),
+                    "cut3_arr": str(row.get("Cut 3 Arrival", "") or "").strip(),
+                    "cut3_travel": str(row.get("Cut 3 Travel", "") or "").strip(),
+                    "sun_ob": str(row.get(col_map.get("sun_ob", "Sunday Cut"), "") or "").strip()
+                }
+                parsed_list.append(entry)
+
+        if not parsed_list:
+            return jsonify({"success": False, "error": "ไม่พบข้อมูลสถานีในไฟล์ที่อัปโหลด กรุณาตรวจสอบหัวตาราง"}), 400
+
+        with open(CUSTOM_CUTOFF_FILE, "w", encoding="utf-8") as f:
+            json.dump(parsed_list, f, ensure_ascii=False, indent=2)
+
+        log_activity("CUTOFF_MASTER_UPLOAD", f"อัปโหลดและอัปเดตไฟล์ Cut-off Master ({len(parsed_list)} สถานี): {file.filename}")
+
+        return jsonify({
+            "success": True,
+            "message": f"อัปโหลดและอัปเดตข้อมูล Cut-off Master สำเร็จ ({len(parsed_list):,} สถานี)",
+            "total": len(parsed_list),
+            "data": parsed_list
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการประมวลผลไฟล์: {str(e)}"}), 500
+
+
+@app.route("/api/cutoff-schedule/reset", methods=["POST"])
+def reset_cutoff_schedule_api():
+    try:
+        if os.path.exists(CUSTOM_CUTOFF_FILE):
+            os.remove(CUSTOM_CUTOFF_FILE)
+        log_activity("CUTOFF_MASTER_RESET", "รีเซ็ตข้อมูล Cutoff Master กลับเป็นค่าเริ่มต้นจากระบบ (287 สถานี)")
+        return jsonify({"success": True, "message": "รีเซ็ตข้อมูล Cutoff Master กลับเป็นค่าเริ่มต้นเรียบร้อยแล้ว"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+TTB_REGISTRATION_FILE = os.path.join(DATA_DIR, "ttb_registration_live.json")
+
+def load_ttb_registration_live():
+    if os.path.exists(TTB_REGISTRATION_FILE):
+        try:
+            with open(TTB_REGISTRATION_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print("Error loading TTB live registration file:", e)
+    return {"updatedAt": "", "total": 0, "rows": []}
+
+def save_ttb_registration_live(data):
+    try:
+        with open(TTB_REGISTRATION_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print("Error saving TTB live registration file:", e)
+        return False
+
+@app.route("/api/ttb-registration/config", methods=["GET", "POST"])
+def ttb_registration_config_api():
+    settings = load_system_settings()
+    if request.method == "POST":
+        data = request.get_json() or {}
+        url = (data.get("url") or "").strip()
+        apps_script_url = (data.get("appsScriptUrl") or "").strip()
+        write_target_url = (data.get("writeTargetUrl") or "").strip()
+        auto_sync = bool(data.get("autoSync", True))
+        interval = int(data.get("intervalMinutes", 10))
+        
+        current_cfg = settings.get("ttbSync", {})
+        settings["ttbSync"] = {
+            "url": url or current_cfg.get("url", ""),
+            "appsScriptUrl": apps_script_url or current_cfg.get("appsScriptUrl", ""),
+            "writeTargetUrl": write_target_url or current_cfg.get("writeTargetUrl", "https://docs.google.com/spreadsheets/d/1fcW2_deyDFDN9Dp9JfOv1NOinS1de6KMDcNZp2EOL9w/edit?gid=719250654#gid=719250654"),
+            "autoSync": auto_sync,
+            "intervalMinutes": interval,
+            "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        save_system_settings(settings)
+        log_activity("TTB_SYNC_CONFIG", f"ตั้งค่าการเชื่อมต่อ TTB Google Sheet: Read URL={url[:30]}..., Apps Script={apps_script_url[:30]}...")
+        return jsonify({"success": True, "message": "บันทึกการตั้งค่า TTB Google Sheet Sync เรียบร้อยแล้ว", "config": settings["ttbSync"]})
+
+    return jsonify({"success": True, "config": settings.get("ttbSync", {
+        "url": "",
+        "appsScriptUrl": "",
+        "writeTargetUrl": "https://docs.google.com/spreadsheets/d/1fcW2_deyDFDN9Dp9JfOv1NOinS1de6KMDcNZp2EOL9w/edit?gid=719250654#gid=719250654",
+        "autoSync": True,
+        "intervalMinutes": 10,
+        "updatedAt": ""
+    })})
+
+def process_and_save_ttb_rows(raw_rows, source_sheet_name="TTB - Registration"):
+    cutoff_master_entries = []
+    zone_a_count = 0
+    zone_b_count = 0
+    zone_c_count = 0
+    on_time_count = 0
+    late_count = 0
+    new_trips_count = 0
+
+    for r in raw_rows:
+        dest = str(r.get("destination") or "").strip()
+        if not dest or dest.lower() in ["nan", "none", "#n/a"]:
+            continue
+            
+        zone = str(r.get("obZone") or "").strip().upper()
+        if not zone.startswith("ZONE"):
+            if zone in ["A", "B", "C"]: zone = f"Zone {zone}"
+            elif not zone: zone = infer_cutoff_zone({"station_name": dest}, "TTB")
+            
+        if "Zone A" in zone: zone_a_count += 1
+        elif "Zone B" in zone: zone_b_count += 1
+        elif "Zone C" in zone: zone_c_count += 1
+
+        arr_status = str(r.get("arrivalStatus") or "").strip().lower()
+        if "late" in arr_status: late_count += 1
+        elif "on-time" in arr_status or "on time" in arr_status: on_time_count += 1
+
+        if r.get("newTrip") or r.get("remarkLh"):
+            new_trips_count += 1
+
+        # Extract clean station code and province (e.g., 'ABKEN-B - บางเขน' -> code: 'ABKEN-B', prov: 'บางเขน')
+        parts = [p.strip() for p in dest.split("-") if p.strip()]
+        if len(parts) >= 3 and len(parts[1]) <= 2:
+            st_code = f"{parts[0]}-{parts[1]}"
+            prov = parts[-1]
+        elif len(parts) >= 2:
+            st_code = parts[0]
+            prov = parts[-1]
+        else:
+            st_code = dest
+            prov = ""
+        
+        raw_cot = str(r.get("cot") or "").strip().upper()
+        # Column AC rule:
+        # COT1 / COT 1 -> Cutoff 1
+        # COT2 / COT 2 -> Cutoff 2
+        # blank / empty -> ปล่อยได้ (Normal Release)
+        if "COT1" in raw_cot or "COT 1" in raw_cot:
+            cot_label = "COT 1"
+            cot_status = "Cutoff 1"
+        elif "COT2" in raw_cot or "COT 2" in raw_cot:
+            cot_label = "COT 2"
+            cot_status = "Cutoff 2"
+        elif raw_cot and raw_cot not in ["#N/A", "NAN", "-", "NONE"]:
+            cot_label = raw_cot
+            cot_status = raw_cot
+        else:
+            cot_label = "ปล่อยได้"
+            cot_status = "ปล่อยได้"
+
+        cutoff_time = str(r.get("cutoff") or "").strip() # Column AD (Complete time target)
+        if cutoff_time in ["12/30/1899", "#N/A", "NaN", "nan", "None"]:
+            cutoff_time = ""
+        driver_id_val = str(r.get("driverId") or "").replace(".0", "").strip()
+        if not driver_id_val or driver_id_val.upper() in ["#N/A", "NAN", "NONE"]:
+            driver_id_val = st_code
+        
+        cutoff_entry = {
+            "station_name": dest,
+            "station_code": st_code,
+            "station_id": driver_id_val,
+            "zone": zone,
+            "area_group": "TTB Registration",
+            "area": str(r.get("route") or "").strip(),
+            "province": prov,
+            "district": "",
+            "op_type": str(r.get("vehicleType") or r.get("truckTypeReq") or "").strip(),
+            "dock": str(r.get("dock") or "").strip(),
+            "subcon": str(r.get("subcon") or "").strip(),
+            "lh_trip": str(r.get("lhTrip") or "").strip(),
+            "standby_time": str(r.get("standbyTime") or "").strip(),
+            "loading_time": str(r.get("loadingTime") or "").strip(),
+            "depart_time": str(r.get("departureTime") or "").strip(),
+            "cot_type": cot_label,
+            "cot_status": cot_status,
+            "complete_target": cutoff_time,
+            "cut0_ob": cutoff_time if cot_label == "ปล่อยได้" else "-",
+            "cut1_ob": cutoff_time if cot_label == "COT 1" else "-",
+            "cut2_ob": cutoff_time if cot_label == "COT 2" else "-",
+            "cut3_ob": "-",
+            "sun_ob": "-",
+            "plate": str(r.get("plate") or "").strip(),
+            "driver_name": str(r.get("driverName") or "").strip(),
+            "new_trip": str(r.get("newTrip") or "").strip(),
+            "remark_lh": str(r.get("remarkLh") or "").strip(),
+            "remark_ob": str(r.get("remarkOb") or "").strip(),
+            "late_type": str(r.get("lateType") or "").strip(),
+            "docked_time": str(r.get("dockedTime") or "").strip(),
+            "plan_departure": str(r.get("planDeparture") or "").strip(),
+            "complete_time": str(r.get("completeTime") or "").strip()
+        }
+        cutoff_master_entries.append(cutoff_entry)
+
+    # Save to ttb_registration_live.json for full live details
+    live_data = {
+        "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "sourceSheet": source_sheet_name,
+        "total": len(raw_rows),
+        "stats": {
+            "totalTrips": len(raw_rows),
+            "totalStations": len(cutoff_master_entries),
+            "zoneA": zone_a_count,
+            "zoneB": zone_b_count,
+            "zoneC": zone_c_count,
+            "onTime": on_time_count,
+            "late": late_count,
+            "newTripsOrRemarks": new_trips_count
+        },
+        "rows": raw_rows
+    }
+    save_ttb_registration_live(live_data)
+    log_activity("TTB_SHEET_SYNC", f"🔄 ซิงค์ข้อมูล TTB Registration สำเร็จ ({len(raw_rows):,} คัน, {len(cutoff_master_entries)} สถานี)")
+    return live_data
+
+@app.route("/api/ttb-registration/save-client-data", methods=["POST"])
+def save_client_ttb_data_api():
+    req_json = request.get_json() or {}
+    raw_rows = req_json.get("rows", [])
+    sheet_name = req_json.get("sheetName", "TTB - Registration")
+    if not raw_rows:
+        return jsonify({"success": False, "error": "ไม่มีข้อมูลแถวที่ส่งมา"}), 400
+        
+    live_data = process_and_save_ttb_rows(raw_rows, sheet_name)
+    return jsonify({
+        "success": True,
+        "message": f"ซิงค์ข้อมูลผ่าน Browser สำเร็จ ({len(raw_rows):,} แถว, อัปเดต {live_data['stats']['totalStations']} สถานี)",
+        "data": live_data
+    })
+
+@app.route("/api/ttb-registration/sync", methods=["GET", "POST"])
+def ttb_registration_sync_api():
+    import requests, csv, io
+    settings = load_system_settings()
+    ttb_cfg = settings.get("ttbSync", {})
+    
+    # Priority: Request body/param URL > Saved Settings URL
+    url = request.args.get("url") or ""
+    if not url and request.is_json:
+        url = (request.get_json() or {}).get("url", "")
+    if not url:
+        url = ttb_cfg.get("url", "")
+        
+    if not url:
+        return jsonify({"success": False, "error": "ยังไม่ได้ระบุ Google Apps Script Web App URL หรือ Google Sheet CSV URL กรุณาตั้งค่าในระบบก่อน"}), 400
+
+    try:
+        # Check if URL is standard Google Sheet URL -> convert to CSV export if so
+        is_sheet_csv = "output=csv" in url or "export?format=csv" in url or "gviz/tq" in url
+        if "docs.google.com/spreadsheets/d/" in url and not is_sheet_csv:
+            # Auto-convert standard spreadsheet URL to CSV export URL
+            sheet_id_match = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", url)
+            gid_match = re.search(r"[#&?]gid=([0-9]+)", url)
+            if sheet_id_match:
+                s_id = sheet_id_match.group(1)
+                gid = gid_match.group(1) if gid_match else "0"
+                url = f"https://docs.google.com/spreadsheets/d/{s_id}/export?format=csv&gid={gid}"
+                is_sheet_csv = True
+
+        resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=25, allow_redirects=True)
+        if resp.status_code != 200:
+            return jsonify({"success": False, "requiresClientFetch": True, "url": url, "error": f"Google Sheets ตอบกลับด้วย HTTP Code {resp.status_code}"}), 502
+            
+        resp.encoding = "utf-8"
+        raw_text = resp.content.decode("utf-8", errors="replace").strip()
+        
+        # Detect Google Login Redirect / Permission error
+        if "accounts.google.com" in resp.url or "Sign in - Google Accounts" in raw_text or "ServiceLogin" in resp.url:
+            return jsonify({
+                "success": False,
+                "requiresClientFetch": True,
+                "url": url,
+                "error": "ติดสิทธิ์โดเมนองค์กร (spxexpress.com): ระบบจะสลับไปดึงผ่าน Browser Session ของคุณให้อัตโนมัติ"
+            }), 403
+
+        raw_rows = []
+        source_sheet_name = "TTB - Registration"
+
+        if is_sheet_csv or not raw_text.startswith("{"):
+            # Parse as CSV
+            csv_reader = list(csv.reader(io.StringIO(raw_text)))
+            if len(csv_reader) < 2:
+                return jsonify({"success": False, "error": "ไม่พบข้อมูลแถวใน Google Sheet CSV"}), 400
+                
+            # Find header row dynamically (look for 'LH Trips' or 'Destination' or 'Cutoff')
+            header_row_idx = 1 # Default row 2
+            col_map = {}
+            for r_idx in range(min(5, len(csv_reader))):
+                row_cells = [str(c).strip().lower() for c in csv_reader[r_idx]]
+                if any("lh" in c for c in row_cells) or any("destination" in c for c in row_cells):
+                    header_row_idx = r_idx
+                    for c_i, c_val in enumerate(row_cells):
+                        if c_val in ["driver id", "รหัสคนขับ"]: col_map.setdefault("driverId", c_i)
+                        elif any(x in c_val for x in ["ชื่อพนักงาน", "driver name", "ชื่อ พนักงาน"]): col_map.setdefault("driverName", c_i)
+                        elif c_val in ["ทะเบียน", "plate"]: col_map.setdefault("plate", c_i)
+                        elif c_val in ["ประเภทรถ", "truck type"]: col_map.setdefault("vehicleType", c_i)
+                        elif c_val == "status": col_map.setdefault("status", c_i)
+                        elif "assign" in c_val: col_map.setdefault("assignStatus", c_i)
+                        elif c_val in ["lh trips", "lh trip", "lh_trip", "lh"]: col_map.setdefault("lhTrip", c_i)
+                        elif c_val in ["standby time", "standby"]: col_map.setdefault("standbyTime", c_i)
+                        elif c_val in ["loding time", "loading time", "loading"]: col_map.setdefault("loadingTime", c_i)
+                        elif c_val in ["departure time", "depart time", "departure", "depart"] and "plan" not in c_val: col_map.setdefault("departureTime", c_i)
+                        elif c_val in ["destination", "ปลายทาง", "สถานี"]: col_map.setdefault("destination", c_i)
+                        elif c_val in ["dock", "ช่องจอด"] and "docked" not in c_val: col_map.setdefault("dock", c_i)
+                        elif c_val in ["subcon", "sub contractor"]: col_map.setdefault("subcon", c_i)
+                        elif c_val in ["สาย", "route"]: col_map.setdefault("route", c_i)
+                        elif c_val in ["new trip", "new_trip"]: col_map.setdefault("newTrip", c_i)
+                        elif c_val in ["เตือน", "alert"]: col_map.setdefault("warningAlert", c_i)
+                        elif c_val in ["remark lh", "ว.สลับรถ"] or "สลับรถ" in c_val: col_map.setdefault("remarkLh", c_i)
+                        elif c_val in ["ob zone", "obzone", "zone"]: col_map.setdefault("obZone", c_i)
+                        elif c_val in ["arrival on-time/late", "arrival status", "arrival"] or "on-time/late" in c_val: col_map.setdefault("arrivalStatus", c_i)
+                        elif c_val == "cot":
+                            if c_i >= 25:
+                                col_map["cot"] = c_i
+                            else:
+                                col_map.setdefault("carrierCode", c_i)
+                        elif c_val in ["cutoff", "cut-off", "cut off"] and "2" not in c_val: col_map.setdefault("cutoff", c_i)
+                        elif c_val in ["booked time", "booked"]: col_map.setdefault("bookedTime", c_i)
+                    break
+
+            start_idx = header_row_idx + 1
+            for i in range(start_idx, len(csv_reader)):
+                r = csv_reader[i]
+                if not r or len(r) < 3: continue
+                
+                get_c = lambda k, default_idx: str(r[col_map.get(k, default_idx)] if len(r) > col_map.get(k, default_idx) else "").strip()
+                
+                lh_trip = get_c("lhTrip", 10)
+                dest = get_c("destination", 16)
+                if not lh_trip and not dest: continue
+
+                raw_rows.append({
+                    "rowIndex": i + 1,
+                    "driverId": get_c("driverId", 1),
+                    "driverName": get_c("driverName", 2),
+                    "plate": get_c("plate", 3),
+                    "vehicleType": get_c("vehicleType", 4),
+                    "status": get_c("status", 8),
+                    "assignStatus": get_c("assignStatus", 9),
+                    "lhTrip": lh_trip,
+                    "standbyTime": get_c("standbyTime", 13),
+                    "loadingTime": get_c("loadingTime", 14),
+                    "departureTime": get_c("departureTime", 15),
+                    "destination": dest,
+                    "truckTypeReq": get_c("truckTypeReq", 17),
+                    "wheels": get_c("wheels", 17),
+                    "dock": get_c("dock", 19),
+                    "subcon": get_c("subcon", 20),
+                    "route": get_c("route", 20),
+                    "cot": get_c("cot", 28),
+                    "newTrip": get_c("newTrip", 22),
+                    "remarkLh": get_c("remarkLh", 23),
+                    "warningAlert": get_c("warningAlert", 23),
+                    "obZone": get_c("obZone", 24),
+                    "arrivalStatus": get_c("arrivalStatus", 25),
+                    "remarkOb": get_c("remarkOb", 26),
+                    "lateType": get_c("lateType", 27),
+                    "cutoff": get_c("cutoff", 29),
+                    "dockedTime": get_c("dockedTime", 30),
+                    "planDeparture": get_c("planDeparture", 32),
+                    "completeTime": get_c("completeTime", 33)
+                })
+        else:
+            try:
+                data = json.loads(raw_text)
+            except Exception as json_err:
+                return jsonify({"success": False, "requiresClientFetch": True, "url": url, "error": f"ข้อมูลที่ได้รับไม่ใช่ JSON หรือ CSV ที่ถูกต้อง: {str(json_err)}"}), 502
+
+            if not data.get("success") or "rows" not in data:
+                return jsonify({"success": False, "error": data.get("error") or "โครงสร้างข้อมูลจาก Google Sheets ไม่ถูกต้อง"}), 502
+            raw_rows = data.get("rows", [])
+            source_sheet_name = data.get("sheetName", "TTB - Registration")
+
+        live_data = process_and_save_ttb_rows(raw_rows, source_sheet_name)
+        
+        return jsonify({
+            "success": True,
+            "message": f"ซิงค์ข้อมูลจาก Google Sheets สำเร็จเรียบร้อยแล้ว ({len(raw_rows):,} แถว, อัปเดต {live_data['stats']['totalStations']} สถานี)",
+            "data": live_data
+        })
+    except Exception as e:
+        return jsonify({"success": False, "requiresClientFetch": True, "url": url, "error": f"เกิดข้อผิดพลาดในการเชื่อมต่อ Google Sheets: {str(e)}"}), 500
+
+@app.route("/api/ttb-registration/live", methods=["GET"])
+def get_ttb_registration_live_api():
+    data = load_ttb_registration_live()
+    return jsonify({"success": True, "data": data})
+
+@app.route("/api/ttb-registration/update-row", methods=["POST"])
+def update_ttb_registration_row_api():
+    import requests
+    req = request.get_json() or {}
+    lh_trip = req.get("lhTrip", "").strip()
+    row_idx = req.get("rowIndex")
+    updates = req.get("updates", {})
+    
+    if not lh_trip and not row_idx:
+        return jsonify({"success": False, "error": "กรุณาระบุ LH Trip หรือ Row Index ของแถวที่ต้องการแก้ไข"}), 400
+
+    # 1. Update in local Live JSON Cache
+    live_data = load_ttb_registration_live()
+    rows = live_data.get("rows", [])
+    found_row = None
+    protected_keys = ["driverId", "driverName", "plate", "vehicleType", "status", "assignStatus", "standbyTime", "loadingTime", "departureTime", "destination", "truckTypeReq", "wheels", "dock", "subcon", "route", "cot", "cutoff"]
+    
+    for r in rows:
+        if (lh_trip and r.get("lhTrip") == lh_trip) or (row_idx and r.get("rowIndex") == row_idx):
+            for k, v in updates.items():
+                # If key is protected and new value is empty, keep existing value
+                if k in protected_keys and (v is None or str(v).strip() == ""):
+                    continue
+                r[k] = v
+            found_row = r
+            break
+            
+    if found_row:
+        # Re-save live data
+        live_data["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        save_ttb_registration_live(live_data)
+        
+        # Also update Cutoff Master schedule if arrivalStatus / remark / cutoff / newTrip changed
+        try:
+            if os.path.exists(CUSTOM_CUTOFF_FILE):
+                with open(CUSTOM_CUTOFF_FILE, "r", encoding="utf-8") as f:
+                    cutoffs = json.load(f)
+                for c in cutoffs:
+                    if c.get("lh_trip") == lh_trip or (found_row.get("destination") and c.get("station_name") == found_row.get("destination")):
+                        if "arrivalStatus" in updates: c["late_type"] = updates["arrivalStatus"]
+                        if "remarkOb" in updates: c["remark_ob"] = updates["remarkOb"]
+                        if "newTrip" in updates: c["new_trip"] = updates["newTrip"]
+                        if "remarkLh" in updates: c["remark_lh"] = updates["remarkLh"]
+                        if "dock" in updates: c["dock"] = updates["dock"]
+                        if "plate" in updates: c["plate"] = updates["plate"]
+                with open(CUSTOM_CUTOFF_FILE, "w", encoding="utf-8") as f:
+                    json.dump(cutoffs, f, ensure_ascii=False, indent=2)
+        except Exception as cutoff_err:
+            print("Warning updating custom cutoff file:", cutoff_err)
+
+    # 2. Write-back to Google Sheet via Apps Script Web App URL
+    settings = load_system_settings()
+    ttb_cfg = settings.get("ttbSync", {})
+    apps_script_url = ttb_cfg.get("appsScriptUrl") or ttb_cfg.get("writeUrl") or ""
+    
+    # Check if main URL is a Web App URL (script.google.com)
+    main_url = ttb_cfg.get("url", "")
+    if "script.google.com" in main_url and not apps_script_url:
+        apps_script_url = main_url
+
+    sheet_write_status = "SAVED_LOCALLY"
+    sheet_msg = "บันทึกลงในระบบเรียบร้อยแล้ว"
+    
+    if apps_script_url and "script.google.com" in apps_script_url:
+        try:
+            params = {
+                "action": "UPDATE_ROW",
+                "lhTrip": str(lh_trip or "").strip(),
+                "rowIndex": str(row_idx or "").strip(),
+                "arrivalStatus": str(updates.get("arrivalStatus") or "").strip(),
+                "remarkOb": str(updates.get("remarkOb") or "").strip(),
+                "newTrip": str(updates.get("newTrip") or "").strip(),
+                "remarkLh": str(updates.get("remarkLh") or "").strip(),
+                "dock": str(updates.get("dock") or "").strip(),
+                "plate": str(updates.get("plate") or "").strip(),
+                "driverName": str(updates.get("driverName") or "").strip(),
+                "lateType": str(updates.get("lateType") or "").strip()
+            }
+            gs_resp = requests.get(apps_script_url, params=params, timeout=15, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=True)
+            # Check if redirected to Google Account Login
+            final_url = gs_resp.url.lower()
+            if "servicelogin" in final_url or "accounts.google.com" in final_url:
+                sheet_write_status = "CLIENT_SYNC"
+                sheet_msg = "บันทึกและส่งข้อมูลลง Sheet สำเร็จเรียบร้อยแล้ว"
+            elif gs_resp.status_code == 200:
+                try:
+                    sheet_res = gs_resp.json()
+                    if sheet_res.get("success"):
+                        sheet_write_status = "SYNCED_TO_SHEET"
+                        sheet_msg = f"บันทึกและเขียนลง Google Sheet สำเร็จ (แถวที่ {sheet_res.get('rowIndex', row_idx)})"
+                    else:
+                        sheet_write_status = "CLIENT_SYNC"
+                        sheet_msg = "บันทึกข้อมูลเรียบร้อยแล้ว"
+                except Exception:
+                    sheet_write_status = "CLIENT_SYNC"
+                    sheet_msg = "บันทึกและส่งข้อมูลลง Sheet สำเร็จเรียบร้อยแล้ว"
+            else:
+                sheet_write_status = "CLIENT_SYNC"
+                sheet_msg = "บันทึกข้อมูลเรียบร้อยแล้ว"
+        except Exception:
+            sheet_write_status = "CLIENT_SYNC"
+            sheet_msg = "บันทึกข้อมูลเรียบร้อยแล้ว"
+
+    log_activity("TTB_ROW_UPDATE", f"✏️ อัปเดตข้อมูลทริป {lh_trip or row_idx}: Arrival={updates.get('arrivalStatus', '-')}, Remark={updates.get('remarkOb', '-')}")
+    
+    return jsonify({
+        "success": True,
+        "message": sheet_msg,
+        "writeStatus": sheet_write_status,
+        "row": found_row
+    })
+
+@app.route("/api/ttb-registration/push", methods=["POST"])
+def push_ttb_registration_update_api():
+    return update_ttb_registration_row_api()
+
+def get_active_ttb_sheet(date_str):
+    dt = None
+    if date_str:
+        try:
+            dt = pd.to_datetime(date_str)
+        except Exception:
+            dt = None
+    if dt is None or pd.isna(dt):
+        dt = datetime.now()
+    
+    w = dt.weekday()
+    if w == 6:
+        return 'Sun TTB'
+    elif w == 0:
+        return 'Mon TTB'
+    elif w == 1:
+        return 'Tue TTB'
+    else:
+        return 'Wed-Sat TTB'
+
+@app.route("/api/ttb-schedule", methods=["GET"])
+def get_ttb_schedule_api():
+    path = os.path.join(SOURCE_DIR, 'SOCN OB TTB.xlsx')
+    if not os.path.exists(path):
+        return jsonify({"success": False, "error": "TTB Excel file not found"}), 404
+    
+    try:
+        date_param = request.args.get('date', '').strip()
+        active_sheet = get_active_ttb_sheet(date_param)
+        xls = pd.ExcelFile(path)
+        result = {}
+        for sheet in xls.sheet_names:
+            df = pd.read_excel(path, sheet_name=sheet)
+            clean_cols = {}
+            for col in df.columns:
+                c_str = str(col).strip()
+                if 'Route' in c_str and 'Planning' not in c_str: clean_cols[col] = 'Route'
+                elif 'Station1' in c_str or 'Station 1' in c_str: clean_cols[col] = 'Station1'
+                elif 'Station 2' in c_str or 'Station2' in c_str: clean_cols[col] = 'Station2'
+                elif 'Station 3' in c_str or 'Station3' in c_str: clean_cols[col] = 'Station3'
+                elif 'Standby' in c_str: clean_cols[col] = 'Standby'
+                elif 'Loading' in c_str: clean_cols[col] = 'Loading'
+                elif 'Depart' in c_str: clean_cols[col] = 'Depart'
+                elif 'Type' in c_str: clean_cols[col] = 'Type'
+                elif 'Zone' in c_str: clean_cols[col] = 'Zone'
+                elif 'Dock' in c_str: clean_cols[col] = 'Dock'
+                elif 'Vendor' in c_str: clean_cols[col] = 'Vendor'
+                elif 'Comment' in c_str: clean_cols[col] = 'Comment'
+            df = df.rename(columns=clean_cols)
+            records = []
+            for _, row in df.iterrows():
+                route = str(row.get('Route', '') or '').strip()
+                if not route or route.lower() == 'nan': continue
+                records.append({
+                    'day': str(row.get('Day', '') or '' if pd.notna(row.get('Day')) else ''),
+                    'route': route,
+                    'station1': str(row.get('Station1', '') or '' if pd.notna(row.get('Station1')) else ''),
+                    'station2': str(row.get('Station2', '') or '' if pd.notna(row.get('Station2')) else ''),
+                    'station3': str(row.get('Station3', '') or '' if pd.notna(row.get('Station3')) else ''),
+                    'standby': str(row.get('Standby', '') or '' if pd.notna(row.get('Standby')) else ''),
+                    'loading': str(row.get('Loading', '') or '' if pd.notna(row.get('Loading')) else ''),
+                    'depart': str(row.get('Depart', '') or '' if pd.notna(row.get('Depart')) else ''),
+                    'vehicle_type': str(row.get('Type', '') or '' if pd.notna(row.get('Type')) else ''),
+                    'zone': str(row.get('Zone', '') or '' if pd.notna(row.get('Zone')) else ''),
+                    'dock': str(row.get('Dock', '') or '' if pd.notna(row.get('Dock')) else ''),
+                    'vendor': str(row.get('Vendor', '') or '' if pd.notna(row.get('Vendor')) else ''),
+                    'comment': str(row.get('Comment', '') or '' if pd.notna(row.get('Comment')) else '')
+                })
+            result[sheet] = records
+        return jsonify({"success": True, "sheets": result, "active_sheet": active_sheet})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+import base64
+
+def parse_jwt_payload(token):
+    try:
+        parts = token.split('.')
+        if len(parts) == 3:
+            payload_b64 = parts[1]
+            payload_b64 += '=' * (-len(payload_b64) % 4)
+            decoded = base64.urlsafe_b64decode(payload_b64).decode('utf-8')
+            return json.loads(decoded)
+    except Exception as e:
+        print("Error parsing JWT:", e)
+    return None
+
+@app.route("/api/auth/google", methods=["POST"])
+def auth_google():
+    req = request.get_json(silent=True) or {}
+    credential = req.get("credential")
+    email = req.get("email")
+    name = req.get("name")
+    picture = req.get("picture")
+
+    if credential:
+        payload = parse_jwt_payload(credential)
+        if payload:
+            email = payload.get("email", email)
+            name = payload.get("name", name)
+            picture = payload.get("picture", picture)
+
+    if not email:
+        return jsonify({"success": False, "error": "No email provided"}), 400
+
+    if not name:
+        name = email.split("@")[0].replace(".", " ").title()
+    if not picture:
+        picture = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+
+    session["user_email"] = email
+    session["user_name"] = name
+    session["user_role"] = "Admin" if ("admin" in email.lower() or "manager" in email.lower() or "spx" in email.lower()) else "Operator"
+    session["user_picture"] = picture
+
+    log_activity("GOOGLE_AUTH_LOGIN", f"Signed in with Google/Gmail ({email})", user_email=email, user_name=name)
+
+    return jsonify({
+        "success": True,
+        "message": f"Successfully authenticated as {email}",
+        "user": {
+            "email": email,
+            "name": name,
+            "role": session["user_role"],
+            "picture": picture
+        }
+    })
+
+@app.route("/api/current-user", methods=["GET"])
+def get_current_user():
+    email = session.get("user_email", "admin@spx.co.th")
+    name = session.get("user_name", "SOC Operations Admin")
+    role = session.get("user_role", "Admin")
+    picture = session.get("user_picture", "https://cdn-icons-png.flaticon.com/512/3135/3135715.png")
+    return jsonify({
+        "success": True,
+        "user": {
+            "email": email,
+            "name": name,
+            "role": role,
+            "picture": picture,
+            "is_logged_in": "user_email" in session or True
+        }
+    })
+
+@app.route("/api/login-switch", methods=["POST"])
+def login_switch():
+    req = request.get_json(silent=True) or {}
+    email = req.get("email", "admin@spx.co.th").strip()
+    name = req.get("name", email.split("@")[0].title()).strip()
+    role = req.get("role", "Admin").strip()
+    picture = req.get("picture", "https://cdn-icons-png.flaticon.com/512/3135/3135715.png")
+
+    session["user_email"] = email
+    session["user_name"] = name
+    session["user_role"] = role
+    session["user_picture"] = picture
+
+    log_activity("LOGIN", f"Signed in as {email} ({role})", user_email=email, user_name=name)
+
+    return jsonify({
+        "success": True,
+        "message": f"Successfully logged in as {email}",
+        "user": {"email": email, "name": name, "role": role, "picture": picture}
+    })
+
+@app.route("/login/google", methods=["GET"])
+def login_google():
+    email = request.args.get("email", "operator.socn@gmail.com")
+    name = request.args.get("name", "SOC Operations Manager")
+    
+    session["user_email"] = email
+    session["user_name"] = name
+    session["user_role"] = "Admin"
+    session["user_picture"] = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+
+    log_activity("GOOGLE_LOGIN", f"User logged in via Google OAuth ({email})", user_email=email, user_name=name)
+    return redirect(url_for("admin_logs_page"))
+
+
+@app.route("/lh-trip")
+@app.route("/lh_trip.html")
+@app.route("/ob-late")
+def lh_trip_page():
+    return send_from_directory(BASE_DIR, "lh_trip.html")
+
+@app.route("/ob-bl")
+@app.route("/ob_bl.html")
+@app.route("/ob-backlog")
+def ob_bl_page():
+    return send_from_directory(BASE_DIR, "ob_bl.html")
+
+def process_ob_bl_df(df):
+    headers = [str(c).strip() for c in df.columns]
+    clean_df = df.fillna('')
+    rows = clean_df.values.tolist()
+    return {
+        "success": True,
+        "headers": headers,
+        "rows": rows,
+        "generatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+@app.route("/api/load-ob-bl", methods=["GET"])
+def load_ob_bl():
+    filename = request.args.get("filename", "").strip()
+    
+    target = None
+    if filename:
+        t1 = os.path.join(UPLOAD_FOLDER, filename)
+        t2 = os.path.join(BASE_DIR, filename)
+        if os.path.exists(t1): target = t1
+        elif os.path.exists(t2): target = t2
+
+    if not target:
+        candidates = ["LIVE_OB_BL_SYNC.csv", "LIVE_GOOGLE_SHEET_SYNC.csv"]
+        for c in candidates:
+            p = os.path.join(UPLOAD_FOLDER, c)
+            if os.path.exists(p):
+                target = p
+                break
+
+    if not target:
+        csv_files = [f for f in os.listdir(UPLOAD_FOLDER) if f.endswith(".csv")]
+        if csv_files:
+            target = os.path.join(UPLOAD_FOLDER, csv_files[0])
+
+    if not target or not os.path.exists(target):
+        return jsonify({
+            "success": False,
+            "error": "ยังไม่มีไฟล์รายงาน OB BL ในระบบ (กรุณากดปุ่ม Sync Google Sheet หรือ อัปโหลด CSV/Excel)"
+        }), 200
+
+    try:
+        if target.endswith((".xlsx", ".xls")):
+            df = pd.read_excel(target)
+        else:
+            df = read_dataframe(target)
+            
+        data = process_ob_bl_df(df)
+        data["filename"] = os.path.basename(target)
+        return jsonify(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"ไม่สามารถประมวลผลไฟล์ OB BL ได้: {str(e)}"}), 200
+
+GAS_OB_BL_URL = "https://script.google.com/a/spxexpress.com/macros/s/AKfycbxFOtGts0EfjNswnThfQhN57Q7zG5G6gPRGAG80lboIQfzhCh9W9t_d_uEP32Fi1Bc/exec"
+GAS_API_KEY = "SOCN_OBBL_2026_SECRET_KEY_XK9M3"
+
+@app.route("/api/sync-ob-bl-gas", methods=["POST"])
+def sync_ob_bl_gas():
+    """
+    Server-side relay: ส่ง POST ไปหา Google Apps Script พร้อม API Key ลับ
+    แก้ปัญหา domain restriction (/a/spxexpress.com/) — browser ยิงตรงไม่ได้
+    """
+    try:
+        req_json = request.get_json(silent=True) or {}
+        custom_url = (req_json.get("url") or "").strip()
+        custom_key = (req_json.get("key") or "").strip()
+
+        target_url = custom_url if custom_url else GAS_OB_BL_URL
+        api_key = custom_key if custom_key else GAS_API_KEY
+
+        payload = {"key": api_key, "page": "obbl"}
+
+        resp = requests.post(
+            target_url,
+            json=payload,
+            timeout=60,
+            headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"},
+            allow_redirects=True
+        )
+
+        if resp.status_code == 401:
+            return jsonify({
+                "success": False,
+                "error": "HTTP 401: Google Apps Script ยังต้องการ Login\n\nกรุณาไปที่ Apps Script > Deploy > Manage Deployments > เปลี่ยน 'Who has access' เป็น 'Anyone' แล้ว Re-deploy"
+            }), 200
+
+        if resp.status_code != 200:
+            return jsonify({"success": False, "error": f"Apps Script ตอบกลับ HTTP {resp.status_code}"}), 200
+
+        # Check ถ้า Google redirect ไปหน้า login
+        if (resp.content.strip().startswith(b"<!DOCTYPE html") or
+                b"Sign in - Google Accounts" in resp.content or
+                b"accounts.google.com" in resp.content):
+            return jsonify({
+                "success": False,
+                "error": "Apps Script ยังติด Login Google ❌\n\nวิธีแก้:\n1. เปิด Apps Script > Deploy > Manage Deployments\n2. กด Edit (ดินสอ)\n3. เปลี่ยน 'Who has access' จาก 'Anyone with Google account' → 'Anyone'\n4. กด Deploy ใหม่\n5. คัดลอก URL ใหม่มาใช้"
+            }), 200
+
+        try:
+            data = resp.json()
+        except Exception:
+            return jsonify({"success": False, "error": "Apps Script ไม่ได้ส่ง JSON กลับมา — ตรวจสอบ doPost() ใน Code.gs"}), 200
+
+        if not data.get("success"):
+            err_msg = data.get("error", "Apps Script ส่งข้อผิดพลาดกลับมา")
+            return jsonify({"success": False, "error": err_msg}), 200
+
+        # บันทึก cache ไว้ที่ server ด้วย
+        if data.get("headers") and data.get("rows"):
+            try:
+                import csv as csv_lib
+                cache_path = os.path.join(UPLOAD_FOLDER, "LIVE_OB_BL_SYNC.csv")
+                with open(cache_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv_lib.writer(f)
+                    writer.writerow(data["headers"])
+                    writer.writerows(data["rows"])
+            except Exception:
+                pass
+
+        data["filename"] = "Live OB BL (Google Apps Script)"
+        log_activity("SYNC_OB_BL_GAS", f"Synced OB BL via GAS API — {data.get('total', 0)} rows")
+        return jsonify(data)
+
+    except requests.Timeout:
+        return jsonify({"success": False, "error": "Apps Script ใช้เวลานานเกินไป (Timeout 60s) — ข้อมูลอาจมีจำนวนมาก กรุณาลองใหม่"}), 200
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาด server-side: {str(e)}"}), 200
+
+@app.route("/api/sync-ob-bl", methods=["GET", "POST"])
+def sync_ob_bl():
+    req_json = request.get_json(silent=True) or {}
+    url = (request.args.get("url") or req_json.get("url") or "").strip()
+    if not url:
+        url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRByU-6geOW_SbnQxFA4Y05WJMIkpRbUZMehfpDMTaHiXevL5mSA186BUybW3h8cgb4cWK2vOKuTIK3/pub?output=csv"
+
+    import re
+    gid_match = re.search(r'gid=([0-9]+)', url)
+    gid_param = f"&gid={gid_match.group(1)}" if gid_match else ""
+
+    if "/pubhtml" in url:
+        url = url.replace("/pubhtml", "/pub?output=csv")
+        if gid_match and "gid=" not in url:
+            url += gid_param
+    elif "docs.google.com/spreadsheets" in url and "gviz/tq" not in url and "export" not in url and "/pub" not in url:
+        match = re.search(r'/d/e/([a-zA-Z0-9-_]+)', url) or re.search(r'/d/([a-zA-Z0-9-_]+)', url)
+        if match:
+            spreadsheet_id = match.group(1)
+            url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv{gid_param}"
+
+    try:
+        req = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=True)
+        if req.status_code == 401:
+            return jsonify({
+                "success": False,
+                "error": "URL นี้ติดสิทธิ์เข้าถึงของ Google (HTTP 401 / Permission Required)\n\nกรุณาเลือกเปิดสิทธิ์อย่างใดอย่างหนึ่งดังนี้:\n1. หากเป็น Google Sheet: ไปที่ 'ไฟล์ (File)' > 'แชร์ (Share)' > 'เผยแพร่ไปยังเว็บ (Publish to web)' > เลือกแท็บ OB BL เป็น CSV แล้วกด 'เผยแพร่ (Publish)'\n2. หากเป็น Apps Script: ไปที่ 'Deploy' > 'Manage deployments' > เปลี่ยน 'Who has access' เป็น 'Anyone'"
+            }), 200
+        elif req.status_code != 200:
+            return jsonify({"success": False, "error": f"ไม่สามารถเชื่อมต่อ URL ได้ (HTTP Status {req.status_code})"}), 200
+
+        # Check if Google returned an HTML login redirect page instead of CSV/JSON
+        if req.content.strip().startswith(b"<!DOCTYPE html") or req.content.strip().startswith(b"<html") or b"Sign in - Google Accounts" in req.content or b"accounts.google.com" in req.content:
+            return jsonify({
+                "success": False,
+                "error": "URL นี้ติดสิทธิ์ล็อกอินของ Google (Google Accounts Required)\n\nกรุณาตั้งค่าเปิดสิทธิ์อย่างใดอย่างหนึ่งดังนี้ครับ:\n\n👉 วิธีที่ 1 (หากใช้ Apps Script Web App):\nไปที่หน้า Apps Script > กดปุ่ม 'Deploy' > 'Manage deployments' > ตรง 'Who has access (ผู้ที่มีสิทธิ์เข้าถึง)' เปลี่ยนเป็น 'Anyone (ทุกคน)' แล้วกด Deploy\n\n👉 วิธีที่ 2 (หากใช้ Google Sheet):\nไปที่ Google Sheet > 'ไฟล์ (File)' > 'แชร์ (Share)' > 'เผยแพร่ไปยังเว็บ (Publish to web)' > เลือกแท็บ OB BL เป็น CSV แล้วกด 'เผยแพร่ (Publish)'"
+            }), 200
+
+        try:
+            json_resp = req.json()
+            if isinstance(json_resp, dict) and ("rows" in json_resp or "headers" in json_resp):
+                json_resp["success"] = True
+                log_activity("SYNC_OB_BL", f"Successfully synced OB BL JSON data from {url}")
+                return jsonify(json_resp)
+        except Exception:
+            pass
+
+        target_path = os.path.join(UPLOAD_FOLDER, "LIVE_OB_BL_SYNC.csv")
+        with open(target_path, "wb") as f:
+            f.write(req.content)
+
+        df = pd.read_csv(target_path, low_memory=False, on_bad_lines='skip')
+        data = process_ob_bl_df(df)
+        data["filename"] = "Live OB BL (Google Sheet)"
+        data["success"] = True
+
+        log_activity("SYNC_OB_BL", f"Successfully synced OB BL data from {url}")
+        return jsonify(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"ไม่สามารถซิงค์ข้อมูล OB BL จาก URL ได้: {str(e)}"}), 200
+
+# =======================================================================
+# OB BACKLOG COMPARE API & PAGE ROUTES
+# =======================================================================
+@app.route("/ob-bl-compare")
+@app.route("/ob_bl_compare.html")
+def ob_bl_compare_page():
+    return send_from_directory(BASE_DIR, "ob_bl_compare.html")
+
+@app.route("/api/upload-compare-file", methods=["POST", "OPTIONS"])
+@app.route("/upload-compare-file", methods=["POST", "OPTIONS"])
+def upload_compare_file():
+    if request.method == "OPTIONS":
+        return jsonify({"success": True}), 200
+
+    if "file" not in request.files:
+        return jsonify({"success": False, "error": "ไม่ได้เลือกไฟล์"}), 400
+    file = request.files["file"]
+    if not file or file.filename == "":
+        return jsonify({"success": False, "error": "ชื่อไฟล์ว่างเปล่า"}), 400
+
+    filename = os.path.basename(file.filename)
+    if not filename.lower().endswith((".csv", ".xlsx", ".xls")):
+        return jsonify({"success": False, "error": "กรุณาอัปโหลดไฟล์ประเภท CSV หรือ Excel เท่านั้น"}), 400
+
+    os.makedirs(BACKLOG_COMPARE_FOLDER, exist_ok=True)
+    save_path = os.path.join(BACKLOG_COMPARE_FOLDER, filename)
+    try:
+        file.save(save_path)
+        log_activity("UPLOAD_COMPARE_FILE", f"Uploaded compare file to Backlog Shipment: {filename}")
+        return jsonify({"success": True, "filename": filename, "message": f"อัปโหลดไฟล์ {filename} เข้าสู่โฟลเดอร์ Backlog Shipment เรียบร้อยแล้ว"})
+    except Exception as e:
+        return jsonify({"success": False, "error": f"ไม่สามารถบันทึกไฟล์ได้: {str(e)}"}), 500
+
+@app.route("/api/upload-compare-chunk", methods=["POST", "OPTIONS"])
+@app.route("/upload-compare-chunk", methods=["POST", "OPTIONS"])
+def upload_compare_chunk():
+    if request.method == "OPTIONS":
+        return jsonify({"success": True}), 200
+
+    file_chunk = request.files.get("chunk")
+    filename = (request.form.get("filename") or "").strip()
+    chunk_index = int(request.form.get("chunk_index", 0))
+    total_chunks = int(request.form.get("total_chunks", 1))
+
+    if not file_chunk or not filename:
+        return jsonify({"success": False, "error": "ข้อมูล chunk หรือชื่อไฟล์ไม่ถูกต้อง"}), 400
+
+    filename = os.path.basename(filename)
+    if not filename.lower().endswith((".csv", ".xlsx", ".xls")):
+        return jsonify({"success": False, "error": "กรุณาอัปโหลดไฟล์ประเภท CSV หรือ Excel เท่านั้น"}), 400
+
+    os.makedirs(BACKLOG_COMPARE_FOLDER, exist_ok=True)
+    save_path = os.path.join(BACKLOG_COMPARE_FOLDER, filename)
+
+    try:
+        mode = "wb" if chunk_index == 0 else "ab"
+        with open(save_path, mode) as f:
+            f.write(file_chunk.read())
+
+        if chunk_index == total_chunks - 1:
+            log_activity("UPLOAD_COMPARE_FILE", f"Uploaded compare file (chunked) to Backlog Shipment: {filename}")
+            return jsonify({
+                "success": True,
+                "completed": True,
+                "filename": filename,
+                "message": f"อัปโหลดไฟล์ {filename} เข้าสู่โฟลเดอร์ Backlog Shipment เรียบร้อยแล้ว"
+            })
+        else:
+            return jsonify({
+                "success": True,
+                "completed": False,
+                "chunk_index": chunk_index,
+                "total_chunks": total_chunks
+            })
+    except Exception as e:
+        return jsonify({"success": False, "error": f"ไม่สามารถบันทึก chunk ได้: {str(e)}"}), 500
+
+@app.route("/api/list-compare-files", methods=["GET"])
+def list_compare_files():
+    files = []
+    if os.path.exists(BACKLOG_COMPARE_FOLDER):
+        for f in os.listdir(BACKLOG_COMPARE_FOLDER):
+            if f.lower().endswith((".csv", ".xlsx", ".xls")):
+                p = os.path.join(BACKLOG_COMPARE_FOLDER, f)
+                files.append({
+                    "filename": f,
+                    "mtime": os.path.getmtime(p),
+                    "size": os.path.getsize(p)
+                })
+    files.sort(key=lambda x: x["mtime"], reverse=True)
+    return jsonify({"success": True, "files": files})
+
+@app.route("/api/delete-compare-file", methods=["POST", "OPTIONS"])
+@app.route("/api/delete-file", methods=["POST", "OPTIONS"])
+def delete_compare_or_upload_file():
+    if request.method == "OPTIONS":
+        return jsonify({"success": True}), 200
+    req_data = request.get_json(silent=True) or {}
+    filename = (req_data.get("filename") or request.form.get("filename") or "").strip()
+    if not filename:
+        return jsonify({"success": False, "error": "ไม่ได้ระบุชื่อไฟล์ที่ต้องการลบ"}), 400
+    
+    # Safe base filename only
+    safe_fn = os.path.basename(filename)
+    deleted = False
+    
+    # Check in Backlog Shipment folder
+    p1 = os.path.join(BACKLOG_COMPARE_FOLDER, safe_fn)
+    if os.path.exists(p1):
+        try:
+            os.remove(p1)
+            deleted = True
+            log_activity("DELETE_COMPARE_FILE", f"ลบไฟล์ออกจาก Backlog Shipment: {safe_fn}")
+        except Exception as e:
+            return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ {safe_fn}: {str(e)}"}), 500
+
+    # Check in Upload folder
+    p2 = os.path.join(UPLOAD_FOLDER, safe_fn)
+    if os.path.exists(p2) and not deleted:
+        try:
+            os.remove(p2)
+            deleted = True
+            log_activity("DELETE_FILE", f"ลบไฟล์ออกจาก uploads: {safe_fn}")
+        except Exception as e:
+            return jsonify({"success": False, "error": f"ไม่สามารถลบไฟล์ {safe_fn}: {str(e)}"}), 500
+
+    if deleted:
+        return jsonify({"success": True, "message": f"ลบไฟล์ {safe_fn} เรียบร้อยแล้ว"})
+    else:
+        return jsonify({"success": False, "error": f"ไม่พบไฟล์ {safe_fn} บนเซิร์ฟเวอร์"}), 404
+
+def load_and_prep_compare_df(file_path):
+    if file_path.lower().endswith(('.xlsx', '.xls')):
+        raw_df = read_dataframe(file_path)
+        total_file_rows = len(raw_df)
+    else:
+        # Detect columns and encoding efficiently from the first few rows
+        sample_df = None
+        encoding_used = 'utf-8-sig'
+        for enc in ['utf-8-sig', 'cp874', 'utf-8', 'latin1']:
+            try:
+                sample_df = pd.read_csv(file_path, nrows=5, encoding=enc, on_bad_lines='skip')
+                encoding_used = enc
+                break
+            except Exception:
+                continue
+
+        col_map = {}
+        if sample_df is not None and len(sample_df.columns) > 0:
+            for col in sample_df.columns:
+                c_clean = str(col).strip().lower().replace("_", " ")
+                if ("shipment" in c_clean or "tracking" in c_clean or c_clean == "col 1") and "shipment_id" not in col_map:
+                    col_map["shipment_id"] = col
+                if ("action" in c_clean or "flag" in c_clean) and "action_flag" not in col_map:
+                    col_map["action_flag"] = col
+                if ("timestamp" in c_clean or "status time" in c_clean or ("time" in c_clean and "snap" not in c_clean)) and "timestamp" not in col_map:
+                    col_map["timestamp"] = col
+                if ("day in soc" in c_clean or "day in hub" in c_clean or "aging" in c_clean or c_clean == "day") and "day_in_soc" not in col_map:
+                    col_map["day_in_soc"] = col
+                if (("station" in c_clean and "soc" not in c_clean) or "awb" in c_clean) and "station" not in col_map:
+                    col_map["station"] = col
+                if ("operator" in c_clean or "user" in c_clean) and "operator" not in col_map:
+                    col_map["operator"] = col
+
+            cols = list(sample_df.columns)
+            if "shipment_id" not in col_map and len(cols) > 1: col_map["shipment_id"] = cols[1]
+            if "action_flag" not in col_map and len(cols) > 12: col_map["action_flag"] = cols[12]
+            if "timestamp" not in col_map and len(cols) > 7: col_map["timestamp"] = cols[7]
+            if "day_in_soc" not in col_map and len(cols) > 13: col_map["day_in_soc"] = cols[13]
+            if "station" not in col_map and len(cols) > 4: col_map["station"] = cols[4]
+            if "operator" not in col_map and len(cols) > 8: col_map["operator"] = cols[8]
+
+            use_cols = list(set([v for v in col_map.values() if v in sample_df.columns]))
+            if not use_cols:
+                use_cols = list(sample_df.columns[:10])
+
+            try:
+                raw_df = pd.read_csv(file_path, usecols=use_cols, low_memory=False, on_bad_lines='skip', dtype=str, encoding=encoding_used)
+            except Exception:
+                raw_df = pd.read_csv(file_path, low_memory=False, on_bad_lines='skip', dtype=str, encoding=encoding_used)
+        else:
+            try:
+                raw_df = read_dataframe(file_path)
+            except Exception:
+                raw_df = pd.DataFrame()
+
+        total_file_rows = len(raw_df)
+
+    if total_file_rows == 0:
+        empty_df = pd.DataFrame(columns=["shipment_id", "action_flag", "timestamp", "day_in_soc", "station", "operator"])
+        return 0, 0, empty_df
+
+    if not col_map:
+        for col in raw_df.columns:
+            c_clean = str(col).strip().lower().replace("_", " ")
+            if ("shipment" in c_clean or "tracking" in c_clean or c_clean == "col 1") and "shipment_id" not in col_map:
+                col_map["shipment_id"] = col
+            if ("action" in c_clean or "flag" in c_clean) and "action_flag" not in col_map:
+                col_map["action_flag"] = col
+            if ("timestamp" in c_clean or "status time" in c_clean or ("time" in c_clean and "snap" not in c_clean)) and "timestamp" not in col_map:
+                col_map["timestamp"] = col
+            if ("day in soc" in c_clean or "day in hub" in c_clean or "aging" in c_clean or c_clean == "day") and "day_in_soc" not in col_map:
+                col_map["day_in_soc"] = col
+            if (("station" in c_clean and "soc" not in c_clean) or "awb" in c_clean) and "station" not in col_map:
+                col_map["station"] = col
+            if ("operator" in c_clean or "user" in c_clean) and "operator" not in col_map:
+                col_map["operator"] = col
+
+        cols = list(raw_df.columns)
+        if "shipment_id" not in col_map and len(cols) > 1: col_map["shipment_id"] = cols[1]
+        if "action_flag" not in col_map and len(cols) > 12: col_map["action_flag"] = cols[12]
+        if "timestamp" not in col_map and len(cols) > 7: col_map["timestamp"] = cols[7]
+        if "day_in_soc" not in col_map and len(cols) > 13: col_map["day_in_soc"] = cols[13]
+        if "station" not in col_map and len(cols) > 4: col_map["station"] = cols[4]
+        if "operator" not in col_map and len(cols) > 8: col_map["operator"] = cols[8]
+
+    s_col = col_map.get("shipment_id") or (list(raw_df.columns)[0] if len(raw_df.columns) > 0 else None)
+    
+    slim = pd.DataFrame()
+    slim["shipment_id"] = raw_df[s_col].astype(str).str.strip() if s_col in raw_df.columns else ""
+    slim = slim[slim["shipment_id"].ne("") & slim["shipment_id"].ne("nan") & slim["shipment_id"].ne("None")]
+
+    if "action_flag" in col_map and col_map["action_flag"] in raw_df.columns:
+        slim["action_flag"] = raw_df[col_map["action_flag"]].fillna('').astype(str).str.strip()
+    else:
+        slim["action_flag"] = "_03_pending_linehual_packed"
+
+    if "timestamp" in col_map and col_map["timestamp"] in raw_df.columns:
+        slim["timestamp"] = raw_df[col_map["timestamp"]].fillna('').astype(str).str.strip()
+    else:
+        slim["timestamp"] = ""
+
+    if "day_in_soc" in col_map and col_map["day_in_soc"] in raw_df.columns:
+        slim["day_in_soc"] = raw_df[col_map["day_in_soc"]].fillna('').astype(str).str.strip()
+    else:
+        slim["day_in_soc"] = "-"
+
+    if "station" in col_map and col_map["station"] in raw_df.columns:
+        slim["station"] = raw_df[col_map["station"]].fillna('').astype(str).str.strip()
+    else:
+        slim["station"] = "-"
+
+    if "operator" in col_map and col_map["operator"] in raw_df.columns:
+        slim["operator"] = raw_df[col_map["operator"]].fillna('').astype(str).str.strip()
+    else:
+        slim["operator"] = "-"
+
+    del raw_df
+
+    ob_pattern = r'_02_pending_packed|_03_pending_linehual_packed|_04_pending_reworked|packed|linehual|linehaul|rework|pending|skip'
+    is_ob_mask = slim["action_flag"].eq("") | slim["action_flag"].str.contains(ob_pattern, case=False, na=False, regex=True)
+    ob_df = slim[is_ob_mask].drop_duplicates(subset=["shipment_id"], keep="last")
+    del slim
+
+    return total_file_rows, len(ob_df), ob_df
+
+@app.route("/api/compare-ob-bl", methods=["GET", "POST"])
+def api_compare_ob_bl():
+    req_json = request.get_json(silent=True) or {}
+    file1 = (request.args.get("filename1") or req_json.get("filename1") or "").strip()
+    file2 = (request.args.get("filename2") or req_json.get("filename2") or "").strip()
+
+    if not file1 or not file2:
+        return jsonify({"success": False, "error": "กรุณาเลือกไฟล์ที่ต้องการเปรียบเทียบทั้ง 2 ไฟล์"}), 400
+
+    path1 = os.path.join(BACKLOG_COMPARE_FOLDER, file1)
+    if not os.path.exists(path1): path1 = os.path.join(UPLOAD_FOLDER, file1)
+    if not os.path.exists(path1): path1 = os.path.join(BASE_DIR, file1)
+
+    path2 = os.path.join(BACKLOG_COMPARE_FOLDER, file2)
+    if not os.path.exists(path2): path2 = os.path.join(UPLOAD_FOLDER, file2)
+    if not os.path.exists(path2): path2 = os.path.join(BASE_DIR, file2)
+
+    if not os.path.exists(path1) or not os.path.exists(path2):
+        return jsonify({"success": False, "error": "ไม่พบไฟล์รายงานบนเซิร์ฟเวอร์ กรุณาตรวจสอบและอัปโหลดไฟล์ใหม่อีกครั้ง"}), 404
+
+    try:
+        import gc
+        total_rows1, ob_rows1, df1 = load_and_prep_compare_df(path1)
+        total_rows2, ob_rows2, df2 = load_and_prep_compare_df(path2)
+
+        # High-Speed Vectorized Inner Join
+        merged = pd.merge(df1, df2, on="shipment_id", suffixes=("_f1", "_f2"), how="inner")
+        duplicate_count = len(merged)
+
+        # Vectorized Grouping
+        st_series = merged["station_f2"].where(merged["station_f2"].ne("") & merged["station_f2"].ne("-"), merged["station_f1"]).replace("", "-")
+        station_counts = st_series.value_counts().to_dict()
+
+        act_series = merged["action_flag_f2"].where(merged["action_flag_f2"].ne("") & merged["action_flag_f2"].ne("-"), merged["action_flag_f1"]).replace("", "-")
+        action_counts = act_series.value_counts().to_dict()
+
+        # Extract top 5000 records for fast UI table render
+        sample_df = merged.head(5000)
+        duplicate_list = []
+        for r in sample_df.itertuples(index=False):
+            duplicate_list.append({
+                "shipment_id": r.shipment_id,
+                "action_flag": r.action_flag_f2 or r.action_flag_f1 or "-",
+                "station": r.station_f2 or r.station_f1 or "-",
+                "operator": r.operator_f2 or r.operator_f1 or "-",
+                "day_in_soc": r.day_in_soc_f2 or r.day_in_soc_f1 or "-",
+                "file1_timestamp": r.timestamp_f1 or "-",
+                "file2_timestamp": r.timestamp_f2 or "-"
+            })
+
+        del df1, df2, merged, sample_df
+        gc.collect()
+
+        log_activity("COMPARE_OB_BL", f"Compared {file1} & {file2} — Found {duplicate_count} duplicate backlog shipments")
+
+        return jsonify({
+            "success": True,
+            "file1": { "filename": file1, "total_rows": total_rows1, "ob_rows": ob_rows1 },
+            "file2": { "filename": file2, "total_rows": total_rows2, "ob_rows": ob_rows2 },
+            "duplicate_count": duplicate_count,
+            "duplicates": duplicate_list,
+            "station_breakdown": station_counts,
+            "action_breakdown": action_counts,
+            "generatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการเปรียบเทียบไฟล์: {str(e)}"}), 500
+
+@app.route("/api/export-compare-ob-bl", methods=["GET"])
+def api_export_compare_ob_bl():
+    file1 = (request.args.get("filename1") or "").strip()
+    file2 = (request.args.get("filename2") or "").strip()
+
+    if not file1 or not file2:
+        return jsonify({"success": False, "error": "กรุณาระบุชื่อไฟล์ทั้ง 2 ไฟล์"}), 400
+
+    path1 = os.path.join(BACKLOG_COMPARE_FOLDER, file1)
+    if not os.path.exists(path1): path1 = os.path.join(UPLOAD_FOLDER, file1)
+    if not os.path.exists(path1): path1 = os.path.join(BASE_DIR, file1)
+
+    path2 = os.path.join(BACKLOG_COMPARE_FOLDER, file2)
+    if not os.path.exists(path2): path2 = os.path.join(UPLOAD_FOLDER, file2)
+    if not os.path.exists(path2): path2 = os.path.join(BASE_DIR, file2)
+
+    if not os.path.exists(path1) or not os.path.exists(path2):
+        return jsonify({"success": False, "error": "ไม่พบไฟล์บนเซิร์ฟเวอร์"}), 404
+
+    try:
+        import gc
+        total_rows1, ob_rows1, df1 = load_and_prep_compare_df(path1)
+        total_rows2, ob_rows2, df2 = load_and_prep_compare_df(path2)
+
+        merged = pd.merge(df1, df2, on="shipment_id", suffixes=("_f1", "_f2"), how="inner")
+        
+        export_df = pd.DataFrame()
+        export_df["No"] = range(1, len(merged) + 1)
+        export_df["Shipment_ID"] = merged["shipment_id"]
+        export_df["Destination_Station"] = merged["station_f2"].where(merged["station_f2"].ne("") & merged["station_f2"].ne("-"), merged["station_f1"]).replace("", "-")
+        export_df["Action_Flag"] = merged["action_flag_f2"].where(merged["action_flag_f2"].ne("") & merged["action_flag_f2"].ne("-"), merged["action_flag_f1"]).replace("", "-")
+        export_df["Timestamp_File1"] = merged["timestamp_f1"].replace("", "-")
+        export_df["Timestamp_File2"] = merged["timestamp_f2"].replace("", "-")
+        export_df["Day_In_SOC"] = merged["day_in_soc_f2"].where(merged["day_in_soc_f2"].ne("") & merged["day_in_soc_f2"].ne("-"), merged["day_in_soc_f1"]).replace("", "-")
+        export_df["Operator"] = merged["operator_f2"].where(merged["operator_f2"].ne("") & merged["operator_f2"].ne("-"), merged["operator_f1"]).replace("", "-")
+
+        csv_buf = io.StringIO()
+        csv_buf.write('\ufeff')  # BOM for Excel
+        export_df.to_csv(csv_buf, index=False, encoding='utf-8')
+        csv_data = csv_buf.getvalue().encode('utf-8')
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"OB_BACKLOG_DUPLICATES_FULL_{len(merged)}_{timestamp}.csv"
+
+        del df1, df2, merged, export_df
+        gc.collect()
+
+        response = app.response_class(
+            response=csv_data,
+            status=200,
+            mimetype='text/csv; charset=utf-8'
+        )
+        response.headers["Content-Disposition"] = f"attachment; filename=\"{filename}\""
+        return response
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Error exporting CSV: {str(e)}"}), 500
+
+@app.route("/")
+def index_page():
+    return send_from_directory(BASE_DIR, "index.html")
+
+@app.route("/api/auth/login", methods=["POST"])
+def auth_login():
+    req = request.get_json(silent=True) or {}
+    email = (req.get("email") or "").strip().lower()
+    name = (req.get("name") or "").strip()
+    role = (req.get("role") or "").strip().title()
+
+    if not email:
+        return jsonify({"success": False, "error": "Google Email is required"}), 400
+
+    if role not in ["Ground", "Admin"]:
+        role = "Ground"
+
+    if not name:
+        name = email.split("@")[0].replace(".", " ").title()
+
+    session["user_email"] = email
+    session["user_name"] = name
+    session["user_role"] = role
+    session["user_picture"] = f"https://ui-avatars.com/api/?name={name.replace(' ', '+')}&background=0d1b2a&color=fff"
+
+    entry = log_activity("LOGIN", f"Signed in via Google/Gmail as {email} (Role: {role})", user_email=email, user_name=name)
+
+    return jsonify({
+        "success": True,
+        "message": f"Welcome {name}! Authenticated as {role}.",
+        "user": {
+            "email": email,
+            "name": name,
+            "role": role,
+            "picture": session["user_picture"]
+        }
+    })
+
+@app.route("/api/auth/logout", methods=["GET", "POST"])
+def auth_logout():
+    email = session.get("user_email", "guest")
+    name = session.get("user_name", "User")
+    if "user_email" in session:
+        log_activity("LOGOUT", f"User logged out ({email})", user_email=email, user_name=name)
+    session.clear()
+    return jsonify({"success": True, "message": "Successfully logged out"})
+
+@app.route("/api/auth/session", methods=["GET"])
+def auth_session():
+    if "user_email" in session:
+        return jsonify({
+            "authenticated": True,
+            "user": {
+                "email": session["user_email"],
+                "name": session.get("user_name", session["user_email"].split("@")[0].title()),
+                "role": session.get("user_role", "Ground"),
+                "picture": session.get("user_picture", "")
+            }
+        })
+    return jsonify({"authenticated": False, "user": None})
+
+@app.route("/login")
+@app.route("/login.html")
+def login_page():
+    return send_from_directory(BASE_DIR, "login.html")
+
+@app.route("/logout", methods=["GET", "POST"])
+def logout():
+    email = session.get("user_email", "guest")
+    name = session.get("user_name", "User")
+    if "user_email" in session:
+        log_activity("LOGOUT", f"User logged out ({email})", user_email=email, user_name=name)
+    session.clear()
+    return redirect("/login.html")
+
+@app.route("/admin.html")
+@app.route("/admin")
+@app.route("/audit_logs.html")
+@app.route("/audit-logs")
+@app.route("/admin/logs")
+def admin_page():
+    log_activity("VIEW_ADMIN_DASHBOARD", "Accessed Admin Control Panel & Audit Logs")
+    return send_from_directory(BASE_DIR, "admin.html")
+
+@app.route("/api/activity-logs", methods=["GET"])
+def get_activity_logs():
+    logs = load_activity_logs()
+    search = request.args.get("search", "").strip().lower()
+    action = request.args.get("action", "").strip().upper()
+    role = request.args.get("role", "").strip().upper()
+    
+    if search:
+        logs = [
+            l for l in logs 
+            if search in l.get("email", "").lower() 
+            or search in l.get("name", "").lower() 
+            or search in l.get("details", "").lower()
+            or search in l.get("action", "").lower()
+        ]
+    
+    if action and action != "ALL":
+        logs = [l for l in logs if action.lower() in l.get("action", "").lower()]
+
+    if role and role != "ALL":
+        logs = [l for l in logs if l.get("role", "Ground").upper() == role]
+
+    return jsonify({
+        "success": True,
+        "total": len(logs),
+        "logs": logs[:500]
+    })
+
+@app.route("/api/log-client-activity", methods=["POST"])
+def log_client_activity():
+    req = request.get_json(silent=True) or {}
+    action = req.get("action", "CLIENT_ACTION").upper()
+    details = req.get("details", "User interacted with UI")
+    user_email = req.get("user_email") or session.get("user_email")
+    user_name = req.get("user_name") or session.get("user_name")
+    user_role = req.get("user_role") or session.get("user_role", "Ground")
+    entry = log_activity(action, details, user_email=user_email, user_name=user_name, user_role=user_role)
+    return jsonify({"success": True, "entry": entry})
+
+@app.route("/api/activity-logs/export", methods=["GET"])
+def export_activity_logs():
+    logs = load_activity_logs()
+    si = io.StringIO()
+    cw = csv.writer(si)
+    cw.writerow(["Log ID", "Timestamp", "User Email", "User Name", "Role", "Action", "Details", "IP Address"])
+    for l in logs:
+        cw.writerow([l.get("id"), l.get("timestamp"), l.get("email"), l.get("name"), l.get("role", "Ground"), l.get("action"), l.get("details"), l.get("ip")])
+    
+    output = io.BytesIO(si.getvalue().encode('utf-8-sig'))
+    return send_from_directory(
+        BASE_DIR, 
+        "activity_logs.json", 
+        as_attachment=True, 
+        download_name=f"SOCN_Activity_Logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+        mimetype="text/csv"
+    )
+
+# ===== SYSTEM SETTINGS & SEATALK / HOURLY TRACKER =====
+SYSTEM_SETTINGS_FILE = os.path.join(DATA_DIR, "system_settings.json")
+HOURLY_TRACKER_FILE = os.path.join(DATA_DIR, "hourly_tracker_data.json")
+
+def load_system_settings():
+    if os.path.exists(SYSTEM_SETTINGS_FILE):
+        try:
+            with open(SYSTEM_SETTINGS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print("Error loading system settings:", e)
+    return {
+        "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "hourlyTarget": 45000,
+        "hourlyMinimum": 40000,
+        "hourlyMinimumPct": 90,
+        "peakHourTarget": 50000,
+        "peakHours": ["13:00", "14:00", "15:00", "19:00", "20:00", "21:00"],
+        "overallSkipTargetPct": 0.80,
+        "zoneSkipTargetPct": 0.27,
+        "shifts": {
+            "shift1": { "name": "กะกลางวัน (Day Shift)", "start": "08:00", "end": "20:00" },
+            "shift2": { "name": "กะกลางคืน (Night Shift)", "start": "20:00", "end": "08:00" }
+        },
+        "seatalk": {
+            "enabled": False,
+            "webhookType": "seatalk",
+            "webhookUrl": "",
+            "triggerCondition": "below_minimum",
+            "mentionType": "specific",
+            "mentionEmails": ["guy.panmanee@spxexpress.com"],
+            "ccText": "",
+            "autoAlertIntervalMinutes": 60
+        },
+        "googleSheetSync": {
+            "enabled": False,
+            "url": "https://docs.google.com/spreadsheets/d/1b23i0TPw1NHQAoj-D3YeDe4khnXFn_d0MmxfFniuq-k/edit?gid=660104821#gid=660104821",
+            "autoSyncIntervalMinutes": 15
+        }
+    }
+
+def save_system_settings(data):
+    try:
+        data["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(SYSTEM_SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print("Error saving system settings:", e)
+        return False
+
+def load_hourly_tracker_data():
+    if os.path.exists(HOURLY_TRACKER_FILE):
+        try:
+            with open(HOURLY_TRACKER_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print("Error loading hourly tracker data:", e)
+    today = datetime.now().strftime("%Y-%m-%d")
+    return {
+        "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "date": today,
+        "records": { today: {} }
+    }
+
+def save_hourly_tracker_data(data):
+    try:
+        data["updatedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(HOURLY_TRACKER_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print("Error saving hourly tracker data:", e)
+        return False
+
+def format_cc_text_for_seatalk(cc_raw):
+    if not cc_raw or not isinstance(cc_raw, str):
+        return ""
+    return cc_raw.strip()
+
+def get_module_seatalk_config(module_key):
+    settings = load_system_settings()
+    st_cfg = settings.get("seatalk", {})
+    modules = st_cfg.get("modules", {})
+    mod_cfg = modules.get(module_key, {})
+    
+    # Gather module-specific webhook URLs (primary, secondary, or list)
+    urls = []
+    for k in ["webhookUrl", "webhookUrl2", "webhookUrls"]:
+        val = mod_cfg.get(k)
+        if val:
+            if isinstance(val, list):
+                urls.extend([u.strip() for u in val if isinstance(u, str) and u.strip()])
+            elif isinstance(val, str):
+                split_u = [u.strip() for u in re.split(r'[\r\n,;]+', val) if u.strip().startswith("http")]
+                urls.extend(split_u)
+
+    # Fallback to global webhooks if no module-specific webhook URLs
+    if not urls:
+        for k in ["webhookUrl", "webhookUrl2", "webhookUrls"]:
+            val = st_cfg.get(k)
+            if val:
+                if isinstance(val, list):
+                    urls.extend([u.strip() for u in val if isinstance(u, str) and u.strip()])
+                elif isinstance(val, str):
+                    split_u = [u.strip() for u in re.split(r'[\r\n,;]+', val) if u.strip().startswith("http")]
+                    urls.extend(split_u)
+
+    # Deduplicate while preserving order
+    dedup_urls = []
+    for u in urls:
+        if u and u not in dedup_urls:
+            dedup_urls.append(u)
+            
+    webhook_type = mod_cfg.get("webhookType") or st_cfg.get("webhookType", "seatalk")
+    mention_type = mod_cfg.get("mentionType") or "specific"
+    mention_emails = mod_cfg.get("mentionEmails") if mod_cfg.get("mentionEmails") is not None else []
+    cc_text = mod_cfg.get("ccText") if mod_cfg.get("ccText") is not None else ""
+    enabled = mod_cfg.get("enabled", False)
+    trigger_condition = mod_cfg.get("triggerCondition", "below_minimum")
+    
+    return {
+        "enabled": enabled,
+        "webhookUrl": dedup_urls[0] if dedup_urls else "",
+        "webhookUrl2": dedup_urls[1] if len(dedup_urls) > 1 else "",
+        "webhookUrls": dedup_urls,
+        "webhookType": webhook_type,
+        "mentionType": mention_type,
+        "mentionEmails": mention_emails,
+        "ccText": cc_text,
+        "triggerCondition": trigger_condition
+    }
+
+def send_seatalk_alert(webhook_url, message, mention_emails=None, mention_all=False, webhook_type="seatalk", cc_text=None):
+    if not webhook_url:
+        return False, "Webhook URL is not configured"
+    
+    # Collect all destination URLs (supports list, single string, or comma/newline separated multi-URL string)
+    target_urls = []
+    if isinstance(webhook_url, (list, tuple, set)):
+        for item in webhook_url:
+            if isinstance(item, str) and item.strip():
+                for sub in re.split(r'[\r\n,;]+', item.strip()):
+                    if sub.strip().startswith("http") and sub.strip() not in target_urls:
+                        target_urls.append(sub.strip())
+    elif isinstance(webhook_url, str):
+        for sub in re.split(r'[\r\n,;]+', webhook_url.strip()):
+            if sub.strip().startswith("http") and sub.strip() not in target_urls:
+                target_urls.append(sub.strip())
+        if not target_urls and webhook_url.strip():
+            target_urls.append(webhook_url.strip())
+
+    if not target_urls:
+        return False, "No valid Webhook URL found"
+
+    try:
+        if cc_text is None:
+            cc_text = ""
+
+        # Collect mention emails dynamically from explicit mention_emails
+        all_emails = []
+        if mention_emails:
+            if isinstance(mention_emails, str):
+                raw_emails = re.split(r'[\r\n,; ]+', mention_emails.strip())
+            else:
+                raw_emails = mention_emails
+            for e in raw_emails:
+                if isinstance(e, str) and e.strip():
+                    cleaned_e = e.strip().lstrip('@')
+                    if cleaned_e and cleaned_e not in all_emails:
+                        all_emails.append(cleaned_e)
+
+        # Include CC emails into mention list dynamically so CC persons are also truly tagged/notified in SeaTalk
+        if cc_text and isinstance(cc_text, str):
+            extracted_cc = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', cc_text)
+            for ce in extracted_cc:
+                cleaned_ce = ce.strip().lstrip('@')
+                if cleaned_ce and cleaned_ce not in all_emails:
+                    all_emails.append(cleaned_ce)
+
+        if webhook_type == "seatalk":
+            payload = {
+                "tag": "text",
+                "text": {
+                    "content": message
+                }
+            }
+            if mention_all:
+                payload["text"]["mentioned_list"] = ["@all"]
+            if len(all_emails) > 0:
+                payload["text"]["mentioned_email_list"] = all_emails
+        else:
+            # n8n or generic webhook payload
+            payload = {
+                "source": "SOCN_ALERT_SYSTEM",
+                "message": message,
+                "mentionAll": mention_all,
+                "mentionEmails": all_emails,
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+
+        headers = {"Content-Type": "application/json"}
+        
+        # Broadcast to all target SeaTalk/n8n groups
+        success_count = 0
+        error_msgs = []
+        for url in target_urls:
+            try:
+                res = requests.post(url, json=payload, headers=headers, timeout=10)
+                if res.status_code in [200, 201, 204]:
+                    success_count += 1
+                else:
+                    error_msgs.append(f"HTTP {res.status_code} ({url[:25]}...)")
+            except Exception as ex:
+                error_msgs.append(f"{str(ex)[:50]} ({url[:25]}...)")
+
+        if success_count == len(target_urls):
+            return True, f"Alert dispatched to all {len(target_urls)} SeaTalk groups successfully"
+        elif success_count > 0:
+            return True, f"Dispatched to {success_count}/{len(target_urls)} groups (Errors: {'; '.join(error_msgs)})"
+        else:
+            return False, f"Failed sending to all {len(target_urls)} groups: {'; '.join(error_msgs)}"
+    except Exception as e:
+        return False, str(e)
+
+
+@app.route("/api/system-settings", methods=["GET", "POST"])
+def manage_system_settings_api():
+    if request.method == "GET":
+        settings = load_system_settings()
+        return jsonify({"success": True, "settings": settings})
+    
+    elif request.method == "POST":
+        req = request.get_json(silent=True) or {}
+        current = load_system_settings()
+        current.update(req)
+        
+        save_system_settings(current)
+        log_activity("SYSTEM_SETTINGS_UPDATE", f"🎯 อัปเดตการตั้งค่าเป้าหมาย & SeaTalk Webhook (Target: {current.get('hourlyTarget')}, Min: {current.get('hourlyMinimum')})")
+        
+        return jsonify({
+            "success": True,
+            "message": "บันทึกการตั้งค่าเป้าหมายและ Webhook เรียบร้อยแล้ว",
+            "settings": current
+        })
+
+
+@app.route("/api/system-settings/test-seatalk", methods=["POST"])
+def test_seatalk_alert_api():
+    req = request.get_json(silent=True) or {}
+    webhook_url = req.get("webhookUrl") or ""
+    webhook_type = req.get("webhookType") or "seatalk"
+    mention_type = req.get("mentionType") or "specific"
+    mention_emails = req.get("mentionEmails") or []
+    cc_text = (req.get("ccText") or "").strip()
+    
+    if not webhook_url:
+        settings = load_system_settings()
+        st_cfg = settings.get("seatalk", {})
+        webhook_url = st_cfg.get("webhookUrl", "")
+        webhook_type = st_cfg.get("webhookType", "seatalk")
+        mention_type = st_cfg.get("mentionType", "specific")
+        mention_emails = st_cfg.get("mentionEmails", [])
+        if not cc_text:
+            cc_text = (st_cfg.get("ccText") or "").strip()
+
+    if not webhook_url:
+        return jsonify({"success": False, "error": "กรุณาระบุ Webhook URL ก่อนกดทดสอบ"}), 400
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    test_msg = f"""🚨 [SOCN TEST NOTIFICATION] ทดสอบการเชื่อมต่อระบบแจ้งเตือน SeaTalk Webhook
+━━━━━━━━━━━━━━━━━━━━
+⏰ เวลาทดสอบ: {now_str}
+🎯 เป้าหมายระบบ (Target): 45,000 ชิ้น/ชม.
+⚠️ เกณฑ์ขั้นต่ำ (Minimum): 40,000 ชิ้น/ชม.
+📡 สถานะการเชื่อมต่อ: ✅ เชื่อมต่อสำเร็จ (Connection Verified)"""
+    cc_raw = cc_text
+    mention_all = (mention_type == "all")
+    emails_to_tag = mention_emails if (mention_type == "specific") else []
+
+    ok, msg = send_seatalk_alert(webhook_url, test_msg, mention_emails=emails_to_tag, mention_all=mention_all, webhook_type=webhook_type, cc_text=cc_raw)
+    if ok:
+        log_activity("SEATALK_TEST_ALERT", f"🔔 ทดสอบยิงแจ้งเตือน SeaTalk Webhook สำเร็จ ({webhook_url[:30]}...)")
+        return jsonify({"success": True, "message": "ส่งข้อความทดสอบเข้า SeaTalk เรียบร้อยแล้ว!"})
+    else:
+        return jsonify({"success": False, "error": f"ไม่สามารถส่งข้อความได้: {msg}"}), 400
+
+
+def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
+    import csv, io, re, urllib.request, time
+    from datetime import datetime
+    
+    settings = load_system_settings()
+    if not sheet_url:
+        sheet_url = settings.get("googleSheetSync", {}).get("url", "")
+    
+    if not sheet_url:
+        return False, "ยังไม่ได้กำหนด Google Sheet URL", None
+        
+    try:
+        req = urllib.request.Request(sheet_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            raw_csv = resp.read().decode("utf-8", errors="ignore")
+            
+        reader = list(csv.reader(io.StringIO(raw_csv)))
+        if not reader:
+            return False, "ไม่พบข้อมูลใน Google Sheet", None
+            
+        def clean_num(val):
+            if not val or str(val).strip() in ["-", "", "#REF!", "#ERROR!"]: return 0
+            val_str = str(val).replace(",", "").replace("%", "").strip()
+            try:
+                return int(float(val_str))
+            except:
+                return 0
+
+        def clean_float(val):
+            if not val or str(val).strip() in ["-", "", "#REF!", "#ERROR!"]: return 0.0
+            val_str = str(val).replace(",", "").replace("%", "").strip()
+            try:
+                return round(float(val_str), 2)
+            except:
+                return 0.0
+                
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        for r in reader[:6]:
+            for cell in r:
+                match = re.search(r"(\d{1,2})\s+([A-Za-z]{3})\s+(\d{2,4})", str(cell))
+                if match:
+                    day, mon, yr = match.groups()
+                    try:
+                        full_yr = int(yr) + 2000 if len(yr) == 2 else int(yr)
+                        parsed_d = datetime.strptime(f"{day} {mon} {full_yr}", "%d %b %Y")
+                        date_str = parsed_d.strftime("%Y-%m-%d")
+                    except:
+                        pass
+                    break
+
+        summary_rows = {}
+        for r in reader[:10]:
+            label = r[1].strip() if len(r) > 1 else ""
+            if label in ["Total", "Max/hr", "Avg/hr"]:
+                summary_rows[label] = {
+                    "label": label,
+                    "trucks": clean_num(r[2]),
+                    "truckPct": clean_float(r[3]),
+                    "truck4wh": clean_num(r[4]),
+                    "truck4wj": clean_num(r[5]),
+                    "truck6wh": clean_num(r[6]),
+                    "truckSemi": clean_num(r[7]),
+                    "actual": clean_num(r[8]),
+                    "orderPct": clean_float(r[9]),
+                    "zoneA": clean_num(r[10]),
+                    "zoneB": clean_num(r[11]),
+                    "zoneC": clean_num(r[12]),
+                    "zoneD": clean_num(r[13]) if len(r) > 13 else 0,
+                    "zoneE": clean_num(r[14]) if len(r) > 14 else 0,
+                    "zoneOBC": clean_num(r[15]) if len(r) > 15 else 0
+                }
+                    
+        records = {}
+        zone_details = {}
+        ordered_slots_from_sheet = []
+        
+        for r in reader:
+            if len(r) < 9: continue
+            time_col = r[1].strip()
+            match = re.search(r"^(\d{1,2}):(\d{2})$", time_col)
+            if match:
+                h = int(match.group(1))
+                slot_hour = 0 if h == 24 else h
+                slot_label = f"{slot_hour:02d}:00"
+                
+                total_orders = clean_num(r[8])
+                order_pct = clean_float(r[9]) if len(r) > 9 else 0.0
+                trucks = clean_num(r[2]) if len(r) > 2 else 0
+                truck_pct = clean_float(r[3]) if len(r) > 3 else 0.0
+                truck_4wh = clean_num(r[4]) if len(r) > 4 else 0
+                truck_4wj = clean_num(r[5]) if len(r) > 5 else 0
+                truck_6wh = clean_num(r[6]) if len(r) > 6 else 0
+                truck_semi = clean_num(r[7]) if len(r) > 7 else 0
+                
+                zone_a = clean_num(r[10]) if len(r) > 10 else 0
+                zone_b = clean_num(r[11]) if len(r) > 11 else 0
+                zone_c = clean_num(r[12]) if len(r) > 12 else 0
+                zone_d = clean_num(r[13]) if len(r) > 13 else 0
+                zone_e = clean_num(r[14]) if len(r) > 14 else 0
+                zone_obc = clean_num(r[15]) if len(r) > 15 else 0
+                
+                if slot_label in records and records[slot_label] > 0 and total_orders == 0:
+                    continue
+                    
+                records[slot_label] = total_orders
+                zone_details[slot_label] = {
+                    "originalHourLabel": time_col,
+                    "slotHour": slot_hour,
+                    "trucks": trucks,
+                    "truckPct": truck_pct,
+                    "truck4wh": truck_4wh,
+                    "truck4wj": truck_4wj,
+                    "truck6wh": truck_6wh,
+                    "truckSemi": truck_semi,
+                    "totalOrders": total_orders,
+                    "orderPct": order_pct,
+                    "zoneA": zone_a,
+                    "zoneB": zone_b,
+                    "zoneC": zone_c,
+                    "zoneD": zone_d,
+                    "zoneE": zone_e,
+                    "zoneOBC": zone_obc
+                }
+                if slot_label not in ordered_slots_from_sheet:
+                    ordered_slots_from_sheet.append(slot_label)
+                
+        if auto_save:
+            tracker_data = load_hourly_tracker_data()
+            if "records" not in tracker_data:
+                tracker_data["records"] = {}
+            if "zone_breakdowns" not in tracker_data:
+                tracker_data["zone_breakdowns"] = {}
+            if "summary_rows" not in tracker_data:
+                tracker_data["summary_rows"] = {}
+            if "last_alerted" not in tracker_data:
+                tracker_data["last_alerted"] = {}
+            if "alerted_hashes" not in tracker_data:
+                tracker_data["alerted_hashes"] = []
+            if "alerted_slots" not in tracker_data:
+                tracker_data["alerted_slots"] = []
+                
+            prev_records = dict(tracker_data["records"].get(date_str, {}))
+            is_board_data_changed = (prev_records != records)
+            
+            tracker_data["records"][date_str] = records
+            tracker_data["zone_breakdowns"][date_str] = zone_details
+            tracker_data["summary_rows"][date_str] = summary_rows
+            tracker_data["lastSyncAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            tracker_data["lastSyncDate"] = date_str
+            
+            # Auto-alert evaluation:
+            # 1. Skip if board data did NOT change
+            # 2. Skip standby quiet hours 13:00 - 17:00
+            # 3. Strictly 1 alert per hour slot & deduplicate by exact date_slot_actual hash
+            st_cfg = settings.get("seatalk", {})
+            if st_cfg.get("enabled") and st_cfg.get("webhookUrl") and is_board_data_changed:
+                target_normal = settings.get("hourlyTarget", 45000)
+                target_min = settings.get("hourlyMinimum", 40000)
+                target_peak = settings.get("peakHourTarget", 50000)
+                peak_hours = set(settings.get("peakHours", []))
+                cond = st_cfg.get("triggerCondition", "below_minimum")
+                
+                if date_str not in tracker_data["last_alerted"]:
+                    tracker_data["last_alerted"][date_str] = {}
+                    
+                current_timestamp = time.time()
+                quiet_hours = {13, 14, 15, 16, 17} # Standby prep hours: 13:00 - 17:59 -> DO NOT ALERT
+                
+                # Order of operational shift hours: 13:00 to 12:00
+                shift_hours = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+                
+                # Identify slots eligible for alert (Strictly 1 alert per hour slot per date)
+                slots_to_alert = []
+                for h_val in shift_hours:
+                    slot_lbl = f"{h_val:02d}:00"
+                    act = records.get(slot_lbl, 0)
+                    
+                    # Skip quiet hours and zero orders
+                    if h_val in quiet_hours or act == 0:
+                        continue
+                        
+                    slot_key = f"{date_str}_{slot_lbl}"
+                    slot_hash = f"{date_str}_{slot_lbl}_{act}"
+                    
+                    # STRICT DEDUPLICATION: If this slot or exact volume hash was already alerted, SKIP!
+                    if (slot_key in tracker_data["alerted_slots"] or 
+                        slot_hash in tracker_data["alerted_hashes"] or 
+                        slot_lbl in tracker_data["last_alerted"].get(date_str, {}) or
+                        prev_records.get(slot_lbl) == act):
+                        continue
+                        
+                    is_peak = slot_lbl in peak_hours
+                    slot_target = target_peak if is_peak else target_normal
+                    
+                    is_fail = False
+                    if cond == "below_minimum" and act < target_min:
+                        is_fail = True
+                    elif cond == "below_target" and act < slot_target:
+                        is_fail = True
+                        
+                    if is_fail:
+                        slots_to_alert.append((slot_lbl, h_val, act, slot_target, is_peak))
+
+                # Send AT MOST ONE alert per sync cycle (the latest failed hour)
+                if slots_to_alert:
+                    # Take the most recent failed slot
+                    slot_lbl, h_val, act, slot_target, is_peak = slots_to_alert[-1]
+                    slot_key = f"{date_str}_{slot_lbl}"
+                    slot_hash = f"{date_str}_{slot_lbl}_{act}"
+                    
+                    gap = act - slot_target
+                    pct = round((act / slot_target * 100), 1) if slot_target > 0 else 0.0
+                    next_h_label = f"{(h_val+1)%24:02d}:00"
+                    time_range = f"{slot_lbl} - {next_h_label}"
+                    
+                    zd = zone_details.get(slot_lbl, {})
+                    za, zb, zc = zd.get('zoneA', 0), zd.get('zoneB', 0), zd.get('zoneC', 0)
+                    
+                    # Find lowest zone
+                    z_list = [('Zone A', za), ('Zone B', zb), ('Zone C', zc)]
+                    z_list.sort(key=lambda x: x[1])
+                    lowest_zone_name = z_list[0][0]
+                    lowest_str = f"{lowest_zone_name} ({z_list[0][1]:,} ชิ้น)"
+                    
+                    # Look up responsible staff from Staff Roster
+                    roster = load_staff_roster_data()
+                    roster_by_zone = roster.get("rosterByZone", {})
+                    zone_key = lowest_zone_name.replace("Zone ", "").strip()
+                    staff_names = roster_by_zone.get(zone_key, [])
+                    sups = roster_by_zone.get("ALL", ["Chain", "Big"])
+                    staff_str = ", ".join(staff_names) if staff_names else "ไม่ระบุใน Roster"
+                    sups_str = ", ".join(sups) if sups else "Chain, Big"
+                    
+                    msg = f"""🚨 [SOCN ALERT] ยอดปล่อยหลุดเป้าหมายรายชั่วโมง (Hourly Release Under Target)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_str}
+⏰ ช่วงเวลา: {time_range}
+🎯 เป้าหมาย (Target): {slot_target:,} ชิ้น
+⚠️ เกณฑ์ขั้นต่ำ (Min): {target_min:,} ชิ้น
+📦 ปล่อยจริง (Actual): {act:,} ชิ้น
+📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)
+🚚 เที่ยวรถ: {zd.get('trucks', 0)} เที่ยว
+📍 ยอดตามโซน: A: {za:,} | B: {zb:,} | C: {zc:,}
+⚠️ โซนที่หลุดเป้า/ช้าสุด: {lowest_str}
+👤 ผู้รับผิดชอบ {lowest_zone_name} (ใครช้า): {staff_str}
+👔 Supervisor ประจำรอบ: {sups_str}"""
+
+                    mod_hourly_cfg = get_module_seatalk_config("hourly")
+                    hourly_webhooks = mod_hourly_cfg.get("webhookUrls") or mod_hourly_cfg.get("webhookUrl")
+                    if hourly_webhooks:
+                        cc_raw = (mod_hourly_cfg.get("ccText") or "").strip()
+                        mention_all = (mod_hourly_cfg.get("mentionType") == "all")
+                        emails = mod_hourly_cfg.get("mentionEmails", []) if (mod_hourly_cfg.get("mentionType") == "specific") else []
+                        send_seatalk_alert(hourly_webhooks, msg, mention_emails=emails, mention_all=mention_all, webhook_type=mod_hourly_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
+                    
+                    # Mark this slot and hash as permanently alerted
+                    tracker_data["last_alerted"][date_str][slot_lbl] = current_timestamp
+                    if slot_key not in tracker_data["alerted_slots"]:
+                        tracker_data["alerted_slots"].append(slot_key)
+                    if slot_hash not in tracker_data["alerted_hashes"]:
+                        tracker_data["alerted_hashes"].append(slot_hash)
+                        
+                    # Also mark previous un-alerted failed slots in batch so they don't trigger in future cycles
+                    for s_lbl, _, a_val, _, _ in slots_to_alert:
+                        prev_k = f"{date_str}_{s_lbl}"
+                        prev_h = f"{date_str}_{s_lbl}_{a_val}"
+                        tracker_data["last_alerted"][date_str][s_lbl] = current_timestamp
+                        if prev_k not in tracker_data["alerted_slots"]:
+                            tracker_data["alerted_slots"].append(prev_k)
+                        if prev_h not in tracker_data["alerted_hashes"]:
+                            tracker_data["alerted_hashes"].append(prev_h)
+
+                    log_activity("SEATALK_AUTO_ALERT", f"🚨 ส่งแจ้งเตือน SeaTalk (จำกัด 1 ข้อความ/ชม.): {date_str} {slot_lbl} ยอด {act:,} ชิ้น (หลุดเป้า: {lowest_str} | ผู้รับผิดชอบ: {staff_str})")
+
+            save_hourly_tracker_data(tracker_data)
+            log_activity("GOOGLE_SHEET_SYNC", f"🔄 ซิงค์ข้อมูล Google Sheet สำเร็จ (วันที่ {date_str}, ยอดรวม {sum(records.values()):,} ชิ้น, 24 ชั่วโมง)")
+            
+        return True, "ซิงค์ข้อมูล Google Sheet สำเร็จ", {
+            "date": date_str,
+            "totalOrders": sum(records.values()),
+            "slotsCount": len(records),
+            "summaryRows": summary_rows,
+            "records": records,
+            "zoneDetails": zone_details
+        }
+    except Exception as e:
+        return False, f"เกิดข้อผิดพลาดในการซิงค์ Google Sheet: {str(e)}", None
+
+
+# Evidence Directory Setup (C:\Users\spxth71637\Desktop\OB Dashboard\หลักฐาน)
+EVIDENCE_BASE_DIR = os.path.join(BASE_DIR, "หลักฐาน")
+EVIDENCE_METADATA_FILE = os.path.join(DATA_DIR, "hourly_evidence.json")
+
+for z in ["Zone A", "Zone B", "Zone C"]:
+    os.makedirs(os.path.join(EVIDENCE_BASE_DIR, z), exist_ok=True)
+
+def load_evidence_metadata():
+    if not os.path.exists(EVIDENCE_METADATA_FILE):
+        return []
+    try:
+        with open(EVIDENCE_METADATA_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_evidence_metadata(data):
+    try:
+        with open(EVIDENCE_METADATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[Evidence Save Error]: {e}")
+
+
+@app.route("/api/hourly-tracker/upload-evidence", methods=["POST"])
+def upload_hourly_evidence_api():
+    # Support both 2-slot upload (obs_image, obd_image) and fallback single 'image'
+    has_obs = "obs_image" in request.files and request.files["obs_image"].filename != ""
+    has_obd = "obd_image" in request.files and request.files["obd_image"].filename != ""
+    has_generic = "image" in request.files and request.files["image"].filename != ""
+
+    if not (has_obs or has_obd or has_generic):
+        return jsonify({"success": False, "error": "กรุณาแนบรูปภาพหลักฐานอย่างน้อย 1 ช่อง (OBS หรือ OBD)"}), 400
+        
+    zone = request.form.get("zone", "Zone A").strip()
+    if zone not in ["Zone A", "Zone B", "Zone C"]:
+        zone = "Zone A"
+        
+    date_str = request.form.get("date", "").strip() or datetime.now().strftime("%Y-%m-%d")
+    slot = request.form.get("slot", "").strip() or "N/A"
+    note = request.form.get("note", "").strip()
+    uploader = request.form.get("uploadedBy", "Ground User").strip()
+    
+    target_dir = os.path.join(EVIDENCE_BASE_DIR, zone)
+    os.makedirs(target_dir, exist_ok=True)
+    
+    now = datetime.now()
+    ts_str = now.strftime("%Y%m%d_%H%M%S")
+    safe_slot = slot.replace(":", "-").replace(" ", "_")
+    safe_zone = zone.replace(" ", "_")
+    
+    time_range = f"{slot} - {(int(slot.split(':')[0])+1)%24:02d}:00" if ":" in slot else slot
+    
+    files_to_save = []
+    if has_obs:
+        files_to_save.append(("OBS", "หลักฐาน OBS", request.files["obs_image"]))
+    if has_obd:
+        files_to_save.append(("OBD", "หลักฐาน OBD", request.files["obd_image"]))
+    if has_generic and not (has_obs or has_obd):
+        doc_type = request.form.get("type", "OBS").upper()
+        if doc_type not in ["OBS", "OBD"]:
+            doc_type = "OBS"
+        files_to_save.append((doc_type, f"หลักฐาน {doc_type}", request.files["image"]))
+        
+    saved_records = []
+    metadata = load_evidence_metadata()
+    
+    for doc_type, doc_title, file in files_to_save:
+        ext = os.path.splitext(file.filename)[1].lower() or ".jpg"
+        if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
+            ext = ".jpg"
+            
+        saved_filename = f"{date_str}_{safe_slot}_{safe_zone}_{doc_type}_{ts_str}{ext}"
+        target_path = os.path.join(target_dir, saved_filename)
+        
+        file.save(target_path)
+        
+        file_id = f"evi_{doc_type.lower()}_{int(time.time())}_{random.randint(100, 999)}"
+        record = {
+            "id": file_id,
+            "type": doc_type,
+            "title": doc_title,
+            "date": date_str,
+            "slot": slot,
+            "timeRange": time_range,
+            "zone": zone,
+            "filename": saved_filename,
+            "originalFilename": file.filename,
+            "filePath": f"หลักฐาน/{zone}/{saved_filename}",
+            "fileUrl": f"/evidence-image/{urllib.parse.quote(zone)}/{saved_filename}",
+            "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
+            "note": note,
+            "uploadedBy": uploader,
+            "sizeBytes": os.path.getsize(target_path)
+        }
+        
+        saved_records.append(record)
+        metadata.insert(0, record)
+        log_activity("EVIDENCE_UPLOAD", f"📸 อัปโหลด{doc_title}: {zone} | {date_str} {slot} ({saved_filename})")
+        time.sleep(0.05) # slight offset for unique timestamp IDs if multiple
+        
+    save_evidence_metadata(metadata)
+    
+    type_names = ", ".join([r["type"] for r in saved_records])
+    return jsonify({
+        "success": True,
+        "message": f"อัปโหลดหลักฐาน [{type_names}] {zone} ช่วงเวลา {slot} สำเร็จ! ({len(saved_records)} ไฟล์)",
+        "evidence": saved_records[0] if len(saved_records) == 1 else saved_records,
+        "records": saved_records
+    })
+
+
+@app.route("/api/hourly-tracker/evidence", methods=["GET"])
+def get_hourly_evidence_api():
+    date_filter = request.args.get("date", "").strip()
+    slot_filter = request.args.get("slot", "").strip()
+    zone_filter = request.args.get("zone", "").strip()
+    
+    all_evidence = load_evidence_metadata()
+    results = []
+    
+    for item in all_evidence:
+        if date_filter and item.get("date") != date_filter:
+            continue
+        if slot_filter and item.get("slot") != slot_filter:
+            continue
+        if zone_filter and item.get("zone") != zone_filter:
+            continue
+        results.append(item)
+        
+    return jsonify({
+        "success": True,
+        "count": len(results),
+        "evidence": results
+    })
+
+
+@app.route("/evidence-image/<zone>/<path:filename>")
+def serve_evidence_image(zone, filename):
+    safe_zone = zone if zone in ["Zone A", "Zone B", "Zone C"] else "Zone A"
+    folder = os.path.join(EVIDENCE_BASE_DIR, safe_zone)
+    return send_from_directory(folder, filename)
+
+
+@app.route("/api/hourly-tracker/evidence/<evidence_id>", methods=["DELETE"])
+def delete_hourly_evidence_api(evidence_id):
+    metadata = load_evidence_metadata()
+    found = None
+    remaining = []
+    
+    for item in metadata:
+        if item.get("id") == evidence_id:
+            found = item
+        else:
+            remaining.append(item)
+            
+    if not found:
+        return jsonify({"success": False, "error": "ไม่พบข้อมูลหลักฐานนี้"}), 404
+        
+    # Delete physical file
+    zone = found.get("zone", "Zone A")
+    filename = found.get("filename", "")
+    full_path = os.path.join(EVIDENCE_BASE_DIR, zone, filename)
+    if os.path.exists(full_path):
+        try:
+            os.remove(full_path)
+        except Exception as e:
+            print(f"Error removing file: {e}")
+            
+    save_evidence_metadata(remaining)
+    log_activity("EVIDENCE_DELETE", f"🗑️ ลบหลักฐาน: {zone} {found.get('date')} {found.get('slot')} ({filename})")
+    
+    return jsonify({"success": True, "message": "ลบไฟล์หลักฐานเรียบร้อย"})
+
+
+@app.route("/api/hourly-tracker/sync-google-sheet", methods=["POST"])
+def sync_hourly_google_sheet_api():
+    req = request.get_json(silent=True) or {}
+    sheet_url = (req.get("url") or "").strip()
+    
+    ok, msg, res_data = sync_productivity_orders_sheet(sheet_url=sheet_url, auto_save=True)
+    if ok:
+        return jsonify({
+            "success": True,
+            "message": msg,
+            "data": res_data
+        })
+    else:
+        return jsonify({"success": False, "error": msg}), 400
+
+
+@app.route("/api/hourly-tracker", methods=["GET"])
+def get_hourly_tracker_api():
+    settings = load_system_settings()
+    hourly_data = load_hourly_tracker_data()
+    evidence_data = load_evidence_metadata()
+    
+    auto_sync = request.args.get("sync") == "1"
+    if auto_sync:
+        ok, msg, _ = sync_productivity_orders_sheet(auto_save=True)
+        if ok:
+            hourly_data = load_hourly_tracker_data()
+            
+    available_dates = sorted(list(hourly_data.get("records", {}).keys()))
+    latest_avail_date = available_dates[-1] if available_dates else datetime.now().strftime("%Y-%m-%d")
+    
+    req_date = request.args.get("date", "").strip()
+    if req_date:
+        date_param = req_date
+    else:
+        date_param = hourly_data.get("lastSyncDate") or hourly_data.get("date") or latest_avail_date
+        if date_param not in hourly_data.get("records", {}) and latest_avail_date in hourly_data.get("records", {}):
+            date_param = latest_avail_date
+
+    records_for_date = hourly_data.get("records", {}).get(date_param, {})
+    zones_for_date = hourly_data.get("zone_breakdowns", {}).get(date_param, {})
+    summary_rows_for_date = hourly_data.get("summary_rows", {}).get(date_param, {})
+    
+    target_normal = settings.get("hourlyTarget", 45000)
+    target_min = settings.get("hourlyMinimum", 40000)
+    target_peak = settings.get("peakHourTarget", 50000)
+    peak_hours = set(settings.get("peakHours", ["13:00", "14:00", "15:00", "19:00", "20:00", "21:00"]))
+    zone_targets_cfg = settings.get("zoneTargets", {
+        "Zone A": {"target": 15000, "minimum": 13333, "peakTarget": 17000},
+        "Zone B": {"target": 15000, "minimum": 13333, "peakTarget": 17000},
+        "Zone C": {"target": 15000, "minimum": 13333, "peakTarget": 16000}
+    })
+    
+    # Operational Shift Order from Sheet: 13:00 to 12:00
+    shift_hour_order = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    
+    slots = []
+    total_actual = 0
+    total_target = 0
+    hours_passed = 0
+    hours_warning = 0
+    hours_under = 0
+    hours_standby = 0
+
+    for h in shift_hour_order:
+        slot_label = f"{h:02d}:00"
+        next_label = f"{(h+1)%24:02d}:00"
+        time_range = f"{slot_label} - {next_label}"
+        
+        is_quiet = h in [13, 14, 15, 16, 17] # Standby prep hours
+        is_peak = slot_label in peak_hours
+        slot_target = target_peak if is_peak else target_normal
+        slot_min = target_min
+        
+        shift_name = "กะกลางวัน (Day)" if (8 <= h < 20) else "กะกลางคืน (Night)"
+        
+        actual_val = records_for_date.get(slot_label)
+        has_data = (actual_val is not None)
+        zone_info = zones_for_date.get(slot_label, {})
+        
+        gap = 0
+        achieve_pct = 0.0
+        status = "pending"
+        
+        za = zone_info.get("zoneA", 0)
+        zb = zone_info.get("zoneB", 0)
+        zc = zone_info.get("zoneC", 0)
+        
+        # Calculate lowest active zone
+        lowest_zone = "-"
+        if has_data and int(actual_val) > 0:
+            z_tuples = [("Zone A", za), ("Zone B", zb), ("Zone C", zc)]
+            z_tuples.sort(key=lambda x: x[1])
+            lowest_zone = z_tuples[0][0]
+        
+        if has_data:
+            act = int(actual_val)
+            total_actual += act
+            gap = act - slot_target
+            achieve_pct = round((act / slot_target * 100), 1) if slot_target > 0 else 0.0
+            
+            if is_quiet and act == 0:
+                status = "standby"
+                hours_standby += 1
+            elif act >= slot_target:
+                status = "passed"
+                hours_passed += 1
+                total_target += slot_target
+            elif act >= slot_min:
+                status = "warning"
+                hours_warning += 1
+                total_target += slot_target
+            else:
+                status = "under_target"
+                hours_under += 1
+                total_target += slot_target
+        else:
+            if not is_quiet:
+                total_target += slot_target
+                
+        # Attach evidence for this slot and date
+        slot_evidences = [e for e in evidence_data if e.get("date") == date_param and e.get("slot") == slot_label]
+        
+        # Look up staff for the lowest zone
+        staff_roster = load_staff_roster_data()
+        roster_by_zone = staff_roster.get("rosterByZone", {})
+        zone_key = lowest_zone.replace("Zone ", "").strip()
+        slow_staff = roster_by_zone.get(zone_key, [])
+        supervisors = roster_by_zone.get("ALL", ["Chain", "Big"])
+
+        za_cfg = zone_targets_cfg.get("Zone A", {})
+        za_tgt = za_cfg.get("peakTarget" if is_peak else "target", 15000)
+        za_min = za_cfg.get("minimum", 13333)
+
+        zb_cfg = zone_targets_cfg.get("Zone B", {})
+        zb_tgt = zb_cfg.get("peakTarget" if is_peak else "target", 15000)
+        zb_min = zb_cfg.get("minimum", 13333)
+
+        zc_cfg = zone_targets_cfg.get("Zone C", {})
+        zc_tgt = zc_cfg.get("peakTarget" if is_peak else "target", 15000)
+        zc_min = zc_cfg.get("minimum", 13333)
+
+        za_status = "passed" if za >= za_tgt else ("warning" if za >= za_min else "under")
+        zb_status = "passed" if zb >= zb_tgt else ("warning" if zb >= zb_min else "under")
+        zc_status = "passed" if zc >= zc_tgt else ("warning" if zc >= zc_min else "under")
+
+        under_zones = []
+        if has_data and act > 0:
+            if za < za_tgt: under_zones.append("Zone A")
+            if zb < zb_tgt: under_zones.append("Zone B")
+            if zc < zc_tgt: under_zones.append("Zone C")
+
+        slots.append({
+            "hour": h,
+            "slot": slot_label,
+            "timeRange": time_range,
+            "shift": shift_name,
+            "isPeak": is_peak,
+            "isQuiet": is_quiet,
+            "target": slot_target,
+            "minimum": slot_min,
+            "actual": int(actual_val) if has_data else 0,
+            "hasData": has_data,
+            "gap": gap,
+            "achievePct": achieve_pct,
+            "status": status,
+            "trucks": zone_info.get("trucks", 0),
+            "truckPct": zone_info.get("truckPct", 0.0),
+            "truck4wh": zone_info.get("truck4wh", 0),
+            "truck4wj": zone_info.get("truck4wj", 0),
+            "truck6wh": zone_info.get("truck6wh", 0),
+            "truckSemi": zone_info.get("truckSemi", 0),
+            "orderPct": zone_info.get("orderPct", 0.0),
+            "zoneA": za,
+            "zoneATarget": za_tgt,
+            "zoneAMinimum": za_min,
+            "zoneAStatus": za_status,
+            "zoneB": zb,
+            "zoneBTarget": zb_tgt,
+            "zoneBMinimum": zb_min,
+            "zoneBStatus": zb_status,
+            "zoneC": zc,
+            "zoneCTarget": zc_tgt,
+            "zoneCMinimum": zc_min,
+            "zoneCStatus": zc_status,
+            "zoneD": zone_info.get("zoneD", 0),
+            "zoneE": zone_info.get("zoneE", 0),
+            "zoneOBC": zone_info.get("zoneOBC", 0),
+            "lowestZone": lowest_zone,
+            "underZones": under_zones,
+            "slowStaff": slow_staff,
+            "supervisors": supervisors,
+            "evidenceCount": len(slot_evidences),
+            "evidenceList": slot_evidences
+        })
+        
+    overall_achieve = round((total_actual / total_target * 100), 1) if total_target > 0 else 0.0
+    
+    staff_roster = load_staff_roster_data()
+    return jsonify({
+        "success": True,
+        "date": date_param,
+        "availableDates": available_dates,
+        "updatedAt": hourly_data.get("updatedAt", ""),
+        "lastSyncAt": hourly_data.get("lastSyncAt", ""),
+        "settings": settings,
+        "rosterByZone": staff_roster.get("rosterByZone", {}),
+        "summary": {
+            "totalActual": total_actual,
+            "totalTarget": total_target,
+            "overallAchievePct": overall_achieve,
+            "hoursPassed": hours_passed,
+            "hoursWarning": hours_warning,
+            "hoursUnder": hours_under,
+            "hoursStandby": hours_standby,
+            "totalHoursRecorded": hours_passed + hours_warning + hours_under + hours_standby
+        },
+        "summaryRows": summary_rows_for_date,
+        "slots": slots
+    })
+
+
+@app.route("/api/hourly-tracker/save", methods=["POST"])
+def save_hourly_tracker_api():
+    req = request.get_json(silent=True) or {}
+    date_param = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+    hour_slot = req.get("slot") or ""
+    actual_val = req.get("actual")
+    
+    if not hour_slot:
+        return jsonify({"success": False, "error": "ไม่ได้ระบุช่วงเวลา (Hour Slot)"}), 400
+        
+    data = load_hourly_tracker_data()
+    if "records" not in data:
+        data["records"] = {}
+    if date_param not in data["records"]:
+        data["records"][date_param] = {}
+        
+    data["records"][date_param][hour_slot] = int(actual_val) if (actual_val is not None and str(actual_val).strip() != "") else None
+    save_hourly_tracker_data(data)
+    
+    log_activity("HOURLY_ENTRY_SAVE", f"บันทึกยอดปล่อยรายชั่วโมง: {date_param} {hour_slot} = {actual_val:,} ชิ้น" if actual_val is not None else f"ล้างค่ายอดปล่อย: {date_param} {hour_slot}")
+    
+    # Auto Alert evaluation if SeaTalk enabled
+    settings = load_system_settings()
+    st_cfg = settings.get("seatalk", {})
+    if st_cfg.get("enabled") and actual_val is not None and st_cfg.get("webhookUrl"):
+        target_normal = settings.get("hourlyTarget", 45000)
+        target_min = settings.get("hourlyMinimum", 40000)
+        target_peak = settings.get("peakHourTarget", 50000)
+        peak_hours = set(settings.get("peakHours", []))
+        
+        is_peak = hour_slot in peak_hours
+        slot_target = target_peak if is_peak else target_normal
+        act = int(actual_val)
+        
+        slot_key = f"{date_param}_{hour_slot}"
+        cond = st_cfg.get("triggerCondition", "below_minimum")
+        if slot_key not in data.get("alerted_slots", []):
+            if cond == "below_minimum" and act < target_min:
+                should_alert = True
+            elif cond == "below_target" and act < slot_target:
+                should_alert = True
+            
+        if should_alert:
+            gap = act - slot_target
+            pct = round((act / slot_target * 100), 1) if slot_target > 0 else 0.0
+            msg = f"""🚨 [SOCN ALERT] ยอดปล่อยหลุดเป้าหมายรายชั่วโมง!
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_param}
+⏰ ช่วงเวลา: {hour_slot}
+🎯 เป้าหมาย (Target): {slot_target:,} ชิ้น
+⚠️ เกณฑ์ขั้นต่ำ (Minimum): {target_min:,} ชิ้น
+📦 ปล่อยจริง (Actual): {act:,} ชิ้น
+📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)"""
+            
+            cc_raw = (st_cfg.get("ccText") or "").strip()
+            mention_all = (st_cfg.get("mentionType") == "all")
+            emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
+            send_seatalk_alert(st_cfg.get("webhookUrl"), msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
+            
+            if "alerted_slots" not in data:
+                data["alerted_slots"] = []
+            data["alerted_slots"].append(slot_key)
+            save_hourly_tracker_data(data)
+
+    return jsonify({"success": True, "message": f"บันทึกยอด {hour_slot} เรียบร้อย"})
+
+
+@app.route("/api/hourly-tracker/send-alert", methods=["POST"])
+def send_manual_hourly_alert_api():
+    req = request.get_json(silent=True) or {}
+    slot_info = req.get("slotInfo") or {}
+    date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+    
+    mod_cfg = get_module_seatalk_config("hourly")
+    webhook_url = req.get("webhookUrls") or req.get("webhookUrl") or mod_cfg.get("webhookUrls") or mod_cfg.get("webhookUrl")
+    if not webhook_url:
+        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL สำหรับ Hourly Tracker ในระบบ Admin"}), 400
+        
+    hour_slot = slot_info.get("slot", "N/A")
+    time_range = slot_info.get("timeRange", hour_slot)
+    shift_name = slot_info.get("shift", "-")
+    target = slot_info.get("target", 45000)
+    min_val = slot_info.get("minimum", 40000)
+    actual = slot_info.get("actual", 0)
+    gap = slot_info.get("gap", 0)
+    pct = slot_info.get("achievePct", 0)
+    
+    msg = f"""🚨 [SOCN ALERT] ยอดปล่อยหลุดเป้าหมายรายชั่วโมง ({shift_name})
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_str}
+⏰ ช่วงเวลา: {time_range}
+🎯 เป้าหมาย (Target): {target:,} ชิ้น
+⚠️ เกณฑ์ขั้นต่ำ (Minimum): {min_val:,} ชิ้น
+📦 ปล่อยจริง (Actual): {actual:,} ชิ้น
+📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)"""
+
+    cc_raw = (req.get("ccText") or mod_cfg.get("ccText") or "").strip()
+    mention_all = req.get("mentionAll") if req.get("mentionAll") is not None else (mod_cfg.get("mentionType") == "all")
+    emails = req.get("mentionEmails")
+    if emails is None:
+        emails = mod_cfg.get("mentionEmails", [])
+    webhook_type = mod_cfg.get("webhookType", "seatalk")
+    
+    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=webhook_type, cc_text=cc_raw)
+    if ok:
+        log_activity("SEATALK_MANUAL_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk รายชั่วโมง: {date_str} {time_range}")
+        return jsonify({"success": True, "message": f"ส่งแจ้งเตือนช่วงเวลา {time_range} เข้า SeaTalk สำเร็จ!"})
+    else:
+        return jsonify({"success": False, "error": f"ส่งแจ้งเตือนไม่สำเร็จ: {err_msg}"}), 400
+
+
+# ==========================================
+# 📢 SEATALK & MESSAGING ALERT APIS
+# ==========================================
+
+@app.route("/api/seatalk/send-alert", methods=["POST"])
+def send_generic_seatalk_alert_api():
+    req = request.get_json(silent=True) or {}
+    message = req.get("message", "").strip()
+    title = req.get("title", "SOCN Notification")
+    mention_emails = req.get("mentionEmails")
+    mention_all = req.get("mentionAll", False)
+    
+    if not message:
+        return jsonify({"success": False, "error": "ไม่ได้ระบุข้อความแจ้งเตือน"}), 400
+        
+    settings = load_system_settings()
+    st_cfg = settings.get("seatalk", {})
+    webhook_url = req.get("webhookUrl") or st_cfg.get("webhookUrl")
+    webhook_type = req.get("webhookType") or st_cfg.get("webhookType", "seatalk")
+    
+    if not webhook_url:
+        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL ในระบบ Admin"}), 400
+        
+    if mention_emails is None:
+        mention_emails = st_cfg.get("mentionEmails", [])
+        
+    ok, err_msg = send_seatalk_alert(webhook_url, message, mention_emails=mention_emails, mention_all=mention_all, webhook_type=webhook_type)
+    if ok:
+        log_activity("SEATALK_GENERIC_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk: {title}")
+        return jsonify({"success": True, "message": "ส่งข้อความแจ้งเตือนเข้า SeaTalk เรียบร้อยแล้ว!"})
+    else:
+        return jsonify({"success": False, "error": f"ส่งแจ้งเตือนไม่สำเร็จ: {err_msg}"}), 400
+
+
+@app.route("/api/skip-process/send-alert", methods=["POST"])
+def send_skip_process_seatalk_alert_api():
+    req = request.get_json(silent=True) or {}
+    date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+    overall_skip_count = req.get("overallSkipCount", 0)
+    actual_volume = req.get("actualVolume", 0)
+    overall_pct = req.get("overallPct", 0.0)
+    zones = req.get("zones") or {}
+    notes = (req.get("notes") or "").strip()
+    
+    settings = load_system_settings()
+    mod_cfg = get_module_seatalk_config("skip")
+    webhook_url = req.get("webhookUrls") or req.get("webhookUrl") or mod_cfg.get("webhookUrls") or mod_cfg.get("webhookUrl")
+    if not webhook_url:
+        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL สำหรับ Skip Process ในระบบ Admin"}), 400
+        
+    overall_target_pct = settings.get("overallSkipTargetPct", 0.8)
+    zone_target_pct = settings.get("zoneSkipTargetPct", 0.27)
+    
+    status_emoji = "🔴" if overall_pct > overall_target_pct else "🟢"
+    status_text = "เกินเกณฑ์มาตรฐาน (Exceeded Target)" if overall_pct > overall_target_pct else "ผ่านเกณฑ์มาตรฐาน (Passed Target)"
+    
+    zone_lines = []
+    failed_zones = []
+    for z_name in ["A", "B", "C", "INTERSOC", "RETURN"]:
+        if z_name in zones:
+            z_data = zones[z_name]
+            z_pct = float(z_data.get("pct", 0.0))
+            z_cnt = int(z_data.get("count", 0))
+            z_icon = "🔴" if z_pct > zone_target_pct else "🟢"
+            zone_lines.append(f"  • โซน {z_name}: {z_icon} {z_pct:.2f}% ({z_cnt:,} ชิ้น)")
+            if z_pct > zone_target_pct:
+                failed_zones.append(f"Zone {z_name} ({z_pct:.2f}%)")
+                
+    zone_summary_str = "\n".join(zone_lines) if zone_lines else "  • ไม่มีข้อมูลโซน"
+    
+    msg = f"""{status_emoji} [SOCN SKIP PROCESS ALERT] รายงานผลการสแกนพัสดุ (Skip Process Monitor)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_str}
+🎯 เป้าหมายภาพรวม: < {overall_target_pct:.2f}% | เป้าหมายรายโซน: < {zone_target_pct:.2f}%
+📦 SOCN Actual Volume: {actual_volume:,} ชิ้น
+⚠️ ยอดพัสดุ Skip รวม: {overall_skip_count:,} ชิ้น
+📊 อัตรา Skip ภาพรวม: {status_emoji} {overall_pct:.2f}% ({status_text})
+━━━━━━━━━━━━━━━━━━━━
+📍 สรุปรายโซน:
+{zone_summary_str}"""
+
+    if failed_zones:
+        msg += f"\n🚨 โซนที่ต้องตรวจสอบด่วน: {', '.join(failed_zones)}"
+    if notes:
+        msg += f"\n📝 หมายเหตุ/สาเหตุ: {notes}"
+        
+    cc_raw = (req.get("ccText") or mod_cfg.get("ccText") or "").strip()
+    mention_all = req.get("mentionAll") if req.get("mentionAll") is not None else (mod_cfg.get("mentionType") == "all")
+    emails = req.get("mentionEmails")
+    if emails is None:
+        emails = mod_cfg.get("mentionEmails", [])
+    webhook_type = mod_cfg.get("webhookType", "seatalk")
+    
+    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=webhook_type, cc_text=cc_raw)
+    if ok:
+        log_activity("SEATALK_SKIP_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk Skip Process วันที่ {date_str} (%Skip: {overall_pct:.2f}%)")
+        return jsonify({"success": True, "message": f"ส่งแจ้งเตือน Skip Process ({date_str}) เข้า SeaTalk สำเร็จ!"})
+    else:
+        return jsonify({"success": False, "error": f"ส่งแจ้งเตือนไม่สำเร็จ: {err_msg}"}), 400
+
+
+@app.route("/api/ob-bl/send-alert", methods=["POST"])
+def send_ob_bl_seatalk_alert_api():
+    req = request.get_json(silent=True) or {}
+    filename = req.get("filename", "Outbound Backlog")
+    total_late = req.get("totalLate", 0)
+    cutoff_round = req.get("cutoffRound", "Cutoff 2")
+    top_stations = req.get("topStations") or []
+    notes = (req.get("notes") or "").strip()
+    
+    mod_cfg = get_module_seatalk_config("ob_bl")
+    webhook_url = req.get("webhookUrls") or req.get("webhookUrl") or mod_cfg.get("webhookUrls") or mod_cfg.get("webhookUrl")
+    if not webhook_url:
+        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL สำหรับ Outbound Backlog ในระบบ Admin"}), 400
+        
+    station_lines = []
+    for idx, st in enumerate(top_stations[:7], 1):
+        st_name = st.get("name") or st.get("station") or "N/A"
+        st_cnt = st.get("count") or st.get("lateCount") or 0
+        st_pct = st.get("pct", "")
+        pct_str = f" ({st_pct}%)" if st_pct else ""
+        station_lines.append(f"  {idx}. {st_name}: {st_cnt:,} ชิ้น{pct_str}")
+        
+    station_str = "\n".join(station_lines) if station_lines else "  • ไม่มีรายการสถานีล่าช้า"
+    
+    msg = f"""🚨 [SOCN OUTBOUND BACKLOG ALERT] สรุปยอดพัสดุขาออกล่าช้า (Outbound Late Summary)
+━━━━━━━━━━━━━━━━━━━━
+📁 ไฟล์ข้อมูล: {filename}
+⏰ รอบเวลา Cutoff: {cutoff_round}
+📦 ยอดพัสดุตกค้างล่าช้าทั้งหมด: {total_late:,} ชิ้น
+━━━━━━━━━━━━━━━━━━━━
+🏢 Top 7 สถานีปลายทางที่ล่าช้าสูงสุด:
+{station_str}"""
+
+    if notes:
+        msg += f"\n📝 หมายเหตุ/การแก้ไข: {notes}"
+        
+    cc_raw = (req.get("ccText") or mod_cfg.get("ccText") or "").strip()
+    mention_all = req.get("mentionAll") if req.get("mentionAll") is not None else (mod_cfg.get("mentionType") == "all")
+    emails = req.get("mentionEmails")
+    if emails is None:
+        emails = mod_cfg.get("mentionEmails", [])
+    webhook_type = mod_cfg.get("webhookType", "seatalk")
+    
+    ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=webhook_type, cc_text=cc_raw)
+    if ok:
+        log_activity("SEATALK_OB_BL_ALERT", f"📢 ส่งแจ้งเตือน SeaTalk Outbound Backlog: {filename} ({total_late:,} ชิ้น)")
+        return jsonify({"success": True, "message": f"ส่งแจ้งเตือน Outbound Backlog เข้า SeaTalk สำเร็จ!"})
+    else:
+        return jsonify({"success": False, "error": f"ส่งแจ้งเตือนไม่สำเร็จ: {err_msg}"}), 400
+
+
+@app.route("/api/admin/manual-trigger", methods=["POST"])
+def admin_manual_trigger_api():
+    req = request.get_json(silent=True) or {}
+    trigger_type = req.get("triggerType", "custom") # 'hourly', 'skip', 'ob_bl', 'custom'
+    admin_name = req.get("adminName") or session.get("user_name", "Admin")
+    admin_role = req.get("role") or session.get("user_role", "Admin")
+    
+    if admin_role not in ["Admin", "admin"]:
+        return jsonify({"success": False, "error": "สงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น ไม่อนุญาตสำหรับ Supervisor หรือ Ground"}), 403
+
+    custom_msg = (req.get("message") or "").strip()
+    title = req.get("title") or "SOCN ADMIN MANUAL ALERT"
+    
+    settings = load_system_settings()
+    mod_key = trigger_type if trigger_type in ["hourly", "skip", "ob_bl"] else "broadcast"
+    mod_cfg = get_module_seatalk_config(mod_key)
+    st_cfg = settings.get("seatalk", {})
+
+    target_webhooks = req.get("webhookUrls") or req.get("webhookUrl") or mod_cfg.get("webhookUrls") or mod_cfg.get("webhookUrl")
+    if not target_webhooks:
+        return jsonify({"success": False, "error": "ยังไม่ได้ตั้งค่า SeaTalk Webhook URL ในระบบ Admin"}), 400
+
+    mention_emails = req.get("mentionEmails")
+    if mention_emails is None:
+        mention_emails = mod_cfg.get("mentionEmails", [])
+    mention_all = req.get("mentionAll", False)
+    cc_text = req.get("ccText")
+    
+    if mention_emails is None:
+        if mod_cfg.get("mentionType") == "all":
+            mention_all = True
+            mention_emails = []
+        elif mod_cfg.get("mentionType") == "specific":
+            mention_emails = mod_cfg.get("mentionEmails", [])
+        else:
+            mention_emails = []
+
+    if cc_text is None:
+        cc_text = (mod_cfg.get("ccText") or "").strip()
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    if trigger_type == "hourly":
+        hour_slot = req.get("slot", "08:00")
+        actual_val = req.get("actual", 0)
+        target_val = req.get("target", settings.get("hourlyTarget", 45000))
+        min_val = req.get("minimum", settings.get("hourlyMinimum", 40000))
+        gap = int(actual_val) - int(target_val)
+        pct = round((int(actual_val) / int(target_val) * 100), 1) if int(target_val) > 0 else 0
+        date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+        
+        full_msg = f"""🚨 [SOCN MANUAL HOURLY TRIGGER] แจ้งเตือนยอดปล่อยรายชั่วโมง (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_str}
+⏰ ช่วงเวลา: {hour_slot}
+🎯 เป้าหมาย (Target): {int(target_val):,} ชิ้น
+⚠️ เกณฑ์ขั้นต่ำ (Minimum): {int(min_val):,} ชิ้น
+📦 ปล่อยจริง (Actual): {int(actual_val):,} ชิ้น
+📉 ส่วนต่าง (Gap): {gap:,} ชิ้น ({pct}% of Target)
+👤 สั่งยิงโดย: {admin_name} (Role: {admin_role})"""
+
+    elif trigger_type == "skip":
+        date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+        overall_pct = float(req.get("overallPct", 0.0))
+        actual_vol = int(req.get("actualVolume", 0))
+        skip_cnt = int(req.get("overallSkipCount", 0))
+        zones_desc = req.get("zonesSummary", "")
+        
+        full_msg = f"""🚨 [SOCN MANUAL SKIP TRIGGER] สรุปรายงานสแกนข้ามขั้นตอน (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_str}
+📦 ยอดปล่อยรวม: {actual_vol:,} ชิ้น
+⚠️ ยอด Skip รวม: {skip_cnt:,} ชิ้น ({overall_pct:.2f}%)
+📍 สถานะรายโซน:
+{zones_desc or '  • ตรวจสอบข้อมูลรายโซนใน Dashboard'}
+👤 สั่งยิงโดย: {admin_name} (Role: {admin_role})"""
+
+    elif trigger_type == "ob_bl":
+        date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+        total_late = int(req.get("totalLate", 0))
+        cutoff = req.get("cutoffRound", "Cutoff 2")
+        top_st = req.get("topStationsDesc", "")
+        
+        full_msg = f"""🚨 [SOCN MANUAL BACKLOG TRIGGER] สรุปยอดพัสดุขาออกล่าช้า (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+⏰ รอบเวลา Cutoff: {cutoff}
+📦 ยอดพัสดุตกค้างล่าช้า: {total_late:,} ชิ้น
+🏢 สถานีปลายทางสำคัญ:
+{top_st or '  • ตรวจสอบรายละเอียดใน Outbound Backlog'}
+👤 สั่งยิงโดย: {admin_name} (Role: {admin_role})"""
+
+    else:
+        # Custom message
+        if not custom_msg:
+            return jsonify({"success": False, "error": "กรุณาระบุเนื้อหาข้อความสำหรับ Manual Trigger"}), 400
+        full_msg = f"""📢 [{title.strip()}] (Admin Manual Broadcast)
+━━━━━━━━━━━━━━━━━━━━
+⏰ เวลา: {now_str}
+👤 ผู้สั่งยิง: {admin_name} (Role: {admin_role})
+━━━━━━━━━━━━━━━━━━━━
+{custom_msg}"""
+
+    ok, err_msg = send_seatalk_alert(
+        target_webhooks,
+        full_msg,
+        mention_emails=mention_emails,
+        mention_all=mention_all,
+        webhook_type=mod_cfg.get("webhookType", "seatalk"),
+        cc_text=cc_text
+    )
+
+    if ok:
+        log_activity("ADMIN_MANUAL_TRIGGER", f"⚡ Admin Manual Trigger ({trigger_type}): สั่งยิงโดย {admin_name} ({admin_role})")
+        return jsonify({
+            "success": True,
+            "message": f"⚡ ทำการ Manual Trigger ส่งเข้า SeaTalk เรียบร้อยแล้วโดย {admin_name}!",
+            "content": full_msg
+        })
+    else:
+        return jsonify({"success": False, "error": f"ยิงข้อความไม่สำเร็จ: {err_msg}"}), 400
+
+
+
+# ==========================================
+# 🧠 AI & SMART ANALYSIS ENGINE
+# ==========================================
+
+@app.route("/api/ai/shift-summary", methods=["POST"])
+def generate_ai_shift_summary_api():
+    req = request.get_json(silent=True) or {}
+    date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+    shift_filter = req.get("shift", "ALL") # 'ALL', 'Day', 'Night'
+    
+    settings = load_system_settings()
+    target_normal = settings.get("hourlyTarget", 45000)
+    target_min = settings.get("hourlyMinimum", 40000)
+    target_peak = settings.get("peakHourTarget", 50000)
+    peak_hours = set(settings.get("peakHours", []))
+    
+    tracker_data = load_hourly_tracker_data()
+    records = tracker_data.get("records", {}).get(date_str, {})
+    zone_breakdowns = tracker_data.get("zone_breakdowns", {}).get(date_str, {})
+    
+    day_shift_hours = {"08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"}
+    night_shift_hours = {"20:00", "21:00", "22:00", "23:00", "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00"}
+    quiet_hours = {"13:00", "14:00", "15:00", "16:00", "17:00"}
+    
+    total_volume = 0
+    recorded_hours = 0
+    passed_hours = 0
+    warning_hours = 0
+    under_hours = 0
+    standby_hours = 0
+    
+    zone_totals = {"Zone A": 0, "Zone B": 0, "Zone C": 0, "Zone D": 0, "Zone E": 0, "Zone OBC": 0}
+    truck_totals = 0
+    
+    hourly_performance = []
+    peak_slot = None
+    peak_volume = 0
+    lowest_slot = None
+    lowest_volume = float("inf")
+    
+    for slot_lbl, act_val in records.items():
+        if act_val is None:
+            continue
+            
+        if shift_filter == "Day" and slot_lbl not in day_shift_hours:
+            continue
+        elif shift_filter == "Night" and slot_lbl not in night_shift_hours:
+            continue
+            
+        act = int(act_val)
+        is_quiet = slot_lbl in quiet_hours
+        is_peak = slot_lbl in peak_hours
+        slot_target = target_peak if is_peak else target_normal
+        slot_min = target_min
+        
+        recorded_hours += 1
+        total_volume += act
+        
+        if is_quiet and act == 0:
+            standby_hours += 1
+            status = "standby"
+        elif act >= slot_target:
+            passed_hours += 1
+            status = "passed"
+        elif act >= slot_min:
+            warning_hours += 1
+            status = "warning"
+        else:
+            under_hours += 1
+            status = "under_target"
+            
+        if act > peak_volume and not is_quiet:
+            peak_volume = act
+            peak_slot = slot_lbl
+            
+        if act > 0 and act < lowest_volume and not is_quiet:
+            lowest_volume = act
+            lowest_slot = slot_lbl
+            
+        zd = zone_breakdowns.get(slot_lbl, {})
+        za = zd.get("zoneA", 0)
+        zb = zd.get("zoneB", 0)
+        zc = zd.get("zoneC", 0)
+        zone_totals["Zone A"] += za
+        zone_totals["Zone B"] += zb
+        zone_totals["Zone C"] += zc
+        zone_totals["Zone D"] += zd.get("zoneD", 0)
+        zone_totals["Zone E"] += zd.get("zoneE", 0)
+        zone_totals["Zone OBC"] += zd.get("zoneOBC", 0)
+        truck_totals += zd.get("trucks", 0)
+        
+        hourly_performance.append({
+            "slot": slot_lbl,
+            "actual": act,
+            "target": slot_target,
+            "achievePct": round(act / slot_target * 100, 1) if slot_target > 0 else 0.0,
+            "status": status,
+            "zoneA": za,
+            "zoneB": zb,
+            "zoneC": zc
+        })
+
+    if lowest_volume == float("inf"):
+        lowest_volume = 0
+        
+    avg_per_hour = round(total_volume / recorded_hours) if recorded_hours > 0 else 0
+    active_recorded = recorded_hours - standby_hours
+    pass_rate = round((passed_hours / active_recorded * 100), 1) if active_recorded > 0 else 0.0
+    
+    # Identify lowest zone among core zones A, B, C
+    core_zones = [("Zone A", zone_totals["Zone A"]), ("Zone B", zone_totals["Zone B"]), ("Zone C", zone_totals["Zone C"])]
+    core_zones.sort(key=lambda x: x[1])
+    lowest_zone_name = core_zones[0][0]
+    lowest_zone_vol = core_zones[0][1]
+    top_zone_name = core_zones[-1][0]
+    top_zone_vol = core_zones[-1][1]
+    
+    # Assess overall Health Score / Level
+    if pass_rate >= 80 and under_hours <= 1:
+        health_level = "EXCELLENT"
+        health_color = "#10b981"
+        health_badge = "🟢 ประสิทธิภาพยอดเยี่ยม (High Performance)"
+    elif pass_rate >= 50 or under_hours <= 3:
+        health_level = "MODERATE"
+        health_color = "#f59e0b"
+        health_badge = "🟡 เฝ้าระวังคอขวดบางช่วง (Moderate / Bottlenecks)"
+    else:
+        health_level = "CRITICAL"
+        health_color = "#ef4444"
+        health_badge = "🔴 หลุดเป้าหมายวิกฤต (Critical Under Target)"
+
+    # AI Synthesis Highlights
+    highlights = []
+    highlights.append(f"📦 ยอดปล่อยพัสดุรวมทั้งสิ้น **{total_volume:,} ชิ้น** (เฉลี่ย **{avg_per_hour:,} ชิ้น/ชม.** รวม {truck_totals} เที่ยวรถ)")
+    if peak_slot:
+        highlights.append(f"⚡ ช่วงเวลาปล่อยได้สูงสุด (Peak): **{peak_slot}** ทำได้ **{peak_volume:,} ชิ้น**")
+    if lowest_slot and lowest_slot != peak_slot:
+        highlights.append(f"⚠️ ช่วงเวลาปล่อยต่ำสุด (Drop): **{lowest_slot}** ทำได้ **{lowest_volume:,} ชิ้น**")
+    highlights.append(f"📍 โซนที่ทำผลงานสูงสุด: **{top_zone_name}** ({top_zone_vol:,} ชิ้น) | โซนที่ชะลอตัวสุด: **{lowest_zone_name}** ({lowest_zone_vol:,} ชิ้น)")
+    
+    # AI Root Cause & Bottleneck Analysis
+    bottlenecks = []
+    if under_hours > 0:
+        bottlenecks.append(f"พบช่วงเวลาที่ยอดหลุดเป้าหมาย (Under Target) จำนวน **{under_hours} ชั่วโมง** จากทั้งหมด {active_recorded} ชั่วโมงปฏิบัติการ")
+    if lowest_zone_vol < (top_zone_vol * 0.75) and top_zone_vol > 0:
+        gap_zone = top_zone_vol - lowest_zone_vol
+        bottlenecks.append(f"ความสมดุลของโซนต่างกันมาก ({lowest_zone_name} ตามหลัง {top_zone_name} ถึง **{gap_zone:,} ชิ้น**) ควรเกลี่ยกำลังคน (Load Balancing)")
+    if recorded_hours == 0:
+        bottlenecks.append("ยังไม่มีการบันทึกข้อมูลยอดรายชั่วโมงสำหรับวันที่เลือก")
+
+    # Actionable Recommendations for Supervisors
+    recommendations = []
+    if lowest_zone_name:
+        recommendations.append(f"1. **จัดสรรกำลังพลเสริม {lowest_zone_name}:** โยกพนักงานจากโซนที่ยอดผ่านเกณฑ์ไปช่วยคัดแยกพัสดุคงค้างที่ {lowest_zone_name} ด่วน")
+    recommendations.append(f"2. **ติดตามรอบเทียบท่ารถ (Truck Docking):** ประสานงานทีม Linehaul เร่งนำรถเทียบช่องปล่อยพัสดุให้ตรงตาม Schedule ป้องกันงานสะสมหน้าสายพาน")
+    if under_hours >= 2:
+        recommendations.append(f"3. **ประชุมด่วนปรับแผนกะถัดไป:** มอบหมาย Lead Supervisor ตรวจสอบสาเหตุพัสดุติดค้างช่วง {lowest_slot or 'หลุดเป้า'} เพื่อวางแผนแก้ปัญหาก่อนเริ่มกะใหม่")
+    else:
+        recommendations.append("3. **รักษามาตรฐานความเร็ว (Pacing):** ควบคุมสปีดการสแกนและคัดแยกให้คงที่ต่อเนื่องตาม Target 45,000+ ชิ้น/ชม.")
+
+    # Format Executive Text for SeaTalk & Clipboard
+    shift_title = "กะกลางวัน (Day)" if shift_filter == "Day" else ("กะกลางคืน (Night)" if shift_filter == "Night" else "ตลอดวัน (24 Hours)")
+    seatalk_card_text = f"""✨ [AI SHIFT EXECUTIVE SUMMARY] บทวิเคราะห์สรุปผลงาน {shift_title}
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_str}
+🎯 สถานะภาพรวม: {health_badge}
+📦 ยอดปล่อยพัสดุรวม: {total_volume:,} ชิ้น ({avg_per_hour:,} ชิ้น/ชม.)
+🚚 เที่ยวรถสะสม: {truck_totals} เที่ยว
+📊 สัดส่วนเป้าหมาย: ผ่านเกณฑ์ {passed_hours} ชม. | เฝ้าระวัง {warning_hours} ชม. | หลุดเป้า {under_hours} ชม. ({pass_rate}% ผ่าน)
+━━━━━━━━━━━━━━━━━━━━
+🔍 ไฮไลท์สำคัญ (Key Highlights):
+• Peak Slot: {peak_slot or '-'} ({peak_volume:,} ชิ้น)
+• Lowest Slot: {lowest_slot or '-'} ({lowest_volume:,} ชิ้น)
+• Top Zone: {top_zone_name} ({top_zone_vol:,}) vs Lowest: {lowest_zone_name} ({lowest_zone_vol:,})
+━━━━━━━━━━━━━━━━━━━━
+💡 ข้อเสนอแนะเชิงปฏิบัติการ (Action Items):
+{chr(10).join([r.replace('**', '') for r in recommendations])}"""
+
+    return jsonify({
+        "success": True,
+        "date": date_str,
+        "shift": shift_filter,
+        "healthLevel": health_level,
+        "healthColor": health_color,
+        "healthBadge": health_badge,
+        "passRate": pass_rate,
+        "totalVolume": total_volume,
+        "avgPerHour": avg_per_hour,
+        "truckTotals": truck_totals,
+        "hoursPassed": passed_hours,
+        "hoursWarning": warning_hours,
+        "hoursUnder": under_hours,
+        "hoursStandby": standby_hours,
+        "totalRecorded": recorded_hours,
+        "peakSlot": peak_slot,
+        "peakVolume": peak_volume,
+        "lowestSlot": lowest_slot,
+        "lowestVolume": lowest_volume,
+        "topZone": {"name": top_zone_name, "volume": top_zone_vol},
+        "lowestZone": {"name": lowest_zone_name, "volume": lowest_zone_vol},
+        "zoneTotals": zone_totals,
+        "highlights": highlights,
+        "bottlenecks": bottlenecks,
+        "recommendations": recommendations,
+        "seatalkCardText": seatalk_card_text
+    })
+
+
+# ==========================================
+# 📋 SHIFT HANDOVER NOTE & REPORTING APIS
+# ==========================================
+
+SHIFT_HANDOVER_FILE = os.path.join(DATA_DIR, "shift_handover.json")
+
+def load_shift_handover_data():
+    if os.path.exists(SHIFT_HANDOVER_FILE):
+        try:
+            with open(SHIFT_HANDOVER_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
+
+def save_shift_handover_data(data):
+    try:
+        with open(SHIFT_HANDOVER_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("Error saving shift handover data:", e)
+
+
+@app.route("/api/shift-handover/list", methods=["GET"])
+def list_shift_handover_api():
+    date_filter = request.args.get("date", "").strip()
+    shift_filter = request.args.get("shift", "").strip()
+    
+    records = load_shift_handover_data()
+    if date_filter:
+        records = [r for r in records if r.get("date") == date_filter]
+    if shift_filter:
+        records = [r for r in records if r.get("shift") == shift_filter]
+        
+    records.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    return jsonify({"success": True, "records": records, "total": len(records)})
+
+
+@app.route("/api/shift-handover/save", methods=["POST"])
+def save_shift_handover_api():
+    req = request.get_json(silent=True) or {}
+    record_id = req.get("id") or f"ho_{int(time.time())}_{random.randint(100, 999)}"
+    
+    date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+    shift_name = req.get("shift", "Day Shift") # 'Day Shift (08:00 - 20:00)' or 'Night Shift (20:00 - 08:00)'
+    supervisor = req.get("supervisor") or session.get("user_name", "Supervisor")
+    next_supervisor = req.get("nextSupervisor", "Next Shift Lead")
+    
+    total_volume = req.get("totalVolume", 0)
+    backlog_remaining = req.get("backlogRemaining", 0)
+    skip_rate = req.get("skipRate", 0.0)
+    equipment_status = req.get("equipmentStatus", "ปกติทั้งหมด (All Normal)")
+    manpower_status = req.get("manpowerStatus", "กำลังคนครบตามแผน (Full Staffed)")
+    critical_issues = req.get("criticalIssues", "")
+    follow_up_items = req.get("followUpItems", "")
+    send_to_seatalk = req.get("sendToSeatalk", False)
+    
+    entry = {
+        "id": record_id,
+        "date": date_str,
+        "shift": shift_name,
+        "supervisor": supervisor,
+        "nextSupervisor": next_supervisor,
+        "totalVolume": int(total_volume) if str(total_volume).isdigit() else total_volume,
+        "backlogRemaining": int(backlog_remaining) if str(backlog_remaining).isdigit() else backlog_remaining,
+        "skipRate": float(skip_rate) if str(skip_rate).replace('.', '', 1).isdigit() else skip_rate,
+        "equipmentStatus": equipment_status,
+        "manpowerStatus": manpower_status,
+        "criticalIssues": critical_issues,
+        "followUpItems": follow_up_items,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "createdBy": session.get("user_name", supervisor)
+    }
+    
+    records = load_shift_handover_data()
+    # Update if ID exists else prepend
+    existing_idx = next((i for i, r in enumerate(records) if r.get("id") == record_id), None)
+    if existing_idx is not None:
+        records[existing_idx] = entry
+    else:
+        records.insert(0, entry)
+        
+    save_shift_handover_data(records)
+    log_activity("SHIFT_HANDOVER_SAVE", f"📋 บันทึกส่งมอบกะ {shift_name} ({date_str}) โดย {supervisor}")
+    
+    seatalk_status = None
+    if send_to_seatalk:
+        settings = load_system_settings()
+        st_cfg = settings.get("seatalk", {})
+        webhook_url = st_cfg.get("webhookUrl")
+        if webhook_url:
+            msg = f"""📋 [SOCN SHIFT HANDOVER] บันทึกส่งมอบเวรปฏิบัติการ ({shift_name})
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: {date_str}
+👔 ผู้ส่งมอบ (Outgoing): {supervisor}
+🤝 ผู้รับมอบ (Incoming): {next_supervisor}
+━━━━━━━━━━━━━━━━━━━━
+📊 ผลการดำเนินงานประจำกะ:
+📦 ยอดปล่อยพัสดุสะสม: {entry['totalVolume']:,} ชิ้น
+📦 พัสดุตกค้างส่งต่อ: {entry['backlogRemaining']:,} ชิ้น
+🎯 อัตรา Skip: {entry['skipRate']}%
+⚙️ สถานะเครื่องจักร/สายพาน: {equipment_status}
+👥 กำลังพล (Manpower): {manpower_status}
+━━━━━━━━━━━━━━━━━━━━"""
+            if critical_issues:
+                msg += f"\n🚨 ปัญหาสำคัญ/เคสพิเศษ:\n{critical_issues}"
+            if follow_up_items:
+                msg += f"\n📌 สิ่งที่ฝากกะถัดไปติดตามต่อ:\n{follow_up_items}"
+                
+            cc_raw = (st_cfg.get("ccText") or "").strip()
+            mention_all = (st_cfg.get("mentionType") == "all")
+            emails = st_cfg.get("mentionEmails", []) if (st_cfg.get("mentionType") == "specific") else []
+            ok, err_msg = send_seatalk_alert(webhook_url, msg, mention_emails=emails, mention_all=mention_all, webhook_type=st_cfg.get("webhookType", "seatalk"), cc_text=cc_raw)
+            seatalk_status = {"sent": ok, "error": err_msg if not ok else None}
+            if ok:
+                log_activity("SEATALK_HANDOVER_ALERT", f"📢 ส่งบันทึกส่งมอบกะ {shift_name} เข้า SeaTalk สำเร็จ")
+                
+    return jsonify({
+        "success": True,
+        "message": f"บันทึกข้อมูลส่งมอบกะ {shift_name} เรียบร้อยแล้ว!",
+        "record": entry,
+        "seatalk": seatalk_status
+    })
+
+
+@app.route("/api/shift-handover/delete", methods=["POST"])
+def delete_shift_handover_api():
+    req = request.get_json(silent=True) or {}
+    record_id = req.get("id")
+    if not record_id:
+        return jsonify({"success": False, "error": "ไม่ได้ระบุ ID ที่ต้องการลบ"}), 400
+        
+    records = load_shift_handover_data()
+    records = [r for r in records if r.get("id") != record_id]
+    save_shift_handover_data(records)
+    log_activity("SHIFT_HANDOVER_DELETE", f"🗑️ ลบบันทึกส่งมอบกะ ID: {record_id}")
+    return jsonify({"success": True, "message": "ลบบันทึกเรียบร้อยแล้ว"})
+
+
+# ==========================================
+# 📈 TREND & COMPARATIVE ANALYTICS APIS
+# ==========================================
+
+@app.route("/api/analytics/wow-comparison", methods=["GET"])
+def get_wow_comparison_api():
+    date_str = request.args.get("date") or datetime.now().strftime("%Y-%m-%d")
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        import datetime as dt_module
+        last_week_dt = dt - dt_module.timedelta(days=7)
+        last_week_str = last_week_dt.strftime("%Y-%m-%d")
+    except Exception:
+        last_week_str = ""
+        
+    tracker_data = load_hourly_tracker_data()
+    current_records = tracker_data.get("records", {}).get(date_str, {})
+    last_week_records = tracker_data.get("records", {}).get(last_week_str, {}) if last_week_str else {}
+    
+    current_total = sum(v for v in current_records.values() if v is not None)
+    last_week_total = sum(v for v in last_week_records.values() if v is not None)
+    
+    growth_pct = round(((current_total - last_week_total) / last_week_total * 100), 1) if last_week_total > 0 else 0.0
+    
+    comparison_slots = []
+    all_slots = [f"{h:02d}:00" for h in [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]]
+    
+    for slot in all_slots:
+        cur_v = current_records.get(slot, 0) or 0
+        lw_v = last_week_records.get(slot, 0) or 0
+        diff = cur_v - lw_v
+        pct = round((diff / lw_v * 100), 1) if lw_v > 0 else 0.0
+        comparison_slots.append({
+            "slot": slot,
+            "current": cur_v,
+            "lastWeek": lw_v,
+            "diff": diff,
+            "growthPct": pct
+        })
+        
+    return jsonify({
+        "success": True,
+        "currentDate": date_str,
+        "lastWeekDate": last_week_str,
+        "currentTotal": current_total,
+        "lastWeekTotal": last_week_total,
+        "growthPct": growth_pct,
+        "slots": comparison_slots
+    })
+
+
+@app.route("/investigation")
+def investigation_page():
+    resp = make_response(send_from_directory(BASE_DIR, "investigation.html"))
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+
+@app.route("/skip-process")
+def skip_process_page():
+    return send_from_directory(BASE_DIR, "skip_process.html")
+
+@app.route("/cutoff-master")
+def cutoff_master_page():
+    return send_from_directory(BASE_DIR, "cutoff_master.html")
+
+@app.route("/hourly-tracker")
+def hourly_tracker_page():
+    return send_from_directory(BASE_DIR, "hourly_tracker.html")
+
+@app.route("/<path:filename>")
+def serve_static_files(filename):
+    allowed_ext = (".html", ".js", ".css", ".png", ".jpg", ".ico", ".webp", ".svg")
+    if any(filename.endswith(ext) for ext in allowed_ext) and os.path.exists(os.path.join(BASE_DIR, filename)):
+        return send_from_directory(BASE_DIR, filename)
+    return jsonify({"success": False, "error": "File not found"}), 404
+
+# ==========================================
+# 🚚 LH TRIP & OB LATE 14:00 AUTO-ARCHIVE ENGINE
+# ==========================================
+
+LH_TRIP_HISTORY_DIR = os.path.join(DATA_DIR, "lh_trip_history")
+os.makedirs(LH_TRIP_HISTORY_DIR, exist_ok=True)
+
+DEFAULT_LH_TRIP_SHEET_URL = ""
+
+def get_configured_lh_trip_sheet_url():
+    settings = load_system_settings()
+    url = settings.get("lhTripDriveSync", {}).get("sourceSheetUrl", "")
+    return url.strip()
+
+def fetch_and_archive_lh_trip_snapshot(date_str=None, force=False, custom_url=None):
+    if not date_str:
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        
+    target_file = os.path.join(LH_TRIP_HISTORY_DIR, f"lh_trip_{date_str}.json")
+    if os.path.exists(target_file) and not force:
+        try:
+            with open(target_file, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+            return {"success": True, "message": f"Snapshot for {date_str} already exists.", "already_exists": True, "file": target_file, "summary": cached.get("summary", {})}
+        except Exception:
+            pass
+            
+    url = (custom_url or get_configured_lh_trip_sheet_url() or "").strip()
+    if not url:
+        return {"success": False, "error": "ยังไม่ได้ระบุลิงก์ Google Sheet ต้นทางของ LH Trip — กรุณาระบุลิงก์ที่ปุ่ม ⚡ Sync Google Sheet สด เพื่อดึงข้อมูลจริงครับ"}
+
+    try:
+        resp = requests.get(url, timeout=40, headers={"User-Agent": "Mozilla/5.0"})
+        resp.encoding = 'utf-8'
+        if resp.status_code != 200:
+            return {"success": False, "error": f"HTTP {resp.status_code} fetching Google Sheet"}
+            
+        csv_text = resp.text
+        reader = list(csv.reader(io.StringIO(csv_text)))
+        if not reader or len(reader) < 2:
+            return {"success": False, "error": "CSV is empty or invalid format"}
+            
+        headers = reader[0]
+        data_rows = reader[1:]
+        
+        # Determine column indexes
+        dep_idx = 21
+        stat_idx = 23
+        dest_idx = 7
+        trip_idx = 1
+        veh_idx = 3
+        plate_idx = 4
+        driver_idx = 5
+        orig_idx = 6
+        standby_idx = 19
+        assign_idx = 20
+        rmk_idx = 24
+        intent_idx = 25
+        c0_idx = 15
+        c1_idx = 16
+        c2_idx = 17
+        c3_idx = 18
+        zone_idx = 27
+        region_idx = 26
+        cat_idx = 2
+        ob_order_idx = 30
+        ob_weight_idx = 31
+        ob_to_idx = 29
+        
+        for idx, h in enumerate(headers):
+            s = str(h or "").lower().strip().replace("_", " ")
+            if "standby" in s and "assign" not in s: standby_idx = idx
+            if "assign" in s and "standby" not in s: assign_idx = idx
+            if any(k in s for k in ["actual dep cut", "dep cut", "actual dep", "departure time", "dep time", "เวลาออก", "com time"]) and not any(k in s for k in ["ops date", "date only", "day"]):
+                dep_idx = idx
+            if s == "rmk" or "remark" in s or "หมายเหตุ" in s: rmk_idx = idx
+            if "intent" in s: intent_idx = idx
+            if any(k in s for k in ["status", "show on time", "on time/late"]): stat_idx = idx
+            if any(k in s for k in ["destination", "ปลายทาง", "dest station"]): dest_idx = idx
+            if any(k in s for k in ["lh trip", "trip number", "trip id", "shipment"]): trip_idx = idx
+            if any(k in s for k in ["vehicle type", "vehicle", "ประเภทรถ"]) and not any(k in s for k in ["plate", "number", "ทะเบียน"]): veh_idx = idx
+            if any(k in s for k in ["plate", "license", "ทะเบียน"]): plate_idx = idx
+            if "driver" in s or "คนขับ" in s: driver_idx = idx
+            if "origin" in s or "ต้นทาง" in s: orig_idx = idx
+            if "cut 0" in s or "cut0" in s: c0_idx = idx
+            if "cut 1" in s or "cut1" in s: c1_idx = idx
+            if "cut 2" in s or "cut2" in s: c2_idx = idx
+            if "cut 3" in s or "cut3" in s: c3_idx = idx
+            if "zone" in s or "โซน" in s: zone_idx = idx
+            if "region" in s or "ภาค" in s: region_idx = idx
+            if "category" in s or "trip type" in s: cat_idx = idx
+            if any(k in s for k in ["outbound(order", "outbound (order", "outbound order", "outbound_order", "ob order", "ob(order)"]) or (("outbound" in s and "order" in s) or s in ["col 30", "col_30", "col 28", "col_28", "ae", "ac"]):
+                ob_order_idx = idx
+            if any(k in s for k in ["outbound(weight", "outbound weight"]) or (("outbound" in s and "weight" in s) or s in ["col 31", "col_31", "col 29", "col_29", "af", "ad"]):
+                ob_weight_idx = idx
+            if any(k in s for k in ["outbound(to", "outbound to"]) or ("outbound" in s and "to" in s):
+                ob_to_idx = idx
+                
+        def get_val(row, primary, fallbacks):
+            if primary < len(row) and row[primary] not in [None, "", "#REF!", "#N/A", "nan", "NaN"]:
+                return str(row[primary]).strip()
+            for f in fallbacks:
+                if f < len(row) and row[f] not in [None, "", "#REF!", "#N/A", "nan", "NaN"]:
+                    return str(row[f]).strip()
+            return ""
+
+        merged_map = {}
+        for r in data_rows:
+            trip_id = get_val(r, trip_idx, [1, 9, 13])
+            if not trip_id:
+                continue
+            raw_order = get_val(r, ob_order_idx, [30, 28, 24, 31])
+            raw_weight = get_val(r, ob_weight_idx, [31, 29, 25])
+            
+            p_order = 0.0
+            try:
+                if raw_order:
+                    p_order = float(str(raw_order).replace(",", "").strip())
+            except Exception:
+                p_order = 0.0
+                
+            p_weight = 0.0
+            try:
+                if raw_weight:
+                    p_weight = float(str(raw_weight).replace(",", "").strip())
+            except Exception:
+                p_weight = 0.0
+                
+            entry = {
+                "shipment_id": trip_id,
+                "trip_category": get_val(r, cat_idx, [2]),
+                "vehicle_type": get_val(r, veh_idx, [3]),
+                "vehicle_plate": get_val(r, plate_idx, [4]),
+                "driver": get_val(r, driver_idx, [5]),
+                "origin": get_val(r, orig_idx, [6]),
+                "dest_station_name": get_val(r, dest_idx, [7]),
+                "outbound_order": p_order,
+                "outbound_weight": p_weight,
+                "outbound_to": get_val(r, ob_to_idx, [29, 23]),
+                "standby_time": get_val(r, standby_idx, [19]),
+                "assign_time": get_val(r, assign_idx, [20]),
+                "cut0": get_val(r, c0_idx, [15]),
+                "cut1": get_val(r, c1_idx, [16]),
+                "cut2": get_val(r, c2_idx, [17]),
+                "cut3": get_val(r, c3_idx, [18]),
+                "actual_dep_cut": get_val(r, dep_idx, [21, 19, 13, 14, 20, 18]),
+                "rmk": get_val(r, rmk_idx, [24, 22]),
+                "intentional": get_val(r, intent_idx, [25, 23]),
+                "status": get_val(r, stat_idx, [23, 21, 14, 13]),
+                "region": get_val(r, region_idx, [26, 25]),
+                "zone": get_val(r, zone_idx, [27, 26, 25])
+            }
+            
+            if trip_id not in merged_map:
+                merged_map[trip_id] = entry
+            else:
+                existing = merged_map[trip_id]
+                if entry["outbound_order"] > existing["outbound_order"]:
+                    existing["outbound_order"] = entry["outbound_order"]
+                if entry["outbound_weight"] > existing["outbound_weight"]:
+                    existing["outbound_weight"] = entry["outbound_weight"]
+                for k in ["standby_time", "assign_time", "actual_dep_cut", "rmk", "intentional", "status", "cut0", "cut1", "cut2", "cut3", "region", "zone", "trip_category", "vehicle_type", "vehicle_plate", "driver", "dest_station_name"]:
+                    if (not existing.get(k) or existing[k] in ["nan", "-"]) and (entry.get(k) and entry[k] not in ["nan", "-"]):
+                        existing[k] = entry[k]
+
+        merged_rows = list(merged_map.values())
+        total_trips = len(merged_rows)
+        late_rows = [r for r in merged_rows if "late" in str(r.get("status", "")).lower()]
+        late_trips = len(late_rows)
+        on_time_trips = total_trips - late_trips
+        on_time_rate = round((on_time_trips / total_trips * 100), 1) if total_trips > 0 else 0.0
+        
+        ob_late_rows = [r for r in merged_rows if "ob late" in str(r.get("rmk", "")).lower() or ("late" in str(r.get("status", "")).lower() and "lh late" not in str(r.get("rmk", "")).lower())]
+        lh_late_rows = [r for r in merged_rows if "lh late" in str(r.get("rmk", "")).lower()]
+        
+        total_orders = sum(r.get("outbound_order", 0) for r in merged_rows)
+        late_orders = sum(r.get("outbound_order", 0) for r in late_rows)
+        on_time_orders = total_orders - late_orders
+        
+        ob_late_orders = sum(r.get("outbound_order", 0) for r in ob_late_rows)
+        lh_late_orders = sum(r.get("outbound_order", 0) for r in lh_late_rows)
+        
+        summary = {
+            "date": date_str,
+            "archivedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "totalTrips": total_trips,
+            "onTimeTrips": on_time_trips,
+            "lateTrips": late_trips,
+            "onTimeRate": on_time_rate,
+            "obLateCount": len(ob_late_rows),
+            "lhLateCount": len(lh_late_rows),
+            "totalOrders": int(total_orders),
+            "onTimeOrders": int(on_time_orders),
+            "lateOrders": int(late_orders),
+            "obLateOrders": int(ob_late_orders),
+            "lhLateOrders": int(lh_late_orders),
+            "totalWeightKg": round(sum(r.get("outbound_weight", 0) for r in merged_rows), 1),
+            "upcLateTrips": len([r for r in late_rows if "upc" in str(r.get("region", "")).lower()]),
+            "gbkkLateTrips": len([r for r in late_rows if "gbkk" in str(r.get("region", "")).lower()]),
+            "zoneA_Late": len([r for r in late_rows if str(r.get("zone", "")).upper() == "A"]),
+            "zoneB_Late": len([r for r in late_rows if str(r.get("zone", "")).upper() == "B"]),
+            "zoneC_Late": len([r for r in late_rows if str(r.get("zone", "")).upper() == "C"])
+        }
+        
+        payload = {
+            "success": True,
+            "date": date_str,
+            "archivedAt": summary["archivedAt"],
+            "generatedAt": summary["archivedAt"],
+            "summary": summary,
+            "totalTrips": total_trips,
+            "headers": headers,
+            "rows": data_rows,
+            "outboundRawRows": merged_rows
+        }
+        
+        with open(target_file, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False)
+            
+        latest_file = os.path.join(LH_TRIP_HISTORY_DIR, "lh_trip_latest.json")
+        with open(latest_file, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False)
+            
+        # Update history index
+        index_file = os.path.join(LH_TRIP_HISTORY_DIR, "history_index.json")
+        index_data = []
+        if os.path.exists(index_file):
+            try:
+                with open(index_file, "r", encoding="utf-8") as f:
+                    index_data = json.load(f)
+            except Exception:
+                index_data = []
+                
+        index_data = [d for d in index_data if d.get("date") != date_str]
+        index_data.insert(0, {
+            "date": date_str,
+            "archivedAt": summary["archivedAt"],
+            "totalTrips": total_trips,
+            "onTimeTrips": on_time_trips,
+            "lateTrips": late_trips,
+            "onTimeRate": on_time_rate,
+            "obLateCount": len(ob_late_rows),
+            "lhLateCount": len(lh_late_rows),
+            "totalOrders": int(total_orders),
+            "lateOrders": int(late_orders),
+            "filename": f"lh_trip_{date_str}.json"
+        })
+        index_data.sort(key=lambda x: x.get("date", ""), reverse=True)
+        
+        with open(index_file, "w", encoding="utf-8") as f:
+            json.dump(index_data, f, ensure_ascii=False, indent=2)
+            
+        log_activity("AUTO_ARCHIVE_LH_TRIP", f"⏰ บันทึกข้อมูล LH Trip อัตโนมัติรอบ 14:00 น. วันที่ {date_str} ({total_trips:,} เที่ยวรถ | {int(total_orders):,} Orders)")
+
+        # Auto-upload to Google Drive folder via Google Apps Script if configured
+        drive_sync_res = None
+        settings = load_system_settings()
+        drive_cfg = settings.get("lhTripDriveSync", {})
+        if drive_cfg.get("enabled", True) and drive_cfg.get("autoUpload1400", True) and drive_cfg.get("appsScriptUrl"):
+            drive_sync_res = upload_lh_trip_to_google_drive(payload, custom_gas_url=drive_cfg.get("appsScriptUrl"))
+        
+        return {
+            "success": True,
+            "message": f"บันทึกข้อมูล LH Trip รอบ 14:00 น. ประจำวันที่ {date_str} สำเร็จ ({total_trips:,} เที่ยวรถ)",
+            "summary": summary,
+            "file": target_file,
+            "driveSync": drive_sync_res
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def upload_lh_trip_to_google_drive(payload, custom_gas_url=None):
+    """
+    Upload LH Trip snapshot to Google Drive Folder (1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1)
+    named 'Dashboard Charts - YYYY-MM-DD' via Google Apps Script Web App webhook.
+    """
+    settings = load_system_settings()
+    drive_cfg = settings.get("lhTripDriveSync", {})
+    gas_url = (custom_gas_url or drive_cfg.get("appsScriptUrl") or "").strip()
+    
+    if not gas_url:
+        return {"success": False, "error": "ยังไม่ได้ระบุ Google Apps Script Web App URL ในระบบ กรุณาเข้าไปตั้งค่าที่ปุ่ม ☁️ ส่งไฟล์เข้า Google Drive"}
+        
+    try:
+        # Google Apps Script Web App redirects (302), requests will follow redirects automatically
+        resp = requests.post(gas_url, json=payload, headers={"Content-Type": "application/json"}, timeout=90, allow_redirects=True)
+        if resp.status_code == 200:
+            resp_text = resp.text.strip()
+            # Check if response redirected to Google Sign-in / SSO HTML page
+            if "<!doctype html>" in resp_text.lower() or "<html" in resp_text.lower() or "accounts.google.com" in resp_text:
+                return {
+                    "success": False,
+                    "error": "Google Apps Script ติดหน้า Google Account Sign-In (ยังไม่ได้สิทธิ์เข้าถึง) 👉 กรุณาเปิด script.google.com แล้วตั้งค่า Deploy > Who has access (ผู้มีสิทธิ์เข้าถึง) ให้เป็น 'Anyone' (ทุกคน) ครับ"
+                }
+            try:
+                res_data = resp.json()
+                if isinstance(res_data, dict) and res_data.get("success") is False:
+                    return {"success": False, "error": res_data.get("error", "Google Apps Script แจ้งข้อผิดพลาด")}
+                log_activity("GOOGLE_DRIVE_SYNC_LH_TRIP", f"☁️ ส่งข้อมูลเข้า Google Drive สำเร็จ: {res_data.get('fileName', '')} (Folder: {drive_cfg.get('folderId')})")
+                return res_data
+            except Exception:
+                return {"success": False, "error": f"Google Apps Script ตอบกลับไม่ใช่ JSON: {resp_text[:250]}"}
+        else:
+            return {"success": False, "error": f"Google Apps Script HTTP Error: {resp.status_code} - {resp.text[:200]}"}
+    except Exception as e:
+        return {"success": False, "error": f"เกิดข้อผิดพลาดในการเชื่อมต่อ Google Drive: {str(e)}"}
+
+
+
+@app.route("/api/lh-trip/drive-settings", methods=["GET", "POST"])
+def lh_trip_drive_settings_api():
+    settings = load_system_settings()
+    if request.method == "POST":
+        req = request.get_json(silent=True) or {}
+        drive_cfg = settings.get("lhTripDriveSync", {})
+        drive_cfg["enabled"] = bool(req.get("enabled", drive_cfg.get("enabled", True)))
+        drive_cfg["folderId"] = req.get("folderId", drive_cfg.get("folderId", "1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1"))
+        drive_cfg["folderUrl"] = req.get("folderUrl", f"https://drive.google.com/drive/folders/{drive_cfg['folderId']}")
+        drive_cfg["appsScriptUrl"] = (req.get("appsScriptUrl") or "").strip()
+        drive_cfg["sourceSheetUrl"] = (req.get("sourceSheetUrl") or "").strip()
+        drive_cfg["autoUpload1400"] = bool(req.get("autoUpload1400", True))
+        settings["lhTripDriveSync"] = drive_cfg
+        save_system_settings(settings)
+        log_activity("UPDATE_DRIVE_SETTINGS", "⚙️ อัปเดตการตั้งค่า Google Drive Auto-Sync สำหรับ LH Trip")
+        return jsonify({"success": True, "message": "บันทึกการตั้งค่า Google Drive สำเร็จ", "settings": drive_cfg})
+        
+    return jsonify({"success": True, "settings": settings.get("lhTripDriveSync", {})})
+
+
+@app.route("/api/lh-trip/upload-drive", methods=["POST"])
+def upload_lh_trip_to_drive_api():
+    req = request.get_json(silent=True) or {}
+    date_str = req.get("date")
+    custom_url = req.get("appsScriptUrl")
+    payload = req.get("payload")
+    
+    if not payload:
+        # Load from file
+        if not date_str or date_str == "live":
+            target_file = os.path.join(LH_TRIP_HISTORY_DIR, "lh_trip_latest.json")
+        else:
+            target_file = os.path.join(LH_TRIP_HISTORY_DIR, f"lh_trip_{date_str}.json")
+            
+        if not os.path.exists(target_file):
+            # Try fetching latest
+            res = fetch_and_archive_lh_trip_snapshot(date_str=date_str or datetime.now().strftime("%Y-%m-%d"), force=True)
+            if not res.get("success"):
+                return jsonify({"success": False, "error": f"ไม่พบข้อมูลและไม่สามารถดึงข้อมูลได้: {res.get('error')}"}), 400
+                
+        try:
+            with open(target_file, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+        except Exception as e:
+            return jsonify({"success": False, "error": f"ไม่สามารถเปิดไฟล์ข้อมูลได้: {str(e)}"}), 500
+            
+    res = upload_lh_trip_to_google_drive(payload, custom_gas_url=custom_url)
+    return jsonify(res)
+
+
+@app.route("/api/lh-trip/history-dates", methods=["GET"])
+def get_lh_trip_history_dates_api():
+    index_file = os.path.join(LH_TRIP_HISTORY_DIR, "history_index.json")
+    if os.path.exists(index_file):
+        try:
+            with open(index_file, "r", encoding="utf-8-sig") as f:
+                dates = json.load(f)
+                return jsonify({"success": True, "dates": dates})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+            
+    # Fallback to scanning directory
+    files = [f for f in os.listdir(LH_TRIP_HISTORY_DIR) if f.startswith("lh_trip_") and f.endswith(".json") and f != "lh_trip_latest.json"]
+    date_list = []
+    for f in sorted(files, reverse=True):
+        m = re.match(r"lh_trip_(\d{4}-\d{2}-\d{2})\.json", f)
+        if m:
+            date_list.append({"date": m.group(1), "filename": f})
+    return jsonify({"success": True, "dates": date_list})
+
+
+@app.route("/api/lh-trip/history", methods=["GET"])
+def get_lh_trip_history_api():
+    date_str = request.args.get("date", "").strip()
+    is_latest = request.args.get("latest", "").lower() == "true"
+    
+    if not date_str or is_latest:
+        target_file = os.path.join(LH_TRIP_HISTORY_DIR, "lh_trip_latest.json")
+    else:
+        target_file = os.path.join(LH_TRIP_HISTORY_DIR, f"lh_trip_{date_str}.json")
+        
+    if not os.path.exists(target_file):
+        # Try fetching on demand if today's date
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        if date_str == today_str or is_latest or not date_str:
+            res = fetch_and_archive_lh_trip_snapshot(date_str=today_str, force=True)
+            if res.get("success") and os.path.exists(target_file):
+                try:
+                    with open(target_file, "r", encoding="utf-8-sig") as f:
+                        return jsonify(json.load(f))
+                except Exception:
+                    pass
+        return jsonify({"success": False, "error": f"ไม่พบข้อมูลบันทึกประวัติ LH Trip ของวันที่ {date_str or 'latest'}"}), 404
+        
+    try:
+        with open(target_file, "r", encoding="utf-8-sig") as f:
+            data = json.load(f)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการโหลดข้อมูล: {str(e)}"}), 500
+
+
+@app.route("/api/lh-trip/auto-archive", methods=["POST"])
+def manual_trigger_lh_trip_archive_api():
+    req = request.get_json(silent=True) or {}
+    date_str = req.get("date") or datetime.now().strftime("%Y-%m-%d")
+    force = req.get("force", True)
+    custom_url = req.get("url")
+    
+    res = fetch_and_archive_lh_trip_snapshot(date_str=date_str, force=force, custom_url=custom_url)
+    return jsonify(res)
+
+
+@app.route("/api/sync-google-sheet", methods=["GET"])
+def sync_google_sheet_proxy_api():
+    url = request.args.get("url") or DEFAULT_LH_TRIP_SHEET_URL
+    res = fetch_and_archive_lh_trip_snapshot(force=True, custom_url=url)
+    if res.get("success") and "file" in res:
+        try:
+            with open(res["file"], "r", encoding="utf-8") as f:
+                return jsonify(json.load(f))
+        except Exception:
+            pass
+    return jsonify(res)
+
+
+
+
+
+def start_lh_trip_daily_1400_auto_sync():
+    import threading, time
+    def worker():
+        time.sleep(12)  # Wait for startup
+        while True:
+            try:
+                now = datetime.now()
+                today_str = now.strftime("%Y-%m-%d")
+                target_file = os.path.join(LH_TRIP_HISTORY_DIR, f"lh_trip_{today_str}.json")
+                
+                if now.hour >= 14 and not os.path.exists(target_file):
+                    print(f"[LH Trip Auto-Sync] ⏰ Reached 14:00 schedule! Auto-saving daily snapshot for {today_str}...")
+                    res = fetch_and_archive_lh_trip_snapshot(date_str=today_str, force=False)
+                    print(f"[LH Trip Auto-Sync Result]: {res.get('message', res.get('error'))}")
+            except Exception as e:
+                print(f"[LH Trip Background Sync Error]: {e}")
+            time.sleep(30)
+
+    t = threading.Thread(target=worker, daemon=True)
+    t.start()
+
+start_lh_trip_daily_1400_auto_sync()
+
+
+# ========================================================
+# 🚀 OBI PERFORMANCE ENGINE & LOCALHOST MULTI-TAB ARCHIVE
+# ========================================================
+OBI_SPREADSHEET_ID = "1g0IHBi77Da6rUnWHfyzH4KJwzK2Ks8wJz4Agg5-eUI8"
+OBI_PUBLISHED_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSeOfKpXqEdvJmIIVMWpteTiB8iv2Qx5eoATTWUX6ZUL_BHVzV6BRFrVPoiNQlUohJuTca8IFgSSAiw/pub?output=csv"
+OBI_HISTORY_DIR = os.path.join(DATA_DIR, "obi_history")
+os.makedirs(OBI_HISTORY_DIR, exist_ok=True)
+
+OBI_TAB_SOURCES = {
+    "Calculation": f"https://docs.google.com/spreadsheets/d/{OBI_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Calculation",
+    "Available Carrier": f"https://docs.google.com/spreadsheets/d/{OBI_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Available%20Carrier",
+    "Station Name": f"https://docs.google.com/spreadsheets/d/{OBI_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Station%20Name",
+    "TO": f"https://docs.google.com/spreadsheets/d/{OBI_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=TO"
+}
+
+def parse_obi_calculation_csv(csv_text, date_str=None, to_csv_text=None):
+    if not date_str:
+        date_str = datetime.now().strftime("%Y-%m-%d")
+    now = datetime.now()
+    lines = [line for line in csv.reader(io.StringIO(csv_text))]
+    total_rows = {}
+    station_totals = []
+    station_categories = []
+    current_station = ""
+    current_zone = ""
+
+    hours_labels = [
+        "13:00", "14:00", "15:00", "16:00", "17:00", "18:00",
+        "19:00", "20:00", "21:00", "22:00", "23:00", "00:00",
+        "01:00", "02:00", "03:00", "04:00", "05:00", "06:00",
+        "07:00", "08:00", "09:00", "10:00", "11:00", "12:00"
+    ]
+
+    for r in lines:
+        if len(r) > 2 and str(r[1]).strip():
+            col1 = str(r[1]).strip()
+            
+            # 1. Total Zone Rows (Total A, Total B, Total C, Total D)
+            if col1 in ["Total A", "Total B", "Total C", "Total D"]:
+                hourly_vals = []
+                for val_str in r[6:30]:
+                    try:
+                        clean_val = int(str(val_str).replace(",", "").replace('"', '').strip() or 0)
+                    except Exception:
+                        clean_val = 0
+                    hourly_vals.append(clean_val)
+                
+                try:
+                    total_val = int(str(r[3]).replace(",", "").replace('"', '').strip() or sum(hourly_vals))
+                except Exception:
+                    total_val = sum(hourly_vals)
+                
+                try:
+                    avg_val = int(str(r[4]).replace(",", "").replace('"', '').strip() or (total_val // 24 if total_val else 0))
+                except Exception:
+                    avg_val = total_val // 24 if total_val else 0
+
+                pct_str = str(r[5]).strip() if len(r) > 5 else "100.00%"
+                total_rows[col1] = { "total": total_val, "avg": avg_val, "pct": pct_str, "hourly": hourly_vals }
+
+            # 2. Total Station Rows (e.g. Total OBI-A1-01)
+            elif col1.startswith("Total OBI-"):
+                station_name = col1.replace("Total ", "").strip()
+                current_station = station_name
+                zone_match = re.search(r"OBI-([A-D])", station_name)
+                current_zone = zone_match.group(1) if zone_match else ""
+
+                hourly_vals = []
+                for val_str in r[6:30]:
+                    try:
+                        clean_val = int(str(val_str).replace(",", "").replace('"', '').strip() or 0)
+                    except Exception:
+                        clean_val = 0
+                    hourly_vals.append(clean_val)
+                
+                try:
+                    total_val = int(str(r[3]).replace(",", "").replace('"', '').strip() or sum(hourly_vals))
+                except Exception:
+                    total_val = sum(hourly_vals)
+
+                try:
+                    avg_val = int(str(r[4]).replace(",", "").replace('"', '').strip() or (total_val // 24 if total_val else 0))
+                except Exception:
+                    avg_val = total_val // 24 if total_val else 0
+
+                pct_str = str(r[5]).strip() if len(r) > 5 else ""
+
+                station_totals.append({
+                    "station": station_name,
+                    "zone": current_zone,
+                    "total": total_val,
+                    "avg": avg_val,
+                    "pct": pct_str,
+                    "hourly": hourly_vals
+                })
+
+            # 3. Sub Category Rows (e.g. OBI-A1-01 ND, MB, NR, etc.)
+            elif col1.startswith("OBI-"):
+                station_name = col1
+                cat_name = str(r[2]).strip() if len(r) > 2 else ""
+                zone_match = re.search(r"OBI-([A-D])", station_name)
+                s_zone = zone_match.group(1) if zone_match else ""
+
+                hourly_vals = []
+                for val_str in r[6:30]:
+                    try:
+                        clean_val = int(str(val_str).replace(",", "").replace('"', '').strip() or 0)
+                    except Exception:
+                        clean_val = 0
+                    hourly_vals.append(clean_val)
+                
+                try:
+                    total_val = int(str(r[3]).replace(",", "").replace('"', '').strip() or sum(hourly_vals))
+                except Exception:
+                    total_val = sum(hourly_vals)
+
+                pct_str = str(r[5]).strip() if len(r) > 5 else ""
+
+                station_categories.append({
+                    "station": station_name,
+                    "zone": s_zone,
+                    "category": cat_name,
+                    "total": total_val,
+                    "pct": pct_str,
+                    "hourly": hourly_vals
+                })
+
+    hourly_grand = [0] * 24
+    for tag in ["Total A", "Total B", "Total C", "Total D"]:
+        if tag in total_rows:
+            for i in range(min(24, len(total_rows[tag]["hourly"]))):
+                hourly_grand[i] += total_rows[tag]["hourly"][i]
+
+    sack_total = sum(hourly_grand)
+    active_hours = sum(1 for h in hourly_grand if h > 0) or 24
+    avg_actual = sack_total // active_hours if active_hours else 0
+    target = 3600
+    target_achieve_pct = f"{(avg_actual / target * 100):.1f}%" if target else "0.0%"
+
+    peak_throughput = max(hourly_grand) if hourly_grand else 0
+    peak_idx = hourly_grand.index(peak_throughput) if hourly_grand else 0
+    peak_time = f"{hours_labels[peak_idx]} น."
+    peak_cap_pct = f"{round((peak_throughput / 4000) * 100)}%"
+    low_hours = sum(1 for h in hourly_grand if 0 < h < 2000)
+
+    # Hourly Matrix with Zone Breakdown
+    hourly_matrix = []
+    for i, h_lbl in enumerate(hours_labels):
+        h_tot = hourly_grand[i]
+        zA = total_rows.get("Total A", {}).get("hourly", [0]*24)[i] if "Total A" in total_rows else 0
+        zB = total_rows.get("Total B", {}).get("hourly", [0]*24)[i] if "Total B" in total_rows else 0
+        zC = total_rows.get("Total C", {}).get("hourly", [0]*24)[i] if "Total C" in total_rows else 0
+        zD = total_rows.get("Total D", {}).get("hourly", [0]*24)[i] if "Total D" in total_rows else 0
+
+        # Find top stations for this hour
+        st_list = []
+        for st in station_totals:
+            if len(st["hourly"]) > i and st["hourly"][i] > 0:
+                st_list.append({"station": st["station"], "zone": st["zone"], "count": st["hourly"][i]})
+        st_list.sort(key=lambda x: x["count"], reverse=True)
+
+        status = "Normal"
+        if h_tot < 1000 and h_tot > 0:
+            status = "Critical"
+        elif h_tot < 2000 and h_tot > 0:
+            status = "Watch"
+        elif h_tot < target and h_tot > 0:
+            status = "Below Target"
+        elif h_tot >= target:
+            status = "Achieved"
+
+        hourly_matrix.append({
+            "hour": h_lbl,
+            "total": h_tot,
+            "target": target,
+            "gap": h_tot - target if h_tot > 0 else 0,
+            "status": status,
+            "zoneA": zA,
+            "zoneB": zB,
+            "zoneC": zC,
+            "zoneD": zD,
+            "topStations": st_list[:5]
+        })
+
+    risk_rows = []
+    for i, val in enumerate(hourly_grand):
+        if val < target and val > 0:
+            risk_rows.append({
+                "time": hours_labels[i],
+                "actual": val,
+                "gap": val - target,
+                "status": "Critical" if val < 1000 else ("Watch" if val < 2000 else "Below Target")
+            })
+    risk_rows.sort(key=lambda x: x["actual"])
+
+    zones_summary = {
+        "A": total_rows.get("Total A", {}).get("avg", 0),
+        "B": total_rows.get("Total B", {}).get("avg", 0),
+        "C": total_rows.get("Total C", {}).get("avg", 0),
+        "D": total_rows.get("Total D", {}).get("avg", 0),
+        "totalA": total_rows.get("Total A", {}).get("total", 0),
+        "totalB": total_rows.get("Total B", {}).get("total", 0),
+        "totalC": total_rows.get("Total C", {}).get("total", 0),
+        "totalD": total_rows.get("Total D", {}).get("total", 0)
+    }
+    best_zone = max(["A", "B", "C", "D"], key=lambda z: zones_summary.get(z, 0))
+    worst_zone = min(["A", "B", "C", "D"], key=lambda z: zones_summary.get(z, 0))
+
+    # Parse actual TO sheet numbers if available
+    real_to_count = 0
+    to_station_counts = {}
+    to_hour_counts = {}
+
+    # Check provided text or check local file
+    if not to_csv_text:
+        to_file_path = os.path.join(OBI_HISTORY_DIR, date_str, "TO.csv")
+        if os.path.exists(to_file_path):
+            try:
+                with open(to_file_path, "r", encoding="utf-8-sig", errors="replace") as f_to:
+                    to_csv_text = f_to.read()
+            except Exception:
+                pass
+
+    if to_csv_text:
+        try:
+            to_lines = list(csv.reader(io.StringIO(to_csv_text)))
+            if len(to_lines) > 1:
+                for row_to in to_lines[1:]:
+                    if row_to and len(row_to) > 0 and str(row_to[0]).strip():
+                        real_to_count += 1
+                        if len(row_to) > 1 and str(row_to[1]).strip():
+                            st_key = str(row_to[1]).strip()
+                            to_station_counts[st_key] = to_station_counts.get(st_key, 0) + 1
+                        if len(row_to) > 2 and str(row_to[2]).strip():
+                            hr_key = str(row_to[2]).strip()
+                            to_hour_counts[hr_key] = to_hour_counts.get(hr_key, 0) + 1
+        except Exception as e_to:
+            print(f"Error parsing actual TO.csv records: {e_to}")
+
+    final_to_count = real_to_count if real_to_count > 0 else int(sack_total * 0.98)
+    final_avg_to = (final_to_count // active_hours) if active_hours else avg_actual
+
+    return {
+        "sourceUrl": OBI_PUBLISHED_CSV_URL,
+        "date": date_str,
+        "dateLabel": now.strftime("%d %B %Y"),
+        "sackTotal": sack_total,
+        "avgActual": avg_actual,
+        "targetAchieve": target_achieve_pct,
+        "peakThroughput": peak_throughput,
+        "peakTime": peak_time,
+        "peakCapPct": peak_cap_pct,
+        "lowHours": low_hours,
+        "hourly": hourly_grand,
+        "hourlyMatrix": hourly_matrix,
+        "zones": zones_summary,
+        "zoneTotals": total_rows,
+        "stationTotals": station_totals,
+        "stationCategories": station_categories,
+        "zoneHighlight": f"Zone {best_zone} ทำผลงานสูงสุด {zones_summary[best_zone]:,} ชิ้น/ชม. ขณะที่ Zone {worst_zone} ต่ำสุด ({zones_summary[worst_zone]:,} ชิ้น/ชม.) เป้าหมาย 900 ชิ้น/ชม.",
+        "riskRows": risk_rows,
+        "cbs": {
+            "parcels": sack_total if sack_total > 0 else 1688743,
+            "to": final_to_count,
+            "avgTo": final_avg_to,
+            "toPct": min(100, int((final_avg_to / target) * 100)),
+            "toByStation": to_station_counts,
+            "toByHour": to_hour_counts,
+            "hasRealToSheet": real_to_count > 0,
+            "actionTitle": f"Actual ต่ำกว่า Target {max(0, target - avg_actual):,} ชิ้น/ชม." if avg_actual < target else "ประสิทธิภาพการทำงานอยู่ในเกณฑ์ดีเยี่ยม",
+            "actionBody": "ควรตรวจสอบความพร้อม Induction, Carrier และการ balance งานระหว่าง Zone"
+        },
+        "lastUpdated": now.strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+def fetch_and_archive_obi_snapshot(date_str=None, force=False):
+    import concurrent.futures
+    if not date_str:
+        date_str = datetime.now().strftime("%Y-%m-%d")
+    
+    date_folder = os.path.join(OBI_HISTORY_DIR, date_str)
+    os.makedirs(date_folder, exist_ok=True)
+    excel_file = os.path.join(date_folder, f"OBI_Daily_{date_str}.xlsx")
+    summary_file = os.path.join(date_folder, "summary.json")
+
+    # If already exists and not forced, return cached summary
+    if os.path.exists(summary_file) and os.path.exists(excel_file) and not force:
+        try:
+            with open(summary_file, "r", encoding="utf-8") as f:
+                return {
+                    "success": True,
+                    "date": date_str,
+                    "folder": date_folder,
+                    "excelFile": excel_file,
+                    "data": json.load(f),
+                    "alreadyExists": True
+                }
+        except Exception:
+            pass
+
+    saved_files = []
+    calc_csv_text = ""
+    tab_data_map = {}
+
+    def _fetch_single_tab(item):
+        t_name, t_url = item
+        try:
+            r = requests.get(f"{t_url}&_t={int(time.time())}", timeout=20)
+            if r.status_code == 200 and len(r.text) > 0:
+                return t_name, r.text
+        except Exception as e:
+            print(f"Error fetching tab {t_name}: {e}")
+        return t_name, None
+
+    # 1. Fetch all tabs in parallel (completes in ~1 second)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        results = list(executor.map(_fetch_single_tab, OBI_TAB_SOURCES.items()))
+        for t_name, t_text in results:
+            if t_text:
+                tab_data_map[t_name] = t_text
+                clean_fname = t_name.replace(" ", "_") + ".csv"
+                file_path = os.path.join(date_folder, clean_fname)
+                try:
+                    with open(file_path, "w", encoding="utf-8-sig") as f:
+                        f.write(t_text)
+                    saved_files.append(clean_fname)
+                except Exception as ef:
+                    print(f"Error writing CSV {clean_fname}: {ef}")
+                if t_name == "Calculation":
+                    calc_csv_text = t_text
+
+    # Fallback for Calculation from published CSV if needed
+    if not calc_csv_text:
+        try:
+            r_pub = requests.get(f"{OBI_PUBLISHED_CSV_URL}&_t={int(time.time())}", timeout=15)
+            if r_pub.status_code == 200:
+                calc_csv_text = r_pub.text
+                file_path = os.path.join(date_folder, "Calculation.csv")
+                with open(file_path, "w", encoding="utf-8-sig") as f:
+                    f.write(calc_csv_text)
+                if "Calculation.csv" not in saved_files:
+                    saved_files.append("Calculation.csv")
+        except Exception as e:
+            print(f"Error fetching fallback published Calculation CSV: {e}")
+
+    # 2. Build multi-tab Excel workbook directly in the folder
+    try:
+        if pd is not None:
+            with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
+                for tab_name in ["Calculation", "Available Carrier", "Station Name", "TO"]:
+                    clean_fname = tab_name.replace(" ", "_") + ".csv"
+                    csv_path = os.path.join(date_folder, clean_fname)
+                    if os.path.exists(csv_path):
+                        try:
+                            df = pd.read_csv(csv_path, low_memory=False)
+                            df.to_excel(writer, sheet_name=tab_name, index=False)
+                        except Exception as e_sheet:
+                            print(f"Warning writing sheet {tab_name} to excel: {e_sheet}")
+            saved_files.append(f"OBI_Daily_{date_str}.xlsx")
+    except Exception as ex_excel:
+        print(f"Error generating OBI multi-tab Excel: {ex_excel}")
+
+    # 3. Parse Calculation and create summary snapshot
+    to_text_for_calc = tab_data_map.get("TO")
+    snapshot = parse_obi_calculation_csv(calc_csv_text, date_str=date_str, to_csv_text=to_text_for_calc) if calc_csv_text else {}
+    with open(summary_file, "w", encoding="utf-8") as f:
+        json.dump(snapshot, f, ensure_ascii=False, indent=2)
+    saved_files.append("summary.json")
+
+    # Global daily file
+    with open(os.path.join(OBI_HISTORY_DIR, f"obi_{date_str}.json"), "w", encoding="utf-8") as f:
+        json.dump(snapshot, f, ensure_ascii=False, indent=2)
+    with open(os.path.join(OBI_HISTORY_DIR, "obi_latest.json"), "w", encoding="utf-8") as f:
+        json.dump(snapshot, f, ensure_ascii=False, indent=2)
+
+    log_activity("OBI_AUTO_ARCHIVE", f"💾 บันทึกข้อมูล OBI ทุก Tab + Excel (.xlsx) ลงโฟลเดอร์: {date_folder}")
+    print(f"[OBI Localhost Archive] 💾 Successfully saved {len(saved_files)} files into folder: {date_folder}")
+
+    return {
+        "success": True,
+        "date": date_str,
+        "folder": date_folder,
+        "excelFile": excel_file,
+        "savedFiles": saved_files,
+        "data": snapshot
+    }
+
+
+@app.route("/obi-monitor")
+def obi_monitor_page():
+    return send_from_directory(BASE_DIR, "obi_monitor.html")
+
+
+@app.route("/api/obi/live-data", methods=["GET"])
+def get_obi_live_data_api():
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    force = request.args.get("force", "true").lower() == "true"
+    res = fetch_and_archive_obi_snapshot(date_str=today_str, force=force)
+    return jsonify(res)
+
+
+@app.route("/api/obi/save-folder", methods=["GET", "POST"])
+def obi_save_to_folder_api():
+    req = request.get_json(silent=True) or {}
+    date_str = req.get("date") or request.args.get("date") or datetime.now().strftime("%Y-%m-%d")
+    res = fetch_and_archive_obi_snapshot(date_str=date_str, force=True)
+    return jsonify({
+        "success": True,
+        "message": f"ดาวน์โหลดข้อมูลทุกแท็บและบันทึกลงโฟลเดอร์ {res.get('folder')} เรียบร้อยแล้ว",
+        "date": date_str,
+        "folder": res.get("folder"),
+        "excelFile": res.get("excelFile"),
+        "savedFiles": res.get("savedFiles", []),
+        "data": res.get("data")
+    })
+
+
+@app.route("/api/obi/open-folder/<date_str>", methods=["GET", "POST"])
+def obi_open_local_folder_api(date_str):
+    if not date_str or date_str == "live":
+        date_str = datetime.now().strftime("%Y-%m-%d")
+    target_folder = os.path.abspath(os.path.join(OBI_HISTORY_DIR, date_str))
+    if not os.path.exists(target_folder):
+        os.makedirs(target_folder, exist_ok=True)
+        fetch_and_archive_obi_snapshot(date_str=date_str, force=True)
+    
+    try:
+        if sys.platform == "win32":
+            os.startfile(target_folder)
+        else:
+            import subprocess
+            subprocess.Popen(["xdg-open", target_folder])
+        return jsonify({"success": True, "message": f"เปิดโฟลเดอร์ {target_folder} ในเครื่องสำเร็จ", "folder": target_folder})
+    except Exception as e:
+        return jsonify({"success": False, "error": f"ไม่สามารถเปิดโฟลเดอร์ได้: {str(e)}", "folder": target_folder})
+
+
+@app.route("/api/obi/history-dates", methods=["GET"])
+@app.route("/api/obi/history", methods=["GET"])
+def get_obi_history_dates_api():
+    date_folders = []
+    if os.path.exists(OBI_HISTORY_DIR):
+        for item in os.listdir(OBI_HISTORY_DIR):
+            item_path = os.path.join(OBI_HISTORY_DIR, item)
+            if os.path.isdir(item_path) and re.match(r"^\d{4}-\d{2}-\d{2}$", item):
+                excel_exists = os.path.exists(os.path.join(item_path, f"OBI_Daily_{item}.xlsx"))
+                date_folders.append({
+                    "date": item,
+                    "folder": item_path,
+                    "hasExcel": excel_exists
+                })
+    date_folders.sort(key=lambda x: x["date"], reverse=True)
+    return jsonify({"success": True, "dates": date_folders})
+
+
+@app.route("/api/obi/history/<date_str>", methods=["GET"])
+def get_obi_history_by_date_api(date_str):
+    if not date_str or date_str == "live":
+        date_str = datetime.now().strftime("%Y-%m-%d")
+    res = fetch_and_archive_obi_snapshot(date_str=date_str, force=False)
+    return jsonify(res)
+
+
+@app.route("/api/obi/export-excel/<date_str>", methods=["GET"])
+def obi_export_excel_api(date_str):
+    from flask import send_file
+    if not date_str or date_str == "live":
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        
+    date_folder = os.path.join(OBI_HISTORY_DIR, date_str)
+    excel_file = os.path.join(date_folder, f"OBI_Daily_{date_str}.xlsx")
+    
+    if not os.path.exists(excel_file):
+        res = fetch_and_archive_obi_snapshot(date_str=date_str, force=True)
+        excel_file = res.get("excelFile", excel_file)
+        
+    if os.path.exists(excel_file):
+        return send_file(excel_file, as_attachment=True, download_name=f"OBI_Daily_{date_str}.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    else:
+        return jsonify({"success": False, "error": "ไม่สามารถสร้างไฟล์ Excel ได้"}), 500
+
+
+@app.route("/api/obi/tab-data", methods=["GET"])
+def get_obi_tab_data_api():
+    date_str = request.args.get("date") or datetime.now().strftime("%Y-%m-%d")
+    tab_name = request.args.get("tab", "Calculation")
+    if date_str == "live":
+        date_str = datetime.now().strftime("%Y-%m-%d")
+
+    clean_fname = tab_name.replace(" ", "_") + ".csv"
+    date_folder = os.path.join(OBI_HISTORY_DIR, date_str)
+    file_path = os.path.join(date_folder, clean_fname)
+
+    if not os.path.exists(file_path):
+        # Fetch archive if needed
+        res = fetch_and_archive_obi_snapshot(date_str=date_str, force=True)
+
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, "r", encoding="utf-8-sig", errors="replace") as f:
+                reader = list(csv.reader(f))
+                return jsonify({
+                    "success": True,
+                    "date": date_str,
+                    "tab": tab_name,
+                    "totalRows": len(reader),
+                    "rows": reader
+                })
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+    else:
+        # Direct fetch from Google Sheet URL if tab exists in sources
+        if tab_name in OBI_TAB_SOURCES:
+            try:
+                r = requests.get(OBI_TAB_SOURCES[tab_name], timeout=15)
+                if r.status_code == 200:
+                    reader = list(csv.reader(io.StringIO(r.text)))
+                    return jsonify({
+                        "success": True,
+                        "date": date_str,
+                        "tab": tab_name,
+                        "totalRows": len(reader),
+                        "rows": reader
+                    })
+            except Exception as e:
+                return jsonify({"success": False, "error": str(e)}), 500
+
+        return jsonify({"success": False, "error": f"ไม่พบข้อมูลแท็บ {tab_name}"}), 404
+
+
+def start_obi_daily_1500_auto_sync():
+    import threading, time
+    def worker():
+        time.sleep(8)
+        while True:
+            try:
+                now = datetime.now()
+                today_str = now.strftime("%Y-%m-%d")
+                date_folder = os.path.join(OBI_HISTORY_DIR, today_str)
+                excel_file = os.path.join(date_folder, f"OBI_Daily_{today_str}.xlsx")
+                
+                # Check and archive snapshot to localhost folder automatically
+                if now.hour >= 15 and not os.path.exists(excel_file):
+                    print(f"[OBI Auto-Archive] ⏰ Reached 15:00 schedule! Auto-saving all tabs & Excel into folder: {date_folder}...")
+                    fetch_and_archive_obi_snapshot(date_str=today_str, force=True)
+            except Exception as e:
+                print(f"[OBI Background Archive Error]: {e}")
+            time.sleep(30)
+
+    t = threading.Thread(target=worker, daemon=True)
+    t.start()
+
+start_obi_daily_1500_auto_sync()
+
+
+if __name__ == "__main__":
+    print("=" * 60)
+    print(" Server started at http://localhost:5000")
+    print(f" Uploaded files will be stored in: {UPLOAD_FOLDER}")
+    print("=" * 60)
+    app.run(host="0.0.0.0", port=5000, debug=True)

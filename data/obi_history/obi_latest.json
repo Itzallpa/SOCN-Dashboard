@@ -1,7 +1,7 @@
 {
   "sourceUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSeOfKpXqEdvJmIIVMWpteTiB8iv2Qx5eoATTWUX6ZUL_BHVzV6BRFrVPoiNQlUohJuTca8IFgSSAiw/pub?output=csv",
-  "date": "2026-10-14",
-  "dateLabel": "14 October 2026",
+  "date": "2026-11-17",
+  "dateLabel": "17 November 2026",
   "sackTotal": 170351,
   "avgActual": 7406,
   "targetAchieve": "205.7%",
@@ -7834,5 +7834,5 @@
     "actionTitle": "ประสิทธิภาพการทำงานอยู่ในเกณฑ์ดีเยี่ยม",
     "actionBody": "ควรตรวจสอบความพร้อม Induction, Carrier และการ balance งานระหว่าง Zone"
   },
-  "lastUpdated": "2026-10-14 20:14:23"
+  "lastUpdated": "2026-11-17 15:39:20"
 }

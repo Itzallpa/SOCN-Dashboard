@@ -1,0 +1,2383 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skip Process Monitor & Volume Tracker</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding-bottom: 30px; }
+    .card-custom { background: #ffffff; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; padding: 16px; }
+    .metric-card { border-radius: 12px; background: #ffffff; border-left: 5px solid #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.04); padding: 14px 16px; }
+    .metric-danger { border-left-color: #dc2626; }
+    .metric-primary { border-left-color: #2563eb; }
+    .metric-warning { border-left-color: #d97706; }
+    .metric-title { font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+    .metric-value { font-size: 1.85rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
+    .metric-subtext { font-size: 0.76rem; color: #64748b; margin-top: 4px; }
+    .target-banner { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: #ffffff; border-radius: 12px; padding: 14px 20px; box-shadow: 0 4px 12px rgba(30, 60, 114, 0.25); margin-bottom: 16px; }
+    .table-custom { font-size: 0.88rem; }
+    .table-custom th { background-color: #0f172a; color: #ffffff; font-weight: 600; vertical-align: middle; }
+  </style>
+</head>
+<body>
+
+  
+  <!-- Top Navigation Header -->
+  <nav style="background:#0d1b2a; color:#ffffff; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.25); position:sticky; top:0; z-index:1020;">
+    <a href="index.html" style="color:#ffffff; font-size:1.15rem; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:8px;">
+      <span style="font-size:1.4rem;">📦</span> SOC Operations Portal
+    </a>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <a href="index.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🏠 Portal Hub</a>
+      <a href="investigation.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚀 Investigation</a>
+      <a href="skip_process.html" style="color:#ffffff; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:700; font-size:0.88rem; background:#2563eb; transition:all 0.2s;">📦 Skip Monitor</a>
+      <a href="cutoff_master.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏰ Cutoff Master</a>
+      <a href="lh_trip.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🚚 LH Trip & OB Late</a>
+      <a href="ob_bl.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">📊 OB Backlog (OB BL)</a>
+      <a href="ob_bl_compare.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">🔀 OB Backlog Compare</a>
+      <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;">⏱️ Hourly Tracker</a>
+    </div>
+  </nav>
+  <script src="auth_guard.js"></script>
+
+
+  <div class="container-fluid px-3 py-3" style="max-width: 1560px; margin: 0 auto;">
+
+    <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-2 px-3 rounded-3 shadow-sm border flex-wrap gap-2">
+      <div>
+        <h4 class="fw-bold mb-1 text-slate-800"><i class="fa-solid fa-box-open text-purple me-2"></i> SOC Skip Process & Zone Assignment Monitor</h4>
+        <p class="text-muted small mb-0">ระบบติดตามเคสพัสดุข้ามขั้นตอน (Skip Process), ตารางบันทึกตัวเลข SOCN Actual รายวัน และการคำนวณ % Skip ตามโซน</p>
+      </div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <select class="form-select form-select-sm" id="skipDateSelect" style="width: auto; max-width: 280px;" onchange="onSkipDateChange(this.value)">
+          <option value="">-- เลือกไฟล์หรือโฟลเดอร์ Skip Process --</option>
+        </select>
+        <button class="btn btn-purple btn-sm fw-bold text-white shadow-sm" style="background:#7c3aed;" onclick="openCustomGroupModal()" title="เลือกจัดกลุ่มหลายไฟล์พร้อมกันเพื่อสรุปรายงานภาพรวม">
+          <i class="fa-solid fa-layer-group me-1"></i> จัดกลุ่มไฟล์เอง
+        </button>
+        <button class="btn btn-warning btn-sm fw-bold text-dark shadow-sm" onclick="openFolderManagerModal()" title="สร้างและจัดการโฟลเดอร์ อัปโหลดไฟล์เข้าโฟลเดอร์ หรือย้ายไฟล์">
+          <i class="fa-solid fa-folder-tree me-1"></i> จัดการ Folder
+        </button>
+        <label class="btn btn-outline-warning btn-sm fw-bold text-dark mb-0 shadow-sm" title="เลือกทั้งโฟลเดอร์เพื่อสรุปข้อมูลรวมทุกไฟล์ในโฟลเดอร์">
+          <i class="fa-solid fa-folder-open me-1"></i> อัปโหลด Folder
+          <input type="file" id="skipFolderInput" webkitdirectory directory multiple style="display: none;" onchange="handleSkipFolderUpload(this.files)">
+        </label>
+        <label class="btn btn-outline-secondary btn-sm fw-bold mb-0">
+          <i class="fa-solid fa-upload me-1"></i> อัปโหลด CSV Skip Process
+          <input type="file" id="skipFileInput" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleSkipFileUpload(this.files[0])">
+        </label>
+        <button class="btn btn-outline-primary btn-sm fw-bold" onclick="openVolumeHistoryModal()">
+          <i class="fa-solid fa-database me-1"></i> 📅 SOCN Volume Tracker
+        </button>
+      </div>
+    </div>
+
+    <div id="skipUploadStatus" class="mb-3"></div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="metric-card metric-danger">
+          <div class="metric-title">TOTAL SKIP CASES</div>
+          <div class="metric-value text-danger" id="totalSkipCount">9,409 เคส</div>
+          <div class="metric-subtext">⚙️ Machine: <b id="machineCount" class="text-dark">0</b> | 💻 System: <b id="systemCount" class="text-dark">0</b></div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="metric-card metric-primary" onclick="openVolumeTrackerModal()" style="cursor: pointer; transition: transform 0.2s;" title="คลิกเพื่อระบุตัวเลข SOCN Actual Volume">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="metric-title" id="actualVolumeTitle">SOCN ACTUAL (ROW 10)</div>
+            <span class="badge bg-primary px-2 py-1"><i class="fa-solid fa-pen-to-square me-1"></i> ระบุตัวเลข</span>
+          </div>
+          <div class="metric-value text-primary" id="actualVolumeVal">980,457</div>
+          <div class="metric-subtext text-muted" id="actualVolumeSubtext">อ้างอิงจาก Volume Tracker Sheet</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card metric-card p-3 bg-white border-start border-4 border-danger" id="targetCardBorder">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="metric-title">% SKIP OUTBOUND VS ACTUAL</div>
+            <span class="badge bg-danger fw-bold" id="targetBadge">🎯 Overall Target: < 0.80%</span>
+          </div>
+          <div class="metric-value text-danger" id="skipPercentVal">0.96 %</div>
+          <div class="metric-subtext d-flex align-items-center gap-1" id="targetStatusText">
+            <span class="badge bg-danger">🔴 Exceeded</span> <span class="text-muted small">เกินเป้าหมายภาพรวม (> 0.80%)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="target-banner d-flex align-items-center justify-content-between flex-wrap gap-3" style="background:#1e3c72; border-radius:12px; padding:18px 24px;">
+      <div class="d-flex align-items-center gap-3">
+        <div class="bg-white bg-opacity-20 p-3 rounded-3 text-warning fs-3 d-flex align-items-center justify-content-center" style="width:60px; height:60px;">
+          <i class="fa-solid fa-user-gear"></i>
+        </div>
+        <div>
+          <h5 class="m-0 fw-bold text-warning">🎯 OVERALL TARGET < 0.80% (ZONE TARGET < 0.27%)</h5>
+          <p class="m-0 text-light small" style="opacity: 0.9;">
+            คุมเข้มคุณภาพสแกนพัสดุ โดยแบ่งเป้าหมายราย Zone (A, B, C) ไม่เกิน Zone ละ 0.27% เพื่อให้ภาพรวมไม่เกิน 0.80%
+          </p>
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <button class="btn btn-danger btn-sm fw-bold px-3 shadow-sm admin-only-btn" id="btnManualTriggerSkip" data-role="admin-only" style="background: linear-gradient(135deg, #dc2626, #991b1b); border:none; display:none;" onclick="openAdminManualTriggerModal('skip')">
+          <i class="fa-solid fa-bolt me-1"></i> ⚡ Manual Trigger (Admin)
+        </button>
+        <button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); border:none;" onclick="openAiSkipAnalysisModal()">
+          <i class="fa-solid fa-wand-magic-sparkles me-1"></i> ✨ AI Skip Analysis
+        </button>
+        <button class="btn btn-success btn-sm fw-bold px-3 shadow-sm admin-only-btn" id="btnSendSkipSeatalk" data-role="admin-only" style="display:none;" onclick="sendSkipProcessSeatalkAlert()">
+          <i class="fa-solid fa-paper-plane me-1"></i> 📢 แจ้งเตือน SeaTalk
+        </button>
+      </div>
+    </div>
+
+    <div class="card-custom">
+      <h6 class="fw-bold mb-3 text-slate-800"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i> Skip Cases & Staff Breakdown by Zone</h6>
+      <div class="table-responsive">
+        <table class="table table-hover table-bordered align-middle table-custom">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 20%;">ZONE</th>
+              <th style="width: 20%;" class="text-center">SKIP COUNT</th>
+              <th style="width: 20%;" class="text-center">% VS ACTUAL VOL</th>
+              <th style="width: 40%;">STAFF ASSIGNED (ROSTER)</th>
+            </tr>
+          </thead>
+          <tbody id="summaryTableBody">
+            <tr><td colspan="4" class="text-center py-4 text-muted">กำลังโหลดข้อมูล Skip Process...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="rawDataModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content" style="border-radius:14px; overflow:hidden;">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title fw-bold" id="rawDataModalLabel"><i class="fa-solid fa-file-invoice me-2"></i> รายการ Raw Data (Skip Process)</h5>
+          <button class="btn btn-success btn-sm fw-bold ms-auto me-2" onclick="exportSkipRawCSV()"><i class="fa-solid fa-file-csv me-1"></i> Export All Raw Data CSV</button>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-3">
+          <input type="text" id="searchRaw" class="form-control form-control-sm mb-3" placeholder="🔍 ค้นหา Shipment ID / Zone / Hub / Reason..." onkeyup="filterRawTable()">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover table-bordered text-nowrap" id="rawTable">
+              <thead class="table-dark">
+                <tr>
+                  <th>#</th>
+                  <th>Shipment ID</th>
+                  <th>Skip Reason</th>
+                  <th>Zone</th>
+                  <th>Hub (Dest Station)</th>
+                </tr>
+              </thead>
+              <tbody id="skipRawTableBody">
+                <tr><td colspan="5" class="text-center py-3 text-muted">กำลังโหลด...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="volumeTrackerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content" style="border-radius:14px; overflow:hidden;">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square me-2"></i> ระบุตัวเลข SOCN Actual Volume (รายวัน / รายสัปดาห์)</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <!-- Type Selector: Daily vs Weekly -->
+          <div class="d-flex align-items-center gap-2 mb-3 p-1 bg-light rounded-3 border" style="width:fit-content;">
+            <button type="button" class="btn btn-sm btn-primary fw-bold" id="btnTypeDaily" onclick="setVolumeMode('daily')">
+              <i class="fa-solid fa-calendar-day me-1"></i> รายวัน (Daily)
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" id="btnTypeWeekly" onclick="setVolumeMode('weekly')">
+              <i class="fa-solid fa-calendar-week me-1"></i> รายสัปดาห์ (Weekly / อาทิตย์)
+            </button>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <!-- Daily Input -->
+            <div class="col-md-5" id="dailyInputCol">
+              <label class="form-label fw-bold small text-muted">📅 วันที่รายงาน (Report Date)</label>
+              <input type="date" class="form-control" id="volumeDateInput">
+            </div>
+
+            <!-- Weekly Input -->
+            <div class="col-md-5 d-none" id="weeklyInputCol">
+              <label class="form-label fw-bold small text-muted">🗓️ สัปดาห์ (Week / อาทิตย์)</label>
+              <select class="form-select" id="volumeWeekSelect" onchange="onWeekSelectChange(this.value)">
+                <option value="Week 36 (31 ส.ค. - 06 ก.ย. 2026)">Week 36 (31 ส.ค. - 06 ก.ย. 2026)</option>
+                <option value="Week 35 (24 ส.ค. - 30 ส.ค. 2026)" selected>Week 35 (24 ส.ค. - 30 ส.ค. 2026)</option>
+                <option value="Week 34 (17 ส.ค. - 23 ส.ค. 2026)">Week 34 (17 ส.ค. - 23 ส.ค. 2026)</option>
+                <option value="Week 33 (10 ส.ค. - 16 ส.ค. 2026)">Week 33 (10 ส.ค. - 16 ส.ค. 2026)</option>
+                <option value="custom">✏️ ระบุชื่อสัปดาห์เอง...</option>
+              </select>
+              <input type="text" class="form-control mt-2 d-none" id="volumeWeekCustomInput" placeholder="เช่น Week 35 หรือ 24-30 ส.ค.">
+            </div>
+
+            <!-- Volume Input -->
+            <div class="col-md-7">
+              <label class="form-label fw-bold small text-muted">🔢 ตัวเลข SOCN Actual Volume (จำนวนชิ้น)</label>
+              <input type="number" class="form-control form-control-lg fw-bold text-primary" id="volumeInputVal" placeholder="กรอกตัวเลข Volume เช่น 980457">
+            </div>
+          </div>
+
+          <!-- Presets -->
+          <div class="mb-3">
+            <label class="form-label small text-muted fw-bold">⚡ ตัวเลือกทางลัด (Presets)</label>
+            <div class="d-flex gap-2 flex-wrap">
+              <button class="btn btn-sm btn-outline-secondary" onclick="setVolumePreset('2026-08-30', 980457, 'daily', '30 Aug 2026')">📅 980,457 (30 Aug - รายวัน)</button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="setVolumePreset('2026-09-01', 1814121, 'daily', '1 Sep 2026')">📅 1,814,121 (1 Sep - รายวัน)</button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="setVolumePreset('2026-09-04', 1600547, 'daily', '4 Sep 2026')">📅 1,600,547 (4 Sep - รายวัน)</button>
+              <button class="btn btn-sm btn-outline-primary fw-bold" onclick="setVolumePreset('Week 35 (24 ส.ค. - 30 ส.ค. 2026)', 6860000, 'weekly', 'Week 35')">🗓️ 6,860,000 (Week 35 - รายสัปดาห์)</button>
+              <button class="btn btn-sm btn-outline-primary fw-bold" onclick="setVolumePreset('Week 36 (31 ส.ค. - 06 ก.ย. 2026)', 7200000, 'weekly', 'Week 36')">🗓️ 7,200,000 (Week 36 - รายสัปดาห์)</button>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 mb-4">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-primary fw-bold" onclick="saveManualVolume()">
+              <i class="fa-solid fa-floppy-disk me-1"></i> บันทึก Volume และคำนวณใหม่
+            </button>
+          </div>
+
+          <hr>
+          <h6 class="fw-bold mb-3 text-slate-800 d-flex justify-content-between align-items-center">
+            <span><i class="fa-solid fa-clock-rotate-left me-1 text-primary"></i> ประวัติการบันทึก Volume ย้อนหลัง (รายวัน / รายสัปดาห์)</span>
+          </h6>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle table-bordered">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:130px;">ประเภท</th>
+                  <th>วันที่ / สัปดาห์</th>
+                  <th class="text-end">SOCN Actual Volume</th>
+                  <th class="text-center" style="width:150px;">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="volumeHistoryTableBody">
+                <tr><td colspan="4" class="text-center py-3 text-muted">กำลังโหลดประวัติ...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Group File Selection Modal -->
+  <div class="modal fade" id="customGroupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+        <div class="modal-header bg-dark text-white p-3">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-layer-group text-warning me-2"></i> จัดกลุ่มไฟล์เอง (Skip Process Multi-Select)</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-3 bg-light">
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-muted">ตั้งชื่อกลุ่มรายงาน (Group Name)</label>
+            <input type="text" id="customGroupNameInput" class="form-control form-control-sm" placeholder="เช่น: w36 วันที่ 1-3 ก.ย., หรือ ไฟล์เฉพาะวันจันทร์-อังคาร" value="กลุ่มไฟล์ Skip ที่เลือก">
+          </div>
+          
+          <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+            <div class="input-group input-group-sm" style="max-width: 320px;">
+              <span class="input-group-text bg-white"><i class="fa-solid fa-search text-muted"></i></span>
+              <input type="text" id="customGroupSearchInput" class="form-control" placeholder="ค้นหาชื่อไฟล์..." oninput="filterCustomGroupList()">
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-primary" onclick="selectAllCustomGroupFiles(true)"><i class="fa-solid fa-check-double me-1"></i> เลือกทั้งหมด</button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="selectAllCustomGroupFiles(false)"><i class="fa-solid fa-xmark me-1"></i> ยกเลิกทั้งหมด</button>
+            </div>
+          </div>
+
+          <div class="card border p-2 bg-white rounded-3 shadow-sm" style="max-height: 380px; overflow-y: auto;" id="customGroupFilesContainer">
+            <!-- Rendered by JS -->
+          </div>
+          
+          <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+            <span class="small text-muted" id="customGroupSelectedCount">เลือกแล้ว 0 ไฟล์</span>
+          </div>
+        </div>
+        <div class="modal-footer bg-white border-top p-2 px-3">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="button" class="btn btn-purple btn-sm fw-bold text-white px-3" style="background:#7c3aed;" onclick="submitCustomGroup()"><i class="fa-solid fa-chart-pie me-1"></i> สรุปและประมวลผลกลุ่มที่เลือก</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Folder Manager Modal -->
+  <div class="modal fade" id="folderManagerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+        <div class="modal-header bg-dark text-white p-3">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-folder-tree text-warning me-2"></i> จัดการโฟลเดอร์ข้อมูล (Folder Manager)</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-3 bg-light">
+          <!-- Navigation Tabs within Modal -->
+          <ul class="nav nav-pills nav-fill mb-3 bg-white p-1 rounded-3 border shadow-xs" id="folderManagerTabs">
+            <li class="nav-item">
+              <button class="nav-link active fw-bold small py-2" data-bs-toggle="pill" data-bs-target="#tabCreateFolder">
+                <i class="fa-solid fa-folder-plus me-1 text-warning"></i> 1. สร้าง Folder ใหม่
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link fw-bold small py-2" data-bs-toggle="pill" data-bs-target="#tabUploadFolder">
+                <i class="fa-solid fa-cloud-arrow-up me-1 text-primary"></i> 2. อัปโหลดไฟล์เข้า Folder
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link fw-bold small py-2" data-bs-toggle="pill" data-bs-target="#tabMoveFolder">
+                <i class="fa-solid fa-arrows-split-up-and-left me-1 text-success"></i> 3. ย้ายไฟล์เข้า Folder
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content">
+            <!-- Tab 1: Create Folder -->
+            <div class="tab-pane fade show active" id="tabCreateFolder">
+              <div class="card border p-3 bg-white rounded-3 mb-3 shadow-xs">
+                <h6 class="fw-bold mb-2 text-dark"><i class="fa-solid fa-plus text-primary me-1"></i> เพิ่มโฟลเดอร์ใหม่บนระบบ</h6>
+                <div class="input-group mb-2">
+                  <span class="input-group-text bg-light fw-bold text-muted">uploads/</span>
+                  <input type="text" id="newFolderNameInput" class="form-control" placeholder="ระบุชื่อโฟลเดอร์ เช่น w37, Sep_Week1, Batch_01">
+                  <button class="btn btn-warning fw-bold text-dark px-3" onclick="submitCreateFolder()">
+                    <i class="fa-solid fa-folder-plus me-1"></i> สร้างโฟลเดอร์
+                  </button>
+                </div>
+                <div class="small text-muted">💡 เมื่อสร้างเสร็จ คุณสามารถอัปโหลดไฟล์ CSV/Excel เข้าโฟลเดอร์นี้เพื่อประมวลผลเป็นชุดได้ทันที</div>
+              </div>
+            </div>
+
+            <!-- Tab 2: Upload Files directly into Folder -->
+            <div class="tab-pane fade" id="tabUploadFolder">
+              <div class="card border p-3 bg-white rounded-3 mb-3 shadow-xs">
+                <h6 class="fw-bold mb-2 text-dark"><i class="fa-solid fa-upload text-primary me-1"></i> เลือกโฟลเดอร์ปลายทางที่จะอัปโหลดไฟล์</h6>
+                <div class="row g-2 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">โฟลเดอร์ปลายทาง</label>
+                    <select class="form-select form-select-sm" id="targetUploadFolderSelect">
+                      <!-- Rendered by JS -->
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">เลือกไฟล์ (เลือกได้หลายไฟล์พร้อมกัน)</label>
+                    <input type="file" id="folderMultiFileInput" class="form-control form-control-sm" accept=".csv,.xlsx,.xls" multiple onchange="onFolderFilesSelected(this.files)">
+                  </div>
+                </div>
+                <div id="folderUploadProgressArea" class="d-none mb-2">
+                  <div class="small fw-bold text-primary mb-1" id="folderUploadStatusText">กำลังอัปโหลด...</div>
+                  <div class="progress" style="height: 10px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" id="folderUploadProgressBar" style="width: 0%;"></div>
+                  </div>
+                </div>
+                <button class="btn btn-purple btn-sm fw-bold text-white w-100" style="background:#7c3aed;" id="btnStartFolderUpload" onclick="startUploadFilesToFolder()" disabled>
+                  <i class="fa-solid fa-cloud-arrow-up me-1"></i> เริ่มอัปโหลดไฟล์เข้าโฟลเดอร์ที่เลือก
+                </button>
+              </div>
+            </div>
+
+            <!-- Tab 3: Move Existing Files to Folder -->
+            <div class="tab-pane fade" id="tabMoveFolder">
+              <div class="card border p-3 bg-white rounded-3 mb-3 shadow-xs">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-arrows-left-right text-success me-1"></i> ย้ายไฟล์เดี่ยวเข้าสู่โฟลเดอร์</h6>
+                  <div class="d-flex align-items-center gap-2">
+                    <label class="small fw-bold text-muted mb-0">ย้ายไปยัง:</label>
+                    <select class="form-select form-select-sm" id="targetMoveFolderSelect" style="width: 180px;">
+                      <!-- Rendered by JS -->
+                    </select>
+                  </div>
+                </div>
+                <div class="border rounded-2 p-2 bg-light mb-2" style="max-height: 200px; overflow-y: auto;" id="moveFilesChecklistContainer">
+                  <!-- Rendered by JS -->
+                </div>
+                <button class="btn btn-success btn-sm fw-bold w-100" onclick="submitMoveFilesToFolder()">
+                  <i class="fa-solid fa-check me-1"></i> ย้ายไฟล์ที่เลือกเข้าโฟลเดอร์
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Existing Folders Directory List -->
+          <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
+            <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-folder-tree text-primary me-1"></i> รายการโฟลเดอร์ทั้งหมดบนระบบ</h6>
+            <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:12px;" onclick="refreshFolderManager()"><i class="fa-solid fa-rotate me-1"></i> รีเฟรช</button>
+          </div>
+          <div class="card border p-2 bg-white rounded-3 shadow-xs" style="max-height: 280px; overflow-y: auto;" id="folderManagerListContainer">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+        <div class="modal-footer bg-white border-top p-2 px-3">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let skipDataState = null;
+    let currentActualVolume = 980457;
+    let rawSkipRows = [];
+    let currentRawRows = [];
+    let currentModalZone = 'ALL';
+    let cachedHubMap = null;
+
+    // --- TARGET CONFIGURATION ---
+    const OVERALL_TARGET_PERCENT = 0.80; // 0.80%
+    const ZONE_TARGET_PERCENT = 0.27;    // 0.27% (for A, B, C)
+
+    let STAFF_ROSTER = {
+      'ALL': ['Chain', 'Big', 'NULACK'],
+      'A': ['Kwang', 'Nut', 'Mick', 'Wave', 'Porn'],
+      'B': ['SKY', 'Dum', 'Korya', 'Tang', 'Oat'],
+      'C': ['LY', 'Tak', 'Keng', 'Nam', 'Earth'],
+      'TBS': ['Air', 'Tarn', 'Meiji'],
+      'MS': ['Champ', 'Tong'],
+      'INTERSOC': [],
+      'RETURN': []
+    };
+
+    function loadStaffRosterFromApi() {
+      // Check cache first
+      try {
+        const cached = localStorage.getItem('socn_staff_roster_cache');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.rosterByZone) {
+            STAFF_ROSTER = Object.assign(STAFF_ROSTER, parsed.rosterByZone);
+          }
+        }
+      } catch (e) {}
+
+      fetch('/api/staff-roster')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.rosterByZone) {
+            STAFF_ROSTER = Object.assign(STAFF_ROSTER, data.rosterByZone);
+            try {
+              localStorage.setItem('socn_staff_roster_cache', JSON.stringify(data));
+            } catch (e) {}
+            // Re-render summary table if already displayed
+            const tableBody = document.getElementById('summaryTableBody');
+            if (tableBody && tableBody.children.length > 0) {
+              renderSummaryTable();
+            }
+          }
+        })
+        .catch(err => {
+          console.warn('Could not fetch dynamic staff roster, using fallback:', err);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('volumeDateInput').value = today;
+      loadStaffRosterFromApi();
+      loadHubZoneMap();
+      fetchFileList();
+      loadDefaultSkipData();
+      loadVolumeHistory();
+    });
+
+    function safeSetLocalStorage(key, data) {
+      if (!key || !data) return;
+      try {
+        localStorage.setItem(key, JSON.stringify(data));
+      } catch (e) {
+        try {
+          const copy = Object.assign({}, data);
+          delete copy.rawRows;
+          localStorage.setItem(key, JSON.stringify(copy));
+        } catch (e2) {}
+      }
+    }
+
+    function safeFetchJson(url, options) {
+      return fetch(url, options).then(res => {
+        if (!res.ok) {
+          if (res.status === 502 || res.status === 504) {
+            throw new Error(`ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ (Error ${res.status} Bad Gateway): เซิร์ฟเวอร์ Flask (app.py) กำลังปิดอยู่ หรือหลุดการเชื่อมต่อ กรุณารัน run_app.bat หรือ py app.py บนเครื่องคอมพิวเตอร์`);
+          }
+          throw new Error(`เซิร์ฟเวอร์ตอบกลับ Error Status ${res.status}`);
+        }
+        return res.text().then(text => {
+          if (!text || !text.trim()) {
+            throw new Error('ไม่พบข้อมูลจากเซิร์ฟเวอร์ (Empty response)');
+          }
+          try {
+            return JSON.parse(text);
+          } catch (e) {
+            throw new Error('การเชื่อมต่อถูกขัดจังหวะหรือเซิร์ฟเวอร์กำลังรีโหลด กรุณาลองใหม่อีกครั้ง');
+          }
+        });
+      });
+    }
+
+    function loadHubZoneMap() {
+      safeFetchJson('/api/hub-zone-map')
+        .then(res => {
+          if (res.success && res.hubMap) {
+            cachedHubMap = res.hubMap;
+          }
+        })
+        .catch(err => console.warn('Could not load hub map from API, will use fallback:', err));
+    }
+
+    function resolveHubToZone(hubName) {
+      if (!hubName) return 'A';
+      const clean = String(hubName).trim().toLowerCase();
+      if (cachedHubMap && cachedHubMap[clean]) {
+        return cachedHubMap[clean];
+      }
+      if (clean.includes('-')) {
+        const prefix = clean.split('-')[0].trim();
+        if (cachedHubMap && cachedHubMap[prefix]) {
+          return cachedHubMap[prefix];
+        }
+      }
+      const upper = String(hubName).trim().toUpperCase();
+      if (upper.includes('INTER') || upper.includes('SOCW') || upper.includes('SOCE')) return 'INTERSOC';
+      if (upper.includes('RET')) return 'RETURN';
+      return 'A';
+    }
+
+    let availableGroupFiles = { folders: [], files: [] };
+
+    function fetchFileList() {
+      safeFetchJson('/api/list-files')
+        .then(data => {
+          availableGroupFiles = data;
+          const selectEl = document.getElementById('skipDateSelect');
+          if (!selectEl) return;
+          let html = '<option value="">-- เลือกไฟล์หรือโฟลเดอร์ Skip Process --</option>';
+
+          // If current state is a custom group
+          if (skipDataState && skipDataState.isCustomGroup) {
+            html += `<optgroup label="🗂️ กลุ่มรวมข้อมูลที่กำหนดเอง (Active)">
+              <option value="${skipDataState.filename}">🗂️ ${skipDataState.folderName || 'กลุ่มที่เลือก'} (${skipDataState.fileCount || 0} ไฟล์)</option>
+            </optgroup>`;
+          }
+
+          const folders = data.folders || data.skip_folders || [];
+          if (folders.length > 0) {
+            html += '<optgroup label="📁 โฟลเดอร์รวม (สรุปข้อมูลทั้ง Folder)">';
+            folders.forEach(f => {
+              html += `<option value="${f.filename}">📁 ทั้งโฟลเดอร์: ${f.folderName} (${f.fileCount} ไฟล์รวมกัน)</option>`;
+            });
+            html += '</optgroup>';
+
+            // Render single files within each folder
+            folders.forEach(f => {
+              if (f.files && f.files.length > 0) {
+                html += `<optgroup label="📂 ไฟล์เดี่ยวใน [${f.folderName}] (${f.files.length} ไฟล์)">`;
+                f.files.forEach(cf => {
+                  html += `<option value="${cf.filename}">📑 ${cf.basename}</option>`;
+                });
+                html += '</optgroup>';
+              }
+            });
+          }
+
+          const files = data.files || data.skip_files || [];
+          if (files.length > 0) {
+            html += '<optgroup label="📄 ไฟล์เดี่ยวทั่วไป (Root / Uploads)">';
+            files.forEach(f => {
+              html += `<option value="${f.filename}">📄 ${f.basename || f.filename}</option>`;
+            });
+            html += '</optgroup>';
+          }
+
+          selectEl.innerHTML = html;
+          if (skipDataState && skipDataState.filename) {
+            selectEl.value = skipDataState.filename;
+          }
+        })
+        .catch(err => console.error(err));
+    }
+
+    function openCustomGroupModal() {
+      safeFetchJson('/api/list-files')
+        .then(data => {
+          availableGroupFiles = data;
+          renderCustomGroupList();
+          const modalEl = new bootstrap.Modal(document.getElementById('customGroupModal'));
+          modalEl.show();
+        })
+        .catch(err => alert('ไม่สามารถโหลดรายการไฟล์ได้: ' + err.message));
+    }
+
+    function renderCustomGroupList() {
+      const container = document.getElementById('customGroupFilesContainer');
+      if (!container) return;
+      const q = (document.getElementById('customGroupSearchInput')?.value || '').toLowerCase().trim();
+      
+      let html = '';
+      const folders = availableGroupFiles.folders || availableGroupFiles.skip_folders || [];
+      const rootFiles = availableGroupFiles.files || availableGroupFiles.skip_files || [];
+      
+      // Render Folders & their child files
+      folders.forEach((f, fIdx) => {
+        const childs = (f.files || []).filter(c => !q || c.basename.toLowerCase().includes(q) || f.folderName.toLowerCase().includes(q));
+        if (childs.length > 0) {
+          html += `
+            <div class="mb-3 border rounded-3 p-2 bg-light shadow-xs">
+              <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
+                <div class="fw-bold text-primary small"><i class="fa-solid fa-folder me-1"></i> โฟลเดอร์: ${f.folderName} (${childs.length} ไฟล์)</div>
+                <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size:11px;" onclick="toggleFolderCheckboxes('fld_${fIdx}', true)">เลือกทั้งโฟลเดอร์นี้</button>
+              </div>
+              <div class="ps-2">
+                ${childs.map(c => `
+                  <div class="form-check py-1 border-bottom border-light">
+                    <input class="form-check-input custom-file-cb fld_${fIdx}" type="checkbox" value="${c.filename}" id="cb_skip_${c.filename.replace(/[^a-zA-Z0-9]/g, '_')}" onchange="updateCustomGroupCount()">
+                    <label class="form-check-label small text-dark" for="cb_skip_${c.filename.replace(/[^a-zA-Z0-9]/g, '_')}">
+                      📑 ${c.basename}
+                    </label>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+      });
+
+      // Render Root files
+      const filteredRoot = rootFiles.filter(c => !q || (c.basename || c.filename).toLowerCase().includes(q));
+      if (filteredRoot.length > 0) {
+        html += `
+          <div class="mb-2 border rounded-3 p-2 bg-white shadow-xs">
+            <div class="fw-bold text-secondary small mb-1 pb-1 border-bottom"><i class="fa-solid fa-file-lines me-1"></i> ไฟล์เดี่ยวทั่วไป (Root / Uploads)</div>
+            <div class="ps-2">
+              ${filteredRoot.map(c => `
+                <div class="form-check py-1 border-bottom border-light">
+                  <input class="form-check-input custom-file-cb" type="checkbox" value="${c.filename}" id="cb_skip_${c.filename.replace(/[^a-zA-Z0-9]/g, '_')}" onchange="updateCustomGroupCount()">
+                  <label class="form-check-label small text-dark" for="cb_skip_${c.filename.replace(/[^a-zA-Z0-9]/g, '_')}">
+                    📄 ${c.basename || c.filename}
+                  </label>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (!html) {
+        html = '<div class="text-center text-muted py-4 small">ไม่พบไฟล์ที่ตรงกับคำค้นหา</div>';
+      }
+
+      container.innerHTML = html;
+      updateCustomGroupCount();
+    }
+
+    function filterCustomGroupList() {
+      renderCustomGroupList();
+    }
+
+    function toggleFolderCheckboxes(folderClass, state) {
+      const cbs = document.querySelectorAll(`.${folderClass}`);
+      cbs.forEach(cb => cb.checked = true);
+      updateCustomGroupCount();
+    }
+
+    function selectAllCustomGroupFiles(state) {
+      const cbs = document.querySelectorAll('.custom-file-cb');
+      cbs.forEach(cb => cb.checked = state);
+      updateCustomGroupCount();
+    }
+
+    function updateCustomGroupCount() {
+      const cbs = document.querySelectorAll('.custom-file-cb:checked');
+      const countEl = document.getElementById('customGroupSelectedCount');
+      if (countEl) {
+        countEl.innerText = `เลือกแล้ว ${cbs.length} ไฟล์`;
+      }
+    }
+
+    function submitCustomGroup() {
+      const cbs = document.querySelectorAll('.custom-file-cb:checked');
+      const selectedFiles = Array.from(cbs).map(cb => cb.value);
+      if (selectedFiles.length === 0) {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({ title: 'กรุณาเลือกไฟล์', text: 'กรุณาเลือกไฟล์อย่างน้อย 1 ไฟล์เพื่อทำการรวมกลุ่มครับ', icon: 'warning', confirmButtonColor: '#2563eb', background: '#0d1b2a', color: '#fff' });
+        } else {
+          alert('กรุณาเลือกไฟล์อย่างน้อย 1 ไฟล์เพื่อทำการรวมกลุ่มครับ');
+        }
+        return;
+      }
+
+      const groupName = (document.getElementById('customGroupNameInput')?.value || `กลุ่ม ${selectedFiles.length} ไฟล์`).trim();
+      const modalEl = bootstrap.Modal.getInstance(document.getElementById('customGroupModal'));
+      if (modalEl) modalEl.hide();
+
+      showSkipStatus(`กำลังประมวลผลกลุ่มไฟล์ "${groupName}" (${selectedFiles.length} ไฟล์)...`, 'loading');
+
+      safeFetchJson('/api/load-custom-group', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          files: selectedFiles,
+          type: 'skip',
+          group_name: groupName
+        })
+      })
+      .then(data => {
+        if (data && data.success) {
+          skipDataState = data;
+          safeSetLocalStorage('socn_skip_data', data);
+          updateSkipUI(data);
+          showSkipStatus(`✅ ประมวลผลกลุ่มไฟล์ "${groupName}" (รวม ${data.fileCount} ไฟล์) เรียบร้อย`, 'success');
+          
+          fetchFileList();
+
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              title: '🗂️ รวมกลุ่มไฟล์สำเร็จ!',
+              html: `ประมวลผลกลุ่ม <b>"${groupName}"</b> เรียบร้อย<br>รวม <b>${data.fileCount} ไฟล์</b> (${selectedFiles.length} ไฟล์ที่เลือก)<br>ยอด Skip Cases รวม: <b class="text-danger">${(data.totalSkipCases || data.totalRows || 0).toLocaleString()} เคส</b>`,
+              icon: 'success',
+              confirmButtonColor: '#10b981',
+              background: '#0d1b2a',
+              color: '#fff'
+            });
+          }
+        } else {
+          showSkipStatus(`เกิดข้อผิดพลาดในการรวมกลุ่ม: ${data.error}`, 'error');
+        }
+      })
+      .catch(err => showSkipStatus(`ไม่สามารถรวมกลุ่มได้: ${err.message}`, 'error'));
+    }
+
+    let folderSelectedUploadFiles = [];
+
+    function openFolderManagerModal() {
+      refreshFolderManager();
+      const modalEl = new bootstrap.Modal(document.getElementById('folderManagerModal'));
+      modalEl.show();
+    }
+
+    function refreshFolderManager() {
+      safeFetchJson('/api/list-files')
+        .then(data => {
+          availableGroupFiles = data;
+          renderFolderManagerUI();
+          fetchFileList();
+        })
+        .catch(err => console.error(err));
+    }
+
+    function renderFolderManagerUI() {
+      const folders = availableGroupFiles.folders || availableGroupFiles.outbound_folders || availableGroupFiles.skip_folders || [];
+      const rootFiles = availableGroupFiles.files || availableGroupFiles.outbound_files || availableGroupFiles.skip_files || [];
+
+      // 1. Populate Target Folder Dropdowns
+      const targetUploadSelect = document.getElementById('targetUploadFolderSelect');
+      const targetMoveSelect = document.getElementById('targetMoveFolderSelect');
+      let folderOptionsHtml = folders.length > 0 
+        ? folders.map(f => `<option value="${f.folderName}">📁 ${f.folderName} (${f.fileCount || 0} ไฟล์)</option>`).join('')
+        : '<option value="">-- ยังไม่มีโฟลเดอร์ (กรุณาสร้างโฟลเดอร์ก่อน) --</option>';
+
+      if (targetUploadSelect) targetUploadSelect.innerHTML = folderOptionsHtml;
+      if (targetMoveSelect) targetMoveSelect.innerHTML = folderOptionsHtml;
+
+      // 2. Render Move Checklist
+      const moveContainer = document.getElementById('moveFilesChecklistContainer');
+      if (moveContainer) {
+        if (rootFiles.length === 0) {
+          moveContainer.innerHTML = '<div class="text-center text-muted py-3 small">ไม่มีไฟล์เดี่ยวภายนอกโฟลเดอร์ให้ย้าย</div>';
+        } else {
+          moveContainer.innerHTML = rootFiles.map(c => `
+            <div class="form-check py-1 border-bottom border-light">
+              <input class="form-check-input move-file-cb" type="checkbox" value="${c.filename}" id="move_skip_${c.filename.replace(/[^a-zA-Z0-9]/g, '_')}">
+              <label class="form-check-label small text-dark" for="move_skip_${c.filename.replace(/[^a-zA-Z0-9]/g, '_')}">
+                📄 ${c.basename || c.filename}
+              </label>
+            </div>
+          `).join('');
+        }
+      }
+
+      // 3. Render Folder Directory List
+      const listContainer = document.getElementById('folderManagerListContainer');
+      if (listContainer) {
+        if (folders.length === 0) {
+          listContainer.innerHTML = '<div class="text-center text-muted py-4 small">ยังไม่มีโฟลเดอร์ในระบบ กดแท็บ <b>"1. สร้าง Folder ใหม่"</b> เพื่อเริ่มต้น</div>';
+        } else {
+          listContainer.innerHTML = folders.map((f, idx) => {
+            const childs = f.files || [];
+            return `
+              <div class="border rounded-3 p-2 mb-2 bg-light shadow-xs">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div>
+                    <span class="fw-bold text-dark fs-6"><i class="fa-solid fa-folder text-warning me-1"></i> ${f.folderName}</span>
+                    <span class="badge bg-secondary ms-2">${f.fileCount || 0} ไฟล์</span>
+                  </div>
+                  <div class="d-flex gap-1">
+                    <button class="btn btn-xs btn-outline-primary py-1 px-2" style="font-size:11px;" onclick="loadFolderDirectly('${f.folderName}')">
+                      <i class="fa-solid fa-chart-line me-1"></i> เปิดดูข้อมูล
+                    </button>
+                    <button class="btn btn-xs btn-outline-success py-1 px-2" style="font-size:11px;" onclick="switchTabToUpload('${f.folderName}')">
+                      <i class="fa-solid fa-upload me-1"></i> อัปโหลดเพิ่ม
+                    </button>
+                    <button class="btn btn-xs btn-outline-danger py-1 px-2" style="font-size:11px;" onclick="deleteFolderDirectly('${f.folderName}')">
+                      <i class="fa-solid fa-trash me-1"></i> ลบโฟลเดอร์
+                    </button>
+                  </div>
+                </div>
+                ${childs.length > 0 ? `
+                  <div class="mt-2 ps-3 border-start border-3 border-warning" style="max-height: 120px; overflow-y: auto;">
+                    ${childs.map(c => `
+                      <div class="small text-muted py-1 d-flex justify-content-between align-items-center border-bottom border-light">
+                        <span>📑 ${c.basename}</span>
+                        <button class="btn btn-xs text-danger py-0 px-1 border-0" onclick="deleteSingleFileInsideFolder('${c.filename}')" title="ลบไฟล์นี้"><i class="fa-solid fa-xmark"></i></button>
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : '<div class="small text-muted mt-1 ps-2">(โฟลเดอร์ว่าง ยังไม่มีไฟล์)</div>'}
+              </div>
+            `;
+          }).join('');
+        }
+      }
+    }
+
+    function submitCreateFolder() {
+      const input = document.getElementById('newFolderNameInput');
+      const name = (input ? input.value : '').trim();
+      if (!name) {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({ title: 'กรุณาระบุชื่อ', text: 'กรุณาระบุชื่อโฟลเดอร์ที่ต้องการสร้างครับ', icon: 'warning', confirmButtonColor: '#2563eb', background: '#0d1b2a', color: '#fff' });
+        } else {
+          alert('กรุณาระบุชื่อโฟลเดอร์ที่ต้องการสร้างครับ');
+        }
+        return;
+      }
+
+      safeFetchJson('/api/create-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder_name: name })
+      })
+      .then(data => {
+        if (data.success) {
+          if (input) input.value = '';
+          refreshFolderManager();
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({ title: 'สร้างสำเร็จ!', text: `สร้างโฟลเดอร์ "${data.folderName}" เรียบร้อยแล้ว`, icon: 'success', confirmButtonColor: '#10b981', background: '#0d1b2a', color: '#fff', timer: 1500, showConfirmButton: false });
+          }
+        } else {
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({ title: 'เกิดข้อผิดพลาด', text: data.error, icon: 'error', confirmButtonColor: '#dc2626', background: '#0d1b2a', color: '#fff' });
+          } else {
+            alert(data.error);
+          }
+        }
+      })
+      .catch(err => alert('ไม่สามารถสร้างโฟลเดอร์ได้: ' + err.message));
+    }
+
+    function switchTabToUpload(targetFolder) {
+      const triggerEl = document.querySelector('#folderManagerTabs button[data-bs-target="#tabUploadFolder"]');
+      if (triggerEl) {
+        const tab = new bootstrap.Tab(triggerEl);
+        tab.show();
+      }
+      const sel = document.getElementById('targetUploadFolderSelect');
+      if (sel) sel.value = targetFolder;
+    }
+
+    function onFolderFilesSelected(files) {
+      folderSelectedUploadFiles = Array.from(files || []);
+      const btn = document.getElementById('btnStartFolderUpload');
+      if (btn) {
+        btn.disabled = folderSelectedUploadFiles.length === 0;
+        btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up me-1"></i> เริ่มอัปโหลด ${folderSelectedUploadFiles.length} ไฟล์เข้าโฟลเดอร์`;
+      }
+    }
+
+    async function startUploadFilesToFolder() {
+      const folderName = (document.getElementById('targetUploadFolderSelect')?.value || '').trim();
+      if (!folderName) {
+        alert('กรุณาเลือกโฟลเดอร์ปลายทาง');
+        return;
+      }
+      if (folderSelectedUploadFiles.length === 0) {
+        alert('กรุณาเลือกไฟล์ที่ต้องการอัปโหลด');
+        return;
+      }
+
+      const progressArea = document.getElementById('folderUploadProgressArea');
+      const statusText = document.getElementById('folderUploadStatusText');
+      const progressBar = document.getElementById('folderUploadProgressBar');
+      const startBtn = document.getElementById('btnStartFolderUpload');
+
+      if (progressArea) progressArea.classList.remove('d-none');
+      if (startBtn) startBtn.disabled = true;
+
+      try {
+        for (let fIdx = 0; fIdx < folderSelectedUploadFiles.length; fIdx++) {
+          const file = folderSelectedUploadFiles[fIdx];
+          const fileNum = fIdx + 1;
+          await uploadSingleSkipFileChunks(file, 'skip', folderName, (pct) => {
+            if (statusText) statusText.innerText = `กำลังอัปโหลด [${fileNum}/${folderSelectedUploadFiles.length}] "${file.name}" (${pct}%)...`;
+            const overallPct = Math.round(((fIdx + pct / 100) / folderSelectedUploadFiles.length) * 100);
+            if (progressBar) progressBar.style.width = `${overallPct}%`;
+          });
+        }
+
+        if (statusText) statusText.innerText = `✅ อัปโหลดครบทั้ง ${folderSelectedUploadFiles.length} ไฟล์เข้าโฟลเดอร์ "${folderName}" สำเร็จ!`;
+        if (progressBar) progressBar.style.width = '100%';
+
+        folderSelectedUploadFiles = [];
+        const fileInput = document.getElementById('folderMultiFileInput');
+        if (fileInput) fileInput.value = '';
+        if (startBtn) {
+          startBtn.disabled = true;
+          startBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up me-1"></i> เริ่มอัปโหลดไฟล์เข้าโฟลเดอร์ที่เลือก';
+        }
+
+        refreshFolderManager();
+
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({
+            title: 'อัปโหลดสำเร็จ!',
+            text: `อัปโหลดไฟล์เข้าโฟลเดอร์ "${folderName}" เรียบร้อยแล้ว`,
+            icon: 'success',
+            confirmButtonColor: '#10b981',
+            background: '#0d1b2a',
+            color: '#fff'
+          });
+        }
+      } catch (err) {
+        if (statusText) statusText.innerText = `เกิดข้อผิดพลาด: ${err.message}`;
+        if (startBtn) startBtn.disabled = false;
+      }
+    }
+
+    function submitMoveFilesToFolder() {
+      const cbs = document.querySelectorAll('.move-file-cb:checked');
+      const files = Array.from(cbs).map(cb => cb.value);
+      if (files.length === 0) {
+        alert('กรุณาเลือกไฟล์ที่ต้องการย้าย');
+        return;
+      }
+      const folderName = (document.getElementById('targetMoveFolderSelect')?.value || '').trim();
+      if (!folderName) {
+        alert('กรุณาเลือกโฟลเดอร์ปลายทาง');
+        return;
+      }
+
+      safeFetchJson('/api/move-file-to-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: files, folder_name: folderName })
+      })
+      .then(data => {
+        if (data.success) {
+          refreshFolderManager();
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({ title: 'ย้ายไฟล์สำเร็จ!', text: `ย้าย ${data.movedCount} ไฟล์เข้าสู่โฟลเดอร์ "${folderName}" เรียบร้อยแล้ว`, icon: 'success', confirmButtonColor: '#10b981', background: '#0d1b2a', color: '#fff' });
+          }
+        } else {
+          alert(data.error);
+        }
+      })
+      .catch(err => alert('เกิดข้อผิดพลาด: ' + err.message));
+    }
+
+    function loadFolderDirectly(folderName) {
+      const modalEl = bootstrap.Modal.getInstance(document.getElementById('folderManagerModal'));
+      if (modalEl) modalEl.hide();
+      onSkipDateChange(`folder:${folderName}`);
+    }
+
+    function deleteFolderDirectly(folderName) {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          title: '⚠️ ลบทั้งโฟลเดอร์ถาวร?',
+          html: `คุณต้องการลบโฟลเดอร์ <b>"${folderName}"</b> พร้อมไฟล์ทั้งหมดข้างในใช่หรือไม่?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc2626',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: 'ใช่, ลบทั้งโฟลเดอร์',
+          cancelButtonText: 'ยกเลิก',
+          background: '#0d1b2a',
+          color: '#fff'
+        }).then(res => {
+          if (res.isConfirmed) {
+            safeFetchJson('/api/delete-file', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ filename: `folder:${folderName}` })
+            }).then(data => {
+              if (data.success) {
+                refreshFolderManager();
+                Swal.fire({ title: 'ลบสำเร็จ!', text: `ลบโฟลเดอร์ "${folderName}" เรียบร้อยแล้ว`, icon: 'success', confirmButtonColor: '#10b981', background: '#0d1b2a', color: '#fff' });
+              } else {
+                Swal.fire({ title: 'เกิดข้อผิดพลาด', text: data.error, icon: 'error', confirmButtonColor: '#dc2626', background: '#0d1b2a', color: '#fff' });
+              }
+            });
+          }
+        });
+      } else {
+        if (confirm(`คุณต้องการลบโฟลเดอร์ "${folderName}" ใช่หรือไม่?`)) {
+          safeFetchJson('/api/delete-file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: `folder:${folderName}` })
+          }).then(() => refreshFolderManager());
+        }
+      }
+    }
+
+    function deleteSingleFileInsideFolder(filename) {
+      if (confirm(`คุณต้องการลบไฟล์ "${filename}" ใช่หรือไม่?`)) {
+        safeFetchJson('/api/delete-file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: filename })
+        }).then(data => {
+          if (data.success) refreshFolderManager();
+          else alert(data.error);
+        });
+      }
+    }
+
+    function onSkipDateChange(filename) {
+      if (!filename) return;
+      const isFolder = filename.startsWith('folder:');
+      const displayName = isFolder ? `โฟลเดอร์ "${filename.replace('folder:', '')}"` : `ไฟล์ "${filename}"`;
+      showSkipStatus(`กำลังโหลดข้อมูล ${displayName}...`, 'loading');
+      safeFetchJson(`/api/load-skip?filename=${encodeURIComponent(filename)}`)
+        .then(data => {
+          if (data.success) {
+            skipDataState = data;
+            safeSetLocalStorage('socn_skip_data', data);
+            updateSkipUI(data);
+            if (data.isFolder) {
+              showSkipStatus(`✅ แสดงผลสรุปข้อมูลรวมของโฟลเดอร์ "${data.folderName}" (รวม ${data.fileCount} ไฟล์) เรียบร้อย`, 'success');
+            } else {
+              showSkipStatus(`✅ สลับไปใช้ไฟล์ "${filename}" เรียบร้อย`, 'success');
+            }
+          } else {
+            showSkipStatus(`เกิดข้อผิดพลาดในการอ่านข้อมูล: ${data.error}`, 'error');
+          }
+        })
+        .catch(err => showSkipStatus(`ไม่สามารถโหลดข้อมูลได้: ${err.message}`, 'error'));
+    }
+
+    function deleteSelectedSkipFile() {
+      const selectEl = document.getElementById('skipDateSelect');
+      const filename = selectEl ? selectEl.value : '';
+      if (!filename) {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({ title: 'กรุณาเลือกไฟล์/โฟลเดอร์', text: 'กรุณาเลือกไฟล์หรือโฟลเดอร์ที่ต้องการลบในรายการก่อนครับ', icon: 'info', confirmButtonColor: '#2563eb', background: '#0d1b2a', color: '#fff' });
+        } else {
+          alert('กรุณาเลือกไฟล์หรือโฟลเดอร์ที่ต้องการลบในรายการก่อนครับ');
+        }
+        return;
+      }
+
+      const isFolder = filename.startsWith('folder:');
+      const itemType = isFolder ? 'โฟลเดอร์' : 'ไฟล์';
+      const displayName = isFolder ? filename.replace('folder:', '') : filename;
+
+      const runDelete = () => {
+        showSkipStatus(`กำลังลบ${itemType} "${displayName}"...`, 'loading');
+        safeFetchJson('/api/delete-file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: filename })
+        })
+        .then(data => {
+          if (data.success) {
+            if (typeof Swal !== 'undefined') {
+              Swal.fire({ title: `ลบ${itemType}สำเร็จ!`, text: `ลบ${itemType} "${displayName}" ออกจากเซิร์ฟเวอร์เรียบร้อยแล้ว`, icon: 'success', confirmButtonColor: '#10b981', background: '#0d1b2a', color: '#fff' });
+            }
+            showSkipStatus(`✅ ลบ${itemType} "${displayName}" เรียบร้อยแล้ว`, 'success');
+            skipDataState = null;
+            safeSetLocalStorage('socn_skip_data', null);
+            fetchFileList();
+          } else {
+            if (typeof Swal !== 'undefined') {
+              Swal.fire({ title: 'เกิดข้อผิดพลาด', text: data.error, icon: 'error', confirmButtonColor: '#dc2626', background: '#0d1b2a', color: '#fff' });
+            }
+            showSkipStatus(`เกิดข้อผิดพลาด: ${data.error}`, 'error');
+          }
+        })
+        .catch(err => showSkipStatus(`ไม่สามารถลบได้: ${err.message}`, 'error'));
+      };
+
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          title: `⚠️ ยืนยันการลบ${itemType}ถาวร?`,
+          html: `คุณต้องการลบ${itemType} <b>"${displayName}"</b> ออกจากเซิร์ฟเวอร์ใช่หรือไม่?<br><span style="color:#ef4444; font-size:0.83rem; margin-top:6px; display:inline-block;">คำเตือน: ข้อมูลนี้จะถูกลบออกจากดิสก์ทันทีและไม่สามารถกู้คืนได้</span>`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc2626',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: `<i class="fa-solid fa-trash me-1"></i> ใช่, ลบ${itemType}ถาวร`,
+          cancelButtonText: 'ยกเลิก',
+          background: '#0d1b2a',
+          color: '#ffffff'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            runDelete();
+          }
+        });
+      } else {
+        if (confirm(`⚠️ คุณต้องการลบ${itemType} "${displayName}" ออกจากเซิร์ฟเวอร์ถาวรใช่หรือไม่?`)) {
+          runDelete();
+        }
+      }
+    }
+
+    function loadDefaultSkipData() {
+      showSkipStatus('กำลังโหลดข้อมูล Skip Process...', 'loading');
+      safeFetchJson('/api/load-skip?filename=SOC-BISOCinvestigateshipment_DownloadTable_30aug.csv')
+        .then(data => {
+          if (data.success) {
+            skipDataState = data;
+            updateSkipUI(data);
+            showSkipStatus('✅ โหลดข้อมูล Skip Process เรียบร้อย', 'success');
+          }
+        })
+        .catch(() => showSkipStatus('พร้อมสำหรับอัปโหลดไฟล์ Skip Process', 'info'));
+    }
+
+    async function uploadSingleSkipFileChunks(file, scope = 'skip', folderName = '', onProgress = null) {
+      const CHUNK_SIZE = 1024 * 1024; // 1MB chunks (high stability across proxy & cloud preview)
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      const fn = file.name;
+
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+
+        let success = false;
+        let lastErr = null;
+
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            const formData = new FormData();
+            formData.append('chunk', chunk, fn);
+            formData.append('filename', fn);
+            formData.append('chunk_index', i);
+            formData.append('total_chunks', totalChunks);
+            formData.append('scope', scope);
+            if (folderName) formData.append('folder_name', folderName);
+
+            const res = await safeFetchJson('/api/upload-chunk', { method: 'POST', body: formData });
+            if (res && res.success) {
+              success = true;
+              break;
+            } else {
+              throw new Error(res ? res.error : 'Upload chunk failed');
+            }
+          } catch (e) {
+            lastErr = e;
+            if (attempt < 3) {
+              await new Promise(r => setTimeout(r, 800 * attempt));
+            }
+          }
+        }
+
+        if (!success) {
+          throw new Error(`การอัปโหลดขัดข้องที่ Chunk ${i + 1}/${totalChunks}: ${lastErr ? lastErr.message : 'Failed to fetch'}`);
+        }
+
+        if (onProgress) {
+          const percent = Math.round(((i + 1) / totalChunks) * 100);
+          onProgress(percent, i + 1, totalChunks);
+        }
+      }
+    }
+
+    async function handleSkipFileUpload(file) {
+      if (!file) return;
+      showSkipStatus(`กำลังอัปโหลด "${file.name}" เข้าสู่โฟลเดอร์ uploads (0%)...`, 'loading');
+
+      try {
+        await uploadSingleSkipFileChunks(file, 'skip', '', (pct) => {
+          showSkipStatus(`กำลังอัปโหลด "${file.name}" เข้าสู่โฟลเดอร์ uploads (${pct}%)...`, 'loading');
+        });
+
+        showSkipStatus(`กำลังประมวลผลไฟล์ "${file.name}"...`, 'loading');
+        const data = await safeFetchJson(`/api/load-skip?filename=${encodeURIComponent(file.name)}`);
+        if (data && data.success) {
+          skipDataState = data;
+          safeSetLocalStorage('socn_skip_data', data);
+          updateSkipUI(data);
+          showSkipStatus(`✅ บันทึกไฟล์ "${file.name}" เข้าโฟลเดอร์ uploads บนเซิร์ฟเวอร์เรียบร้อย!`, 'success');
+          fetchFileList();
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              title: 'อัปโหลดสำเร็จ!',
+              text: `บันทึกไฟล์ "${file.name}" เข้าโฟลเดอร์ uploads บนเซิร์ฟเวอร์เรียบร้อย`,
+              icon: 'success',
+              confirmButtonColor: '#10b981',
+              background: '#0d1b2a',
+              color: '#fff',
+              timer: 2000,
+              showConfirmButton: false
+            });
+          }
+        } else {
+          showSkipStatus(`เกิดข้อผิดพลาดในการประมวลผล: ${data.error}`, 'error');
+        }
+      } catch (err) {
+        showSkipStatus(`อัปโหลดล้มเหลว: ${err.message}`, 'error');
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({ title: 'อัปโหลดล้มเหลว', text: err.message, icon: 'error', confirmButtonColor: '#dc2626', background: '#0d1b2a', color: '#fff' });
+        }
+      }
+    }
+
+    async function handleSkipFolderUpload(fileList) {
+      if (!fileList || fileList.length === 0) return;
+
+      const validFiles = Array.from(fileList).filter(f => {
+        const n = f.name.toLowerCase();
+        return n.endsWith('.csv') || n.endsWith('.xlsx') || n.endsWith('.xls');
+      });
+
+      if (validFiles.length === 0) {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({ title: 'ไม่พบไฟล์ข้อมูล', text: 'ไม่พบไฟล์ CSV หรือ Excel (.xlsx, .xls) ในโฟลเดอร์ที่เลือก', icon: 'warning', confirmButtonColor: '#2563eb', background: '#0d1b2a', color: '#fff' });
+        } else {
+          alert('ไม่พบไฟล์ CSV หรือ Excel ในโฟลเดอร์ที่เลือก');
+        }
+        return;
+      }
+
+      let folderName = 'Skip_Folder_Upload';
+      if (validFiles[0].webkitRelativePath) {
+        folderName = validFiles[0].webkitRelativePath.split('/')[0];
+      } else {
+        folderName = `SkipFolder_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`;
+      }
+
+      showSkipStatus(`กำลังอัปโหลดโฟลเดอร์ "${folderName}" (${validFiles.length} ไฟล์)...`, 'loading');
+
+      try {
+        for (let fIdx = 0; fIdx < validFiles.length; fIdx++) {
+          const file = validFiles[fIdx];
+          const fileNum = fIdx + 1;
+          await uploadSingleSkipFileChunks(file, 'skip', folderName, (pct) => {
+            showSkipStatus(`กำลังอัปโหลดโฟลเดอร์ "${folderName}" - ไฟล์ ${fileNum}/${validFiles.length}: "${file.name}" (${pct}%)...`, 'loading');
+          });
+        }
+
+        showSkipStatus(`กำลังประมวลผลสรุปข้อมูลรวมของโฟลเดอร์ "${folderName}"...`, 'loading');
+        const data = await safeFetchJson(`/api/load-skip?filename=folder:${encodeURIComponent(folderName)}`);
+        if (data && data.success) {
+          skipDataState = data;
+          safeSetLocalStorage('socn_skip_data', data);
+          updateSkipUI(data);
+          showSkipStatus(`✅ ประมวลผลและสรุปข้อมูลของทั้งโฟลเดอร์ "${data.folderName}" (รวม ${data.fileCount} ไฟล์) บันทึกลงเซิร์ฟเวอร์เรียบร้อย!`, 'success');
+          fetchFileList();
+          if (typeof Swal !== 'undefined') {
+            Swal.fire({
+              title: '📁 สรุปข้อมูลโฟลเดอร์สำเร็จ!',
+              html: `บันทึกโฟลเดอร์ <b>"${data.folderName}"</b> ลงเครื่องเรียบร้อย<br>รวมทั้งหมด <b>${data.fileCount} ไฟล์</b><br>เคส Skip รวม: <b class="text-danger">${(data.totalSkipCases || data.totalRows || 0).toLocaleString()} เคส</b>`,
+              icon: 'success',
+              confirmButtonColor: '#10b981',
+              background: '#0d1b2a',
+              color: '#fff'
+            });
+          }
+        } else {
+          showSkipStatus(`เกิดข้อผิดพลาดในการประมวลผลโฟลเดอร์: ${data.error}`, 'error');
+        }
+      } catch (err) {
+        showSkipStatus(`อัปโหลดโฟลเดอร์ล้มเหลว: ${err.message}`, 'error');
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({ title: 'อัปโหลดโฟลเดอร์ล้มเหลว', text: err.message, icon: 'error', confirmButtonColor: '#dc2626', background: '#0d1b2a', color: '#fff' });
+        }
+      }
+    }
+
+    function updateSkipUI(data) {
+      const total = data.totalSkipCases !== undefined ? data.totalSkipCases : (data.totalRows !== undefined ? data.totalRows : (data.rawRows ? data.rawRows.length : 0));
+      document.getElementById('totalSkipCount').innerText = `${total.toLocaleString()} เคส`;
+      document.getElementById('machineCount').innerText = (data.machineCount || 0).toLocaleString();
+      document.getElementById('systemCount').innerText = (data.systemCount || 0).toLocaleString();
+      
+      const actual = currentActualVolume || data.actualVol || 980457;
+      document.getElementById('actualVolumeVal').innerText = actual.toLocaleString();
+
+      const titleElem = document.getElementById('actualVolumeTitle');
+      const subtextElem = document.getElementById('actualVolumeSubtext');
+      if (titleElem && currentVolumeLabel) {
+        if (currentVolumeMode === 'weekly') {
+          titleElem.innerText = `SOCN ACTUAL (${currentVolumeLabel.replace('รายสัปดาห์: ', '')})`;
+          if (subtextElem) subtextElem.innerText = 'ยอดรวม Actual Volume ประจำสัปดาห์';
+        } else {
+          titleElem.innerText = `SOCN ACTUAL (${currentVolumeLabel.replace('รายวัน: ', '')})`;
+          if (subtextElem) subtextElem.innerText = 'อ้างอิงจาก Volume Tracker Sheet';
+        }
+      }
+      
+      const pctVal = actual > 0 ? ((total / actual) * 100) : 0;
+      const pctStr = pctVal.toFixed(2);
+      document.getElementById('skipPercentVal').innerText = `${pctStr} %`;
+
+      const skipPercentElem = document.getElementById('skipPercentVal');
+      const targetCardBorder = document.getElementById('targetCardBorder');
+      const targetBadge = document.getElementById('targetBadge');
+      const targetStatusElem = document.getElementById('targetStatusText');
+
+      if (pctVal <= OVERALL_TARGET_PERCENT) {
+        skipPercentElem.className = 'metric-value text-success';
+        targetCardBorder.className = 'card metric-card p-3 bg-white border-start border-4 border-success';
+        targetBadge.className = 'badge bg-success fw-bold';
+        targetBadge.innerText = '🎯 Overall Target: < 0.80%';
+        targetStatusElem.innerHTML = '<span class="badge bg-success">🟢 Passed</span> <span class="text-muted small">อยู่ในเกณฑ์ภาพรวม (<= 0.80%)</span>';
+      } else {
+        skipPercentElem.className = 'metric-value text-danger';
+        targetCardBorder.className = 'card metric-card p-3 bg-white border-start border-4 border-danger';
+        targetBadge.className = 'badge bg-danger fw-bold';
+        targetBadge.innerText = '🎯 Overall Target: < 0.80%';
+        targetStatusElem.innerHTML = '<span class="badge bg-danger">🔴 Exceeded</span> <span class="text-muted small">เกินเป้าหมายภาพรวม (> 0.80%)</span>';
+      }
+
+      rawSkipRows = data.rawRows || [];
+      renderSummaryTable(total, actual, data.skipCountByZone || {});
+    }
+
+    function renderSummaryTable(total, actual, skipCountByZone) {
+      const tbody = document.getElementById('summaryTableBody');
+
+      let counts = { 'A': 0, 'B': 0, 'C': 0, 'INTERSOC': 0, 'RETURN': 0 };
+      if (skipCountByZone && Object.keys(skipCountByZone).length > 0) {
+        Object.assign(counts, skipCountByZone);
+      } else if (rawSkipRows && rawSkipRows.length > 0) {
+        rawSkipRows.forEach(r => {
+          let z = String(r.zone || r.obd_zone || '').toUpperCase();
+          if (!z || z === 'UNDEFINED' || z === 'N/A') {
+            z = resolveHubToZone(r.dest_station_name || r.hub || '');
+          }
+          if (z.includes('INTER')) z = 'INTERSOC';
+          if (z.includes('RET')) z = 'RETURN';
+          counts[z] = (counts[z] || 0) + 1;
+        });
+      }
+      window.lastSummaryCounts = Object.assign({}, counts);
+
+      const sumABC = (counts['A'] || 0) + (counts['B'] || 0) + (counts['C'] || 0);
+      const allPercentVal = actual > 0 ? (sumABC / actual) * 100 : 0;
+
+      const targetZones = ['ALL', 'A', 'B', 'C', 'INTERSOC', 'RETURN'];
+
+      tbody.innerHTML = targetZones.map(zone => {
+        let count = 0;
+        let pctVal = 0;
+
+        if (zone === 'ALL') {
+          count = sumABC;
+          pctVal = allPercentVal;
+        } else {
+          count = counts[zone] || 0;
+          pctVal = actual > 0 ? (count / actual) * 100 : 0;
+        }
+
+        const pctStr = pctVal.toFixed(2) + '%';
+        const staffList = STAFF_ROSTER[zone] || [];
+
+        const staffBadges = staffList.length > 0
+          ? staffList.map(s => `<span class="badge bg-light text-dark border me-1"><i class="fa-solid fa-user me-1 text-secondary"></i>${s}</span>`).join('')
+          : '<span class="text-muted small">ไม่มีเจ้าหน้าที่</span>';
+
+        const rowBg = zone === 'ALL' ? 'class="table-secondary fw-bold"' : '';
+        const targetModalZone = (zone === 'ALL') ? 'ABC' : zone;
+
+        const countDisplay = count > 0 
+          ? `<span class="text-danger fw-bold" style="text-decoration:underline; cursor:pointer;" onclick="openRawModal('${targetModalZone}')" title="คลิกดู Raw Data ${zone}">${count.toLocaleString()}</span>`
+          : '<span class="text-muted">0</span>';
+
+        let isZoneRed = false;
+        if (zone === 'ALL') {
+          isZoneRed = allPercentVal > OVERALL_TARGET_PERCENT;
+        } else if (['A', 'B', 'C'].includes(zone)) {
+          isZoneRed = pctVal > ZONE_TARGET_PERCENT;
+        } else {
+          isZoneRed = pctVal > OVERALL_TARGET_PERCENT;
+        }
+
+        const colorClass = isZoneRed ? 'text-danger fw-bold' : 'text-success fw-bold';
+
+        return `<tr ${rowBg}>
+          <td class="fw-bold text-dark">${zone}</td>
+          <td class="text-center">${countDisplay}</td>
+          <td class="text-center ${colorClass}">${pctStr}</td>
+          <td>${staffBadges}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function openRawModal(targetZone) {
+      currentModalZone = targetZone || 'ALL';
+      const modalEl = new bootstrap.Modal(document.getElementById('rawDataModal'));
+      modalEl.show();
+
+      let filtered = [];
+      if (targetZone === 'ABC') {
+        filtered = rawSkipRows.filter(r => ['A', 'B', 'C'].includes(String(r.zone || '').toUpperCase()));
+        document.getElementById('rawDataModalLabel').innerHTML = `<i class="fa-solid fa-file-invoice me-2"></i> รายการ Raw Data - Zone A, B, C (ทั้งหมด ${filtered.length.toLocaleString()} เคส)`;
+      } else if (targetZone && targetZone !== 'ALL') {
+        filtered = rawSkipRows.filter(r => String(r.zone || '').toUpperCase() === targetZone.toUpperCase());
+        document.getElementById('rawDataModalLabel').innerHTML = `<i class="fa-solid fa-file-invoice me-2"></i> รายการ Raw Data - Zone ${targetZone} (ทั้งหมด ${filtered.length.toLocaleString()} เคส)`;
+      } else {
+        filtered = rawSkipRows;
+        document.getElementById('rawDataModalLabel').innerHTML = `<i class="fa-solid fa-file-invoice me-2"></i> รายการ Raw Data ทั้งหมด (ทั้งหมด ${rawSkipRows.length.toLocaleString()} เคส)`;
+      }
+
+      currentRawRows = filtered;
+      renderRawTableBody(filtered);
+      document.getElementById('searchRaw').value = '';
+    }
+
+    function renderRawTableBody(rows) {
+      const tbody = document.getElementById('skipRawTableBody');
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">ไม่พบข้อมูล Raw Data ในเงื่อนไขนี้</td></tr>';
+        return;
+      }
+
+      const pageRows = rows.slice(0, 300);
+
+      tbody.innerHTML = pageRows.map((r, i) => {
+        const reason = String(r.reason || r.soc_outbound_late_type_2nd_cutoff || 'skip_outbound');
+        let badgeClass = 'bg-danger';
+        if (reason.includes('machine')) badgeClass = 'bg-warning text-dark';
+        else if (reason.includes('system')) badgeClass = 'bg-info text-dark';
+
+        const shipmentId = r.shipmentId || r.shipment_id || '-';
+        const zone = r.zone || '-';
+        const hub = r.hub || r.dest_station_name || '-';
+
+        return `<tr>
+          <td>${i + 1}</td>
+          <td class="fw-bold text-primary">${shipmentId}</td>
+          <td><span class="badge ${badgeClass}">${reason}</span></td>
+          <td><span class="badge bg-secondary">${zone}</span></td>
+          <td class="fw-bold text-dark">${hub}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function filterRawTable() {
+      const input = document.getElementById("searchRaw").value.toUpperCase();
+      const trs = document.getElementById("skipRawTableBody").getElementsByTagName("tr");
+
+      for (let i = 0; i < trs.length; i++) {
+        const text = trs[i].innerText.toUpperCase();
+        trs[i].style.display = (input === '' || text.indexOf(input) > -1) ? "" : "none";
+      }
+    }
+
+    function exportSkipRawCSV() {
+      const rowsToExport = currentRawRows && currentRawRows.length > 0 ? currentRawRows : rawSkipRows;
+      if (!rowsToExport || rowsToExport.length === 0) {
+        alert('ไม่มีข้อมูล Raw Data สำหรับ Export');
+        return;
+      }
+
+      const headers = ['No', 'Shipment ID', 'Skip Reason', 'Zone', 'Hub (Dest Station)'];
+      let csvData = [headers];
+
+      rowsToExport.forEach((r, idx) => {
+        csvData.push([
+          idx + 1,
+          r.shipmentId || r.shipment_id || '',
+          r.reason || r.soc_outbound_late_type_2nd_cutoff || 'skip_outbound',
+          r.zone || '',
+          r.hub || r.dest_station_name || ''
+        ]);
+      });
+
+      let csvContent = "\uFEFF";
+      csvData.forEach(rowArray => {
+        let row = rowArray.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",");
+        csvContent += row + "\r\n";
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `SKIP_RAW_DATA_ZONE_${currentModalZone}_${timestamp}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    let currentVolumeMode = 'daily';
+    let currentVolumeLabel = 'Daily';
+
+    function setVolumeMode(mode) {
+      currentVolumeMode = mode;
+      const btnDaily = document.getElementById('btnTypeDaily');
+      const btnWeekly = document.getElementById('btnTypeWeekly');
+      const dailyCol = document.getElementById('dailyInputCol');
+      const weeklyCol = document.getElementById('weeklyInputCol');
+
+      if (mode === 'daily') {
+        if (btnDaily) btnDaily.className = 'btn btn-sm btn-primary fw-bold';
+        if (btnWeekly) btnWeekly.className = 'btn btn-sm btn-outline-secondary fw-bold';
+        if (dailyCol) dailyCol.classList.remove('d-none');
+        if (weeklyCol) weeklyCol.classList.add('d-none');
+      } else {
+        if (btnDaily) btnDaily.className = 'btn btn-sm btn-outline-secondary fw-bold';
+        if (btnWeekly) btnWeekly.className = 'btn btn-sm btn-primary fw-bold';
+        if (dailyCol) dailyCol.classList.add('d-none');
+        if (weeklyCol) weeklyCol.classList.remove('d-none');
+      }
+    }
+
+    function onWeekSelectChange(val) {
+      const customInput = document.getElementById('volumeWeekCustomInput');
+      if (!customInput) return;
+      if (val === 'custom') {
+        customInput.classList.remove('d-none');
+        customInput.focus();
+      } else {
+        customInput.classList.add('d-none');
+      }
+    }
+
+    function setVolumePreset(dateOrWeekStr, val, mode = 'daily', label = '') {
+      setVolumeMode(mode);
+      if (mode === 'daily') {
+        const dateInput = document.getElementById('volumeDateInput');
+        if (dateInput) dateInput.value = dateOrWeekStr;
+      } else {
+        const sel = document.getElementById('volumeWeekSelect');
+        const customInput = document.getElementById('volumeWeekCustomInput');
+        if (sel) {
+          let matched = false;
+          for (let opt of sel.options) {
+            if (opt.value === dateOrWeekStr) {
+              sel.value = dateOrWeekStr;
+              matched = true;
+              break;
+            }
+          }
+          if (!matched) {
+            sel.value = 'custom';
+            if (customInput) {
+              customInput.value = dateOrWeekStr;
+              customInput.classList.remove('d-none');
+            }
+          } else if (customInput) {
+            customInput.classList.add('d-none');
+          }
+        }
+      }
+      const valInput = document.getElementById('volumeInputVal');
+      if (valInput) valInput.value = val;
+    }
+
+    function openVolumeTrackerModal() {
+      const modalEl = new bootstrap.Modal(document.getElementById('volumeTrackerModal'));
+      modalEl.show();
+      loadVolumeHistory();
+    }
+
+    function saveManualVolume() {
+      let dateOrWeek = '';
+      let displayLabel = '';
+      if (currentVolumeMode === 'daily') {
+        dateOrWeek = document.getElementById('volumeDateInput').value;
+        displayLabel = `รายวัน: ${dateOrWeek}`;
+      } else {
+        const selVal = document.getElementById('volumeWeekSelect').value;
+        if (selVal === 'custom') {
+          dateOrWeek = (document.getElementById('volumeWeekCustomInput').value || '').trim();
+        } else {
+          dateOrWeek = selVal;
+        }
+        displayLabel = `รายสัปดาห์: ${dateOrWeek}`;
+      }
+
+      const valInput = document.getElementById('volumeInputVal').value;
+      const val = parseInt(valInput, 10);
+
+      if (!dateOrWeek || isNaN(val) || val <= 0) {
+        alert('กรุณาระบุวันที่/สัปดาห์ และตัวเลข Volume ให้ถูกต้อง');
+        return;
+      }
+
+      currentActualVolume = val;
+      currentVolumeLabel = displayLabel;
+
+      safeFetchJson('/api/volume-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: dateOrWeek,
+          actual: val,
+          type: currentVolumeMode,
+          label: displayLabel,
+          setActive: true
+        })
+      })
+      .then(res => {
+        if (res.success) {
+          updateSkipUI(skipDataState || {});
+          loadVolumeHistory();
+          const modalEl = bootstrap.Modal.getInstance(document.getElementById('volumeTrackerModal'));
+          if (modalEl) modalEl.hide();
+          showSkipStatus(`✅ บันทึก Volume ${val.toLocaleString()} ชิ้น (${displayLabel}) เรียบร้อย!`, 'success');
+        }
+      })
+      .catch(() => {
+        updateSkipUI(skipDataState || {});
+        const modalEl = bootstrap.Modal.getInstance(document.getElementById('volumeTrackerModal'));
+        if (modalEl) modalEl.hide();
+      });
+    }
+
+    function applyVolumeEntry(dateStr, val, type = 'daily', label = '') {
+      currentActualVolume = val;
+      currentVolumeMode = type;
+      currentVolumeLabel = label || dateStr;
+      
+      setVolumePreset(dateStr, val, type, label);
+      updateSkipUI(skipDataState || {});
+      const modalEl = bootstrap.Modal.getInstance(document.getElementById('volumeTrackerModal'));
+      if (modalEl) modalEl.hide();
+      showSkipStatus(`✅ สลับไปใช้ Volume ${val.toLocaleString()} ชิ้น (${label || dateStr})`, 'success');
+    }
+
+    function deleteVolumeEntry(dateStr) {
+      if (!confirm(`คุณต้องการลบประวัติ Volume "${dateStr}" ใช่หรือไม่?`)) return;
+      safeFetchJson(`/api/volume-history?date=${encodeURIComponent(dateStr)}`, { method: 'DELETE' })
+        .then(res => {
+          if (res.success) {
+            loadVolumeHistory();
+          }
+        });
+    }
+
+    function loadVolumeHistory() {
+      safeFetchJson('/api/volume-history')
+        .then(data => {
+          if (data.success && data.history) {
+            const tbody = document.getElementById('volumeHistoryTableBody');
+            if (data.history.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">ไม่มีประวัติการบันทึก</td></tr>';
+              return;
+            }
+            tbody.innerHTML = data.history.map(item => {
+              const isWeekly = item.type === 'weekly' || String(item.date).toLowerCase().includes('week');
+              const typeBadge = isWeekly 
+                ? '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-2 py-1 fw-bold"><i class="fa-solid fa-calendar-week me-1"></i> รายสัปดาห์</span>'
+                : '<span class="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1 fw-bold"><i class="fa-solid fa-calendar-day me-1"></i> รายวัน</span>';
+              
+              const itemLabel = item.label || item.date;
+              const dateEscaped = (item.date || '').replace(/'/g, "\\'");
+              const labelEscaped = (itemLabel || '').replace(/'/g, "\\'");
+              const itemType = item.type || (isWeekly ? 'weekly' : 'daily');
+
+              return `<tr>
+                <td>${typeBadge}</td>
+                <td class="fw-bold text-dark">${itemLabel}</td>
+                <td class="text-end fw-bold text-primary fs-6">${item.actual.toLocaleString()}</td>
+                <td class="text-center">
+                  <div class="d-flex justify-content-center gap-1">
+                    <button class="btn btn-sm btn-outline-success py-0 px-2 fw-bold" onclick="applyVolumeEntry('${dateEscaped}', ${item.actual}, '${itemType}', '${labelEscaped}')">
+                      <i class="fa-solid fa-check me-1"></i> ใช้เลขนี้
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger py-0 px-1" title="ลบรายการนี้" onclick="deleteVolumeEntry('${dateEscaped}')">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>`;
+            }).join('');
+          }
+        })
+        .catch(err => console.error(err));
+    }
+
+    function openVolumeHistoryModal() {
+      openVolumeTrackerModal();
+    }
+
+    function showSkipStatus(msg, type) {
+      const el = document.getElementById('skipUploadStatus');
+      if (!el) return;
+
+      const selectEl = document.getElementById('skipDateSelect');
+      const selectedFile = selectEl ? selectEl.value : '';
+      const deleteBtnHtml = (type === 'error' && selectedFile) 
+        ? `<button class="btn btn-danger btn-sm ms-2 py-0 px-2 fw-bold" onclick="deleteSelectedSkipFile()"><i class="fa-solid fa-trash me-1"></i> ลบไฟล์ "${selectedFile}" ออกจากระบบ</button>` 
+        : '';
+
+      el.innerHTML = `<div class="alert alert-${type === 'success' ? 'success' : (type === 'loading' ? 'info' : 'danger')} py-2 px-3 small d-flex align-items-center justify-content-between flex-wrap gap-2"><span>${msg}</span>${deleteBtnHtml}</div>`;
+    }
+
+    // ==========================================
+    // 📢 SEATALK SKIP PROCESS ALERT
+    // ==========================================
+    function getSkipProcessSummaryPayload() {
+      // 1. Get Actual Volume from currentActualVolume or DOM #actualVolumeVal
+      let actualVal = 0;
+      if (typeof currentActualVolume === 'number' && currentActualVolume > 0) {
+        actualVal = currentActualVolume;
+      } else {
+        const domText = document.getElementById('actualVolumeVal')?.innerText?.replace(/[^0-9]/g, '');
+        if (domText) actualVal = parseInt(domText, 10);
+      }
+      
+      // 2. Get Date from currentVolumeLabel, titleElem, or today
+      let dateVal = '';
+      if (typeof currentVolumeLabel === 'string' && currentVolumeLabel) {
+        dateVal = currentVolumeLabel.replace(/รายวัน:\s*|รายสัปดาห์:\s*/g, '').trim();
+      }
+      if (!dateVal) {
+        const titleText = document.getElementById('actualVolumeTitle')?.innerText || '';
+        const match = titleText.match(/\(([^)]+)\)/);
+        if (match) dateVal = match[1].trim();
+      }
+      if (!dateVal || dateVal.includes('ROW')) {
+        dateVal = new Date().toISOString().split('T')[0];
+      }
+
+      // 3. Get Skip Counts by Zone and Total from authoritative state
+      let counts = { 'A': 0, 'B': 0, 'C': 0, 'INTERSOC': 0, 'RETURN': 0 };
+      if (skipDataState && skipDataState.skipCountByZone && Object.keys(skipDataState.skipCountByZone).length > 0) {
+        Object.assign(counts, skipDataState.skipCountByZone);
+      } else if (window.lastSummaryCounts && Object.keys(window.lastSummaryCounts).length > 0) {
+        Object.assign(counts, window.lastSummaryCounts);
+      } else if (rawSkipRows && rawSkipRows.length > 0) {
+        rawSkipRows.forEach(r => {
+          let z = String(r.zone || r.obd_zone || '').toUpperCase();
+          if (!z || z === 'UNDEFINED' || z === 'N/A') {
+            z = resolveHubToZone(r.dest_station_name || r.hub || '');
+          }
+          if (z.includes('INTER')) z = 'INTERSOC';
+          if (z.includes('RET')) z = 'RETURN';
+          counts[z] = (counts[z] || 0) + 1;
+        });
+      }
+
+      const sumABC = (counts['A'] || 0) + (counts['B'] || 0) + (counts['C'] || 0);
+      const totalAll = (skipDataState && typeof skipDataState.totalSkipCases === 'number' && skipDataState.totalSkipCases > 0)
+        ? skipDataState.totalSkipCases
+        : (sumABC + (counts['INTERSOC'] || 0) + (counts['RETURN'] || 0));
+
+      const overallPct = actualVal > 0 ? (totalAll / actualVal) * 100 : 0;
+
+      const zonesPayload = {};
+      for (const [zKey, zCount] of Object.entries(counts)) {
+        const pct = actualVal > 0 ? (zCount / actualVal) * 100 : 0;
+        zonesPayload[zKey] = { count: zCount, pct: parseFloat(pct.toFixed(2)) };
+      }
+
+      return {
+        date: dateVal,
+        actualVolume: actualVal,
+        overallSkipCount: totalAll,
+        sumABC: sumABC,
+        overallPct: parseFloat(overallPct.toFixed(2)),
+        zones: zonesPayload
+      };
+    }
+
+    function sendSkipProcessSeatalkAlert() {
+      if (!checkAdminPermission()) return;
+      const payload = getSkipProcessSummaryPayload();
+      if (!payload.actualVolume || payload.actualVolume <= 0) {
+        alert('กรุณาระบุและบันทึก SOCN Actual Volume ก่อนส่งแจ้งเตือน');
+        return;
+      }
+
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          title: 'ยืนยันส่งแจ้งเตือน SeaTalk?',
+          html: `วันที่: <b>${payload.date}</b><br>ยอด Skip รวม: <b>${payload.overallSkipCount.toLocaleString()} ชิ้น</b> (${payload.overallPct}%)`,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: '📢 ส่งทันที',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#16a34a'
+        }).then(res => {
+          if (res.isConfirmed) executeSendSkipAlert(payload);
+        });
+      } else {
+        if (confirm(`ส่งแจ้งเตือน SeaTalk วันที่ ${payload.date} (${payload.overallPct}%) ใช่หรือไม่?`)) {
+          executeSendSkipAlert(payload);
+        }
+      }
+
+      function executeSendSkipAlert(p) {
+        fetch('/api/skip-process/send-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(p)
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            if (typeof Swal !== 'undefined') {
+              Swal.fire('สำเร็จ', data.message, 'success');
+            } else {
+              alert(data.message);
+            }
+          } else {
+            if (typeof Swal !== 'undefined') {
+              Swal.fire('ข้อผิดพลาด', data.error || 'ไม่สามารถส่งแจ้งเตือนได้', 'error');
+            } else {
+              alert(data.error);
+            }
+          }
+        })
+        .catch(err => alert('Error: ' + err.message));
+      }
+    }
+
+
+    // ==========================================
+    // 🧠 AI SKIP ANALYSIS
+    // ==========================================
+    let currentAiSkipText = '';
+
+    function openAiSkipAnalysisModal() {
+      const payload = getSkipProcessSummaryPayload();
+      const modal = new bootstrap.Modal(document.getElementById('aiSkipAnalysisModal'));
+      modal.show();
+
+      // Analyze reasons & destination hotspots from rawSkipRows
+      const reasonCounts = {};
+      const hubCounts = {};
+      if (rawSkipRows && rawSkipRows.length > 0) {
+        rawSkipRows.forEach(r => {
+          const reason = String(r.skip_reason || r.reason || 'ไม่ระบุสาเหตุ').trim();
+          const hub = String(r.dest_station_name || r.hub || 'N/A').trim();
+          reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+          if (hub && hub !== 'N/A') hubCounts[hub] = (hubCounts[hub] || 0) + 1;
+        });
+      }
+
+      const topReasons = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+      const topHubs = Object.entries(hubCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+      const failedZones = [];
+      for (const [z, d] of Object.entries(payload.zones)) {
+        if (['A', 'B', 'C'].includes(z) && d.pct > 0.27) {
+          failedZones.push(`Zone ${z} (${d.pct}%)`);
+        }
+      }
+
+      const isOverallPass = payload.overallPct <= 0.80;
+      const statusBadge = isOverallPass 
+        ? '<span class="badge bg-success px-3 py-2 fs-6">🟢 ผ่านเกณฑ์คุณภาพภาพรวม (< 0.80%)</span>' 
+        : '<span class="badge bg-danger px-3 py-2 fs-6">🔴 คุณภาพสแกนหลุดเป้าหมาย (> 0.80%)</span>';
+
+      const reasonsHtml = topReasons.length > 0
+        ? topReasons.map(([r, c], i) => `<li class="mb-1"><b>${i+1}. ${r}:</b> ${c.toLocaleString()} เคส</li>`).join('')
+        : '<li class="text-muted">ไม่มีข้อมูลสาเหตุ</li>';
+
+      const hubsHtml = topHubs.length > 0
+        ? topHubs.map(([h, c], i) => `<span class="badge bg-light text-dark border me-1 mb-1">${i+1}. ${h} (${c})</span>`).join('')
+        : '<span class="text-muted small">ไม่มีข้อมูลปลายทาง</span>';
+
+      const recs = [];
+      if (failedZones.length > 0) {
+        recs.push(`1. <b>ตรวจสอบการทำงาน ${failedZones.join(', ')}:</b> ให้ Supervisor เข้าตรวจเช็กเครื่องยิงสแกนเนอร์และกำชับพนักงานประจำสายพาน`);
+      } else {
+        recs.push('1. <b>รักษามาตรฐานสแกนต่อเนื่อง:</b> ทุก Zone ควบคุมได้ต่ำกว่า 0.27% ยอดเยี่ยม');
+      }
+      if (topReasons.length > 0) {
+        recs.push(`2. <b>แก้ปัญหาสาเหตุหลัก (${topReasons[0][0]}):</b> ประสานทีมหน้างานตรวจสอบว่าเป็นปัญหาจาก Barcode ไม่ชัดหรือสปีดการคัดแยก`);
+      }
+      recs.push('3. <b>สุ่ม Re-check ท้ายสายพาน:</b> ตรวจสอบกล่องก่อนขึ้นรถเพื่อป้องกันพัสดุหลุดสแกน');
+
+      currentAiSkipText = `✨ [AI SKIP PROCESS ANALYSIS] สรุปผลวิเคราะห์การสแกนพัสดุ
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: ${payload.date}
+🎯 สถานะ: ${isOverallPass ? 'ผ่านเกณฑ์มาตรฐาน (Passed)' : 'หลุดเป้าหมาย (Under Standard)'}
+📦 Actual Volume: ${payload.actualVolume.toLocaleString()} ชิ้น
+⚠️ ยอดพัสดุ Skip รวม: ${payload.overallSkipCount.toLocaleString()} ชิ้น (${payload.overallPct}%)
+━━━━━━━━━━━━━━━━━━━━
+🔍 สาเหตุหลักที่พบ (Top Skip Reasons):
+${topReasons.map(([r, c], i) => `• ${i+1}. ${r}: ${c.toLocaleString()} เคส`).join('\n')}
+━━━━━━━━━━━━━━━━━━━━
+💡 คำแนะนำสำหรับ Supervisor:
+${recs.map(r => r.replace(/<b>|<\/b>/g, '')).join('\n')}`;
+
+      document.getElementById('aiSkipContent').innerHTML = `
+        <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          ${statusBadge}
+          <div class="text-muted small">วันที่วิเคราะห์: <b>${payload.date}</b></div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-3">
+            <div class="p-3 bg-light rounded-3 text-center border">
+              <div class="text-muted small">Actual Volume</div>
+              <div class="fs-4 fw-bold text-primary">${payload.actualVolume.toLocaleString()}</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="p-3 bg-light rounded-3 text-center border">
+              <div class="text-muted small">ยอด Skip รวม</div>
+              <div class="fs-4 fw-bold text-danger">${payload.overallSkipCount.toLocaleString()}</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="p-3 bg-light rounded-3 text-center border">
+              <div class="text-muted small">อัตรา Skip รวม</div>
+              <div class="fs-4 fw-bold ${isOverallPass ? 'text-success' : 'text-danger'}">${payload.overallPct}%</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="p-3 bg-light rounded-3 text-center border">
+              <div class="text-muted small">โซนที่หลุดเป้า (>0.27%)</div>
+              <div class="fs-6 fw-bold ${failedZones.length > 0 ? 'text-danger' : 'text-success'}">${failedZones.length > 0 ? failedZones.join(', ') : 'ไม่มี (ผ่านครบ)'}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card border-0 bg-light p-3 rounded-3 mb-3">
+          <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-list-ol text-primary me-2"></i> สาเหตุที่พบบ่อยสูงสุด (Top Reasons)</h6>
+          <ul class="mb-0 ps-3 small text-dark">
+            ${reasonsHtml}
+          </ul>
+        </div>
+
+        <div class="card border-0 bg-light p-3 rounded-3 mb-3">
+          <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-map-pin text-danger me-2"></i> สถานีปลายทางที่มี Skip สูงสุด (Hotspot Hubs)</h6>
+          <div>${hubsHtml}</div>
+        </div>
+
+        <div class="card border-0 bg-primary bg-opacity-10 p-3 rounded-3">
+          <h6 class="fw-bold text-primary mb-2"><i class="fa-solid fa-wand-magic-sparkles me-2"></i> ข้อเสนอแนะเชิงปฏิบัติการ (Action Items)</h6>
+          <ul class="mb-0 ps-3 small text-slate-800">
+            ${recs.map(r => `<li class="mb-1">${r}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    function copyAiSkipText() {
+      if (!currentAiSkipText) return;
+      navigator.clipboard.writeText(currentAiSkipText).then(() => {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({ icon: 'success', title: 'คัดลอกบทวิเคราะห์แล้ว!', timer: 1500, showConfirmButton: false });
+        } else {
+          alert('คัดลอกบทวิเคราะห์เรียบร้อยแล้ว!');
+        }
+      });
+    }
+
+    function sendAiSkipToSeatalk() {
+      if (!checkAdminPermission()) return;
+      if (!currentAiSkipText) return;
+      fetch('/api/seatalk/send-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'AI Skip Process Analysis',
+          message: currentAiSkipText
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          if (typeof Swal !== 'undefined') {
+            Swal.fire('สำเร็จ', 'ส่งบทวิเคราะห์เข้า SeaTalk เรียบร้อยแล้ว!', 'success');
+          } else {
+            alert('ส่งเข้า SeaTalk เรียบร้อยแล้ว!');
+          }
+        } else {
+          alert(data.error || 'เกิดข้อผิดพลาด');
+        }
+      })
+      .catch(err => alert('Error: ' + err.message));
+    }
+
+    // ==========================================
+    // ⚡ ADMIN MANUAL TRIGGER SYSTEM (Admin Only)
+    // ==========================================
+    function checkAdminPermission() {
+      const user = window.AuthGuard ? window.AuthGuard.getUser() : null;
+      if (!user || (user.role !== 'Admin' && user.role !== 'admin')) {
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({
+            icon: 'error',
+            title: '🔒 สิทธิ์ไม่เพียงพอ (Admin Only)',
+            html: `ฟังก์ชัน <b>Manual Trigger / ยิงแจ้งเตือน SeaTalk</b> สงวนสิทธิ์สำหรับผู้ใช้งานระดับ <span class="badge bg-danger px-2 py-1">Admin</span> เท่านั้น<br><br><small class="text-muted">ผู้ใช้งานปัจจุบัน: <b>${user ? user.name : 'ยังไม่ล็อกอิน'}</b> (Role: <b>${user ? user.role : 'Guest'}</b>)</small>`,
+            confirmButtonText: 'รับทราบ',
+            confirmButtonColor: '#ef4444'
+          });
+        } else {
+          alert('ฟังก์ชัน Manual Trigger อนุญาตเฉพาะผู้ใช้งานระดับ Admin เท่านั้น');
+        }
+        return false;
+      }
+      return true;
+    }
+
+    let currentAdminTriggerType = 'skip';
+
+    function openAdminManualTriggerModal(defaultType = 'skip') {
+      if (!checkAdminPermission()) return;
+      const user = window.AuthGuard.getUser();
+      const dateVal = document.getElementById('filterDate') ? document.getElementById('filterDate').value : new Date().toISOString().split('T')[0];
+      
+      document.getElementById('amtAdminUserDisplay').innerText = `${user.name} (${user.role})`;
+      document.getElementById('amtSkipDate').value = dateVal;
+      document.getElementById('amtHourlyDate').value = dateVal;
+      
+      switchAdminTriggerType(defaultType);
+      
+      const modal = new bootstrap.Modal(document.getElementById('adminManualTriggerModal'));
+      modal.show();
+    }
+
+    function switchAdminTriggerType(type) {
+      currentAdminTriggerType = type;
+      ['hourly', 'skip', 'ob_bl', 'custom'].forEach(t => {
+        const pane = document.getElementById(`amt_pane_${t}`);
+        const btn = document.getElementById(`amt_tab_btn_${t}`);
+        if (pane) pane.style.display = (t === type ? 'block' : 'none');
+        if (btn) {
+          if (t === type) {
+            btn.classList.add('btn-primary', 'text-white');
+            btn.classList.remove('btn-outline-secondary');
+          } else {
+            btn.classList.remove('btn-primary', 'text-white');
+            btn.classList.add('btn-outline-secondary');
+          }
+        }
+      });
+      updateAdminTriggerPreview();
+    }
+
+    function updateAdminTriggerPreview() {
+      const previewEl = document.getElementById('amtMessagePreview');
+      if (!previewEl) return;
+      
+      const user = window.AuthGuard?.getUser() || { name: 'Admin', role: 'Admin' };
+      let msg = '';
+      
+      if (currentAdminTriggerType === 'hourly') {
+        const slot = document.getElementById('amtHourlySlot')?.value || '08:00';
+        const dateStr = document.getElementById('amtHourlyDate')?.value || new Date().toISOString().split('T')[0];
+        const target = parseInt(document.getElementById('amtHourlyTarget')?.value || 45000);
+        const minVal = parseInt(document.getElementById('amtHourlyMin')?.value || 40000);
+        const act = parseInt(document.getElementById('amtHourlyActual')?.value || 0);
+        const gap = act - target;
+        const pct = target > 0 ? Math.round((act / target) * 100) : 0;
+        
+        msg = `🚨 [SOCN MANUAL HOURLY TRIGGER] แจ้งเตือนยอดปล่อยรายชั่วโมง (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: ${dateStr}
+⏰ ช่วงเวลา: ${slot}
+🎯 เป้าหมาย (Target): ${target.toLocaleString()} ชิ้น
+⚠️ เกณฑ์ขั้นต่ำ (Minimum): ${minVal.toLocaleString()} ชิ้น
+📦 ปล่อยจริง (Actual): ${act.toLocaleString()} ชิ้น
+📉 ส่วนต่าง (Gap): ${gap.toLocaleString()} ชิ้น (${pct}% of Target)
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      } else if (currentAdminTriggerType === 'skip') {
+        const dateStr = document.getElementById('amtSkipDate')?.value || new Date().toISOString().split('T')[0];
+        const act = parseInt(document.getElementById('amtSkipActual')?.value || 0);
+        const skipCnt = parseInt(document.getElementById('amtSkipCount')?.value || 0);
+        const pct = act > 0 ? ((skipCnt / act) * 100).toFixed(2) : '0.00';
+        
+        msg = `🚨 [SOCN MANUAL SKIP TRIGGER] สรุปรายงานสแกนข้ามขั้นตอน (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+📅 วันที่: ${dateStr}
+📦 ยอดปล่อยรวม: ${act.toLocaleString()} ชิ้น
+⚠️ ยอด Skip รวม: ${skipCnt.toLocaleString()} ชิ้น (${pct}%)
+📍 สถานะรายโซน: ตรวจสอบข้อมูลในระบบ Dashboard
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      } else if (currentAdminTriggerType === 'ob_bl') {
+        const cutoff = document.getElementById('amtObBlCutoff')?.value || 'Cutoff 2';
+        const late = parseInt(document.getElementById('amtObBlLate')?.value || 0);
+        
+        msg = `🚨 [SOCN MANUAL BACKLOG TRIGGER] สรุปยอดพัสดุขาออกล่าช้า (Admin Triggered)
+━━━━━━━━━━━━━━━━━━━━
+⏰ รอบเวลา Cutoff: ${cutoff}
+📦 ยอดพัสดุตกค้างล่าช้า: ${late.toLocaleString()} ชิ้น
+👤 สั่งยิงโดย: ${user.name} (Role: ${user.role})
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      } else {
+        const title = document.getElementById('amtCustomTitle')?.value || 'SOCN BROADCAST';
+        const body = document.getElementById('amtCustomBody')?.value || 'ระบุข้อความ...';
+        msg = `📢 [${title}] (Admin Manual Broadcast)
+━━━━━━━━━━━━━━━━━━━━
+⏰ เวลา: ${new Date().toLocaleString('th-TH')}
+👤 ผู้ส่งคำสั่ง: ${user.name} (Role: ${user.role})
+━━━━━━━━━━━━━━━━━━━━
+${body}
+CC: @guy.panmanee@spxexpress.com @men.phuditde@spxexpress.com ...`;
+      }
+      previewEl.innerText = msg;
+    }
+
+    function executeSendAdminTrigger() {
+      if (!checkAdminPermission()) return;
+      const user = window.AuthGuard.getUser();
+      
+      let payload = {
+        triggerType: currentAdminTriggerType,
+        adminName: user.name,
+        role: user.role
+      };
+      
+      if (currentAdminTriggerType === 'hourly') {
+        payload.slot = document.getElementById('amtHourlySlot')?.value;
+        payload.date = document.getElementById('amtHourlyDate')?.value;
+        payload.target = parseInt(document.getElementById('amtHourlyTarget')?.value || 45000);
+        payload.minimum = parseInt(document.getElementById('amtHourlyMin')?.value || 40000);
+        payload.actual = parseInt(document.getElementById('amtHourlyActual')?.value || 0);
+      } else if (currentAdminTriggerType === 'skip') {
+        payload.date = document.getElementById('amtSkipDate')?.value;
+        payload.actualVolume = parseInt(document.getElementById('amtSkipActual')?.value || 0);
+        payload.overallSkipCount = parseInt(document.getElementById('amtSkipCount')?.value || 0);
+        payload.overallPct = payload.actualVolume > 0 ? parseFloat(((payload.overallSkipCount / payload.actualVolume) * 100).toFixed(2)) : 0.0;
+      } else if (currentAdminTriggerType === 'ob_bl') {
+        payload.cutoffRound = document.getElementById('amtObBlCutoff')?.value;
+        payload.totalLate = parseInt(document.getElementById('amtObBlLate')?.value || 0);
+      } else {
+        payload.title = document.getElementById('amtCustomTitle')?.value;
+        payload.message = document.getElementById('amtCustomBody')?.value;
+        if (!payload.message) {
+          Swal.fire('คำเตือน', 'กรุณาระบุข้อความก่อนส่ง', 'warning');
+          return;
+        }
+      }
+
+      const btn = document.getElementById('btnAmtSubmit');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังส่งคำสั่ง...';
+
+      fetch('/api/admin/manual-trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(r => r.json())
+      .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> 🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที';
+        if (data.success) {
+          bootstrap.Modal.getInstance(document.getElementById('adminManualTriggerModal'))?.hide();
+          Swal.fire({
+            icon: 'success',
+            title: 'Manual Trigger สำเร็จ!',
+            text: data.message,
+            confirmButtonColor: '#10b981'
+          });
+        } else {
+          Swal.fire('ข้อผิดพลาด', data.error || 'เกิดข้อผิดพลาดในการส่ง', 'error');
+        }
+      })
+      .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> 🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที';
+        Swal.fire('Error', err.message, 'error');
+      });
+    }
+  </script>
+
+  <!-- ========================================== -->
+  <!-- ⚡ MODAL: ADMIN MANUAL TRIGGER PANEL       -->
+  <!-- ========================================== -->
+  <div class="modal fade" id="adminManualTriggerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-header text-white" style="background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%);">
+          <div>
+            <h5 class="modal-title fw-bold mb-0"><i class="fa-solid fa-bolt text-warning me-2"></i> Admin SeaTalk Manual Trigger Control</h5>
+            <small class="text-white-50">ศูนย์ควบคุมการสั่งยิงแจ้งเตือนด่วน (สำหรับผู้ใช้งานยศ Admin เท่านั้น)</small>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded-3 border">
+            <span class="small text-muted"><i class="fa-solid fa-shield-halved text-danger me-1"></i> สิทธิ์ปฏิบัติการ:</span>
+            <span class="badge bg-danger fs-6" id="amtAdminUserDisplay">Admin</span>
+          </div>
+
+          <!-- Type Selection Buttons -->
+          <label class="form-label fw-bold small text-muted mb-2">เลือกประเภทการแจ้งเตือน (Alert Category):</label>
+          <div class="d-flex gap-2 flex-wrap mb-4">
+            <button type="button" class="btn btn-sm btn-outline-secondary fw-bold px-3" id="amt_tab_btn_hourly" onclick="switchAdminTriggerType('hourly')">
+              <i class="fa-solid fa-clock me-1"></i> 1. ยอดปล่อยรายชั่วโมง
+            </button>
+            <button type="button" class="btn btn-sm btn-primary fw-bold px-3 shadow-sm text-white" id="amt_tab_btn_skip" onclick="switchAdminTriggerType('skip')">
+              <i class="fa-solid fa-triangle-exclamation me-1"></i> 2. สแกนข้ามขั้นตอน (Skip)
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary fw-bold px-3" id="amt_tab_btn_ob_bl" onclick="switchAdminTriggerType('ob_bl')">
+              <i class="fa-solid fa-boxes-stacked me-1"></i> 3. Outbound Backlog
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary fw-bold px-3" id="amt_tab_btn_custom" onclick="switchAdminTriggerType('custom')">
+              <i class="fa-solid fa-bullhorn me-1"></i> 4. ข้อความบรอดแคสต์ด่วน
+            </button>
+          </div>
+
+          <!-- PANE 1: HOURLY -->
+          <div id="amt_pane_hourly" class="p-3 bg-light rounded-3 border mb-3" style="display:none;">
+            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-stopwatch text-primary me-2"></i> ตั้งค่าแจ้งเตือนยอดหลุดเป้ารายชั่วโมง</h6>
+            <div class="row g-2 mb-2">
+              <div class="col-6 col-md-4">
+                <label class="form-label small fw-semibold">วันที่</label>
+                <input type="date" class="form-control form-control-sm" id="amtHourlyDate" onchange="updateAdminTriggerPreview()">
+              </div>
+              <div class="col-6 col-md-4">
+                <label class="form-label small fw-semibold">ช่วงเวลา (Hour Slot)</label>
+                <select class="form-select form-select-sm" id="amtHourlySlot" onchange="updateAdminTriggerPreview()">
+                  <option value="08:00">08:00 (08:00 - 09:00)</option>
+                  <option value="09:00">09:00 (09:00 - 10:00)</option>
+                  <option value="10:00">10:00 (10:00 - 11:00)</option>
+                  <option value="11:00">11:00 (11:00 - 12:00)</option>
+                  <option value="12:00">12:00 (12:00 - 13:00)</option>
+                  <option value="18:00">18:00 (18:00 - 19:00)</option>
+                  <option value="19:00">19:00 (19:00 - 20:00)</option>
+                  <option value="20:00">20:00 (20:00 - 21:00)</option>
+                  <option value="21:00">21:00 (21:00 - 22:00)</option>
+                  <option value="22:00">22:00 (22:00 - 23:00)</option>
+                  <option value="23:00">23:00 (23:00 - 00:00)</option>
+                  <option value="00:00">00:00 (00:00 - 01:00)</option>
+                  <option value="01:00">01:00 (01:00 - 02:00)</option>
+                  <option value="02:00">02:00 (02:00 - 03:00)</option>
+                  <option value="03:00">03:00 (03:00 - 04:00)</option>
+                  <option value="04:00">04:00 (04:00 - 05:00)</option>
+                  <option value="05:00">05:00 (05:00 - 06:00)</option>
+                  <option value="06:00">06:00 (06:00 - 07:00)</option>
+                  <option value="07:00">07:00 (07:00 - 08:00)</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label small fw-semibold text-danger">ยอดปล่อยจริง (Actual Orders)</label>
+                <input type="number" class="form-control form-control-sm border-danger" id="amtHourlyActual" value="32500" oninput="updateAdminTriggerPreview()">
+              </div>
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label small text-muted">เป้าหมาย (Target)</label>
+                <input type="number" class="form-control form-control-sm" id="amtHourlyTarget" value="45000" oninput="updateAdminTriggerPreview()">
+              </div>
+              <div class="col-6">
+                <label class="form-label small text-muted">เกณฑ์ขั้นต่ำ (Minimum)</label>
+                <input type="number" class="form-control form-control-sm" id="amtHourlyMin" value="40000" oninput="updateAdminTriggerPreview()">
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 2: SKIP PROCESS -->
+          <div id="amt_pane_skip" class="p-3 bg-light rounded-3 border mb-3">
+            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i> ตั้งค่าแจ้งเตือน Skip Process</h6>
+            <div class="row g-2">
+              <div class="col-4">
+                <label class="form-label small fw-semibold">วันที่</label>
+                <input type="date" class="form-control form-control-sm" id="amtSkipDate" onchange="updateAdminTriggerPreview()">
+              </div>
+              <div class="col-4">
+                <label class="form-label small fw-semibold">Actual Volume (ชิ้น)</label>
+                <input type="number" class="form-control form-control-sm" id="amtSkipActual" value="850000" oninput="updateAdminTriggerPreview()">
+              </div>
+              <div class="col-4">
+                <label class="form-label small fw-semibold text-danger">ยอด Skip รวม (ชิ้น)</label>
+                <input type="number" class="form-control form-control-sm border-danger" id="amtSkipCount" value="12500" oninput="updateAdminTriggerPreview()">
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 3: OUTBOUND BACKLOG -->
+          <div id="amt_pane_ob_bl" class="p-3 bg-light rounded-3 border mb-3" style="display:none;">
+            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-boxes-stacked text-danger me-2"></i> ตั้งค่าแจ้งเตือน Outbound Backlog Late</h6>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">รอบ Cutoff</label>
+                <select class="form-select form-select-sm" id="amtObBlCutoff" onchange="updateAdminTriggerPreview()">
+                  <option value="Cutoff 0 (00:00)">Cutoff 0 (00:00)</option>
+                  <option value="Cutoff 1 (08:00)">Cutoff 1 (08:00)</option>
+                  <option value="Cutoff 2 (14:00)" selected>Cutoff 2 (14:00)</option>
+                  <option value="Cutoff 3 (20:00)">Cutoff 3 (20:00)</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold text-danger">ยอดพัสดุตกค้างล่าช้า (ชิ้น)</label>
+                <input type="number" class="form-control form-control-sm border-danger" id="amtObBlLate" value="38450" oninput="updateAdminTriggerPreview()">
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 4: CUSTOM BROADCAST -->
+          <div id="amt_pane_custom" class="p-3 bg-light rounded-3 border mb-3" style="display:none;">
+            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-bullhorn text-info me-2"></i> ข้อความแจ้งเตือนด่วนแบบกำหนดเอง (Custom Broadcast)</h6>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">หัวข้อเรื่อง (Title)</label>
+              <input type="text" class="form-control form-control-sm" id="amtCustomTitle" value="ประกาศด่วนจาก Admin ศูนย์ปฏิบัติการ SOCN" oninput="updateAdminTriggerPreview()">
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">เนื้อหาข้อความ (Message Content)</label>
+              <textarea class="form-control form-control-sm" id="amtCustomBody" rows="3" placeholder="พิมพ์ข้อความที่ต้องการประกาศในกลุ่ม..." oninput="updateAdminTriggerPreview()">แจ้งทุกโซนเร่งเคลียร์พัสดุตกค้างหน้าสายพานเข้าสู่กระบวนการคัดแยกด่วน ก่อนรอบ Cutoff ถัดไป</textarea>
+            </div>
+          </div>
+
+          <!-- Live Message Preview Box -->
+          <label class="form-label fw-bold small text-dark mb-1"><i class="fa-solid fa-eye text-primary me-1"></i> ตัวอย่างข้อความที่จะส่งเข้า SeaTalk (Live Preview):</label>
+          <div class="p-3 rounded-3 font-monospace text-light" style="background:#0f172a; font-size:0.8rem; white-space:pre-wrap; max-height:200px; overflow-y:auto;" id="amtMessagePreview">
+            <!-- Preview generated by JS -->
+          </div>
+        </div>
+        <div class="modal-footer bg-light d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="button" class="btn btn-danger btn-sm fw-bold px-4 shadow-sm" id="btnAmtSubmit" onclick="executeSendAdminTrigger()">
+            <i class="fa-solid fa-paper-plane me-1"></i> 🚀 สั่งยิงแจ้งเตือน SeaTalk ทันที
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 🧠 MODAL: AI SKIP PROCESS ANALYSIS         -->
+  <!-- ========================================== -->
+  <div class="modal fade" id="aiSkipAnalysisModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg rounded-4">
+        <div class="modal-header text-white" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-wand-magic-sparkles text-warning me-2"></i> AI Skip Process Analysis & Hotspots</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4" id="aiSkipContent">
+          <!-- Populated by JS -->
+        </div>
+        <div class="modal-footer bg-light d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" data-bs-dismiss="modal">ปิด</button>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="copyAiSkipText()">
+              <i class="fa-solid fa-copy me-1"></i> คัดลอกข้อความ (Copy)
+            </button>
+            <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="sendAiSkipToSeatalk()">
+              <i class="fa-solid fa-paper-plane me-1"></i> 📢 ส่งเข้า SeaTalk ทันที
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
