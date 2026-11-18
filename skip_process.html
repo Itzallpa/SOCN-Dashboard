@@ -562,7 +562,9 @@
         };
         const timer = setTimeout(() => { if (!done) { finish(); reject(new Error('Apps Script timeout')); } }, timeoutMs);
         window[cbName] = (data) => { if (!done) { finish(); resolve(data); } };
-        script.onerror = () => { if (!done) { finish(); reject(new Error('โหลด Apps Script ผ่าน Browser ไม่ได้ (ยังไม่ได้ Login เมลบริษัท หรือ Script ยังไม่รองรับ callback)')); } };
+        const fail = () => { if (!done) { finish(); reject(new Error('โหลด Apps Script ผ่าน Browser ไม่ได้ (ยังไม่ได้ Login เมลบริษัท หรือ Script ยังไม่รองรับ callback)')); } };
+        script.onerror = fail;
+        script.onload = () => setTimeout(fail, 300);   // loaded but callback never ran = Sign-in page
         script.src = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'callback=' + cbName + '&_ts=' + Date.now();
         document.body.appendChild(script);
       });

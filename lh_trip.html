@@ -1008,8 +1008,12 @@
           cleanup();
           reject(new Error('Apps Script ไม่ตอบกลับ — ตรวจสอบว่า Browser login ด้วยเมลบริษัท (spxexpress.com) แล้ว'));
         }, 90000);
-        window[cbName] = (data) => { cleanup(); resolve(data); };
-        s.onerror = () => { cleanup(); reject(new Error('เรียก Apps Script ไม่ได้ — กรุณา login Google ด้วยเมลบริษัท (spxexpress.com) ใน Browser นี้ก่อน')); };
+        let settled = false;
+        window[cbName] = (data) => { if (settled) return; settled = true; cleanup(); resolve(data); };
+        const failLogin = () => { if (settled) return; settled = true; cleanup(); reject(new Error('เรียก Apps Script ไม่ได้ — กรุณา login Google ด้วยเมลบริษัท (spxexpress.com) ใน Browser นี้ก่อน')); };
+        s.onerror = failLogin;
+        // JSONP runs the callback before "load"; load without callback = Google returned a Sign-in page (blocked by the browser, no onerror)
+        s.onload = () => setTimeout(failLogin, 300);
         s.src = relayUrl + (relayUrl.includes('?') ? '&' : '?') + params.toString();
         document.head.appendChild(s);
       });
@@ -1039,7 +1043,8 @@
         Swal.fire({
           title: 'กำลัง Sync ข้อมูลสด (Google Sheet บริษัท)...',
           text: 'ดึงข้อมูลผ่าน Apps Script ด้วยบัญชีเมลบริษัทใน Browser นี้ (อาจใช้เวลา 10-30 วินาที)',
-          allowOutsideClick: false,
+          allowOutsideClick: true,
+          showCloseButton: true,
           didOpen: () => Swal.showLoading()
         });
       }
@@ -1203,7 +1208,8 @@
       Swal.fire({
         title: 'กำลัง Sync ข้อมูลสด...',
         text: 'กำลังดึงข้อมูลและประมวลผลจาก Google Sheet เข้าสู่ Dashboard (อาจใช้เวลา 10-20 วินาที)',
-        allowOutsideClick: false,
+        allowOutsideClick: true,
+        showCloseButton: true,
         didOpen: () => Swal.showLoading()
       });
 
@@ -1299,11 +1305,14 @@
           cleanup();
           resolve(data);
         };
-        script.onerror = () => {
+        const failLoad = () => {
           if (done) return;
           cleanup();
           reject(new Error('โหลดข้อมูลจาก Apps Script ไม่ได้ — Browser อาจยังไม่ได้ Login Google @spxexpress.com หรือ Apps Script ยังไม่รองรับ callback (JSONP)'));
         };
+        script.onerror = failLoad;
+        // JSONP runs the callback before "load"; load without callback = Sign-in page / not JSONP
+        script.onload = () => setTimeout(failLoad, 300);
 
         let u = baseUrl.trim();
         if (!/[?&]page=/.test(u)) u += (u.includes('?') ? '&' : '?') + 'page=lhtrip';
@@ -1317,7 +1326,8 @@
       Swal.fire({
         title: 'กำลังดึงข้อมูลสดจาก Apps Script...',
         text: 'ดึงผ่าน Browser โดยใช้ Login Google ของคุณ (อาจใช้เวลา 10-30 วินาที)',
-        allowOutsideClick: false,
+        allowOutsideClick: true,
+        showCloseButton: true,
         didOpen: () => Swal.showLoading()
       });
       try {
