@@ -1,5 +1,5 @@
 /* =========================================================================
-   SOC Operations Portal — shared theme (minimal / professional)
+   SOC Operations Portal — shared theme (minimal / professional, Shopee/SPX brand)
    Loaded last in <head> on every page so it overrides page-level styles.
    Style: Minimalism & Swiss — neutral surfaces, one accent, status colors only
    where they carry meaning, dense dashboard spacing.
@@ -20,14 +20,15 @@
   --app-faint: #98A2B3;
 
   /* accent + status */
-  --app-primary: #2563EB;
-  --app-primary-hover: #1D4ED8;
-  --app-primary-soft: #EFF4FF;
+  --app-brand: #EE4D2D;          /* Shopee / SPX orange — accents, marks, underlines */
+  --app-primary: #D73211;        /* darker brand orange for buttons/links (4.7:1 on white) */
+  --app-primary-hover: #B42A0E;
+  --app-primary-soft: #FFF1EE;
   --app-success: #067647;
   --app-success-soft: #ECFDF3;
   --app-warning: #B54708;
   --app-warning-soft: #FFFAEB;
-  --app-danger: #D92D20;
+  --app-danger: #B42318;         /* deeper red so "Late" never reads as brand orange */
   --app-danger-soft: #FEF3F2;
   --app-info: #0E7490;
 
@@ -36,7 +37,7 @@
   --app-radius-sm: 6px;
   --app-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
   --app-shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08);
-  --app-ring: 0 0 0 3px rgba(37, 99, 235, 0.18);
+  --app-ring: 0 0 0 3px rgba(238, 77, 45, 0.20);
 
   --app-font: "Inter", "IBM Plex Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
   --app-nav-h: 56px;
@@ -47,7 +48,7 @@
   --bs-body-bg: var(--app-bg);
   --bs-border-color: var(--app-border);
   --bs-primary: var(--app-primary);
-  --bs-primary-rgb: 37, 99, 235;
+  --bs-primary-rgb: 215, 50, 17;
   --bs-link-color: var(--app-primary);
   --bs-link-hover-color: var(--app-primary-hover);
   --bs-border-radius: var(--app-radius-sm);
@@ -80,7 +81,7 @@ h6, .h6 { font-size: 0.95rem; }
 small, .small { font-size: 0.8125rem; }
 a { color: var(--app-primary); }
 code { color: var(--app-text-2); background: var(--app-surface-2); padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
-::selection { background: rgba(37, 99, 235, 0.15); }
+::selection { background: rgba(238, 77, 45, 0.16); }
 :focus-visible { outline: none; box-shadow: var(--app-ring) !important; }
 .container-fluid { max-width: 1600px; }
 
@@ -109,7 +110,7 @@ nav.app-nav, .app-nav {
 .app-nav .app-brand-mark {
   width: 28px; height: 28px; border-radius: 7px;
   display: inline-flex; align-items: center; justify-content: center;
-  background: var(--app-text); color: #fff; font-size: 0.8rem;
+  background: var(--app-brand); color: #fff; font-size: 0.8rem;
 }
 .app-nav .app-links {
   display: flex; align-items: stretch; gap: 2px; height: 100%;
@@ -126,7 +127,7 @@ nav.app-nav, .app-nav {
 }
 .app-nav .app-link i { font-size: 0.8rem; opacity: .8; }
 .app-nav .app-link:hover { color: var(--app-text) !important; }
-.app-nav .app-link.active { color: var(--app-text) !important; font-weight: 600; border-bottom-color: var(--app-primary); }
+.app-nav .app-link.active { color: var(--app-text) !important; font-weight: 600; border-bottom-color: var(--app-brand); }
 .app-nav .app-link.active i { color: var(--app-primary); opacity: 1; }
 .app-nav .user-profile-badge { margin-left: auto !important; flex-shrink: 0; width: auto !important; border-top: 0 !important; padding-top: 0 !important; }
 
@@ -194,7 +195,8 @@ nav.app-nav, .app-nav {
   transition: border-color .15s ease !important;
 }
 .kpi-card:hover, .stat-card:hover, .late-subcard:hover { transform: none !important; box-shadow: var(--app-shadow) !important; }
-.kpi-orange, .kpi-blue, .stat-blue { border-left-color: var(--app-primary) !important; }
+.kpi-orange { border-left-color: var(--app-brand) !important; }
+.kpi-blue, .stat-blue { border-left-color: #1570EF !important; }
 .kpi-green, .stat-success { border-left-color: var(--app-success) !important; }
 .kpi-red, .kpi-danger, .stat-danger { border-left-color: var(--app-danger) !important; }
 .kpi-amber, .kpi-warning, .stat-warning { border-left-color: #F79009 !important; }
@@ -218,13 +220,16 @@ nav.app-nav, .app-nav {
 }
 .late-subcard.ob-card { border-left-color: var(--app-danger) !important; }
 .late-subcard.lh-card { border-left-color: #F79009 !important; }
-.late-subcard.geo-card { border-left-color: var(--app-primary) !important; }
+.late-subcard.geo-card { border-left-color: #1570EF !important; }
 .callout-card { border-left-width: 3px !important; border-left-color: var(--app-border-strong) !important; }
 
 /* soft tinted helper backgrounds → neutral */
 .bg-light { background-color: var(--app-surface-2) !important; }
 .border { border-color: var(--app-border) !important; }
-.border-primary { border-color: rgba(37,99,235,.35) !important; }
+.border-primary { border-color: rgba(238,77,45,.35) !important; }
+.text-primary { color: var(--app-primary) !important; }
+.bg-primary:not(.bg-opacity-10):not(.badge) { background-color: var(--app-primary) !important; }
+.link-primary, a.text-decoration-none.text-primary { color: var(--app-primary) !important; }
 hr { border-color: var(--app-border); opacity: 1; }
 
 /* ---------- buttons ---------- */
@@ -292,7 +297,7 @@ hr { border-color: var(--app-border); opacity: 1; }
 
 /* ---------- alerts ---------- */
 .alert { border-radius: var(--app-radius) !important; border-width: 1px !important; box-shadow: none !important; font-size: 0.875rem; }
-.alert-info    { background: var(--app-primary-soft) !important; border-color: #C7D7FE !important; color: #1E3A8A !important; }
+.alert-info    { background: #F0F9FF !important; border-color: #B9E6FE !important; color: #026AA2 !important; }
 .alert-success { background: var(--app-success-soft) !important; border-color: #ABEFC6 !important; color: var(--app-success) !important; }
 .alert-warning { background: var(--app-warning-soft) !important; border-color: #FEDF89 !important; color: var(--app-warning) !important; }
 .alert-danger  { background: var(--app-danger-soft) !important; border-color: #FECDCA !important; color: #B42318 !important; }
