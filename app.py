@@ -48,6 +48,8 @@ def handle_options_preflight():
         res.headers['Access-Control-Allow-Origin'] = '*'
         res.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
         res.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        # Chrome Private Network Access: lets the LH Trip Apps Script popup (https) POST to localhost
+        res.headers['Access-Control-Allow-Private-Network'] = 'true'
         return res
 
 @app.after_request
@@ -1842,6 +1844,88 @@ def get_gas_cache():
     }), 200
 
 
+_RELAY_SERVER_BLOCKED_UNTIL = 0.0
+
+
+def rows_to_csv_text(headers, rows):
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(headers or [])
+    w.writerows(rows or [])
+    return out.getvalue()
+
+
+def _browser_relay_cache_paths():
+    return (os.path.join(LH_TRIP_HISTORY_DIR, "browser_relay_latest.csv"),
+            os.path.join(LH_TRIP_HISTORY_DIR, "browser_relay_latest_meta.json"))
+
+
+def save_browser_relay_csv(csv_text, meta):
+    csv_path, meta_path = _browser_relay_cache_paths()
+    with open(csv_path, "w", encoding="utf-8", newline="") as f:
+        f.write(csv_text)
+    with open(meta_path, "w", encoding="utf-8") as f:
+        json.dump(meta, f, ensure_ascii=False)
+
+
+def load_browser_relay_csv(min_received_at=""):
+    """Latest rows the LH Trip page pulled from the company sheet (browser, company login).
+    Returns CSV text when received at/after min_received_at ("YYYY-MM-DD HH:MM:SS"), else None."""
+    csv_path, meta_path = _browser_relay_cache_paths()
+    if not (os.path.exists(csv_path) and os.path.exists(meta_path)):
+        return None
+    try:
+        with open(meta_path, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+        if min_received_at and str(meta.get("receivedAt", "")) < min_received_at:
+            return None
+        with open(csv_path, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception:
+        return None
+
+
+def get_company_sheet_relay_url():
+    settings = load_system_settings()
+    return (settings.get("lhTripDriveSync", {}).get("sheetRelayUrl") or "").strip()
+
+
+def fetch_sheet_csv_via_company_relay(url, relay_url=None):
+    """Read a private company Google Sheet (e.g. LH Trip "Table") through the Apps Script relay
+    (scripts/google_apps_script_lh_trip_source.js, deployed with the company email).
+
+    Returns CSV text (same shape as the old "Publish to web" CSV), or None when the URL is not a
+    private sheet link (/spreadsheets/d/<id>/edit...) or no relay is configured.
+    Raises ValueError with a readable message when the relay fails."""
+    url = (url or "").strip()
+    m = re.search(r'docs\.google\.com/spreadsheets/d/([a-zA-Z0-9-_]+)', url)
+    if not m or "/d/e/" in url or "output=csv" in url:
+        return None
+    relay = (relay_url or get_company_sheet_relay_url()).strip()
+    if not relay:
+        return None
+    global _RELAY_SERVER_BLOCKED_UNTIL
+    if time.time() < _RELAY_SERVER_BLOCKED_UNTIL:
+        raise ValueError("Apps Script เปิดให้เฉพาะบัญชีบริษัท (Server เรียกตรงไม่ได้) — ใช้ข้อมูลที่ Browser ส่งมาแทน")
+    gid_m = re.search(r'gid=([0-9]+)', url)
+    body = {"key": GAS_API_KEY, "page": "lhtrip", "spreadsheetId": m.group(1),
+            "gid": gid_m.group(1) if gid_m else ""}
+    resp = requests.post(relay, json=body, timeout=90, allow_redirects=True,
+                         headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
+    text = resp.content.decode("utf-8", errors="replace").strip()
+    if not text.startswith("{"):
+        if resp.status_code in (401, 403) or "accounts.google.com" in resp.url or "ServiceLogin" in resp.url or "<html" in text[:300].lower():
+            # Domain-only deployment ("Anyone within Shopee Mobile"): stop hammering Google for 30 min;
+            # the LH Trip page fetches it in the browser and posts the rows to /api/lh-trip/ingest-sheet
+            _RELAY_SERVER_BLOCKED_UNTIL = time.time() + 1800
+            raise ValueError("Apps Script เปิดให้เฉพาะบัญชีบริษัท (Server เรียกตรงไม่ได้) — เปิดหน้า LH Trip ด้วย Browser ที่ login เมลบริษัทเพื่อ Sync")
+        raise ValueError(f"Apps Script ตอบกลับไม่ถูกต้อง (HTTP {resp.status_code})")
+    js = json.loads(text)
+    if not js.get("success"):
+        raise ValueError(js.get("error") or "Apps Script แจ้งข้อผิดพลาด")
+    return rows_to_csv_text(js.get("headers"), js.get("rows"))
+
+
 @app.route("/api/sync-google-sheet", methods=["GET", "POST"])
 def sync_google_sheet():
     url = request.args.get("url", "") or (request.json.get("url", "") if request.is_json else "")
@@ -1857,7 +1941,27 @@ def sync_google_sheet():
             "error": "ยังไม่ได้ระบุลิงก์ Google Sheet สด (กรุณาระบุ URL ผ่านปุ่ม ⚡ Sync Google Sheet สด หรือหน้าต่างตั้งค่า Drive)"
         }), 200
 
-    import re
+    # ======= Private company sheet → read via Apps Script relay (company email) =======
+    try:
+        relay_csv = fetch_sheet_csv_via_company_relay(url)
+    except Exception as e:
+        return jsonify({"success": False, "error": f"ดึงข้อมูลจาก Google Sheet บริษัทไม่สำเร็จ: {e}"}), 200
+    if relay_csv is not None:
+        target_path = os.path.join(UPLOAD_FOLDER, "LIVE_GOOGLE_SHEET_SYNC.csv")
+        with open(target_path, "w", encoding="utf-8", newline="") as f:
+            f.write(relay_csv)
+        try:
+            df = pd.read_csv(target_path, low_memory=False, on_bad_lines='skip')
+            data = process_table_sheet(df)
+            data["filename"] = "Live Google Sheet (Company)"
+            data["success"] = True
+            log_activity("SYNC_GOOGLE_SHEET", f"Synced company Google Sheet via Apps Script relay ({len(df):,} rows)")
+            return jsonify(data)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"success": False, "error": f"อ่านข้อมูลจาก Google Sheet บริษัทไม่สำเร็จ: {e}"}), 200
+
     gid_match = re.search(r'gid=([0-9]+)', url)
     gid_param = f"&gid={gid_match.group(1)}" if gid_match else ""
 
@@ -7102,7 +7206,7 @@ def get_configured_lh_trip_sheet_url():
     url = settings.get("lhTripDriveSync", {}).get("sourceSheetUrl", "")
     return url.strip()
 
-def fetch_and_archive_lh_trip_snapshot(date_str=None, force=False, custom_url=None):
+def fetch_and_archive_lh_trip_snapshot(date_str=None, force=False, custom_url=None, csv_text=None):
     if not date_str:
         date_str = datetime.now().strftime("%Y-%m-%d")
         
@@ -7116,16 +7220,25 @@ def fetch_and_archive_lh_trip_snapshot(date_str=None, force=False, custom_url=No
             pass
             
     url = (custom_url or get_configured_lh_trip_sheet_url() or "").strip()
-    if not url:
+    if not url and csv_text is None:
         return {"success": False, "error": "ยังไม่ได้ระบุลิงก์ Google Sheet ต้นทางของ LH Trip — กรุณาระบุลิงก์ที่ปุ่ม ⚡ Sync Google Sheet สด เพื่อดึงข้อมูลจริงครับ"}
 
     try:
-        resp = requests.get(url, timeout=40, headers={"User-Agent": "Mozilla/5.0"})
-        resp.encoding = 'utf-8'
-        if resp.status_code != 200:
-            return {"success": False, "error": f"HTTP {resp.status_code} fetching Google Sheet"}
-            
-        csv_text = resp.text
+        # Private company sheet → Apps Script relay (company email); else direct CSV (published link)
+        if csv_text is None:
+            try:
+                csv_text = fetch_sheet_csv_via_company_relay(url)
+            except Exception as relay_err:
+                # Domain-only Apps Script: use rows the LH Trip page (company login) sent after 14:00 today
+                csv_text = load_browser_relay_csv(min_received_at=f"{date_str} 14:00:00")
+                if csv_text is None:
+                    return {"success": False, "error": f"ดึงข้อมูลจาก Google Sheet บริษัทไม่สำเร็จ: {relay_err} (ยังไม่มีข้อมูลที่ Browser ส่งมาหลัง 14:00 ของวันที่ {date_str})"}
+        if csv_text is None:
+            resp = requests.get(url, timeout=40, headers={"User-Agent": "Mozilla/5.0"})
+            resp.encoding = 'utf-8'
+            if resp.status_code != 200:
+                return {"success": False, "error": f"HTTP {resp.status_code} fetching Google Sheet"}
+            csv_text = resp.text
         reader = list(csv.reader(io.StringIO(csv_text)))
         if not reader or len(reader) < 2:
             return {"success": False, "error": "CSV is empty or invalid format"}
@@ -7409,15 +7522,92 @@ def lh_trip_drive_settings_api():
         drive_cfg["enabled"] = bool(req.get("enabled", drive_cfg.get("enabled", True)))
         drive_cfg["folderId"] = req.get("folderId", drive_cfg.get("folderId", "1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1"))
         drive_cfg["folderUrl"] = req.get("folderUrl", f"https://drive.google.com/drive/folders/{drive_cfg['folderId']}")
-        drive_cfg["appsScriptUrl"] = (req.get("appsScriptUrl") or "").strip()
-        drive_cfg["sourceSheetUrl"] = (req.get("sourceSheetUrl") or "").strip()
-        drive_cfg["autoUpload1400"] = bool(req.get("autoUpload1400", True))
+        # only overwrite fields the caller sent (saving the source link must not wipe the Drive URL)
+        if "sheetRelayUrl" in req:
+            global _RELAY_SERVER_BLOCKED_UNTIL
+            _RELAY_SERVER_BLOCKED_UNTIL = 0.0
+        for key in ["appsScriptUrl", "sourceSheetUrl", "sheetRelayUrl"]:
+            if key in req:
+                drive_cfg[key] = (req.get(key) or "").strip()
+        drive_cfg["autoUpload1400"] = bool(req.get("autoUpload1400", drive_cfg.get("autoUpload1400", True)))
         settings["lhTripDriveSync"] = drive_cfg
         save_system_settings(settings)
         log_activity("UPDATE_DRIVE_SETTINGS", "⚙️ อัปเดตการตั้งค่า Google Drive Auto-Sync สำหรับ LH Trip")
         return jsonify({"success": True, "message": "บันทึกการตั้งค่า Google Drive สำเร็จ", "settings": drive_cfg})
-        
-    return jsonify({"success": True, "settings": settings.get("lhTripDriveSync", {})})
+
+    # relayKey: the LH Trip page calls the company Apps Script from the browser (JSONP) with this key
+    return jsonify({"success": True, "settings": settings.get("lhTripDriveSync", {}), "relayKey": GAS_API_KEY})
+
+
+@app.route("/api/lh-trip/ingest-sheet/latest", methods=["GET"])
+def latest_lh_trip_ingest_api():
+    """Latest rows received from the company sheet (popup/browser). ?since=<receivedAt> → only if newer."""
+    _, meta_path = _browser_relay_cache_paths()
+    since = request.args.get("since", "").strip()
+    try:
+        with open(meta_path, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+    except Exception:
+        return jsonify({"success": False, "error": "ยังไม่มีข้อมูลจาก Google Sheet บริษัท"})
+    received = str(meta.get("receivedAt", ""))
+    if since and received <= since:
+        return jsonify({"success": True, "changed": False, "receivedAt": received})
+    csv_text = load_browser_relay_csv()
+    if csv_text is None:
+        return jsonify({"success": False, "error": "ยังไม่มีข้อมูลจาก Google Sheet บริษัท"})
+    try:
+        df = pd.read_csv(io.StringIO(csv_text), low_memory=False, on_bad_lines='skip')
+        data = process_table_sheet(df)
+    except Exception as e:
+        return jsonify({"success": False, "error": f"อ่านข้อมูลไม่สำเร็จ: {e}"})
+    data["success"] = True
+    data["changed"] = True
+    data["receivedAt"] = received
+    data["filename"] = "Live Google Sheet (Company)"
+    return jsonify(data)
+
+
+@app.route("/api/lh-trip/ingest-sheet", methods=["POST"])
+def ingest_lh_trip_sheet_api():
+    """Rows the LH Trip page fetched from the company sheet in the browser (company login, JSONP).
+    Processed exactly like the live CSV sync; also used by the 14:00 snapshot."""
+    req = request.get_json(silent=True) or {}
+    headers = req.get("headers") or []
+    rows = req.get("rows") or []
+    if not headers or not isinstance(rows, list):
+        return jsonify({"success": False, "error": "ไม่มีข้อมูลจาก Google Sheet (headers/rows ว่าง)"}), 200
+
+    csv_text = rows_to_csv_text(headers, rows)
+    now = datetime.now()
+    save_browser_relay_csv(csv_text, {
+        "receivedAt": now.strftime("%Y-%m-%d %H:%M:%S"),
+        "sheetFetchedAt": req.get("fetchedAt"),
+        "sheet": req.get("sheet"),
+        "totalRows": len(rows),
+    })
+
+    target_path = os.path.join(UPLOAD_FOLDER, "LIVE_GOOGLE_SHEET_SYNC.csv")
+    with open(target_path, "w", encoding="utf-8", newline="") as f:
+        f.write(csv_text)
+    try:
+        df = pd.read_csv(target_path, low_memory=False, on_bad_lines='skip')
+        data = process_table_sheet(df)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"อ่านข้อมูลจาก Google Sheet บริษัทไม่สำเร็จ: {e}"}), 200
+    data["filename"] = "Live Google Sheet (Company)"
+    data["success"] = True
+    data["receivedAt"] = now.strftime("%Y-%m-%d %H:%M:%S")
+
+    # 14:00 snapshot: archive today's data the first time the page syncs after 14:00
+    today = now.strftime("%Y-%m-%d")
+    if now.hour >= 14 and not os.path.exists(os.path.join(LH_TRIP_HISTORY_DIR, f"lh_trip_{today}.json")):
+        arch = fetch_and_archive_lh_trip_snapshot(date_str=today, force=False, csv_text=csv_text)
+        data["archived1400"] = {"success": arch.get("success"), "message": arch.get("message") or arch.get("error")}
+
+    log_activity("SYNC_GOOGLE_SHEET", f"🔄 Sync LH Trip จาก Google Sheet บริษัท (ผ่าน Browser) {len(rows):,} แถว")
+    return jsonify(data)
 
 
 @app.route("/api/lh-trip/upload-drive", methods=["POST"])
