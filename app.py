@@ -3204,17 +3204,22 @@ def volume_history_api():
 SOCN_VOLUME_SHEET_URL = "https://docs.google.com/spreadsheets/d/1Z5sAcsGSQBu1A_7crK51a1wnWvSO_NnmXVBrx3te32s/edit?gid=306692657"
 
 
-def sync_socn_volume_from_sheet(apps_script_url):
+def sync_socn_volume_from_sheet(apps_script_url, payload=None):
     """Pull daily Volume (SOC tab, row 11 "SOCN Operational Outbound cut-off 1p.m.") through the
     Apps Script web app (scripts/google_apps_script_socn_volume.js) and upsert daily entries
-    into the Volume Tracker. The sheet is not public, so it cannot be read directly."""
-    resp = requests.get(apps_script_url, timeout=60, allow_redirects=True)
-    text = resp.content.decode("utf-8", errors="replace").strip()
-    if resp.status_code != 200 or not text.startswith("{"):
-        if "accounts.google.com" in resp.url or "ServiceLogin" in resp.url or "<html" in text[:200].lower():
-            raise ValueError("Apps Script ต้อง Deploy เป็น Web app แบบ Execute as: Me และ Who has access: Anyone")
-        raise ValueError(f"Apps Script ตอบกลับไม่ถูกต้อง (HTTP {resp.status_code})")
-    payload = json.loads(text)
+    into the Volume Tracker. The sheet is not public, so it cannot be read directly.
+    `payload` is the Apps Script JSON already fetched by the browser (JSONP with the user's
+    company Google login); when given, the server does not call Apps Script itself."""
+    if payload is None:
+        resp = requests.get(apps_script_url, timeout=60, allow_redirects=True)
+        text = resp.content.decode("utf-8", errors="replace").strip()
+        if resp.status_code != 200 or not text.startswith("{"):
+            if "accounts.google.com" in resp.url or "ServiceLogin" in resp.url or "<html" in text[:200].lower():
+                raise ValueError("Apps Script ต้อง Deploy เป็น Web app แบบ Execute as: Me และ Who has access: Anyone")
+            raise ValueError(f"Apps Script ตอบกลับไม่ถูกต้อง (HTTP {resp.status_code})")
+        payload = json.loads(text)
+    if not isinstance(payload, dict):
+        raise ValueError("ข้อมูลจาก Apps Script ไม่ถูกต้อง")
     if not payload.get("success"):
         raise ValueError(payload.get("error") or "Apps Script แจ้งข้อผิดพลาด")
 
@@ -3281,7 +3286,7 @@ def sync_socn_volume_api():
     if not url.startswith("https://script.google.com/"):
         return jsonify({"success": False, "error": "URL ต้องเป็น Apps Script Web app (https://script.google.com/.../exec)"}), 200
     try:
-        res = sync_socn_volume_from_sheet(url)
+        res = sync_socn_volume_from_sheet(url, payload=req.get("payload"))
     except Exception as e:
         return jsonify({"success": False, "error": f"ดึง Volume จากชีต SOC ไม่สำเร็จ: {e}"}), 200
 

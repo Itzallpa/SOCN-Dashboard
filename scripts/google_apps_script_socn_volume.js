@@ -12,6 +12,8 @@
  *   1. https://script.google.com -> New project -> paste this file
  *   2. Deploy -> New deployment -> type "Web app"
  *        Execute as: Me   |   Who has access: Anyone
+ *        (or "Anyone within spxexpress.com": the dashboard then fetches via JSONP (?callback=)
+ *         in the browser using the user's company Google login)
  *   3. Copy the Web app URL (.../exec) and paste it in the Skip page:
  *        SOCN Volume Tracker -> "ดึง Volume จาก Sheet SOC (row 11)"
  *   (Your account only needs view access to the Performance Dashboard sheet.)
@@ -32,13 +34,14 @@ const SOCN_VOLUME_CONFIG = {
 
 function doGet(e) {
   const params = (e && e.parameter) || {};
+  const cb = params.callback;  // JSONP: dashboard loads ?callback=fn through the browser's Google login
   if (SOCN_VOLUME_CONFIG.TOKEN && params.token !== SOCN_VOLUME_CONFIG.TOKEN) {
-    return jsonOut_({ success: false, error: "invalid token" });
+    return jsonOut_({ success: false, error: "invalid token" }, cb);
   }
   try {
-    return jsonOut_(readSocnVolume_());
+    return jsonOut_(readSocnVolume_(), cb);
   } catch (err) {
-    return jsonOut_({ success: false, error: String(err && err.message || err) });
+    return jsonOut_({ success: false, error: String(err && err.message || err) }, cb);
   }
 }
 
@@ -103,8 +106,13 @@ function toIso_(value, shown, fmt) {
   return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
 }
 
-function jsonOut_(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+function jsonOut_(obj, callback) {
+  const json = JSON.stringify(obj);
+  if (callback && /^[A-Za-z0-9_$]+$/.test(callback)) {
+    return ContentService.createTextOutput(callback + "(" + json + ");")
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
 }
 
 /** Run this once in the editor to authorize and check the output in the log. */

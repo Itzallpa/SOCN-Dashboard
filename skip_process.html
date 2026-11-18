@@ -548,14 +548,48 @@
         .catch(() => {});
     }
 
-    function syncSocnVolumeFromSheet(manual) {
+    // JSONP: ดึงจาก Apps Script ผ่าน Browser (ใช้ Login เมลบริษัทของ Browser) — Apps Script ต้องรองรับ ?callback=
+    function fetchAppsScriptJsonp(baseUrl, timeoutMs = 60000) {
+      return new Promise((resolve, reject) => {
+        const cbName = '__socnCb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
+        const script = document.createElement('script');
+        let done = false;
+        const finish = () => {
+          done = true;
+          clearTimeout(timer);
+          try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+          script.remove();
+        };
+        const timer = setTimeout(() => { if (!done) { finish(); reject(new Error('Apps Script timeout')); } }, timeoutMs);
+        window[cbName] = (data) => { if (!done) { finish(); resolve(data); } };
+        script.onerror = () => { if (!done) { finish(); reject(new Error('โหลด Apps Script ผ่าน Browser ไม่ได้ (ยังไม่ได้ Login เมลบริษัท หรือ Script ยังไม่รองรับ callback)')); } };
+        script.src = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'callback=' + cbName + '&_ts=' + Date.now();
+        document.body.appendChild(script);
+      });
+    }
+
+    async function syncSocnVolumeFromSheet(manual) {
       const input = document.getElementById('socnAppsScriptUrl');
       const url = (input && input.value || '').trim();
       setSocnSyncStatus('<span class="text-primary"><i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังดึง Volume จากชีต SOC...</span>');
+
+      // 1) ลองดึงผ่าน Browser ก่อน แล้วส่งผลให้ Server บันทึก; 2) ถ้าไม่ได้ ให้ Server ดึงเองแบบเดิม
+      let browserPayload = null;
+      if (/^https:\/\/script\.google\.com\//i.test(url)) {
+        try {
+          browserPayload = await fetchAppsScriptJsonp(url);
+        } catch (e) {
+          console.warn('SOCN volume JSONP failed, falling back to server fetch:', e);
+        }
+      }
+      const body = {};
+      if (url) body.appsScriptUrl = url;
+      if (browserPayload) body.payload = browserPayload;
+
       return safeFetchJson('/api/volume-history/sync-socn', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(url ? { appsScriptUrl: url } : {})
+        body: JSON.stringify(body)
       })
       .then(res => {
         if (!res.success) {

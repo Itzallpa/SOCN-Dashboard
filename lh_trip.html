@@ -992,6 +992,12 @@
         return;
       }
 
+      // Apps Script Web App → ดึงผ่าน JSONP ใน Browser (ใช้ Cookie Login Google ของ Browser, ไม่ต้องเปิด Popup)
+      if (isAppsScriptUrl(targetUrl)) {
+        syncLhTripViaJsonp(targetUrl);
+        return;
+      }
+
       Swal.fire({
         title: 'กำลัง Sync ข้อมูลสด...',
         text: 'กำลังดึงข้อมูลและประมวลผลจาก Google Sheet เข้าสู่ Dashboard (อาจใช้เวลา 10-20 วินาที)',
@@ -1064,9 +1070,95 @@
       return u;
     }
 
+    function isAppsScriptUrl(url) {
+      return /^https:\/\/script\.google\.com\//i.test((url || '').trim());
+    }
+
+    // JSONP: Apps Script ต้องรองรับ ?callback=xxx (คืน ContentService.MimeType.JAVASCRIPT)
+    function fetchLhTripJsonp(baseUrl, timeoutMs = 120000) {
+      return new Promise((resolve, reject) => {
+        const cbName = '__lhTripCb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
+        const script = document.createElement('script');
+        let done = false;
+        const cleanup = () => {
+          done = true;
+          clearTimeout(timer);
+          try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+          script.remove();
+        };
+        const timer = setTimeout(() => {
+          if (done) return;
+          cleanup();
+          reject(new Error('หมดเวลารอข้อมูลจาก Apps Script (Timeout)'));
+        }, timeoutMs);
+
+        window[cbName] = (data) => {
+          if (done) return;
+          cleanup();
+          resolve(data);
+        };
+        script.onerror = () => {
+          if (done) return;
+          cleanup();
+          reject(new Error('โหลดข้อมูลจาก Apps Script ไม่ได้ — Browser อาจยังไม่ได้ Login Google @spxexpress.com หรือ Apps Script ยังไม่รองรับ callback (JSONP)'));
+        };
+
+        let u = baseUrl.trim();
+        if (!/[?&]page=/.test(u)) u += (u.includes('?') ? '&' : '?') + 'page=lhtrip';
+        u += (u.includes('?') ? '&' : '?') + 'callback=' + cbName + '&_ts=' + Date.now();
+        script.src = u;
+        document.body.appendChild(script);
+      });
+    }
+
+    async function syncLhTripViaJsonp(url) {
+      Swal.fire({
+        title: 'กำลังดึงข้อมูลสดจาก Apps Script...',
+        text: 'ดึงผ่าน Browser โดยใช้ Login Google ของคุณ (อาจใช้เวลา 10-30 วินาที)',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+      try {
+        const data = await fetchLhTripJsonp(url);
+        if (!data || data.success === false) {
+          throw new Error((data && data.error) || 'Apps Script ตอบกลับไม่สำเร็จ');
+        }
+        const headers = data.headers || [];
+        const rows = data.rows || [];
+        if (!headers.length || !rows.length) throw new Error('ไม่พบข้อมูลใน Sheet');
+
+        const dataObj = {
+          success: true,
+          headers: headers,
+          rows: rows,
+          generatedAt: data.fetchedAt || new Date().toLocaleString()
+        };
+        latestSyncedData = dataObj;
+        try { localStorage.setItem('lh_trip_last_data', JSON.stringify(dataObj)); } catch (e) {}
+        renderRealSummaryData(dataObj);
+        switchView('dashboard');
+        const banner = document.getElementById('lhStatusMsg');
+        if (banner) banner.innerHTML = '';
+        Swal.fire({ icon: 'success', title: '✅ Sync สำเร็จ!', text: `ดึง ${rows.length.toLocaleString()} แถวสำเร็จ`, timer: 2000, showConfirmButton: false });
+      } catch (err) {
+        console.error('syncLhTripViaJsonp error:', err);
+        Swal.fire({
+          icon: 'error',
+          title: '❌ ดึงข้อมูลจาก Apps Script ไม่สำเร็จ',
+          html: `<div class="text-danger small text-start p-2 rounded bg-light border border-danger mb-2">${err.message}</div>
+                 <div class="small text-muted text-start">1) เปิด <a href="${url}" target="_blank">ลิงก์ Apps Script</a> แล้ว Login ด้วยอีเมลบริษัท จากนั้นกด Sync ใหม่<br>
+                 2) ตรวจว่า Apps Script deploy เวอร์ชันที่รองรับ <code>callback</code> แล้ว</div>`
+        });
+      }
+    }
+
     function syncLhTripViaBrowserCsv(url) {
       if (!url) {
         promptForSourceSheetUrl();
+        return;
+      }
+      if (isAppsScriptUrl(url)) {
+        syncLhTripViaJsonp(url);
         return;
       }
       const csvUrl = convertToDirectCsvUrl(url);
