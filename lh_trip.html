@@ -791,14 +791,17 @@
       }
     }
 
-    // Progress modal with a line bar + %. Steps have no real progress events (JSONP / one POST),
-    // so each step eases toward its end percentage and jumps there when the step finishes.
-    function openProgressModal(title) {
-      Swal.fire({
-        title,
-        html: `<div class="text-start">
+    // Loading popups: line bar + % instead of a spinner. The requests give no real progress
+    // (JSONP / one POST), so the bar eases toward the step's end % and jumps when the step ends.
+    // withProgress(opts, expectedMs) turns any Swal options with `text` into such a popup.
+    let _pg = null;
+    function withProgress(opts, expectedMs) {
+      const pg = {};
+      const text = opts.text ? `<div class="mb-3">${escapeHtmlLite(opts.text)}</div>` : '';
+      const o = Object.assign({}, opts, {
+        html: `${text}<div class="text-start">
                  <div class="d-flex justify-content-between small mb-1">
-                   <span id="pgStep" class="text-muted">กำลังเริ่ม...</span>
+                   <span id="pgStep" class="text-muted">กำลังดำเนินการ...</span>
                    <span id="pgPct" class="fw-bold" style="font-variant-numeric:tabular-nums;">0%</span>
                  </div>
                  <div class="progress" role="progressbar" aria-label="ความคืบหน้า" aria-valuemin="0" aria-valuemax="100" style="height:10px;">
@@ -806,8 +809,13 @@
                  </div>
                  <div id="pgElapsed" class="small text-muted mt-2">0 วินาที</div>
                </div>`,
-        allowOutsideClick: true, showCloseButton: true, showConfirmButton: false
+        showConfirmButton: false,
+        // a step set by the caller before the popup rendered wins; otherwise one generic step
+        didOpen: () => { if (pg.started) pg.step(pg.label, pg.to, pg.ms, true); else pg.step('กำลังดำเนินการ...', 95, expectedMs || 12000); },
+        didDestroy: () => pg.stop()
       });
+      delete o.text;
+      if (_pg) _pg.stop();
       const t0 = Date.now();
       let pct = 0, from = 0, to = 0, stepStart = t0, expectMs = 1000, timer = null;
       const paint = () => {
@@ -824,16 +832,26 @@
         pct = Math.max(pct, from + (to - from) * Math.min(k, 0.97));
         paint();
       };
-      timer = setInterval(tick, 200);
-      return {
-        step(label, endPct, expectedMs) {
-          from = pct; to = endPct; stepStart = Date.now(); expectMs = expectedMs || 3000;
+      Object.assign(pg, {
+        label: '', started: false, to: 0, ms: 0,
+        step(label, endPct, ms, keepStart) {
+          if (!timer) timer = setInterval(tick, 200);
+          pg.started = true; pg.label = label; pg.to = endPct; pg.ms = ms;
+          if (!keepStart) { from = pct; stepStart = Date.now(); }
+          to = endPct; expectMs = ms || 3000;
           const el = document.getElementById('pgStep'); if (el) el.textContent = label;
           tick();
         },
-        done() { clearInterval(timer); pct = 100; const el = document.getElementById('pgStep'); if (el) el.textContent = 'เสร็จแล้ว'; paint(); },
-        stop() { clearInterval(timer); }
-      };
+        done() { clearInterval(timer); timer = null; pct = 100; const el = document.getElementById('pgStep'); if (el) el.textContent = 'เสร็จแล้ว'; paint(); },
+        stop() { clearInterval(timer); timer = null; }
+      });
+      _pg = pg;
+      return o;
+    }
+
+    function openProgressModal(title) {
+      Swal.fire(withProgress({ title, allowOutsideClick: true, showCloseButton: true }, 3000));
+      return _pg;
     }
 
     async function onDriveDayChange(fileId) {
@@ -995,12 +1013,11 @@
     }
 
     function loadHistoricalSnapshot(dateStr) {
-      Swal.fire({
+      Swal.fire(withProgress({
         title: `กำลังโหลด Snapshot ${dateStr}...`,
         text: 'กำลังดึงข้อมูลประวัติรอบ 14:00 น.',
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-      });
+        allowOutsideClick: false
+      }, 2500));
 
       safeApiFetch(`/api/lh-trip/history?date=${encodeURIComponent(dateStr)}`)
         .then(data => {
@@ -1111,12 +1128,11 @@
           } catch(e) {}
         }
 
-        Swal.fire({
+        Swal.fire(withProgress({
           title: 'กำลังส่งข้อมูลเข้า Google Drive...',
           text: `กำลังสร้างและอัปเดตไฟล์ ${fileName} ในโฟลเดอร์เป้าหมาย`,
-          allowOutsideClick: false,
-          didOpen: () => Swal.showLoading()
-        });
+          allowOutsideClick: false
+        }, 10000));
 
         const payloadData = generateCompleteReportData(records, selectedDate, opsDateStr);
 
@@ -1321,13 +1337,11 @@
 
     async function syncLhTripViaCompanyRelay(sheetUrl, relayUrl, key, silent = false) {
       if (!silent) {
-        Swal.fire({
-          title: 'กำลัง Sync ข้อมูลสด (Google Sheet บริษัท)...',
-          text: 'ดึงข้อมูลผ่าน Apps Script ด้วยบัญชีเมลบริษัทใน Browser นี้ (อาจใช้เวลา 10-30 วินาที)',
+        Swal.fire(withProgress({
+          title: 'กำลัง Sync ข้อมูลสด...',
           allowOutsideClick: true,
-          showCloseButton: true,
-          didOpen: () => Swal.showLoading()
-        });
+          showCloseButton: true
+        }, 10000));
       }
       try {
         const sheet = await fetchCompanySheetViaJsonp(relayUrl, key, sheetUrl);
@@ -1404,7 +1418,7 @@
         });
       }
       lhPopupDelivered = false;
-      Swal.fire({ title: 'รอ Login / ดึงข้อมูลในหน้าต่าง Popup...', text: 'Login ด้วยเมลบริษัทในหน้าต่างที่เปิดขึ้น ข้อมูลจะเข้ามาอัตโนมัติ', allowOutsideClick: true, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+      Swal.fire(withProgress({ title: 'รอ Login / ดึงข้อมูลในหน้าต่าง Popup...', text: 'Login ด้วยเมลบริษัทในหน้าต่างที่เปิดขึ้น ข้อมูลจะเข้ามาอัตโนมัติ', allowOutsideClick: true, showConfirmButton: false }, 10000));
       // fallback when the popup cannot reach this window (it then POSTs to the server instead)
       if (!lhPopupPollTimer) lhPopupPollTimer = setInterval(pollLhLatestIngest, 15000);
     }
@@ -1486,13 +1500,12 @@
         return;
       }
 
-      Swal.fire({
+      Swal.fire(withProgress({
         title: 'กำลัง Sync ข้อมูลสด...',
         text: 'กำลังดึงข้อมูลและประมวลผลจาก Google Sheet เข้าสู่ Dashboard (อาจใช้เวลา 10-20 วินาที)',
         allowOutsideClick: true,
-        showCloseButton: true,
-        didOpen: () => Swal.showLoading()
-      });
+        showCloseButton: true
+      }, 10000));
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
@@ -1604,13 +1617,12 @@
     }
 
     async function syncLhTripViaJsonp(url) {
-      Swal.fire({
+      Swal.fire(withProgress({
         title: 'กำลังดึงข้อมูลสดจาก Apps Script...',
         text: 'ดึงผ่าน Browser โดยใช้ Login Google ของคุณ (อาจใช้เวลา 10-30 วินาที)',
         allowOutsideClick: true,
-        showCloseButton: true,
-        didOpen: () => Swal.showLoading()
-      });
+        showCloseButton: true
+      }, 10000));
       try {
         const data = await fetchLhTripJsonp(url);
         if (!data || data.success === false) {
@@ -1656,12 +1668,11 @@
       }
       const csvUrl = convertToDirectCsvUrl(url);
 
-      Swal.fire({
+      Swal.fire(withProgress({
         title: 'กำลังดึงข้อมูลสดผ่าน Browser...',
         text: 'กำลังดึงข้อมูล Google Sheet เข้าสู่ Dashboard โดยตรง',
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-      });
+        allowOutsideClick: false
+      }, 10000));
 
       Papa.parse(csvUrl, {
         download: true,
