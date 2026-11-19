@@ -42,10 +42,12 @@ const LH_TRIP_SOURCE_CONFIG = {
   DAILY_SAVE_HOUR: 14,                   // auto save time (installDailyTrigger)
   RAW_SHEET_NAME: "raw data",
   TTB_SPREADSHEET_ID: "1uQhxe1w3CBhXfWeOzg5y-3Udb6_m52SbBBmUzFJzdL4",
+  // [SPX-SOCN] Outbound Daily Report - 2026: 'Outbound Email'!B:C = hub -> zone A/B/C (Hourly Tracker)
+  OBD_SPREADSHEET_ID: "1b23i0TPw1NHQAoj-D3YeDe4khnXFn_d0MmxfFniuq-k",
   TIME_ZONE: "Asia/Bangkok"
 };
 
-const RELAY_VERSION_ = "2026-11-19 daily";
+const RELAY_VERSION_ = "2026-11-19 productivity-tab";
 
 function doPost(e) {
   let params = {};
@@ -89,9 +91,11 @@ function handleRequest_(params) {
   }
   if (page === "lhtrip") return readLhTrip_(params.spreadsheetId, params.gid, params.sheetName);
   if (page === "listdaily") return listDailyRaw_();
-  if (page === "readdaily") return readDailyRaw_(params.fileId);
+  if (page === "readdaily") return readDailyRaw_(params.fileId, params.sheetName);
   if (page === "refs") return readRefs_();
   if (page === "savedaily") return saveDailyRaw_(params.date);
+  if (page === "sheetinfo") return sheetInfo_(params.spreadsheetId);
+  if (page === "dump") return dumpSheet_(params.spreadsheetId, params.sheetName, params.startRow, params.maxRows, params.maxCols);
   return { success: false, error: "Unknown page: " + page };
 }
 
@@ -106,7 +110,7 @@ const MONTHS_ = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", 
 const RAW_KEEP_HEADERS_ = [
   "LH Trip Number", "LH Trip Name", "Station Number", "Station Name", "Vehicle Type",
   "Vehicle Plate Number", "Driver", "Assign time", "Actual Departure Time",
-  "Outbound(order)", "Outbound(weight)(KG)"
+  "Outbound(order)", "Outbound(weight)(KG)", "Sealed time"
 ];
 
 function dailyFolder_() {
@@ -160,12 +164,14 @@ function findRawSheet_(ss) {
     ss.getSheets()[0];
 }
 
-/** Read one daily file (by fileId) — only the columns the dashboard needs. */
-function readDailyRaw_(fileId) {
+/** Read one daily file (by fileId) — only the columns the dashboard needs. sheetName = a specific tab
+ *  (e.g. "Copy of raw data" in the test sheet for the Hourly Tracker); default = the "raw data" tab. */
+function readDailyRaw_(fileId, sheetName) {
   if (!fileId) return { success: false, error: "ต้องระบุ fileId" };
   const file = DriveApp.getFileById(fileId);
   const ss = SpreadsheetApp.openById(fileId);
-  const sh = findRawSheet_(ss);
+  const sh = sheetName ? ss.getSheetByName(String(sheetName)) : findRawSheet_(ss);
+  if (!sh) return { success: false, error: `ไม่พบแท็บ "${sheetName}" ในไฟล์ ${file.getName()}` };
   const values = sh.getDataRange().getDisplayValues();
   const hdr = (values[0] || []).map(h => String(h).trim());
   const idx = RAW_KEEP_HEADERS_.map(h => hdr.indexOf(h));
@@ -215,10 +221,19 @@ function readRefs_() {
   } catch (e) {
     ttbError = "อ่านชีท TTB ไม่ได้: " + e;
   }
+  // hub -> zone A/B/C used by "Productivity Orders ZONE" (optional: the board falls back to its saved copy)
+  const obdZones = {};
+  let obdZoneError = "";
+  try {
+    const v = SpreadsheetApp.openById(cfg.OBD_SPREADSHEET_ID).getSheetByName("Outbound Email").getRange("B2:C").getDisplayValues();
+    v.forEach(r => { if (r[0] && r[1] && r[1] !== "#N/A" && !(r[0] in obdZones)) obdZones[r[0]] = r[1]; });
+  } catch (e) {
+    obdZoneError = "อ่าน Outbound Email ไม่ได้: " + e;
+  }
   return {
     success: true, page: "refs",
     fetchedAt: Utilities.formatDate(new Date(), cfg.TIME_ZONE, "yyyy-MM-dd HH:mm:ss"),
-    hub: hub, cuts: cuts, ttb: ttb, ttbError: ttbError
+    hub: hub, cuts: cuts, ttb: ttb, ttbError: ttbError, obdZones: obdZones, obdZoneError: obdZoneError
   };
 }
 
@@ -289,6 +304,47 @@ function testDaily() {
     const d = readDailyRaw_(l.files[0].fileId);
     Logger.log(`${d.fileName}: ${d.totalRows} rows ${d.error || ""}`);
   }
+}
+
+// =========================================================================================
+// Sheet dump (page=sheetinfo / page=dump): formulas + display values of any sheet the company
+// account can open. sheet_dump.html calls this from the browser and saves the result on the
+// dashboard server (data/sheet_dumps) so the sheet logic can be read and mirrored.
+// =========================================================================================
+function sheetInfo_(spreadsheetId) {
+  if (!spreadsheetId) return { success: false, error: "ต้องระบุ spreadsheetId" };
+  const ss = SpreadsheetApp.openById(spreadsheetId);
+  return {
+    success: true, page: "sheetinfo", spreadsheetId: spreadsheetId, name: ss.getName(),
+    sheets: ss.getSheets().map(s => ({
+      name: s.getName(), gid: s.getSheetId(), lastRow: s.getLastRow(), lastCol: s.getLastColumn(), hidden: s.isSheetHidden()
+    }))
+  };
+}
+
+function dumpSheet_(spreadsheetId, sheetName, startRow, maxRows, maxCols) {
+  if (!spreadsheetId || !sheetName) return { success: false, error: "ต้องระบุ spreadsheetId และ sheetName" };
+  const ss = SpreadsheetApp.openById(spreadsheetId);
+  const sh = ss.getSheetByName(sheetName);
+  if (!sh) return { success: false, error: `ไม่พบแท็บ "${sheetName}"` };
+  const lastRow = sh.getLastRow(), lastCol = sh.getLastColumn();
+  const r0 = Math.max(1, Number(startRow) || 1);
+  const nRows = Math.max(0, Math.min(Number(maxRows) || 200, 2000, lastRow - r0 + 1));
+  const nCols = Math.max(0, Math.min(Number(maxCols) || 80, lastCol));
+  const out = {
+    success: true, page: "dump", spreadsheetId: spreadsheetId, spreadsheetName: ss.getName(),
+    sheet: sheetName, gid: sh.getSheetId(), lastRow: lastRow, lastCol: lastCol,
+    startRow: r0, rows: nRows, cols: nCols, values: [], formulas: [], merges: [], dataValidations: []
+  };
+  if (!nRows || !nCols) return out;
+  const rng = sh.getRange(r0, 1, nRows, nCols);
+  out.values = rng.getDisplayValues();
+  // formulas only where present: [[row, col, formula], ...] (keeps the response small)
+  const f = rng.getFormulas();
+  out.formulas = [];
+  f.forEach((row, i) => row.forEach((x, j) => { if (x) out.formulas.push([r0 + i, j + 1, x]); }));
+  out.merges = rng.getMergedRanges().map(m => m.getA1Notation());
+  return out;
 }
 
 function readLhTrip_(spreadsheetId, gid, sheetName) {

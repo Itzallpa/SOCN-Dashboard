@@ -5699,23 +5699,25 @@ def test_seatalk_alert_api():
         return jsonify({"success": False, "error": f"ไม่สามารถส่งข้อความได้: {msg}"}), 400
 
 
-def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
+def sync_productivity_orders_sheet(sheet_url=None, auto_save=True, reader=None, date_override=None, source_label="Google Sheet", allow_alert=True):
+    """Parse "Productivity Orders ZONE" rows (sheet CSV, or rows rebuilt from raw data by productivity_raw.py
+    when `reader` is given), save them for the date and run the SeaTalk alert check."""
     import csv, io, re, urllib.request, time
     from datetime import datetime
     
     settings = load_system_settings()
-    if not sheet_url:
+    if reader is None and not sheet_url:
         sheet_url = settings.get("googleSheetSync", {}).get("url", "")
     
-    if not sheet_url:
+    if reader is None and not sheet_url:
         return False, "ยังไม่ได้กำหนด Google Sheet URL", None
         
     try:
-        req = urllib.request.Request(sheet_url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            raw_csv = resp.read().decode("utf-8", errors="ignore")
-            
-        reader = list(csv.reader(io.StringIO(raw_csv)))
+        if reader is None:
+            req = urllib.request.Request(sheet_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                raw_csv = resp.read().decode("utf-8", errors="ignore")
+            reader = list(csv.reader(io.StringIO(raw_csv)))
         if not reader:
             return False, "ไม่พบข้อมูลใน Google Sheet", None
             
@@ -5748,6 +5750,8 @@ def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
                     except:
                         pass
                     break
+        if date_override:
+            date_str = date_override
 
         summary_rows = {}
         for r in reader[:10]:
@@ -5854,7 +5858,7 @@ def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
             # 2. Skip standby quiet hours 13:00 - 17:00
             # 3. Strictly 1 alert per hour slot & deduplicate by exact date_slot_actual hash
             st_cfg = settings.get("seatalk", {})
-            if st_cfg.get("enabled") and st_cfg.get("webhookUrl") and is_board_data_changed:
+            if allow_alert and st_cfg.get("enabled") and st_cfg.get("webhookUrl") and is_board_data_changed:
                 target_normal = settings.get("hourlyTarget", 45000)
                 target_min = settings.get("hourlyMinimum", 40000)
                 target_peak = settings.get("peakHourTarget", 50000)
@@ -5974,7 +5978,7 @@ def sync_productivity_orders_sheet(sheet_url=None, auto_save=True):
                     log_activity("SEATALK_AUTO_ALERT", f"🚨 ส่งแจ้งเตือน SeaTalk (จำกัด 1 ข้อความ/ชม.): {date_str} {slot_lbl} ยอด {act:,} ชิ้น (หลุดเป้า: {lowest_str} | ผู้รับผิดชอบ: {staff_str})")
 
             save_hourly_tracker_data(tracker_data)
-            log_activity("GOOGLE_SHEET_SYNC", f"🔄 ซิงค์ข้อมูล Google Sheet สำเร็จ (วันที่ {date_str}, ยอดรวม {sum(records.values()):,} ชิ้น, 24 ชั่วโมง)")
+            log_activity("GOOGLE_SHEET_SYNC", f"🔄 ซิงค์ข้อมูล {source_label} สำเร็จ (วันที่ {date_str}, ยอดรวม {sum(records.values()):,} ชิ้น, 24 ชั่วโมง)")
             
         return True, "ซิงค์ข้อมูล Google Sheet สำเร็จ", {
             "date": date_str,
@@ -6177,6 +6181,55 @@ def sync_hourly_google_sheet_api():
         })
     else:
         return jsonify({"success": False, "error": msg}), 400
+
+
+OBD_ZONE_MAP_FILE = os.path.join(DATA_DIR, "obd_zone_map.json")
+
+
+def load_productivity_zone_map(posted_zones=None):
+    """hub name -> zone A/B/C: Hub tab "OBD Zone" < saved 'Outbound Email' copy < zones sent with the request."""
+    zones = {}
+    try:
+        with open(os.path.join(DATA_DIR, "lh_trip_refs_cache.json"), "r", encoding="utf-8") as f:
+            for h in (json.load(f).get("hub") or []):
+                if len(h) > 3 and h[0] and h[3]:
+                    zones[str(h[0]).strip()] = str(h[3]).strip()
+    except Exception:
+        pass
+    try:
+        with open(OBD_ZONE_MAP_FILE, "r", encoding="utf-8") as f:
+            zones.update(json.load(f).get("zones") or {})
+    except Exception:
+        pass
+    if posted_zones:
+        zones.update({str(k).strip(): str(v).strip() for k, v in posted_zones.items() if k and v})
+        try:
+            with open(OBD_ZONE_MAP_FILE, "w", encoding="utf-8") as f:
+                json.dump({"source": "Apps Script refs ('Outbound Email'!B:C)", "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                           "zones": posted_zones}, f, ensure_ascii=False, indent=1)
+        except Exception:
+            pass
+    return zones
+
+
+@app.route("/api/hourly-tracker/from-raw", methods=["POST"])
+def hourly_tracker_from_raw_api():
+    """Hourly Tracker from LH Trip raw data (test sheet "raw data" read by the browser through the Apps Script).
+    Body: {raw: {headers, rows}, zones?: {hub: zone}, day?: 'YYYY-MM-DD', alerts?: bool (false for past-day files)}"""
+    from productivity_raw import build_productivity_rows
+    req = request.get_json(silent=True) or {}
+    raw = req.get("raw") or {}
+    try:
+        day, rows, info = build_productivity_rows(raw.get("headers") or [], raw.get("rows") or [],
+                                                  load_productivity_zone_map(req.get("zones")), req.get("day") or None)
+    except ValueError as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+    live = req.get("alerts", True) is not False
+    ok, msg, data = sync_productivity_orders_sheet(reader=rows, date_override=day, allow_alert=live,
+                                                   source_label="raw data (LH Trip)" if live else f"raw data ไฟล์รายวัน {req.get('fileName') or ''}".strip())
+    if not ok:
+        return jsonify({"success": False, "error": msg}), 400
+    return jsonify({"success": True, "message": msg, "date": day, "info": info, "data": data})
 
 
 @app.route("/api/hourly-tracker", methods=["GET"])
@@ -7653,6 +7706,25 @@ def upload_lh_trip_to_drive_api():
 # rows go through process_table_sheet exactly like the live sync. Nothing live is overwritten.
 # ---------------------------------------------------------------------------
 LH_TRIP_REFS_CACHE = os.path.join(DATA_DIR, "lh_trip_refs_cache.json")
+
+
+@app.route("/api/sheet-dump", methods=["POST"])
+def sheet_dump_api():
+    """Save a sheet dump (formulas + values) sent by sheet_dump.html -> data/sheet_dumps/<file>/<tab>.json."""
+    req = request.get_json(silent=True) or {}
+    dump = req.get("dump") or {}
+    if not dump.get("success"):
+        return jsonify({"success": False, "error": "dump ไม่สมบูรณ์"}), 400
+    safe = lambda t: re.sub(r'[^\w\-ก-๙ ]+', '_', str(t or "")).strip()[:80] or "unnamed"
+    folder = os.path.join(DATA_DIR, "sheet_dumps", safe(dump.get("spreadsheetName") or dump.get("spreadsheetId")))
+    os.makedirs(folder, exist_ok=True)
+    name = safe(dump.get("sheet") or "sheetinfo")
+    if dump.get("page") == "dump" and int(dump.get("startRow") or 1) > 1:
+        name += f"__r{int(dump['startRow'])}"
+    path = os.path.join(folder, name + ".json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(dump, f, ensure_ascii=False)
+    return jsonify({"success": True, "path": os.path.relpath(path, BASE_DIR) if "BASE_DIR" in globals() else path})
 
 
 @app.route("/api/lh-trip/daily-raw", methods=["POST"])

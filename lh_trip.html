@@ -67,7 +67,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="theme.css?v=6" rel="stylesheet">
+  <link href="theme.css?v=7" rel="stylesheet">
 </head>
 <body>
 
@@ -89,17 +89,18 @@
     </div>
   </nav>
   <script src="auth_guard.js"></script>
+  <script src="progress_popup.js?v=1"></script>
 
 
   <div class="container-fluid px-3 py-3" style="max-width: 1600px; margin: 0 auto;">
 
-    <!-- Page header: title · view switch · primary actions -->
-    <header class="page-head">
+    <!-- Page header: title · view switch · primary actions (hidden on the TV slideshow) -->
+    <header class="page-head tv-hide">
       <div class="page-head-title">
         <h1 class="page-title">LH Trip &amp; OB Late</h1>
         <p class="page-subtitle" id="headerSubtext">ระบบวิเคราะห์ข้อมูล LH Trip (แสดงอันดับ Top 50 Hubs ครบถ้วนตามต้องการ)</p>
       </div>
-      <div class="page-head-actions">
+      <div class="page-head-actions tv-hide">
         <div class="btn-group btn-group-sm seg-toggle" role="group" aria-label="มุมมอง">
           <button class="btn btn-primary nav-toggle-btn px-3" id="tabDashboardBtn" onclick="switchView('dashboard')"><i class="fa-solid fa-chart-pie me-1"></i> Dashboard</button>
           <button class="btn btn-outline-secondary nav-toggle-btn px-3" id="tabTableBtn" onclick="switchView('table')"><i class="fa-solid fa-table me-1"></i> Raw Data</button>
@@ -125,7 +126,7 @@
     </header>
 
     <!-- Data source / snapshot bar -->
-    <div class="data-bar">
+    <div class="data-bar tv-hide">
       <label class="data-bar-label" for="snapshotDateSelect"><i class="fa-solid fa-clock-rotate-left me-1"></i> ชุดข้อมูล</label>
       <select class="form-select form-select-sm" id="snapshotDateSelect" onchange="onSnapshotDateChange(this.value)" style="width:auto; min-width:260px; max-width:360px;">
         <option value="live">ข้อมูลสดล่าสุด (Live Google Sheet)</option>
@@ -605,6 +606,8 @@
       }
 
       if (initialUrl) {
+        // show the last data the server already has right away, then refresh quietly in the background
+        await showCachedLiveData();
         syncAppsScriptDataToDashboard(initialUrl, true);
       } else {
         // Clean empty state — No Mock Data
@@ -789,69 +792,6 @@
         renderDriveDaySelect(msg);
         if (showErrors) Swal.fire({ icon: 'warning', title: 'โหลดรายการไฟล์ Drive ไม่ได้', html: `<div style="white-space:pre-line;text-align:left">${escapeHtmlLite(msg)}</div>` });
       }
-    }
-
-    // Loading popups: line bar + % instead of a spinner. The requests give no real progress
-    // (JSONP / one POST), so the bar eases toward the step's end % and jumps when the step ends.
-    // withProgress(opts, expectedMs) turns any Swal options with `text` into such a popup.
-    let _pg = null;
-    function withProgress(opts, expectedMs) {
-      const pg = {};
-      const text = opts.text ? `<div class="mb-3">${escapeHtmlLite(opts.text)}</div>` : '';
-      const o = Object.assign({}, opts, {
-        html: `${text}<div class="text-start">
-                 <div class="d-flex justify-content-between small mb-1">
-                   <span id="pgStep" class="text-muted">กำลังดำเนินการ...</span>
-                   <span id="pgPct" class="fw-bold" style="font-variant-numeric:tabular-nums;">0%</span>
-                 </div>
-                 <div class="progress" role="progressbar" aria-label="ความคืบหน้า" aria-valuemin="0" aria-valuemax="100" style="height:10px;">
-                   <div id="pgBar" class="progress-bar" style="width:0%; background:#ee4d2d; transition:width .25s linear;"></div>
-                 </div>
-                 <div id="pgElapsed" class="small text-muted mt-2">0 วินาที</div>
-               </div>`,
-        showConfirmButton: false,
-        // a step set by the caller before the popup rendered wins; otherwise one generic step
-        didOpen: () => { if (pg.started) pg.step(pg.label, pg.to, pg.ms, true); else pg.step('กำลังดำเนินการ...', 95, expectedMs || 12000); },
-        didDestroy: () => pg.stop()
-      });
-      delete o.text;
-      if (_pg) _pg.stop();
-      const t0 = Date.now();
-      let pct = 0, from = 0, to = 0, stepStart = t0, expectMs = 1000, timer = null;
-      const paint = () => {
-        const bar = document.getElementById('pgBar');
-        if (!bar) return;
-        const p = Math.min(100, Math.floor(pct));
-        bar.style.width = p + '%';
-        bar.parentElement.setAttribute('aria-valuenow', p);
-        document.getElementById('pgPct').textContent = p + '%';
-        document.getElementById('pgElapsed').textContent = Math.round((Date.now() - t0) / 1000) + ' วินาที';
-      };
-      const tick = () => {
-        const k = 1 - Math.exp(-(Date.now() - stepStart) / expectMs);   // 63% of the step at expectMs
-        pct = Math.max(pct, from + (to - from) * Math.min(k, 0.97));
-        paint();
-      };
-      Object.assign(pg, {
-        label: '', started: false, to: 0, ms: 0,
-        step(label, endPct, ms, keepStart) {
-          if (!timer) timer = setInterval(tick, 200);
-          pg.started = true; pg.label = label; pg.to = endPct; pg.ms = ms;
-          if (!keepStart) { from = pct; stepStart = Date.now(); }
-          to = endPct; expectMs = ms || 3000;
-          const el = document.getElementById('pgStep'); if (el) el.textContent = label;
-          tick();
-        },
-        done() { clearInterval(timer); timer = null; pct = 100; const el = document.getElementById('pgStep'); if (el) el.textContent = 'เสร็จแล้ว'; paint(); },
-        stop() { clearInterval(timer); timer = null; }
-      });
-      _pg = pg;
-      return o;
-    }
-
-    function openProgressModal(title) {
-      Swal.fire(withProgress({ title, allowOutsideClick: true, showCloseButton: true }, 3000));
-      return _pg;
     }
 
     async function onDriveDayChange(fileId) {
@@ -1468,7 +1408,24 @@
 
     document.addEventListener('DOMContentLoaded', () => { loadLhRelayCfg(); });
 
-    async function syncAppsScriptDataToDashboard(url) {
+    // Last live data the server received (no waiting for the sheet): used on page open / TV slideshow
+    async function showCachedLiveData() {
+      try {
+        const data = await safeApiFetch('/api/lh-trip/ingest-sheet/latest');
+        if (data && data.success && data.changed) {
+          lhLastReceivedAt = data.receivedAt || lhLastReceivedAt;
+          applyLhSyncedData(data, true);
+          const banner = document.getElementById('lhStatusMsg');
+          if (banner && data.receivedAt) {
+            banner.innerHTML = `<div class="small text-muted py-1"><i class="fa-solid fa-rotate me-1"></i>ข้อมูลล่าสุด ณ ${escapeHtmlLite(data.receivedAt)} · กำลังอัปเดตเบื้องหลัง...</div>`;
+          }
+          return true;
+        }
+      } catch (e) {}
+      return false;
+    }
+
+    async function syncAppsScriptDataToDashboard(url, silent = false) {
       let targetUrl = url;
       let relayUrl = '';
       let relayKey = '';
@@ -1491,7 +1448,7 @@
 
       // Google Sheet บริษัท (ไม่ public) → ดึงผ่าน Apps Script relay ด้วยเมลบริษัทใน Browser
       if (relayUrl && isPrivateSheetUrl(targetUrl)) {
-        return syncLhTripViaCompanyRelay(targetUrl, relayUrl, relayKey);
+        return syncLhTripViaCompanyRelay(targetUrl, relayUrl, relayKey, silent);
       }
 
       // Apps Script Web App → ดึงผ่าน JSONP ใน Browser (ใช้ Cookie Login Google ของ Browser, ไม่ต้องเปิด Popup)

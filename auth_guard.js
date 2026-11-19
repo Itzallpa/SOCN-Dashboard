@@ -955,6 +955,7 @@
     const pageName = currentPath.split('/').pop() || 'index.html';
     const isPublicPage = pageName === '' || pageName === 'index.html' || pageName === 'login.html';
     const isAdminOnlyPage = pageName.includes('admin.html') || pageName.includes('audit_logs.html') || pageName.includes('admin_logs.html');
+    const isStrictAdminPage = pageName === 'tv.html';   // Admin only (not Supervisor)
 
     // Portal Hub (index.html) is public
     if (isPublicPage) {
@@ -966,6 +967,13 @@
     if (!user) {
       lockPageDisplay();
       showAuthModal('🔒 กรุณาเข้าสู่ระบบเพื่อเข้าใช้งานระบบนี้', true);
+      return false;
+    }
+
+    if (isStrictAdminPage && user.role !== 'Admin' && user.role !== 'admin') {
+      lockPageDisplay();
+      showSweetAlert('🔒 สงวนสิทธิ์ Admin', 'หน้า TV Slideshow ใช้ได้เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น', 'warning');
+      setTimeout(function () { location.href = 'index.html'; }, 2000);
       return false;
     }
 
@@ -987,8 +995,15 @@
     return true;
   }
 
+  function isAdminUser() {
+    var u = getStoredUser();
+    return !!(u && (u.role === 'Admin' || u.role === 'admin'));
+  }
+
   function updateModuleButtonsUI() {
     const u = getStoredUser();
+    // nav links that only Admin may see (e.g. TV Slideshow)
+    document.querySelectorAll('[data-admin-only-link]').forEach(function (el) { el.hidden = !isAdminUser(); });
     const isAdmin = u && (u.role === 'Admin' || u.role === 'admin');
     const canAccessAdmin = u && (u.role === 'Admin' || u.role === 'Supervisor');
 
@@ -1494,7 +1509,8 @@
     { href: 'ob_bl.html',          label: 'OB Backlog',     icon: 'fa-boxes-stacked' },
     { href: 'ob_bl_compare.html',  label: 'Backlog Compare', icon: 'fa-code-compare' },
     { href: 'hourly_tracker.html', label: 'Hourly Tracker', icon: 'fa-chart-line' },
-    { href: 'obi_monitor.html',    label: 'OBI Monitor',    icon: 'fa-gauge-high' }
+    { href: 'obi_monitor.html',    label: 'OBI Monitor',    icon: 'fa-gauge-high' },
+    { href: 'tv.html',             label: 'TV Slideshow',   icon: 'fa-tv', adminOnly: true }
   ];
 
   function ensureThemeStylesheet() {
@@ -1509,7 +1525,14 @@
 
   function renderAppNav() {
     var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
-    if (page === 'login.html' || !document.body) return;
+    if (page === 'login.html' || page === 'tv.html' || !document.body) return;
+    // shown as a slide inside tv.html → no navigation bar at all
+    var inTv = false;
+    try { inTv = window.top !== window.self && /tv\.html$/i.test(window.top.location.pathname); } catch (e) {}
+    if (inTv) {
+      document.querySelectorAll('body > nav, body > .top-nav, body > header.portal-status-bar, .app-nav').forEach(function (n) { n.remove(); });
+      return;
+    }
     if (document.querySelector('.app-nav')) return;
     var nav = document.querySelector('body > nav, body > .top-nav, body > header.portal-status-bar');
     if (!nav) {
@@ -1523,7 +1546,9 @@
     }
     var links = APP_NAV_LINKS.map(function (l) {
       var active = page === l.href;
-      return '<a class="app-link' + (active ? ' active' : '') + '" href="' + l.href + '"' + (active ? ' aria-current="page"' : '') + '>' +
+      var hide = l.adminOnly && !isAdminUser();
+      return '<a class="app-link' + (active ? ' active' : '') + '" href="' + l.href + '"' + (active ? ' aria-current="page"' : '') +
+             (l.adminOnly ? ' data-admin-only-link="1"' : '') + (hide ? ' hidden' : '') + '>' +
              '<i class="fa-solid ' + l.icon + '" aria-hidden="true"></i><span>' + l.label + '</span></a>';
     }).join('');
     nav.className = 'app-nav';

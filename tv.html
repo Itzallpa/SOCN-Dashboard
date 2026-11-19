@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TV Slideshow</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="theme.css?v=7" rel="stylesheet">
+  <style>
+    html, body { height: 100%; margin: 0; overflow: hidden; background: var(--app-bg, #F6F7F9); }
+    body { display: flex; flex-direction: column; font-family: 'Inter', 'IBM Plex Sans Thai', system-ui, sans-serif; color: var(--app-text, #101828); }
+
+    .tv-bar {
+      flex: 0 0 auto; display: flex; align-items: center; gap: 12px; padding: 8px 16px;
+      background: var(--app-surface, #fff); border-bottom: 1px solid var(--app-border, #E4E7EC); position: relative;
+    }
+    .tv-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; white-space: nowrap; }
+    .tv-brand-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--app-brand, #EE4D2D); color: #fff; display: grid; place-items: center; font-size: .8rem; }
+    .tv-tabs { display: flex; gap: 6px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+    .tv-tabs::-webkit-scrollbar { display: none; }
+    .tv-tab {
+      border: 1px solid var(--app-border, #E4E7EC); background: var(--app-surface, #fff); color: var(--app-text-2, #344054);
+      border-radius: 999px; padding: 6px 14px; font: inherit; font-size: .88rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+      min-height: 36px; transition: background .15s, color .15s, border-color .15s;
+    }
+    .tv-tab:hover { border-color: var(--app-border-strong, #D0D5DD); }
+    .tv-tab[aria-selected="true"] { background: var(--app-brand, #EE4D2D); border-color: var(--app-brand, #EE4D2D); color: #fff; }
+    .tv-tab:focus-visible, .tv-btn:focus-visible, .tv-select:focus-visible { outline: none; box-shadow: var(--app-ring, 0 0 0 3px rgba(238,77,45,.2)); }
+    .tv-controls { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .tv-btn {
+      width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--app-border, #E4E7EC); background: var(--app-surface, #fff);
+      color: var(--app-text-2, #344054); cursor: pointer; display: grid; place-items: center;
+    }
+    .tv-btn:hover { background: var(--app-surface-2, #F8FAFC); }
+    .tv-select {
+      height: 36px; border-radius: 8px; border: 1px solid var(--app-border, #E4E7EC); background: var(--app-surface, #fff);
+      color: var(--app-text-2, #344054); font: inherit; font-size: .85rem; padding: 0 8px; cursor: pointer;
+    }
+    .tv-live { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 700; letter-spacing: .04em; color: var(--app-success, #067647);
+      background: var(--app-success-soft, #ECFDF3); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+    .tv-live-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: tvPulse 1.6s ease-in-out infinite; }
+    @keyframes tvPulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+    @media (prefers-reduced-motion: reduce) { .tv-live-dot { animation: none; } }
+    .tv-part { font-size: .75rem; font-weight: 700; opacity: .85; margin-left: 2px; }
+    .tv-countdown { font-variant-numeric: tabular-nums; font-size: .85rem; color: var(--app-muted, #667085); min-width: 44px; text-align: right; }
+    .tv-progress { position: absolute; left: 0; bottom: -1px; height: 3px; background: var(--app-brand, #EE4D2D); width: 0; }
+    .tv-progress.running { transition: width linear; }
+
+    .tv-stage { position: relative; flex: 1 1 auto; min-height: 0; }
+    .tv-stage iframe {
+      position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--app-bg, #F6F7F9);
+      opacity: 0; visibility: hidden; transition: opacity .45s ease, visibility 0s linear .45s;
+    }
+    .tv-stage iframe.active { opacity: 1; visibility: visible; transition: opacity .45s ease; }
+    .tv-stage iframe.active.tv-fading { opacity: 0; transition: opacity .35s ease; }
+    @media (prefers-reduced-motion: reduce) {
+      .tv-stage iframe, .tv-stage iframe.active, .tv-progress.running { transition: none; }
+    }
+
+    /* full screen: bar hides itself, shows again when the mouse moves */
+    body.tv-full .tv-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 10; transform: translateY(-100%); transition: transform .2s ease; }
+    body.tv-full.show-bar .tv-bar { transform: none; }
+    body.tv-full .tv-mini-progress { display: block; }
+    .tv-mini-progress { display: none; position: fixed; left: 0; top: 0; height: 3px; background: var(--app-brand, #EE4D2D); width: 0; z-index: 11; }
+
+    @media (max-width: 640px) {
+      .tv-brand-text, .tv-countdown { display: none; }
+      .tv-bar { gap: 8px; padding: 8px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="tv-bar" role="toolbar" aria-label="Slideshow controls">
+    <div class="tv-brand"><span class="tv-brand-mark"><i class="fa-solid fa-tv" aria-hidden="true"></i></span><span class="tv-brand-text">SOC TV</span></div>
+    <div class="tv-tabs" id="tvTabs" role="tablist" aria-label="หน้าจอ"></div>
+    <div class="tv-controls">
+      <span class="tv-live" title="ข้อมูลสด: LH Trip ซิงค์ทุก 10 นาที · Hourly ซิงค์ raw data ทุก 10 นาที และรีเฟรชหน้าจอทุก 30 วินาที"><span class="tv-live-dot" aria-hidden="true"></span>LIVE <span id="tvClock" style="font-weight:600;font-variant-numeric:tabular-nums;"></span></span>
+      <span class="tv-countdown" id="tvCountdown" aria-live="off"></span>
+      <button class="tv-btn" id="tvPrev" type="button" title="ก่อนหน้า (← ↑)" aria-label="ก่อนหน้า"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+      <button class="tv-btn" id="tvPlay" type="button" title="หยุด / เล่น (Space)" aria-label="หยุดชั่วคราว"><i class="fa-solid fa-pause" aria-hidden="true"></i></button>
+      <button class="tv-btn" id="tvNext" type="button" title="ถัดไป (→ ↓)" aria-label="ถัดไป"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+      <select class="tv-select" id="tvInterval" aria-label="เวลาต่อช่วง" title="เวลาต่อช่วง (ครึ่งหน้า / หนึ่งจอ)">
+        <option value="30">30 วิ</option>
+        <option value="60" selected>1 นาที</option>
+        <option value="120">2 นาที</option>
+        <option value="300">5 นาที</option>
+      </select>
+      <button class="tv-btn" id="tvFull" type="button" title="เต็มจอ (F)" aria-label="เต็มจอ"><i class="fa-solid fa-expand" aria-hidden="true"></i></button>
+      <a class="tv-btn" href="index.html" title="ออกจาก TV" aria-label="ออกจาก TV"><i class="fa-solid fa-xmark" aria-hidden="true"></i></a>
+    </div>
+    <div class="tv-progress" id="tvProgress"></div>
+  </header>
+  <div class="tv-mini-progress" id="tvMiniProgress"></div>
+  <main class="tv-stage" id="tvStage"></main>
+
+  <script src="auth_guard.js"></script>
+  <script>
+    // Slides: each page stays loaded (its own auto-refresh keeps running); only visibility changes.
+    const SLIDES = [
+      { id: 'lh', label: 'LH Trip & OB Late', icon: 'fa-truck', src: 'lh_trip.html', maxParts: 3 },
+      { id: 'hourly', label: 'Hourly Tracker', icon: 'fa-chart-line', src: 'hourly_tracker.html' }
+    ];
+    // inside the slides: no top navigation, no scrollbars jumping in
+    const KIOSK_CSS = 'nav, .app-nav, .top-nav, header.portal-status-bar { display: none !important; } body { padding-top: 0 !important; }' +
+      ' html { scrollbar-width: none; } ::-webkit-scrollbar { display: none; }' +
+      // buttons / source pickers are for desk use — the TV only shows the data
+      ' .tv-hide { display: none !important; }';
+
+    const store = {
+      get(k, d) { try { const v = localStorage.getItem('tv_' + k); return v == null ? d : v; } catch (e) { return d; } },
+      set(k, v) { try { localStorage.setItem('tv_' + k, v); } catch (e) {} }
+    };
+
+    const stage = document.getElementById('tvStage');
+    const tabs = document.getElementById('tvTabs');
+    const playBtn = document.getElementById('tvPlay');
+    const intervalSel = document.getElementById('tvInterval');
+    const countdownEl = document.getElementById('tvCountdown');
+    const progress = document.getElementById('tvProgress');
+    const miniProgress = document.getElementById('tvMiniProgress');
+
+    let current = 0, part = 0, playing = store.get('playing', '1') === '1', remaining = 0, tickTimer = null;
+    intervalSel.value = store.get('interval', '60');
+
+    SLIDES.forEach((s, i) => {
+      const f = document.createElement('iframe');
+      f.src = s.src;
+      f.title = s.label;
+      f.id = 'slide-' + s.id;
+      f.addEventListener('load', () => {
+        try {
+          const st = f.contentDocument.createElement('style');
+          st.textContent = KIOSK_CSS;
+          f.contentDocument.head.appendChild(st);
+          // keyboard shortcuts also work while a slide has focus
+          f.contentWindow.addEventListener('keydown', onKey);
+          f.contentWindow.addEventListener('mousemove', revealBar);
+        } catch (e) { /* not same-origin */ }
+      });
+      stage.appendChild(f);
+
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tv-tab';
+      b.setAttribute('role', 'tab');
+      b.setAttribute('aria-controls', f.id);
+      b.innerHTML = `<i class="fa-solid ${s.icon} me-1" aria-hidden="true"></i> ${s.label} <span class="tv-part"></span>`;
+      b.addEventListener('click', () => show(i, 0));
+      tabs.appendChild(b);
+    });
+
+    function seconds() { return Number(intervalSel.value) || 60; }
+
+    function setBars(pct, animateSec) {
+      [progress, miniProgress].forEach(el => {
+        el.classList.toggle('running', !!animateSec);
+        el.style.transitionDuration = animateSec ? animateSec + 's' : '0s';
+        el.style.width = pct + '%';
+      });
+    }
+
+    function restartTimer() {
+      clearInterval(tickTimer);
+      remaining = seconds();
+      setBars(0, 0);
+      if (!playing) { countdownEl.textContent = 'หยุด'; return; }
+      // force a reflow so the bar animates from 0 again
+      void progress.offsetWidth;
+      setBars(100, remaining);
+      countdownEl.textContent = remaining + 's';
+      tickTimer = setInterval(() => {
+        remaining -= 1;
+        countdownEl.textContent = Math.max(remaining, 0) + 's';
+        if (remaining <= 0) step(1);
+      }, 1000);
+    }
+
+    // ---- A long page is shown one screen at a time (part 1/3, 2/3, ...), then the next page ----
+    // Break points snap to the top of a dashboard row so cards are not cut in half when possible.
+    function breakPoints(i) {
+      const f = stage.children[i];
+      try {
+        const doc = f.contentDocument, win = f.contentWindow;
+        const view = f.clientHeight, total = doc.documentElement.scrollHeight;
+        if (!view || total <= view + 8) return [0];
+        const scrollY = win.scrollY || 0;
+        const tops = [...doc.querySelectorAll('.row, .card, .callout-card, section, .table-responsive')]
+          .map(el => Math.round(el.getBoundingClientRect().top + scrollY))
+          .filter(t => t > 0).sort((x, y) => x - y);
+        const pts = [0];
+        let cur = 0;
+        while (cur + view < total - 8 && pts.length < 8) {
+          const ideal = cur + view - 40;
+          const snap = tops.filter(t => t - 12 > cur + view * 0.45 && t - 12 <= ideal).pop();
+          cur = Math.min(snap ? snap - 12 : ideal, total - view);
+          if (cur <= pts[pts.length - 1]) break;
+          pts.push(cur);
+        }
+        const max = SLIDES[i].maxParts || 8;
+        if (pts.length <= max) return pts;
+        // too many screens: show `max` evenly spaced parts (top, ..., bottom), each snapped to a row top
+        const last = total - view, out = [0];
+        for (let k = 1; k < max; k++) {
+          const ideal = k === max - 1 ? last : Math.round(last * k / (max - 1));
+          const near = tops.map(t => t - 12).filter(t => t > 0 && t <= last)
+            .sort((x, y) => Math.abs(x - ideal) - Math.abs(y - ideal))[0];
+          out.push(k === max - 1 ? last : (near != null && Math.abs(near - ideal) < view * 0.25 ? near : ideal));
+        }
+        return out;
+      } catch (e) { return [0]; }
+    }
+
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let fadeTimer = null;
+    // jump to a part; with `fade` the slide fades out, jumps, and fades back in (no visible scrolling)
+    function scrollPart(i, p, fade) {
+      const f = stage.children[i];
+      const pts = breakPoints(i);
+      const top = pts[Math.min(p, pts.length - 1)] || 0;
+      const jump = () => { try { f.contentWindow.scrollTo({ top, behavior: 'instant' }); } catch (e) {} };
+      clearTimeout(fadeTimer);
+      if (!fade || reduceMotion) { f.classList.remove('tv-fading'); jump(); return pts.length; }
+      f.classList.add('tv-fading');
+      fadeTimer = setTimeout(() => { jump(); requestAnimationFrame(() => f.classList.remove('tv-fading')); }, 360);
+      return pts.length;
+    }
+
+    function step(dir) {
+      const n = breakPoints(current).length;
+      if (dir > 0) {
+        if (part + 1 < n) show(current, part + 1);
+        else show(current + 1, 0);
+      } else {
+        if (part > 0) show(current, part - 1);
+        else { const prev = (current - 1 + SLIDES.length) % SLIDES.length; show(prev, breakPoints(prev).length - 1); }
+      }
+    }
+
+    function show(i, p) {
+      const changedPage = ((i + SLIDES.length) % SLIDES.length) !== current;
+      current = (i + SLIDES.length) % SLIDES.length;
+      [...stage.children].forEach((f, k) => f.classList.toggle('active', k === current));
+      const n = scrollPart(current, p || 0, !changedPage);
+      part = Math.min(p || 0, n - 1);
+      [...tabs.children].forEach((b, k) => {
+        b.setAttribute('aria-selected', k === current ? 'true' : 'false');
+        const badge = b.querySelector('.tv-part');
+        if (badge) badge.textContent = k === current && n > 1 ? `${part + 1}/${n}` : '';
+      });
+      store.set('slide', SLIDES[current].id);
+      document.title = SLIDES[current].label + (n > 1 ? ` (${part + 1}/${n})` : '') + ' · TV';
+      restartTimer();
+    }
+
+    function setPlaying(p) {
+      playing = p;
+      store.set('playing', p ? '1' : '0');
+      playBtn.innerHTML = `<i class="fa-solid ${p ? 'fa-pause' : 'fa-play'}" aria-hidden="true"></i>`;
+      playBtn.setAttribute('aria-label', p ? 'หยุดชั่วคราว' : 'เล่น');
+      restartTimer();
+    }
+
+    function toggleFull() {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen().catch(() => {});
+    }
+    document.addEventListener('fullscreenchange', () => {
+      const full = !!document.fullscreenElement;
+      document.body.classList.toggle('tv-full', full);
+      document.getElementById('tvFull').innerHTML = `<i class="fa-solid ${full ? 'fa-compress' : 'fa-expand'}" aria-hidden="true"></i>`;
+    });
+
+    let barTimer = null;
+    function revealBar() {
+      if (!document.body.classList.contains('tv-full')) return;
+      document.body.classList.add('show-bar');
+      clearTimeout(barTimer);
+      barTimer = setTimeout(() => document.body.classList.remove('show-bar'), 2500);
+    }
+    document.addEventListener('mousemove', revealBar);
+
+    function onKey(e) {
+      const tag = (e.target && e.target.tagName) || '';
+      if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { step(1); e.preventDefault(); }
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { step(-1); e.preventDefault(); }
+      else if (e.key === ' ') { setPlaying(!playing); e.preventDefault(); }
+      else if (e.key === 'f' || e.key === 'F') { toggleFull(); }
+    }
+    document.addEventListener('keydown', onKey);
+
+    document.getElementById('tvPrev').addEventListener('click', () => step(-1));
+    document.getElementById('tvNext').addEventListener('click', () => step(1));
+    playBtn.addEventListener('click', () => setPlaying(!playing));
+    document.getElementById('tvFull').addEventListener('click', toggleFull);
+    intervalSel.addEventListener('change', () => { store.set('interval', intervalSel.value); restartTimer(); });
+
+    const clockEl = document.getElementById('tvClock');
+    const tickClock = () => { clockEl.textContent = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }); };
+    tickClock(); setInterval(tickClock, 15000);
+
+    const startId = new URLSearchParams(location.search).get('slide') || store.get('slide', SLIDES[0].id);
+    setPlaying(playing);
+    show(Math.max(0, SLIDES.findIndex(s => s.id === startId)), 0);
+    // the page height changes as data loads → re-apply the current part's scroll position
+    window.addEventListener('resize', () => scrollPart(current, part, false));
+  </script>
+</body>
+</html>

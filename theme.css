@@ -121,6 +121,7 @@ nav.app-nav, .app-nav {
   overflow-x: auto; scrollbar-width: none; flex: 1 1 auto; min-width: 0;
 }
 .app-nav .app-links::-webkit-scrollbar { display: none; }
+.app-nav .app-link[hidden] { display: none !important; }
 .app-nav .app-link {
   display: inline-flex; align-items: center; gap: 7px;
   padding: 0 11px; white-space: nowrap;
