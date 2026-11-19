@@ -791,17 +791,58 @@
       }
     }
 
+    // Progress modal with a line bar + %. Steps have no real progress events (JSONP / one POST),
+    // so each step eases toward its end percentage and jumps there when the step finishes.
+    function openProgressModal(title) {
+      Swal.fire({
+        title,
+        html: `<div class="text-start">
+                 <div class="d-flex justify-content-between small mb-1">
+                   <span id="pgStep" class="text-muted">กำลังเริ่ม...</span>
+                   <span id="pgPct" class="fw-bold" style="font-variant-numeric:tabular-nums;">0%</span>
+                 </div>
+                 <div class="progress" role="progressbar" aria-label="ความคืบหน้า" aria-valuemin="0" aria-valuemax="100" style="height:10px;">
+                   <div id="pgBar" class="progress-bar" style="width:0%; background:#ee4d2d; transition:width .25s linear;"></div>
+                 </div>
+                 <div id="pgElapsed" class="small text-muted mt-2">0 วินาที</div>
+               </div>`,
+        allowOutsideClick: true, showCloseButton: true, showConfirmButton: false
+      });
+      const t0 = Date.now();
+      let pct = 0, from = 0, to = 0, stepStart = t0, expectMs = 1000, timer = null;
+      const paint = () => {
+        const bar = document.getElementById('pgBar');
+        if (!bar) return;
+        const p = Math.min(100, Math.floor(pct));
+        bar.style.width = p + '%';
+        bar.parentElement.setAttribute('aria-valuenow', p);
+        document.getElementById('pgPct').textContent = p + '%';
+        document.getElementById('pgElapsed').textContent = Math.round((Date.now() - t0) / 1000) + ' วินาที';
+      };
+      const tick = () => {
+        const k = 1 - Math.exp(-(Date.now() - stepStart) / expectMs);   // 63% of the step at expectMs
+        pct = Math.max(pct, from + (to - from) * Math.min(k, 0.97));
+        paint();
+      };
+      timer = setInterval(tick, 200);
+      return {
+        step(label, endPct, expectedMs) {
+          from = pct; to = endPct; stepStart = Date.now(); expectMs = expectedMs || 3000;
+          const el = document.getElementById('pgStep'); if (el) el.textContent = label;
+          tick();
+        },
+        done() { clearInterval(timer); pct = 100; const el = document.getElementById('pgStep'); if (el) el.textContent = 'เสร็จแล้ว'; paint(); },
+        stop() { clearInterval(timer); }
+      };
+    }
+
     async function onDriveDayChange(fileId) {
       if (!fileId) return;
       const meta = driveDays.find(f => f.fileId === fileId) || {};
       const label = meta.name || 'ไฟล์รายวัน';
-      Swal.fire({
-        title: `กำลังโหลด ${label}...`,
-        text: 'อ่าน raw data จาก Google Drive แล้วคำนวณ Late / On time (10-40 วินาที)',
-        allowOutsideClick: true, showCloseButton: true,
-        didOpen: () => Swal.showLoading()
-      });
+      const pg = openProgressModal(`กำลังโหลด ${label}`);
       try {
+        pg.step('อ่าน raw data จาก Google Drive...', 70, dailyRefs ? 8000 : 12000);
         const [day, refs] = await Promise.all([
           callDailyRelay('readdaily', { fileId }, 180000),
           dailyRefs ? Promise.resolve(dailyRefs) : callDailyRelay('refs', {}, 120000)
@@ -809,6 +850,7 @@
         if (!day || !day.success) throw new Error((day && day.error) || 'อ่านไฟล์ไม่สำเร็จ');
         if (!refs || !refs.success) throw new Error((refs && refs.error) || 'อ่านตารางอ้างอิง (Hub / Cut / TTB) ไม่สำเร็จ');
         dailyRefs = refs;
+        pg.step(`คำนวณ Late / On time (${(day.totalRows || 0).toLocaleString()} แถว)...`, 92, 3000);
         const data = await safeApiFetch('/api/lh-trip/daily-raw', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -818,6 +860,7 @@
         });
         if (!data || !data.success) throw new Error((data && data.error) || 'คำนวณข้อมูลไม่สำเร็จ');
 
+        pg.step('แสดงผล Dashboard...', 99, 800);
         const dateStr = day.date || meta.date || '';
         currentLoadedDate = 'drive:' + (dateStr || fileId);
         latestSyncedData = data;
@@ -847,8 +890,11 @@
               </button>
             </div>`;
         }
+        pg.done();
+        await new Promise(r => setTimeout(r, 350));
         Swal.fire({ icon: 'success', title: 'โหลดข้อมูลแล้ว', text: `${label} · ${trips.toLocaleString()} เที่ยวรถ`, timer: 1600, showConfirmButton: false });
       } catch (err) {
+        pg.stop();
         Swal.fire({ icon: 'error', title: 'โหลดข้อมูลจาก Drive ไม่สำเร็จ', text: err.message || String(err) });
       }
     }
@@ -865,16 +911,20 @@
         showCancelButton: true, confirmButtonText: exists ? 'บันทึกทับ' : 'บันทึก', cancelButtonText: 'ยกเลิก'
       });
       if (!ask.isConfirmed) return;
-      Swal.fire({ title: 'กำลังบันทึก Raw Data...', text: 'copy แท็บ raw data ลง Google Drive (อาจใช้เวลา 30-120 วินาที)', allowOutsideClick: true, showCloseButton: true, didOpen: () => Swal.showLoading() });
+      const pg = openProgressModal('กำลังบันทึก Raw Data');
       try {
+        pg.step('copy แท็บ raw data ลง Google Drive...', 90, 40000);
         const r = await callDailyRelay('savedaily', { date: todayStr }, 300000);
         if (!r || !r.success) throw new Error((r && r.error) || 'บันทึกไม่สำเร็จ');
+        pg.step('อัปเดตรายการไฟล์...', 99, 3000);
         await loadDriveDays(false);
+        pg.done();
         Swal.fire({
           icon: 'success', title: 'บันทึกแล้ว',
           html: `<div class="small">${escapeHtmlLite(r.fileName)} · ${(r.totalRows || 0).toLocaleString()} แถว</div>${r.fileUrl ? `<a class="btn btn-sm btn-outline-secondary mt-2" href="${r.fileUrl}" target="_blank" rel="noopener">เปิดไฟล์</a>` : ''}`
         });
       } catch (err) {
+        pg.stop();
         Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: err.message || String(err) });
       }
     }
