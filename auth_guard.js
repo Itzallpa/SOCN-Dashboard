@@ -1024,14 +1024,35 @@
   }
 
   /* ─── Idle Timeout ─── */
-  function resetIdleTimer() {
+  // TV slideshow (tv.html and the pages shown inside it) runs unattended → never auto-logout there
+  function isTvMode() {
+    var page = (location.pathname.split('/').pop() || '').toLowerCase();
+    if (page === 'tv.html') return true;
+    try { return window.top !== window.self && /tv\.html$/i.test(window.top.location.pathname); } catch (e) { return false; }
+  }
+
+  // keepShared: re-arm the timers without marking this tab as active (so two idle tabs cannot keep each other alive)
+  function resetIdleTimer(keepShared) {
     lastActiveTimestamp = Date.now();
-    localStorage.setItem('socn_last_active', String(lastActiveTimestamp));
+    if (!keepShared) localStorage.setItem('socn_last_active', String(lastActiveTimestamp));
     if (idleTimer) clearTimeout(idleTimer);
     if (warningTimer) clearTimeout(warningTimer);
+    if (isTvMode()) {
+      // keep the session marked active (other tabs see it) and skip the warning / logout timers
+      idleTimer = setTimeout(function () { resetIdleTimer(); }, 5 * 60 * 1000);
+      return;
+    }
 
     warningTimer = setTimeout(showWarning, IDLE_TIMEOUT_MS - WARNING_BEFORE_MS);
     idleTimer = setTimeout(function () {
+      // another tab (e.g. the TV slideshow) was active recently → this tab is not the whole session; keep it
+      var shared = Number(localStorage.getItem('socn_last_active') || 0);
+      if (shared && Date.now() - shared < IDLE_TIMEOUT_MS - 1000) {
+        var w = document.getElementById('socnIdleWarn');
+        if (w) w.style.display = 'none';
+        resetIdleTimer(true);
+        return;
+      }
       doAutoLogout('ไม่มีการใช้งานเกิน 1 ชั่วโมง (Idle Timeout)');
     }, IDLE_TIMEOUT_MS);
   }
