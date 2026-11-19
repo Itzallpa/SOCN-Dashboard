@@ -648,7 +648,7 @@
         body: JSON.stringify(Object.assign({ raw: { headers: day.headers, rows: day.rows }, zones }, extra || {}))
       })).json();
       if (!res.success) {
-        throw new Error(/Sealed time/.test(res.error || '')
+        throw new Error(/ไม่มีคอลัมน์.*Sealed time/.test(res.error || '')
           ? 'Apps Script ยังไม่ส่งคอลัมน์ Sealed time — วางโค้ดใหม่แล้ว Deploy > Manage deployments > New version'
           : (res.error || 'คำนวณไม่สำเร็จ'));
       }

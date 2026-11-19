@@ -90,7 +90,7 @@ def build_productivity_rows(headers, rows, zone_map, day=None):
     trips = build_trips(headers, rows)
     days = available_days(trips)
     if not days:
-        raise ValueError("raw data ไม่มี Sealed time เลย")
+        raise ValueError("ยังไม่มีเที่ยวที่ Sealed แล้วใน raw data (หรืออ่านวันที่ในคอลัมน์ Sealed time ไม่ได้)")
     if not day:
         day = max(days, key=days.get)
 

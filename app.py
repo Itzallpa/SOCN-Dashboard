@@ -6217,10 +6217,12 @@ def hourly_tracker_from_raw_api():
     """Hourly Tracker from LH Trip raw data (test sheet "raw data" read by the browser through the Apps Script).
     Body: {raw: {headers, rows}, zones?: {hub: zone}, day?: 'YYYY-MM-DD', alerts?: bool (false for past-day files)}"""
     from productivity_raw import build_productivity_rows
+    from raw_dates import normalize_rows
     req = request.get_json(silent=True) or {}
     raw = req.get("raw") or {}
+    raw_rows, date_order = normalize_rows(raw.get("headers") or [], raw.get("rows") or [])   # MM/DD or DD/MM export
     try:
-        day, rows, info = build_productivity_rows(raw.get("headers") or [], raw.get("rows") or [],
+        day, rows, info = build_productivity_rows(raw.get("headers") or [], raw_rows,
                                                   load_productivity_zone_map(req.get("zones")), req.get("day") or None)
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400
@@ -6229,6 +6231,7 @@ def hourly_tracker_from_raw_api():
                                                    source_label="raw data (LH Trip)" if live else f"raw data ไฟล์รายวัน {req.get('fileName') or ''}".strip())
     if not ok:
         return jsonify({"success": False, "error": msg}), 400
+    info["dateOrder"] = date_order
     return jsonify({"success": True, "message": msg, "date": day, "info": info, "data": data})
 
 
@@ -7688,6 +7691,8 @@ def lh_trip_live_raw_api():
     raw_headers, raw_rows = raw.get("headers") or [], raw.get("rows") or []
     if not raw_headers or not raw_rows:
         return jsonify({"success": False, "error": "raw data ว่าง ไม่มีข้อมูล"})
+    from raw_dates import normalize_rows
+    raw_rows, date_order = normalize_rows(raw_headers, raw_rows)   # export is sometimes MM/DD/YYYY
     refs = req.get("refs")
     if refs and refs.get("hub"):
         try:
@@ -7710,7 +7715,7 @@ def lh_trip_live_raw_api():
     data = _ingest_lh_live_table(headers, rows, req.get("fetchedAt"), req.get("sheet") or "Copy of raw data",
                                  {"source": "raw", "rawRows": len(raw_rows)})
     if data.get("success"):
-        data.update({"source": "live-raw", "sheet": req.get("sheet") or "Copy of raw data", "rawRows": len(raw_rows),
+        data.update({"source": "live-raw", "sheet": req.get("sheet") or "Copy of raw data", "rawRows": len(raw_rows), "dateOrder": date_order,
                      "ttbMissing": not bool((refs or {}).get("ttb"))})
         log_activity("SYNC_GOOGLE_SHEET", f"🔄 Sync LH Trip จาก raw data ({req.get('sheet') or 'Copy of raw data'}) {len(rows):,} เที่ยว / raw {len(raw_rows):,} แถว")
     return jsonify(data)
@@ -7783,6 +7788,8 @@ def lh_trip_daily_raw_api():
     date_str = str(req.get("date") or "").strip()
     if not raw_headers or not isinstance(raw_rows, list) or not raw_rows:
         return jsonify({"success": False, "error": "ไฟล์รายวันไม่มีข้อมูล (raw data ว่าง)"})
+    from raw_dates import normalize_rows
+    raw_rows, _date_order = normalize_rows(raw_headers, raw_rows)   # export is sometimes MM/DD/YYYY
 
     refs = req.get("refs")
     if refs and refs.get("hub"):
