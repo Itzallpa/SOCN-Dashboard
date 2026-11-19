@@ -485,14 +485,13 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       initChart();
-      loadHourlyTrackerData();
-
-      // Auto poll every 30 seconds
-      setInterval(loadHourlyTrackerData, 30000);
-      // Live: rebuild from the test sheet "raw data" through the company Apps Script (browser login)
-      setTimeout(() => syncGoogleSheetData(true), 1500);
+      // no old numbers while loading: wait for live data (Copy of raw data) instead of showing the last saved round
+      // Auto poll every 30 seconds (only once a round is on screen)
+      setInterval(() => { if (viewMode.date) loadHourlyTrackerData(); }, 30000);
+      // Live: rebuild from the test sheet "Copy of raw data" through the company Apps Script (browser login)
+      setTimeout(() => syncGoogleSheetData(true), 300);
       setTimeout(loadHourlyDriveFiles, 2500);
-      setInterval(() => syncGoogleSheetData(true), 10 * 60 * 1000);
+      setInterval(() => syncGoogleSheetData(true), 3 * 60 * 1000);   // live refresh every 3 minutes
     });
 
     function initChart() {
@@ -656,6 +655,32 @@
       return res;
     }
 
+    // Live tab is empty: same layout, every number 0 (nothing is saved on the server)
+    let hourlyLiveEmpty = false;
+    async function showHourlyZeros() {
+      if (!currentHourlyData) {   // page just opened: borrow the layout (24 hours, targets) without showing its numbers
+        try { const d = await (await fetch('/api/hourly-tracker')).json(); if (d.success) currentHourlyData = d; } catch (e) {}
+      }
+      const base = currentHourlyData || {};
+      const zeroRow = { trucks: 0, truckPct: 0, truck4wh: 0, truck4wj: 0, truck6wh: 0, truckSemi: 0, actual: 0, orderPct: 0,
+                        zoneA: 0, zoneB: 0, zoneC: 0, zoneD: 0, zoneE: 0, zoneOBC: 0 };
+      // same as an hour the server has no data for yet ("pending"): targets stay, everything else 0
+      const slots = (base.slots || []).map(sl => {
+        const z = {};
+        Object.keys(sl).forEach(k => { z[k] = typeof sl[k] === 'number' && !/target|minimum|^hour$/i.test(k) ? 0 : sl[k]; });
+        return Object.assign(z, {
+          hasData: false, status: 'pending', lowestZone: '-', underZones: [], slowStaff: [], evidenceList: [], evidenceCount: 0,
+          zoneAStatus: '', zoneBStatus: '', zoneCStatus: ''
+        });
+      });
+      const summary = {};
+      Object.keys(base.summary || {}).forEach(k => { const v = base.summary[k]; summary[k] = typeof v === 'number' ? 0 : v; });
+      updateDashboardUI(Object.assign({}, base, {
+        slots, summary,
+        summaryRows: { Total: Object.assign({ label: 'Total' }, zeroRow), 'Max/hr': Object.assign({ label: 'Max/hr' }, zeroRow), 'Avg/hr': Object.assign({ label: 'Avg/hr' }, zeroRow) }
+      }));
+    }
+
     function loadHourlyTrackerData(date) {
       const want = date || viewMode.date;
       const url = want ? `/api/hourly-tracker?date=${encodeURIComponent(want)}` : '/api/hourly-tracker';
@@ -665,7 +690,8 @@
           if (data.success) {
             currentHourlyData = data;
             if (!viewMode.date) viewMode.date = data.date;
-            updateDashboardUI(data);
+            if (viewMode.type === 'live' && hourlyLiveEmpty) showHourlyZeros();   // keep zeros while the tab is empty
+            else updateDashboardUI(data);
           }
         })
         .catch(err => console.error('Error loading hourly data:', err));
@@ -692,9 +718,17 @@
           callRelay('readdaily', { fileId: cfg.sourceSheetId, sheetName: HOURLY_LIVE_TAB }, 180000),
           hourlyZonesSent || silent ? Promise.resolve(null) : callRelay('refs', {}, 120000).catch(() => null)
         ]);
+        if (!day.rows || !day.rows.length) {
+          // empty tab = nothing yet this round → zeros on screen, no popup
+          if (pg) { pg.stop(); Swal.close(); }
+          hourlyLiveEmpty = true;
+          showHourlyZeros();
+          return;
+        }
         if (pg) pg.step(`คำนวณยอดรายชั่วโมง (${(day.totalRows || 0).toLocaleString()} แถว)...`, 95, 3000);
         const zones = refs && refs.obdZones && Object.keys(refs.obdZones).length ? refs.obdZones : null;
         const res = await postHourlyRaw(day, zones);
+        hourlyLiveEmpty = false;
         if (zones) hourlyZonesSent = true;
         if (silent && viewMode.type !== 'live') return;   // user switched to a past day meanwhile
         viewMode = { type: 'live', date: res.date, fileId: null };

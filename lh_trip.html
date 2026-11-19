@@ -106,7 +106,6 @@
           <button class="btn btn-outline-secondary nav-toggle-btn px-3" id="tabTableBtn" onclick="switchView('table')"><i class="fa-solid fa-table me-1"></i> Raw Data</button>
         </div>
         <button class="btn btn-primary btn-sm" onclick="syncAppsScriptDataToDashboard()"><i class="fa-solid fa-rotate me-1"></i> Sync ข้อมูลสด</button>
-        <button class="btn btn-outline-secondary btn-sm" onclick="openCompanyLoginPopup()" title="เปิดหน้าต่าง Login เมลบริษัท แล้วดึงข้อมูลจาก Google Sheet บริษัท (Sync อัตโนมัติทุก 10 นาทีขณะเปิดไว้)"><i class="fa-solid fa-right-to-bracket me-1"></i> Login เมลบริษัท &amp; Sync</button>
         <div class="dropdown">
           <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-ellipsis me-1"></i> เพิ่มเติม</button>
           <ul class="dropdown-menu dropdown-menu-end">
@@ -249,28 +248,28 @@
               <div>
                 <div class="d-flex justify-content-between align-items-start mb-2">
                   <span class="fw-semibold"><span class="status-dot bg-danger"></span>OB Late <span class="text-muted fw-normal">· ฝั่ง Outbound</span></span>
-                  <span class="badge bg-light text-danger border fw-bold" id="obLatePctShare">64.7% ของที่สาย</span>
+                  <span class="badge bg-light text-danger border fw-bold" id="obLatePctShare">--% ของที่สาย</span>
                 </div>
                 <div class="d-flex align-items-baseline gap-2 mb-2">
-                  <span class="metric-lg" id="hubObLateCount">359</span>
+                  <span class="metric-lg" id="hubObLateCount">--</span>
                   <span class="text-muted fw-bold">เที่ยวรถ</span>
                 </div>
                 <div class="p-2 bg-white rounded border mb-2 small">
                   <div class="d-flex justify-content-between mb-1">
                     <span class="text-muted"><i class="fa-solid fa-box text-danger me-1"></i> ยอดพัสดุที่กระทบ:</span>
-                    <span class="fw-bold text-dark" id="hubObLateOrders">244,928 Orders</span>
+                    <span class="fw-bold text-dark" id="hubObLateOrders">-- Orders</span>
                   </div>
                   <div class="d-flex justify-content-between mb-1">
                     <span class="text-muted"><i class="fa-solid fa-scale-balanced me-1"></i> สัดส่วนออเดอร์สาย:</span>
-                    <span class="fw-bold text-danger" id="hubObLateOrderPct">65.3%</span>
+                    <span class="fw-bold text-danger" id="hubObLateOrderPct">--%</span>
                   </div>
                   <div class="d-flex justify-content-between">
                     <span class="text-muted"><i class="fa-solid fa-bullseye me-1"></i> Intentional / Non-Int:</span>
-                    <span class="fw-bold text-slate-700" id="hubObLateIntent">215 / 144</span>
+                    <span class="fw-bold text-slate-700" id="hubObLateIntent">-- / --</span>
                   </div>
                 </div>
                 <div class="small text-muted mb-2" id="hubObLateZoneBreakdown">
-                  <b>โซนหลัก:</b> Zone A: 128 | Zone C: 121 | Zone B: 110
+                  <b>โซนหลัก:</b> --
                 </div>
               </div>
               <button class="btn btn-outline-secondary btn-sm w-100 mt-2" onclick="openOBLateModal()"><i class="fa-solid fa-eye me-1"></i> ดูรายการ OB Late</button>
@@ -283,28 +282,28 @@
               <div>
                 <div class="d-flex justify-content-between align-items-start mb-2">
                   <span class="fw-semibold"><span class="status-dot bg-warning"></span>LH Late <span class="text-muted fw-normal">· ฝั่ง Linehaul</span></span>
-                  <span class="badge bg-light text-dark border fw-bold" id="lhLatePctShare">35.3% ของที่สาย</span>
+                  <span class="badge bg-light text-dark border fw-bold" id="lhLatePctShare">--% ของที่สาย</span>
                 </div>
                 <div class="d-flex align-items-baseline gap-2 mb-2">
-                  <span class="metric-lg" id="hubLhLateCount">196</span>
+                  <span class="metric-lg" id="hubLhLateCount">--</span>
                   <span class="text-muted fw-bold">เที่ยวรถ</span>
                 </div>
                 <div class="p-2 bg-white rounded border mb-2 small">
                   <div class="d-flex justify-content-between mb-1">
                     <span class="text-muted"><i class="fa-solid fa-box text-warning me-1"></i> ยอดพัสดุที่กระทบ:</span>
-                    <span class="fw-bold text-dark" id="hubLhLateOrders">130,136 Orders</span>
+                    <span class="fw-bold text-dark" id="hubLhLateOrders">-- Orders</span>
                   </div>
                   <div class="d-flex justify-content-between mb-1">
                     <span class="text-muted"><i class="fa-solid fa-scale-balanced me-1"></i> สัดส่วนออเดอร์สาย:</span>
-                    <span class="fw-bold text-warning-emphasis" id="hubLhLateOrderPct">34.7%</span>
+                    <span class="fw-bold text-warning-emphasis" id="hubLhLateOrderPct">--%</span>
                   </div>
                   <div class="d-flex justify-content-between">
                     <span class="text-muted"><i class="fa-solid fa-bullseye me-1"></i> Intentional / Non-Int:</span>
-                    <span class="fw-bold text-slate-700" id="hubLhLateIntent">109 / 87</span>
+                    <span class="fw-bold text-slate-700" id="hubLhLateIntent">-- / --</span>
                   </div>
                 </div>
                 <div class="small text-muted mb-2" id="hubLhLateZoneBreakdown">
-                  <b>โซนหลัก:</b> Zone A: 78 | Zone C: 67 | Zone B: 51
+                  <b>โซนหลัก:</b> --
                 </div>
               </div>
               <button class="btn btn-outline-secondary btn-sm w-100 mt-2" onclick="openLHLateModal()"><i class="fa-solid fa-eye me-1"></i> ดูรายการ LH Late</button>
@@ -321,19 +320,19 @@
                 </div>
                 <div class="p-2 bg-white rounded border mb-2 small">
                   <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
-                    <span><b> UPC (ต่างจังหวัด):</b> <span id="hubUpcLateTrips">379</span> เที่ยว</span>
+                    <span><b> UPC (ต่างจังหวัด):</b> <span id="hubUpcLateTrips">--</span> เที่ยว</span>
                     <button class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold" style="font-size:0.75rem" onclick="openRegionLateModal('UPC')">ดูรายการ</button>
                   </div>
-                  <div class="text-muted small mb-2" id="hubUpcLateOrdersSub"> 248,320 Orders (66.2% ของที่สาย)</div>
+                  <div class="text-muted small mb-2" id="hubUpcLateOrdersSub"> -- Orders</div>
                   
                   <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
-                    <span><b> GBKK (กทม./ปริมณฑล):</b> <span id="hubGbkkLateTrips">175</span> เที่ยว</span>
+                    <span><b> GBKK (กทม./ปริมณฑล):</b> <span id="hubGbkkLateTrips">--</span> เที่ยว</span>
                     <button class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold" style="font-size:0.75rem" onclick="openRegionLateModal('GBKK')">ดูรายการ</button>
                   </div>
-                  <div class="text-muted small mb-1" id="hubGbkkLateOrdersSub"> 126,744 Orders (33.8% ของที่สาย)</div>
+                  <div class="text-muted small mb-1" id="hubGbkkLateOrdersSub"> -- Orders</div>
                 </div>
                 <div class="small p-2 bg-light rounded text-slate-700 mb-2" id="hubZoneLateSummary">
-                  <b> สรุปสายรายโซน:</b> Zone A: <b>206</b> | Zone C: <b>188</b> | Zone B: <b>160</b>
+                  <b> สรุปสายรายโซน:</b> --
                 </div>
               </div>
               <div class="d-flex gap-2 mt-2">
@@ -494,9 +493,9 @@
           <h5 class="fw-bold mb-2 text-slate-800"><i class="fa-solid fa-table text-primary me-2"></i> LH Trip Table View (ข้อมูลเที่ยวรถทั้งหมด 1,305 รายการ)</h5>
           <!-- Stat Pills -->
           <div id="tableStatPills">
-            <span class="pill-stat total" id="pillTotalCount">Showing 1,305 of 1,305</span>
-            <span class="pill-stat ontime" id="pillOnTimeCount">On time 966</span>
-            <span class="pill-stat late" id="pillLateCount">Late 336</span>
+            <span class="pill-stat total" id="pillTotalCount">Showing -- of --</span>
+            <span class="pill-stat ontime" id="pillOnTimeCount">On time --</span>
+            <span class="pill-stat late" id="pillLateCount">Late --</span>
           </div>
         </div>
 
@@ -606,8 +605,7 @@
       }
 
       if (initialUrl) {
-        // show the last data the server already has right away, then refresh quietly in the background
-        await showCachedLiveData();
+        // no old numbers while loading: the cards stay "--" until live data (Copy of raw data) arrives, no popup
         syncAppsScriptDataToDashboard(initialUrl, true);
       } else {
         // Clean empty state — No Mock Data
@@ -1274,6 +1272,8 @@
     }
 
     let companyRelayAutoTimer = null;
+    const LH_LIVE_TAB = 'Copy of raw data';   // live source tab in the LH Trip test sheet (same as Hourly Tracker)
+    const LIVE_SYNC_MS = 3 * 60 * 1000;      // live refresh while the page is open (every 3 minutes)
 
     async function syncLhTripViaCompanyRelay(sheetUrl, relayUrl, key, silent = false) {
       if (!silent) {
@@ -1284,12 +1284,25 @@
         }, 10000));
       }
       try {
-        const sheet = await fetchCompanySheetViaJsonp(relayUrl, key, sheetUrl);
-        if (!sheet || !sheet.success) throw new Error((sheet && sheet.error) || 'Apps Script แจ้งข้อผิดพลาด');
-        const data = await safeApiFetch('/api/lh-trip/ingest-sheet', {
+        // live = raw-data tab LH_LIVE_TAB of the source sheet (same tab as the Hourly Tracker); the server
+        // rebuilds the Table logic (lh_raw_table.py). Hub / Cut / TTB tables: once per page, else server cache.
+        const idm = String(sheetUrl || '').match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+        if (!idm) throw new Error('ลิงก์ Google Sheet ต้นทางไม่ถูกต้อง');
+        const [day, refs] = await Promise.all([
+          callDailyRelay('readdaily', { fileId: idm[1], sheetName: LH_LIVE_TAB }, 180000),
+          dailyRefs ? Promise.resolve(null) : callDailyRelay('refs', {}, 120000).catch(() => null)
+        ]);
+        if (!day || !day.success) throw new Error((day && day.error) || 'อ่าน raw data ไม่สำเร็จ');
+        if (refs && refs.success) dailyRefs = refs;
+        if (!day.rows || !day.rows.length) {
+          const e = new Error(`แท็บ "${LH_LIVE_TAB}" ยังว่าง (มีแต่หัวตาราง) — วาง raw data ลงแท็บนี้แล้วระบบจะดึงให้เองภายใน 3 นาที`);
+          e.emptyTab = true;
+          throw e;
+        }
+        const data = await safeApiFetch('/api/lh-trip/live-raw', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ headers: sheet.headers, rows: sheet.rows, fetchedAt: sheet.fetchedAt, sheet: sheet.sheet })
+          body: JSON.stringify({ raw: { headers: day.headers, rows: day.rows }, refs: refs && refs.success ? refs : null, sheet: day.sheet, fetchedAt: day.updatedAt })
         });
         if (!data || !data.success) throw new Error((data && data.error) || 'Server ประมวลผลไม่สำเร็จ');
         applyLhSyncedData(data, silent);
@@ -1298,20 +1311,33 @@
         if (!companyRelayAutoTimer) {
           companyRelayAutoTimer = setInterval(() => {
             syncLhTripViaCompanyRelay(sheetUrl, relayUrl, key, true).catch(() => {});
-          }, 10 * 60 * 1000);
+          }, LIVE_SYNC_MS);
         }
       } catch (err) {
         console.warn('Company sheet sync (background) failed:', err);
+        // keep retrying every 10 minutes even when this sync failed (e.g. the tab is empty right now)
+        if (!companyRelayAutoTimer) {
+          companyRelayAutoTimer = setInterval(() => {
+            syncLhTripViaCompanyRelay(sheetUrl, relayUrl, key, true).catch(() => {});
+          }, LIVE_SYNC_MS);
+        }
+        const banner = document.getElementById('lhStatusMsg');
+        if (err.emptyTab) {
+          // empty tab = nothing yet this round → show zeros, no popup
+          const empty = { rows: [], outboundRawRows: [], totalTrips: 0, lateTrips: 0, onTimeTrips: 0 };
+          latestSyncedData = empty;
+          rawTripRecords = [];
+          renderLHData(empty);
+          if (banner) banner.innerHTML = '';
+          if (!silent && Swal.isVisible()) Swal.close();
+          return;
+        }
+        if (banner && silent) {
+          const at = lhLastReceivedAt ? ` · แสดงข้อมูลล่าสุด ณ ${escapeHtmlLite(lhLastReceivedAt)}` : '';
+          banner.innerHTML = `<div class="small text-warning-emphasis py-1"><i class="fa-solid fa-triangle-exclamation me-1"></i>อัปเดตข้อมูลสดไม่ได้: ${escapeHtmlLite(err.message || String(err))}${at}</div>`;
+        }
         if (!silent) {
-          // background call blocked (not logged in / third-party cookies) → log in through a popup
-          Swal.fire({
-            icon: 'info',
-            title: '🔐 Login ด้วยเมลบริษัท',
-            html: `ต้องให้บัญชีเมลบริษัท (spxexpress.com) อนุญาตดึงข้อมูล<br>กดปุ่มด้านล่าง → หน้าต่างเล็กจะเปิดขึ้น → Login (ถ้าถูกถาม) → ข้อมูลจะเข้า Dashboard อัตโนมัติ<br><span class="small text-muted">เปิดหน้าต่างนั้นทิ้งไว้ (ย่อได้) เพื่อ Sync อัตโนมัติทุก 10 นาที</span>`,
-            confirmButtonText: '🔐 Login เมลบริษัท & Sync',
-            showCancelButton: true,
-            cancelButtonText: 'ยกเลิก'
-          }).then(r => { if (r.isConfirmed) openCompanyLoginPopup(); });
+          Swal.fire({ icon: 'error', title: 'Sync ข้อมูลสดไม่สำเร็จ', text: err.message || String(err) });
         }
       }
     }

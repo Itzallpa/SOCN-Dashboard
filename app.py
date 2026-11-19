@@ -7635,15 +7635,25 @@ def ingest_lh_trip_sheet_api():
     rows = req.get("rows") or []
     if not headers or not isinstance(rows, list):
         return jsonify({"success": False, "error": "ไม่มีข้อมูลจาก Google Sheet (headers/rows ว่าง)"}), 200
+    data = _ingest_lh_live_table(headers, rows, req.get("fetchedAt"), req.get("sheet"))
+    if data.get("success"):
+        log_activity("SYNC_GOOGLE_SHEET", f"🔄 Sync LH Trip จาก Google Sheet บริษัท (ผ่าน Browser) {len(rows):,} แถว")
+    return jsonify(data)
 
+
+def _ingest_lh_live_table(headers, rows, fetched_at=None, sheet=None, extra_meta=None):
+    """Save Table-tab rows as the current live LH Trip data (cache shown on page open, 14:00 snapshot)
+    and return the processed dashboard data."""
     csv_text = rows_to_csv_text(headers, rows)
     now = datetime.now()
-    save_browser_relay_csv(csv_text, {
+    meta = {
         "receivedAt": now.strftime("%Y-%m-%d %H:%M:%S"),
-        "sheetFetchedAt": req.get("fetchedAt"),
-        "sheet": req.get("sheet"),
+        "sheetFetchedAt": fetched_at,
+        "sheet": sheet,
         "totalRows": len(rows),
-    })
+    }
+    meta.update(extra_meta or {})
+    save_browser_relay_csv(csv_text, meta)
 
     target_path = os.path.join(UPLOAD_FOLDER, "LIVE_GOOGLE_SHEET_SYNC.csv")
     with open(target_path, "w", encoding="utf-8", newline="") as f:
@@ -7654,7 +7664,7 @@ def ingest_lh_trip_sheet_api():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"success": False, "error": f"อ่านข้อมูลจาก Google Sheet บริษัทไม่สำเร็จ: {e}"}), 200
+        return {"success": False, "error": f"อ่านข้อมูลจาก Google Sheet บริษัทไม่สำเร็จ: {e}"}
     data["filename"] = "Live Google Sheet (Company)"
     data["success"] = True
     data["receivedAt"] = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -7664,8 +7674,45 @@ def ingest_lh_trip_sheet_api():
     if now.hour >= 14 and not os.path.exists(os.path.join(LH_TRIP_HISTORY_DIR, f"lh_trip_{today}.json")):
         arch = fetch_and_archive_lh_trip_snapshot(date_str=today, force=False, csv_text=csv_text)
         data["archived1400"] = {"success": arch.get("success"), "message": arch.get("message") or arch.get("error")}
+    return data
 
-    log_activity("SYNC_GOOGLE_SHEET", f"🔄 Sync LH Trip จาก Google Sheet บริษัท (ผ่าน Browser) {len(rows):,} แถว")
+
+@app.route("/api/lh-trip/live-raw", methods=["POST"])
+def lh_trip_live_raw_api():
+    """Live LH Trip from a raw-data tab (test sheet "Copy of raw data", read by the browser through the
+    company Apps Script): lh_raw_table rebuilds the Table tab, then it is saved like the old live sync.
+    Body: {raw: {headers, rows}, refs?: Hub/Cut/TTB (else the cached copy), sheet?, fetchedAt?}"""
+    from lh_raw_table import build_table_rows
+    req = request.get_json(silent=True) or {}
+    raw = req.get("raw") or {}
+    raw_headers, raw_rows = raw.get("headers") or [], raw.get("rows") or []
+    if not raw_headers or not raw_rows:
+        return jsonify({"success": False, "error": "raw data ว่าง ไม่มีข้อมูล"})
+    refs = req.get("refs")
+    if refs and refs.get("hub"):
+        try:
+            with open(LH_TRIP_REFS_CACHE, "w", encoding="utf-8") as f:
+                json.dump(refs, f, ensure_ascii=False)
+        except Exception:
+            pass
+    else:
+        try:
+            with open(LH_TRIP_REFS_CACHE, "r", encoding="utf-8") as f:
+                refs = json.load(f)
+        except Exception:
+            return jsonify({"success": False, "error": "ไม่มีตารางอ้างอิง (Hub / Cut / TTB) — กรุณา Sync ใหม่อีกครั้ง", "needRefs": True})
+    try:
+        headers, rows = build_table_rows(raw_headers, raw_rows, refs)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"คำนวณข้อมูลจาก raw data ไม่สำเร็จ: {e}"})
+    data = _ingest_lh_live_table(headers, rows, req.get("fetchedAt"), req.get("sheet") or "Copy of raw data",
+                                 {"source": "raw", "rawRows": len(raw_rows)})
+    if data.get("success"):
+        data.update({"source": "live-raw", "sheet": req.get("sheet") or "Copy of raw data", "rawRows": len(raw_rows),
+                     "ttbMissing": not bool((refs or {}).get("ttb"))})
+        log_activity("SYNC_GOOGLE_SHEET", f"🔄 Sync LH Trip จาก raw data ({req.get('sheet') or 'Copy of raw data'}) {len(rows):,} เที่ยว / raw {len(raw_rows):,} แถว")
     return jsonify(data)
 
 
