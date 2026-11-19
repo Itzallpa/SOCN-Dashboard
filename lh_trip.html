@@ -67,7 +67,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="theme.css?v=3" rel="stylesheet">
+  <link href="theme.css?v=6" rel="stylesheet">
 </head>
 <body>
 
@@ -133,6 +133,20 @@
       <button class="btn btn-outline-secondary btn-sm" onclick="loadHistoryDatesDropdown()" title="รีเฟรชรายการประวัติ" aria-label="รีเฟรชรายการประวัติ">
         <i class="fa-solid fa-arrows-rotate"></i>
       </button>
+      <span class="data-bar-sep" aria-hidden="true"></span>
+      <label class="data-bar-label" for="driveDaySelect"><i class="fa-brands fa-google-drive me-1"></i> ดูรายวัน (Google Drive)</label>
+      <select class="form-select form-select-sm" id="driveDaySelect" onchange="onDriveDayChange(this.value)" style="width:auto; min-width:220px; max-width:320px;">
+        <option value="">กำลังโหลดรายการไฟล์...</option>
+      </select>
+      <button class="btn btn-outline-secondary btn-sm" onclick="loadDriveDays(true)" title="รีเฟรชรายการไฟล์ใน Google Drive" aria-label="รีเฟรชรายการไฟล์ใน Google Drive">
+        <i class="fa-solid fa-arrows-rotate"></i>
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="saveDailyRawNow()" title="copy แท็บ raw data ของวันนี้ลง Google Drive เพื่อดูย้อนหลัง">
+        <i class="fa-solid fa-floppy-disk me-1"></i> บันทึก Raw Data
+      </button>
+      <a class="btn btn-outline-secondary btn-sm d-none" id="driveDayOpenLink" href="#" target="_blank" rel="noopener" title="เปิดไฟล์ Google Sheet ของวันที่เลือก" aria-label="เปิดไฟล์ Google Sheet">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+      </a>
       <span class="data-bar-meta" id="autoSaveBadge" title="ระบบแบ็กกราวด์จะทำการบันทึกข้อมูลทุกวันเวลา 14:00 น. โดยอัตโนมัติ">
         <i class="fa-solid fa-circle-check me-1"></i> บันทึก Snapshot อัตโนมัติทุกวัน 14:00 น.
       </span>
@@ -330,9 +344,9 @@
         </div>
       </div>
 
-      <!-- 2 Callout Highlight Cards -->
+      <!-- Peak late hour -->
       <div class="row g-3 mb-3">
-        <div class="col-md-6">
+        <div class="col-12">
           <div class="callout-card">
             <div class="d-flex align-items-center gap-3">
               <div class="fs-1 text-warning"><i class="fa-regular fa-clock"></i></div>
@@ -344,18 +358,52 @@
             </div>
           </div>
         </div>
-        <div class="col-md-6">
-          <div class="callout-card" style="border-left-color: #ee4d2d;">
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
+      </div>
+
+      <!-- By Cut + Outbound ontime (full width) -->
+      <div class="row g-3 mb-3">
+        <div class="col-12">
+          <div class="callout-card cut-card" style="border-left-color: #ee4d2d;">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-2">
+              <div style="min-width:0;">
                 <div class="callout-title">สถิติแยกตาม CUT (BY CUT)</div>
-                <div class="callout-value text-danger" id="peakCut">--</div>
+                <div class="callout-value text-danger" id="peakCut" role="button" title="ดูรายการเที่ยวที่สายใน Cut นี้" onclick="openSelectedCutTrips(true)" style="cursor:pointer;">--</div>
                 <div class="callout-detail" id="peakCutSub">กำลังคำนวณข้อมูลสด...</div>
               </div>
-              <div class="d-flex gap-1 flex-wrap justify-content-end">
-                <select id="intentSelect" class="form-select form-select-sm" style="width: 130px;" onchange="applyDashFilters()"><option value="All">All Intentional</option><option value="Intentional">Intentional</option><option value="Non Intentional">Non Intentional</option></select>
-                <select id="regionSelect" class="form-select form-select-sm" style="width: 120px;" onchange="applyDashFilters()"><option value="All">All Regions</option></select>
-                <select id="zoneSelect" class="form-select form-select-sm" style="width: 110px;" onchange="applyDashFilters()"><option value="All">All Zones</option></select>
+              <div class="d-flex flex-column align-items-end gap-2" style="min-width:0; max-width:100%;">
+                <div class="d-flex gap-1 flex-wrap justify-content-end">
+                  <select id="intentSelect" class="form-select form-select-sm" style="width:auto; max-width:100%;" onchange="applyDashFilters()" aria-label="Intentional"><option value="All">All Intentional</option><option value="Intentional">Intentional</option><option value="Non Intentional">Non Intentional</option></select>
+                  <select id="regionSelect" class="form-select form-select-sm" style="width:auto; max-width:100%;" onchange="applyDashFilters()" aria-label="Region"><option value="All">All Regions</option></select>
+                  <select id="zoneSelect" class="form-select form-select-sm" style="width:auto; max-width:100%;" onchange="applyDashFilters()" aria-label="Zone"><option value="All">All Zones</option></select>
+                </div>
+                <div class="seg-toggle" id="cutPicker" role="group" aria-label="เลือก Cut">
+                  <button type="button" data-cut="all" onclick="selectCut(null)">ทุก Cut</button>
+                  <button type="button" data-cut="0" onclick="selectCut(0)">Cut 0 <span class="cut-count"></span></button>
+                  <button type="button" data-cut="1" onclick="selectCut(1)">Cut 1 <span class="cut-count"></span></button>
+                  <button type="button" data-cut="2" onclick="selectCut(2)">Cut 2 <span class="cut-count"></span></button>
+                </div>
+                <a href="#" class="small" onclick="openSelectedCutTrips(false);return false;">ดูเที่ยวทั้งหมดใน Cut นี้</a>
+              </div>
+            </div>
+            <div class="row g-4">
+              <div class="col-xl-5">
+                <div class="section-title mb-2">On Time / Late แยกตาม Cut</div>
+                <div class="table-responsive">
+                  <table class="table table-sm mb-0 cut-summary-table" aria-label="สรุป On Time / Late แยกตาม Cut">
+                    <thead><tr><th>Cut</th><th class="text-end">เที่ยว</th><th class="text-end">On Time</th><th class="text-end">%</th><th class="text-end">Late</th><th class="text-end">%</th></tr></thead>
+                    <tbody id="cutSummaryBody"><tr><td colspan="6" class="text-muted small">กำลังคำนวณ...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="col-xl-7">
+                <div class="section-title mb-1">SOCN Outbound ontime · 1st cut-off (Cut 1) / 2nd cut-off (Cut 2)</div>
+                <div class="text-muted mb-2 cut-note">แบบ perf row 26 / 31: เที่ยวที่ออกจริงไม่เกินเวลา Cut ÷ เที่ยวที่ Hub ปลายทางมี Cut นั้น (COT ตั้งต้น) · Inter SOC (SORC/NORC/NERC) ใช้ 04:30 / 11:00 · ไม่นับ Hub ที่ไม่มี Region</div>
+                <div class="table-responsive">
+                  <table class="table table-sm mb-0 cut-summary-table" aria-label="SOCN Outbound ontime 1st and 2nd cut-off">
+                    <thead><tr><th>Metric</th><th class="text-end">COT ตั้งต้น (เที่ยว)</th><th class="text-end">ทำได้จริง</th><th class="text-end">%</th><th class="text-end text-muted">Orders ทัน/ตั้งต้น</th><th class="text-end text-muted">% Orders</th></tr></thead>
+                    <tbody id="cotAchieveBody"><tr><td colspan="6" class="text-muted small">กำลังคำนวณ...</td></tr></tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
@@ -537,10 +585,13 @@
     const [] = [];
 
     let currentLoadedDate = 'live';
+    // snapshot date (YYYY-MM-DD) of what is on screen; 'live' for live / Drive-day views
+    function snapshotDateOf() { return /^\d{4}-\d{2}-\d{2}$/.test(currentLoadedDate) ? currentLoadedDate : 'live'; }
 
     document.addEventListener('DOMContentLoaded', async () => {
       // Load available archived snapshot dates
       loadHistoryDatesDropdown();
+      loadDriveDays(false);
       
       let initialUrl = '';
       try {
@@ -662,6 +713,180 @@
       }
     }
 
+    // ---- Daily raw data in Google Drive (files like "LH Trip 17 Nov 26" = copy of the "raw data" tab) ----
+    // The board rebuilds the Table logic from raw data + reference tables (Hub / Cut / TTB).
+    let driveDays = [];
+    let dailyRelayCfg = null;
+    let dailyRefs = null;   // reference tables, fetched once per page load
+
+    function fetchJsonpGeneric(baseUrl, params, timeoutMs = 90000) {
+      return new Promise((resolve, reject) => {
+        const cbName = '__lhDailyCb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
+        const script = document.createElement('script');
+        let done = false;
+        const finish = () => { done = true; clearTimeout(timer); try { delete window[cbName]; } catch (e) { window[cbName] = undefined; } script.remove(); };
+        const fail = (msg) => { if (done) return; finish(); reject(new Error(msg)); };
+        const timer = setTimeout(() => fail('หมดเวลารอข้อมูลจาก Apps Script'), timeoutMs);
+        window[cbName] = (data) => { if (done) return; finish(); resolve(data); };
+        const loginMsg = 'เรียก Apps Script ไม่ได้ — กรุณา Login Google ด้วยเมลบริษัท (spxexpress.com) ใน Browser นี้ก่อน';
+        script.onerror = () => fail(loginMsg);
+        // JSONP runs the callback before "load"; load without callback = Google Sign-in page
+        script.onload = () => setTimeout(() => fail(loginMsg), 300);
+        const qs = new URLSearchParams(Object.assign({}, params, { callback: cbName, _ts: Date.now() })).toString();
+        script.src = baseUrl + (baseUrl.includes('?') ? '&' : '?') + qs;
+        document.body.appendChild(script);
+      });
+    }
+
+    async function getDailyRelayCfg() {
+      if (dailyRelayCfg) return dailyRelayCfg;
+      const res = await safeApiFetch('/api/lh-trip/drive-settings');
+      const st = (res && res.settings) || {};
+      const url = String(st.sheetRelayUrl || '').trim();
+      if (!url) throw new Error('ยังไม่ได้ตั้งค่า Apps Script URL (เมลบริษัท) — ตั้งได้ที่ เพิ่มเติม > ตั้งค่าแหล่งข้อมูล');
+      dailyRelayCfg = { url, key: (res && res.relayKey) || '' };
+      return dailyRelayCfg;
+    }
+
+    async function callDailyRelay(page, extra, timeoutMs) {
+      const cfg = await getDailyRelayCfg();
+      const res = await fetchJsonpGeneric(cfg.url, Object.assign({ key: cfg.key, page }, extra || {}), timeoutMs);
+      if (res && res.success === false && /Unknown page/i.test(res.error || '')) {
+        throw new Error('Apps Script (เมลบริษัท) ยังเป็นเวอร์ชันเก่า — วางโค้ดใหม่แล้ว Deploy > Manage deployments > New version');
+      }
+      return res;
+    }
+
+    function renderDriveDaySelect(errorText) {
+      const sel = document.getElementById('driveDaySelect');
+      if (!sel) return;
+      if (errorText) {
+        sel.innerHTML = '<option value="">โหลดรายการไม่ได้ — กดรีเฟรช</option>';
+        sel.title = errorText;
+        return;
+      }
+      sel.title = '';
+      if (!driveDays.length) { sel.innerHTML = '<option value="">ยังไม่มีไฟล์รายวันใน Drive</option>'; return; }
+      const thDay = d => { try { return new Date(d + 'T00:00:00').toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short', year: '2-digit' }); } catch (e) { return d; } };
+      sel.innerHTML = '<option value="">เลือกวันที่...</option>' +
+        driveDays.map(f => `<option value="${escapeHtmlLite(f.fileId)}">${f.date ? `${thDay(f.date)} · ` : ''}${escapeHtmlLite(f.name)}</option>`).join('');
+    }
+
+    async function loadDriveDays(showErrors) {
+      let res = null;
+      try {
+        res = await callDailyRelay('listdaily', {}, 60000);
+      } catch (e) {
+        res = { success: false, error: e.message || String(e) };
+      }
+      if (res && res.success && Array.isArray(res.files)) {
+        driveDays = res.files;
+        renderDriveDaySelect();
+      } else {
+        const msg = (res && res.error) || 'โหลดรายการไฟล์จาก Google Drive ไม่ได้';
+        renderDriveDaySelect(msg);
+        if (showErrors) Swal.fire({ icon: 'warning', title: 'โหลดรายการไฟล์ Drive ไม่ได้', text: msg });
+      }
+    }
+
+    async function onDriveDayChange(fileId) {
+      if (!fileId) return;
+      const meta = driveDays.find(f => f.fileId === fileId) || {};
+      const label = meta.name || 'ไฟล์รายวัน';
+      Swal.fire({
+        title: `กำลังโหลด ${label}...`,
+        text: 'อ่าน raw data จาก Google Drive แล้วคำนวณ Late / On time (10-40 วินาที)',
+        allowOutsideClick: true, showCloseButton: true,
+        didOpen: () => Swal.showLoading()
+      });
+      try {
+        const [day, refs] = await Promise.all([
+          callDailyRelay('readdaily', { fileId }, 180000),
+          dailyRefs ? Promise.resolve(dailyRefs) : callDailyRelay('refs', {}, 120000)
+        ]);
+        if (!day || !day.success) throw new Error((day && day.error) || 'อ่านไฟล์ไม่สำเร็จ');
+        if (!refs || !refs.success) throw new Error((refs && refs.error) || 'อ่านตารางอ้างอิง (Hub / Cut / TTB) ไม่สำเร็จ');
+        dailyRefs = refs;
+        const data = await safeApiFetch('/api/lh-trip/daily-raw', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date: day.date || meta.date || '', fileName: day.fileName, fileUrl: day.fileUrl, updatedAt: day.updatedAt,
+            raw: { headers: day.headers, rows: day.rows }, refs
+          })
+        });
+        if (!data || !data.success) throw new Error((data && data.error) || 'คำนวณข้อมูลไม่สำเร็จ');
+
+        const dateStr = day.date || meta.date || '';
+        currentLoadedDate = 'drive:' + (dateStr || fileId);
+        latestSyncedData = data;
+        rawTripRecords = (data.outboundRawRows && data.outboundRawRows.length) ? data.outboundRawRows : (data.rows || []);
+        renderRealSummaryData(data);
+        if (typeof switchView === 'function') switchView('dashboard');
+
+        const snapSel = document.getElementById('snapshotDateSelect');
+        if (snapSel && ![...snapSel.options].some(o => o.value === '')) snapSel.insertAdjacentHTML('afterbegin', '<option value="" hidden>— ดูจาก Google Drive —</option>');
+        if (snapSel) snapSel.value = '';
+        const link = document.getElementById('driveDayOpenLink');
+        if (link && day.fileUrl) { link.href = day.fileUrl; link.classList.remove('d-none'); }
+
+        const trips = (data.totalTrips || rawTripRecords.length || 0);
+        const ttbNote = (refs.ttbError || data.ttbMissing) ? ' · <span class="text-danger">อ่าน TTB ไม่ได้ — สถานะคิดจาก Cut อย่างเดียว</span>' : '';
+        const banner = document.getElementById('lhStatusMsg');
+        if (banner) {
+          banner.innerHTML = `
+            <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 px-3 rounded-3 mb-0">
+              <div>
+                <i class="fa-brands fa-google-drive me-2"></i>
+                <strong>ข้อมูลรายวันจาก Google Drive · ${escapeHtmlLite(day.fileName || '')}</strong>
+                <span class="text-muted ms-2">${trips.toLocaleString()} เที่ยว (raw ${(day.totalRows || 0).toLocaleString()} แถว) · ไฟล์แก้ไขล่าสุด ${escapeHtmlLite(day.updatedAt || '-')}${ttbNote}</span>
+              </div>
+              <button class="btn btn-sm btn-outline-secondary" onclick="backToLiveFromDrive()">
+                <i class="fa-solid fa-rotate-left me-1"></i> กลับสู่ข้อมูลสด
+              </button>
+            </div>`;
+        }
+        Swal.fire({ icon: 'success', title: 'โหลดข้อมูลแล้ว', text: `${label} · ${trips.toLocaleString()} เที่ยวรถ`, timer: 1600, showConfirmButton: false });
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'โหลดข้อมูลจาก Drive ไม่สำเร็จ', text: err.message || String(err) });
+      }
+    }
+
+    // Manual save: the company Apps Script copies the Table tab into today's "LH Trip Raw" file
+    async function saveDailyRawNow() {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const exists = driveDays.some(f => f.date === todayStr);
+      const ask = await Swal.fire({
+        icon: 'question',
+        title: 'บันทึก Raw Data วันนี้ลง Drive?',
+        html: `<div class="small text-start">ระบบจะ copy แท็บ <b>raw data</b> จากชีท LH Trip ตอนนี้ ไปเก็บในโฟลเดอร์ Drive เป็นไฟล์ของวันที่ <b>${todayStr}</b>${exists ? '<br><span class="text-danger">มีไฟล์ของวันนี้แล้ว — จะถูกเขียนทับด้วยข้อมูลล่าสุด</span>' : ''}<br><span class="text-muted">ระบบบันทึกอัตโนมัติทุกวัน 14:00 น. อยู่แล้ว ปุ่มนี้ใช้เมื่ออยากบันทึกเพิ่มเอง</span></div>`,
+        showCancelButton: true, confirmButtonText: exists ? 'บันทึกทับ' : 'บันทึก', cancelButtonText: 'ยกเลิก'
+      });
+      if (!ask.isConfirmed) return;
+      Swal.fire({ title: 'กำลังบันทึก Raw Data...', text: 'copy แท็บ raw data ลง Google Drive (อาจใช้เวลา 30-120 วินาที)', allowOutsideClick: true, showCloseButton: true, didOpen: () => Swal.showLoading() });
+      try {
+        const r = await callDailyRelay('savedaily', { date: todayStr }, 300000);
+        if (!r || !r.success) throw new Error((r && r.error) || 'บันทึกไม่สำเร็จ');
+        await loadDriveDays(false);
+        Swal.fire({
+          icon: 'success', title: 'บันทึกแล้ว',
+          html: `<div class="small">${escapeHtmlLite(r.fileName)} · ${(r.totalRows || 0).toLocaleString()} แถว</div>${r.fileUrl ? `<a class="btn btn-sm btn-outline-secondary mt-2" href="${r.fileUrl}" target="_blank" rel="noopener">เปิดไฟล์</a>` : ''}`
+        });
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: err.message || String(err) });
+      }
+    }
+
+    function backToLiveFromDrive() {
+      const snapSel = document.getElementById('snapshotDateSelect');
+      if (snapSel) snapSel.value = 'live';
+      onSnapshotDateChange('live');
+    }
+
+    function escapeHtmlLite(t) {
+      return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
     function loadHistoryDatesDropdown() {
       safeApiFetch('/api/lh-trip/history-dates')
         .then(data => {
@@ -704,6 +929,8 @@
     }
 
     function onSnapshotDateChange(val) {
+      const dSel = document.getElementById('driveDaySelect');
+      if (dSel && val !== '') { dSel.value = ''; const l = document.getElementById('driveDayOpenLink'); if (l) l.classList.add('d-none'); }
       if (!val || val === 'live') {
         currentLoadedDate = 'live';
         const banner = document.getElementById('lhStatusMsg');
@@ -777,9 +1004,9 @@
       const opsDateStr = typeof getOpsDateForExport === 'function' ? getOpsDateForExport() : (new Date().toISOString().slice(0,10));
       const targetFolderId = "1AwxaJv04MQ4g1l3MSOCSsC5bQrAaXoI1";
       const targetFolderUrl = `https://drive.google.com/drive/folders/${targetFolderId}`;
-      const fileName = `Dashboard Charts - ${opsDateStr}`;
-      const selectedDate = (typeof currentSnapshotDate !== 'undefined' && currentSnapshotDate && currentSnapshotDate !== 'live') ? currentSnapshotDate : (new Date().toISOString().slice(0,10));
+      const selectedDate = snapshotDateOf() !== 'live' ? snapshotDateOf() : (new Date().toISOString().slice(0,10));
       const records = (typeof rawTripRecords !== 'undefined' && Array.isArray(rawTripRecords)) ? rawTripRecords : [];
+      const fileName = `Dashboard Charts - ${opsDateStr}`;
 
       if (!records || records.length === 0) {
         Swal.fire({
@@ -1601,6 +1828,176 @@
       downloadCSVFile(csv, 'LH_TRIP_FILTERED_MODAL_RAW_DATA.csv');
     }
 
+    // ---- Dashboard filters: Cut (buttons) + Intentional / Region / Zone (dropdowns) ----
+    let allTripRecords = [];
+    let selectedCutIdx = null; // null = all cuts
+    function cutIndexOf(r) {
+      const ok = v => { const t = String(v || '').trim(); return t && t !== 'nan' && t !== '—' && t !== '-'; };
+      if (ok(r.cut0)) return 0;
+      if (ok(r.cut1)) return 1;
+      if (ok(r.cut2)) return 2;
+      return -1;
+    }
+    function isOnTimeTrip(r) {
+      return String(r.status || '').toLowerCase().replace(/\s+/g, '').includes('ontime');
+    }
+    function isLateTrip(r) {
+      return String(r.status || '').toLowerCase().includes('late');
+    }
+    function isIntentionalTrip(r) {
+      const v = String(r.intentional || '').toLowerCase();
+      return v.includes('intentional') && !v.includes('non');
+    }
+    function filterTrips(list, withCut) {
+      const iv = (document.getElementById('intentSelect') || {}).value || 'All';
+      const rv = (document.getElementById('regionSelect') || {}).value || 'All';
+      const zv = (document.getElementById('zoneSelect') || {}).value || 'All';
+      return (list || []).filter(r => {
+        if (iv === 'Intentional' && !isIntentionalTrip(r)) return false;
+        if (iv === 'Non Intentional' && isIntentionalTrip(r)) return false;
+        if (rv !== 'All' && String(r.region || '').trim() !== rv) return false;
+        if (zv !== 'All' && String(r.zone || '').trim() !== zv) return false;
+        if (withCut && selectedCutIdx !== null && cutIndexOf(r) !== selectedCutIdx) return false;
+        return true;
+      });
+    }
+    function populateDashFilterOptions(list) {
+      const fill = (id, allLabel, values) => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const cur = sel.value || 'All';
+        const opts = [...new Set(values)].filter(v => v && !/^#|^nan$/i.test(v)).sort();
+        sel.innerHTML = `<option value="All">${allLabel}</option>` + opts.map(v => `<option value="${escapeHtmlLite(v)}">${escapeHtmlLite(v)}</option>`).join('');
+        sel.value = opts.includes(cur) ? cur : 'All';
+      };
+      fill('regionSelect', 'All Regions', (list || []).map(r => String(r.region || '').trim()));
+      fill('zoneSelect', 'All Zones', (list || []).map(r => String(r.zone || '').trim()));
+    }
+    function applyDashFilters() {
+      if (latestSyncedData) renderLHData(latestSyncedData);
+    }
+    function selectCut(idx) {
+      selectedCutIdx = (idx === null || selectedCutIdx === idx) ? null : idx;
+      applyDashFilters();
+    }
+    function updateCutStatsFrom(list) {
+      // index 0-2 = Cut 0-2, index 3 = no cut
+      const cutOnTime = [0, 0, 0, 0], cutLate = [0, 0, 0, 0], cutTrips = [0, 0, 0, 0];
+      (list || []).forEach(r => {
+        let i = cutIndexOf(r);
+        if (i < 0) i = 3;
+        cutTrips[i]++;
+        if (isLateTrip(r)) cutLate[i]++; else if (isOnTimeTrip(r)) cutOnTime[i]++;
+      });
+      const topCutIdx = cutLate[0] >= cutLate[1] && cutLate[0] >= cutLate[2] ? 0 : (cutLate[1] >= cutLate[2] ? 1 : 2);
+      window.__lhCutStats = { cutOnTime, cutLate, cutTrips, records: list || [], topCutIdx };
+      renderCutCallout();
+      renderCotAchievement(list || []);
+    }
+    function renderCutCallout() {
+      const st = window.__lhCutStats;
+      if (!st) return;
+      const idx = selectedCutIdx === null ? st.topCutIdx : selectedCutIdx;
+      const total = st.cutTrips[idx];
+      const pct = total ? Math.round((st.cutLate[idx] / total) * 100) : 0;
+      const valEl = document.getElementById('peakCut');
+      if (valEl) valEl.innerText = selectedCutIdx === null ? `ทุก Cut · สายสุด Cut ${idx}` : `Cut ${idx}`;
+      const subEl = document.getElementById('peakCutSub');
+      if (subEl) subEl.innerText = `Cut ${idx}: สาย ${st.cutLate[idx].toLocaleString()} จาก ${total.toLocaleString()} เที่ยว (${pct}%)` + (selectedCutIdx === null ? '' : ' · ทั้งหน้ากรองเฉพาะ Cut นี้');
+      document.querySelectorAll('#cutPicker button').forEach(b => {
+        const raw = b.dataset.cut;
+        const i = raw === 'all' ? null : Number(raw);
+        const active = i === selectedCutIdx;
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-pressed', active ? 'true' : 'false');
+        const cnt = b.querySelector('.cut-count');
+        if (cnt && i !== null) cnt.textContent = `${st.cutLate[i]}/${st.cutTrips[i]}`;
+      });
+
+      // per-cut On Time / Late %
+      const body = document.getElementById('cutSummaryBody');
+      if (body) {
+        // % of all trips in the row (same base as the KPI cards); trips not departed yet have no status
+        const pctOf = (n, d) => d ? ((n / d) * 100).toFixed(1) + '%' : '-';
+        const row = (label, t, on, late, cls, title) => {
+          const pend = t - on - late;
+          return `<tr class="${cls || ''}"${title ? ` title="${title}"` : ''}><td>${label}</td><td class="text-end">${t.toLocaleString()}${pend > 0 ? ` <span class="text-muted" title="ยังไม่ออก">(${pend})</span>` : ''}</td>` +
+            `<td class="text-end">${on.toLocaleString()}</td><td class="text-end text-success fw-semibold">${pctOf(on, t)}</td>` +
+            `<td class="text-end">${late.toLocaleString()}</td><td class="text-end text-danger fw-semibold">${pctOf(late, t)}</td></tr>`;
+        };
+        const sum = a => a.reduce((x, y) => x + y, 0);
+        body.innerHTML = [0, 1, 2].map(i => row(`Cut ${i}`, st.cutTrips[i], st.cutOnTime[i], st.cutLate[i], i === selectedCutIdx ? 'table-active' : '')).join('') +
+          (st.cutTrips[3] ? row('ไม่มี Cut', st.cutTrips[3], st.cutOnTime[3], st.cutLate[3], 'text-muted', 'ปลายทางที่ไม่มีเวลา Cut-off ในตาราง SOCN_GBKK / UPC (เช่น SORC / NORC / NERC) — สถานะเป็น On Time ตามสูตรของชีท') : '') +
+          row('<b>รวม</b>', sum(st.cutTrips), sum(st.cutOnTime), sum(st.cutLate), 'fw-semibold');
+      }
+    }
+    // ---- COT achievement (like the SOCN perf report: achieved ÷ starting volume, cumulative) ----
+    function todMinutes(s) {
+      const m = /(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?/.exec(String(s || ''));
+      if (!m) return null;
+      let h = Number(m[1]);
+      const ap = (m[3] || '').toUpperCase();
+      if (ap === 'PM' && h < 12) h += 12;
+      if (ap === 'AM' && h === 12) h = 0;
+      return (h * 60 + Number(m[2])) % 1440;
+    }
+    function depMinutes(r) {
+      const s = String(r.actual_dep_cut || '');
+      const all = s.match(/\d{1,2}:\d{2}/g);           // time part of "DD/MM/YYYY HH:MM"
+      return all ? todMinutes(all[all.length - 1]) : null;
+    }
+    const shiftOps = m => (m - 18 * 60 + 1440) % 1440;   // same 18:00 day start as the Table formula
+    function isInterSocDest(r) {
+      return /^(SORC|NORC|NERC)/i.test(String(r.dest_station_name || '').trim());
+    }
+    // perf row 26 = 1st cut-off (Cut 1), row 31 = 2nd cut-off (Cut 2); universe GBKK + UPC + Inter SOC
+    function renderCotAchievement(list) {
+      const body = document.getElementById('cotAchieveBody');
+      if (!body) return;
+      const acc = () => ({ base: 0, done: 0, baseOrd: 0, doneOrd: 0 });
+      const groups = ['TOTAL', 'GBKK', 'UPC', 'Inter SOC'];
+      const res = { 1: {}, 2: {} };
+      groups.forEach(g => { res[1][g] = acc(); res[2][g] = acc(); });
+      const interCut = { 1: 4 * 60 + 30, 2: 11 * 60 };
+      list.forEach(r => {
+        const ord = Number(r.outbound_order) || 0;
+        const dep = depMinutes(r);
+        const inter = isInterSocDest(r);
+        const region = String(r.region || '').trim().toUpperCase();
+        const g = inter ? 'Inter SOC' : (region === 'GBKK' || region === 'UPC' ? region : null);
+        if (!g) return;
+        [1, 2].forEach(k => {
+          const c = inter ? interCut[k] : todMinutes(r['cut' + k]);
+          if (c === null) return;
+          const ok = dep !== null && shiftOps(dep) <= shiftOps(c);
+          [g, 'TOTAL'].forEach(x => {
+            const a = res[k][x];
+            a.base++; a.baseOrd += ord;
+            if (ok) { a.done++; a.doneOrd += ord; }
+          });
+        });
+      });
+      const pct = (n, d) => d ? ((n / d) * 100).toFixed(2) + '%' : '-';
+      // main = trips (COT starting volume); orders shown as secondary info
+      const line = (label, a, strong) => `<tr${strong ? ' class="fw-semibold"' : ''}><td>${label}</td>` +
+        `<td class="text-end">${a.base.toLocaleString()}</td><td class="text-end">${a.done.toLocaleString()}</td>` +
+        `<td class="text-end fw-semibold">${pct(a.done, a.base)}</td>` +
+        `<td class="text-end text-muted">${Math.round(a.doneOrd).toLocaleString()}/${Math.round(a.baseOrd).toLocaleString()}</td>` +
+        `<td class="text-end text-muted">${pct(a.doneOrd, a.baseOrd)}</td></tr>`;
+      const block = (k, title) => line(title, res[k].TOTAL, true) +
+        line('… GBKK destination', res[k].GBKK) + line('… UPC destination', res[k].UPC) +
+        line(`… Inter SOC (≤ ${k === 1 ? '04:30' : '11:00'})`, res[k]['Inter SOC']);
+      body.innerHTML = block(1, 'Outbound ontime – 1st cut-off (Cut 1)') + block(2, 'Outbound ontime – 2nd cut-off (Cut 2)');
+    }
+
+    function openSelectedCutTrips(lateOnly) {
+      const st = window.__lhCutStats;
+      if (!st) return;
+      const idx = selectedCutIdx === null ? st.topCutIdx : selectedCutIdx;
+      const subset = st.records.filter(r => cutIndexOf(r) === idx && (!lateOnly || String(r.status || '').toLowerCase().includes('late')));
+      openRawDataModal(`เที่ยวรถ Cut ${idx}${lateOnly ? ' (สาย)' : ''}`, subset);
+    }
+
     function renderRealSummaryData(apiData) {
       if (apiData && (apiData.totalTrips || apiData.rows || apiData.success)) {
         latestSyncedData = apiData;
@@ -1839,12 +2236,18 @@
           }
         }
       });
-      rawTripRecords = Array.from(mergedMap.values());
+      allTripRecords = Array.from(mergedMap.values());
+      populateDashFilterOptions(allTripRecords);
+      const cutBaseRecords = filterTrips(allTripRecords, false);   // all filters except Cut
+      rawTripRecords = filterTrips(allTripRecords, true);           // + Cut
 
       const totalTrips = rawTripRecords.length;
       const lateRecords = rawTripRecords.filter(r => String(r.status || '').toLowerCase().includes('late'));
       const lateTrips = lateRecords.length;
-      const onTimeTrips = totalTrips - lateTrips;
+      // On Time = status "On Time" only; a trip with no status (not departed yet) is neither
+      const onTimeRecords = rawTripRecords.filter(r => isOnTimeTrip(r));
+      const onTimeTrips = onTimeRecords.length;
+      const pendingTrips = totalTrips - lateTrips - onTimeTrips;
       const onTimePct = totalTrips ? ((onTimeTrips / totalTrips) * 100).toFixed(1) : '0.0';
       const latePct = totalTrips ? ((lateTrips / totalTrips) * 100).toFixed(1) : '0.0';
       const rate = totalTrips ? `${onTimePct}%` : '0.0%';
@@ -1857,7 +2260,7 @@
 
       const totalOrders = rawTripRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
       const lateOrders = lateRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
-      const onTimeOrders = totalOrders - lateOrders;
+      const onTimeOrders = onTimeRecords.reduce((sum, r) => sum + (Number(r.outbound_order) || 0), 0);
       const orderOnTimePct = totalOrders ? ((onTimeOrders / totalOrders) * 100).toFixed(1) : '0.0';
       const orderLatePct = totalOrders ? ((lateOrders / totalOrders) * 100).toFixed(1) : '0.0';
 
@@ -1900,7 +2303,8 @@
       const totalWeightTons = (totalWeightKg / 1000).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
       // Update 4 KPI Cards
-      document.getElementById('kpiTotal').innerHTML = `${Number(totalTrips).toLocaleString()} <span class="fs-6 text-muted fw-normal">Trips</span>`;
+      document.getElementById('kpiTotal').innerHTML = `${Number(totalTrips).toLocaleString()} <span class="fs-6 text-muted fw-normal">Trips</span>` +
+        (pendingTrips > 0 ? ` <span class="badge bg-light text-muted border fw-normal" title="เที่ยวที่ยังไม่มีเวลาออกจริง (ไม่มีสถานะ On Time / Late)" style="font-size:.7rem;">ยังไม่ออก ${pendingTrips.toLocaleString()}</span>` : '');
       if (document.getElementById('kpiTotalOrders')) document.getElementById('kpiTotalOrders').innerText = totalOrders.toLocaleString();
       if (document.getElementById('kpiTotalWeight')) document.getElementById('kpiTotalWeight').innerText = totalWeightTons;
 
@@ -1945,6 +2349,7 @@
       }
 
       renderAll5Charts(data);
+      updateCutStatsFrom(cutBaseRecords);
       renderVerifiedTopHubTables();
       renderFullTable();
     }
@@ -1954,12 +2359,15 @@
         ((data && data.outboundRawRows && data.outboundRawRows.length) ? data.outboundRawRows : []);
 
       // 1. Dynamic Status Pie (On Time vs Late)
-      let onTimeCount = data && data.onTimeTrips ? data.onTimeTrips : 0;
-      let lateCount = data && data.lateTrips ? data.lateTrips : (data && data.totalLate ? data.totalLate : 0);
-      if (!onTimeCount && !lateCount && records.length) {
+      let onTimeCount = 0;
+      let lateCount = 0;
+      if (!records.length) {
+        onTimeCount = (data && data.onTimeTrips) || 0;
+        lateCount = (data && (data.lateTrips || data.totalLate)) || 0;
+      } else {
         records.forEach(r => {
           if (String(r.status || '').toLowerCase().includes('late')) lateCount++;
-          else onTimeCount++;
+          else if (isOnTimeTrip(r)) onTimeCount++;
         });
       }
       const total = onTimeCount + lateCount || 1;
@@ -2072,11 +2480,11 @@
         const isC2 = c2 && c2 !== 'nan' && c2 !== '—' && c2 !== '-';
 
         if (isC0) {
-          if (isLate) cutLate[0]++; else cutOnTime[0]++;
+          if (isLate) cutLate[0]++; else if (isOnTimeTrip(r)) cutOnTime[0]++;
         } else if (isC1) {
-          if (isLate) cutLate[1]++; else cutOnTime[1]++;
+          if (isLate) cutLate[1]++; else if (isOnTimeTrip(r)) cutOnTime[1]++;
         } else if (isC2) {
-          if (isLate) cutLate[2]++; else cutOnTime[2]++;
+          if (isLate) cutLate[2]++; else if (isOnTimeTrip(r)) cutOnTime[2]++;
         }
       });
 
@@ -2093,13 +2501,6 @@
         openRawDataModal(`เที่ยวรถประจำ ${cuts[idx]}`, subset.length ? subset : records);
       });
 
-      const topCutIdx = cutLate[0] >= cutLate[1] && cutLate[0] >= cutLate[2] ? 0 : (cutLate[1] >= cutLate[2] ? 1 : 2);
-      const topCutTotal = cutOnTime[topCutIdx] + cutLate[topCutIdx];
-      const topCutPct = topCutTotal ? Math.round((cutLate[topCutIdx] / topCutTotal) * 100) : 0;
-      const peakCutValEl = document.getElementById('peakCut');
-      if (peakCutValEl) peakCutValEl.innerText = `Cut ${topCutIdx}`;
-      const peakCutSubEl = document.getElementById('peakCutSub');
-      if (peakCutSubEl) peakCutSubEl.innerText = `${cutLate[topCutIdx]} จาก ${topCutTotal} เที่ยว (${topCutPct}% สาย)`;
 
       // 5. Dynamic Departure Hour Bar Chart (All Trips, On Time, and Late across 00:00 - 23:00)
       const hourLate = new Array(24).fill(0);
@@ -2571,6 +2972,8 @@
     }
 
     function getOpsDateForExport() {
+      const driveM = /^drive:(\d{4}-\d{2}-\d{2})$/.exec(currentLoadedDate || '');
+      if (driveM) return driveM[1];
       let baseDate = new Date();
       if (currentLoadedDate && currentLoadedDate !== 'live') {
         const parts = currentLoadedDate.split('-');
@@ -2811,7 +3214,10 @@
         r.cut3 || (r.cells ? r.cells[18] : '') || '—',
         r.actual_dep_cut || (r.cells ? r.cells[21] || r.cells[19] : '') || '-',
         r.rmk || (r.cells ? r.cells[24] : '') || '-',
-        String(r.status || (r.cells ? r.cells[23] : '')).toLowerCase().includes('late') ? 'Late' : 'On time'
+        String(r.status || (r.cells ? r.cells[23] : '')).toLowerCase().includes('late') ? 'Late' : 'On time',
+        r.intentional || '',
+        r.region || '',
+        r.zone || ''
       ]);
 
       return {
@@ -2847,7 +3253,7 @@
       try {
         const records = (rawTripRecords && rawTripRecords.length) ? rawTripRecords : [];
         const opsDateStr = getOpsDateForExport();
-        const rep = generateCompleteReportData(records, currentSnapshotDate === 'live' ? '' : currentSnapshotDate, opsDateStr);
+        const rep = generateCompleteReportData(records, snapshotDateOf() === 'live' ? '' : snapshotDateOf(), opsDateStr);
 
         if (window.AuthGuard && window.AuthGuard.logExport) {
           window.AuthGuard.logExport(`Dashboard Charts - ${opsDateStr}.xls`, rep.summary.totalTrips, 'ส่งออกไฟล์ Excel รายงาน Dashboard Charts ตามรอบ Ops Date');
@@ -3620,7 +4026,7 @@
         statusDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังสร้าง Google Spreadsheet ใน Google Drive โฟลเดอร์เป้าหมาย...';
       }
 
-      const selectedDate = currentSnapshotDate === 'live' ? '' : currentSnapshotDate;
+      const selectedDate = snapshotDateOf() === 'live' ? '' : snapshotDateOf();
       const opsDateStr = getOpsDateForExport();
       const payloadData = generateCompleteReportData(rawTripRecords, selectedDate, opsDateStr);
 

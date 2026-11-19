@@ -7640,6 +7640,66 @@ def upload_lh_trip_to_drive_api():
     return jsonify(res)
 
 
+# ---------------------------------------------------------------------------
+# Daily raw data from Google Drive (files like "LH Trip 17 Nov 26" = copy of the "raw data" tab).
+# The browser reads the file + the reference tables (Hub, Cut sheets, TTB) through the company
+# Apps Script (JSONP) and posts them here; lh_raw_table rebuilds the Table tab logic, then the
+# rows go through process_table_sheet exactly like the live sync. Nothing live is overwritten.
+# ---------------------------------------------------------------------------
+LH_TRIP_REFS_CACHE = os.path.join(DATA_DIR, "lh_trip_refs_cache.json")
+
+
+@app.route("/api/lh-trip/daily-raw", methods=["POST"])
+def lh_trip_daily_raw_api():
+    from lh_raw_table import build_table_rows
+    req = request.get_json(silent=True) or {}
+    raw = req.get("raw") or {}
+    raw_headers, raw_rows = raw.get("headers") or [], raw.get("rows") or []
+    date_str = str(req.get("date") or "").strip()
+    if not raw_headers or not isinstance(raw_rows, list) or not raw_rows:
+        return jsonify({"success": False, "error": "ไฟล์รายวันไม่มีข้อมูล (raw data ว่าง)"})
+
+    refs = req.get("refs")
+    if refs and refs.get("hub"):
+        try:
+            with open(LH_TRIP_REFS_CACHE, "w", encoding="utf-8") as f:
+                json.dump(refs, f, ensure_ascii=False)
+        except Exception:
+            pass
+    else:
+        try:
+            with open(LH_TRIP_REFS_CACHE, "r", encoding="utf-8") as f:
+                refs = json.load(f)
+        except Exception:
+            return jsonify({"success": False, "error": "ไม่มีตารางอ้างอิง (Hub / Cut / TTB) — กรุณาโหลดใหม่อีกครั้ง"})
+
+    try:  # keep the last file for checking against the sheet (runtime cache, overwritten each time)
+        with open(os.path.join(LH_TRIP_HISTORY_DIR, "daily_raw_last.json"), "w", encoding="utf-8") as f:
+            json.dump({"fileName": req.get("fileName"), "date": date_str, "headers": raw_headers, "rows": raw_rows}, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+    try:
+        headers, rows = build_table_rows(raw_headers, raw_rows, refs)
+        df = pd.read_csv(io.StringIO(rows_to_csv_text(headers, rows)), low_memory=False, on_bad_lines='skip')
+        data = process_table_sheet(df)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"คำนวณข้อมูลจากไฟล์ raw data ไม่สำเร็จ: {e}"})
+
+    data.update({
+        "success": True, "source": "drive-daily", "date": date_str,
+        "filename": req.get("fileName") or "", "fileUrl": req.get("fileUrl"),
+        "archivedAt": req.get("updatedAt") or "",
+        "refsFetchedAt": (refs or {}).get("fetchedAt"),
+        "ttbMissing": not bool((refs or {}).get("ttb")),
+        "rawRows": len(raw_rows),
+    })
+    log_activity("LH_TRIP_DAILY_RAW", f"เปิดดู LH Trip รายวันจาก Google Drive: {data['filename']} ({len(rows):,} เที่ยว จาก raw {len(raw_rows):,} แถว)")
+    return jsonify(data)
+
+
 @app.route("/api/lh-trip/history-dates", methods=["GET"])
 def get_lh_trip_history_dates_api():
     index_file = os.path.join(LH_TRIP_HISTORY_DIR, "history_index.json")

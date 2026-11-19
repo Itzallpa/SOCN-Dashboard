@@ -382,13 +382,26 @@ header.page-head, .page-head { background: transparent !important; color: var(--
 .seg-toggle .btn { border: 0 !important; border-radius: 7px !important; min-height: 28px; padding: 4px 12px !important; }
 .seg-toggle .btn:not(.btn-primary) { background: transparent !important; color: var(--app-muted) !important; }
 .seg-toggle .btn:not(.btn-primary):hover { color: var(--app-text) !important; background: var(--app-surface-2) !important; }
+#cutPicker { display: inline-flex; gap: 2px; }
+#cutPicker button { border: 0; background: transparent; color: var(--app-muted); border-radius: 7px; min-height: 30px; padding: 4px 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+#cutPicker button:hover { color: var(--app-text); background: var(--app-surface-2); }
+#cutPicker button.active { background: var(--app-primary); color: #fff; }
+.cut-summary-table { font-size: 0.95rem; }
+.cut-summary-table th { font-size: 0.78rem; color: var(--app-muted); font-weight: 600; white-space: nowrap; text-transform: uppercase; letter-spacing: .02em; }
+.cut-summary-table td { padding-top: 8px; padding-bottom: 8px; white-space: nowrap; }
+.cut-card { padding: 20px 24px; }
+.cut-card .section-title { font-size: 0.9rem; }
+.cut-card .cut-note { font-size: 0.78rem; }
+.cut-card #cutPicker button { min-height: 34px; padding: 6px 14px; font-size: 0.88rem; }
+#cutPicker .cut-count { font-weight: 400; opacity: .8; margin-left: 2px; font-size: 0.72rem; }
 
 .data-bar {
   display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px;
   background: var(--app-surface); border: 1px solid var(--app-border);
   border-radius: var(--app-radius); padding: 8px 12px; margin-bottom: 16px;
 }
-.data-bar-label { font-size: 0.8rem; font-weight: 600; color: var(--app-muted); margin: 0; }
+.data-bar-sep { width: 1px; align-self: stretch; background: var(--app-border); margin: 0 4px; }
+.data-bar-label {font-size: 0.8rem; font-weight: 600; color: var(--app-muted); margin: 0; }
 .data-bar-meta { margin-left: auto; font-size: 0.78rem; color: var(--app-muted); display: inline-flex; align-items: center; }
 .data-bar-meta i { color: var(--app-success); }
 
