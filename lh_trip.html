@@ -701,6 +701,7 @@
 
       if (formVals && formVals.sheet) {
         const target = formVals.sheet;
+        dailyRelayCfg = null;   // use the new Apps Script URL right away
         localStorage.setItem('lh_trip_source_sheet_url', target);
         try {
           await safeApiFetch('/api/lh-trip/drive-settings', {
@@ -742,7 +743,7 @@
       if (dailyRelayCfg) return dailyRelayCfg;
       const res = await safeApiFetch('/api/lh-trip/drive-settings');
       const st = (res && res.settings) || {};
-      const url = String(st.sheetRelayUrl || '').trim();
+      const url = String((res && res.dailyRelayUrl) || st.sheetRelayUrl || '').trim();
       if (!url) throw new Error('ยังไม่ได้ตั้งค่า Apps Script URL (เมลบริษัท) — ตั้งได้ที่ เพิ่มเติม > ตั้งค่าแหล่งข้อมูล');
       dailyRelayCfg = { url, key: (res && res.relayKey) || '' };
       return dailyRelayCfg;
@@ -751,8 +752,9 @@
     async function callDailyRelay(page, extra, timeoutMs) {
       const cfg = await getDailyRelayCfg();
       const res = await fetchJsonpGeneric(cfg.url, Object.assign({ key: cfg.key, page }, extra || {}), timeoutMs);
-      if (res && res.success === false && /Unknown page/i.test(res.error || '')) {
-        throw new Error('Apps Script (เมลบริษัท) ยังเป็นเวอร์ชันเก่า — วางโค้ดใหม่แล้ว Deploy > Manage deployments > New version');
+      if (res && res.success === false && /Unknown page|Unauthorized/i.test(res.error || '')) {
+        const shortUrl = cfg.url.replace(/^https:\/\/script\.google\.com\//, '').replace(/\/exec.*$/, '');
+        throw new Error(`Apps Script ที่ Board นี้เรียกอยู่ ไม่ใช่เวอร์ชันล่าสุด\nURL: ...${shortUrl.slice(-24)}/exec\nตอบกลับ: ${res.error}\n\nแก้: เพิ่มเติม > ตั้งค่าแหล่งข้อมูล > ใส่ Apps Script URL ตัวล่าสุด หรือ Deploy > Manage deployments > New version`);
       }
       return res;
     }
@@ -785,7 +787,7 @@
       } else {
         const msg = (res && res.error) || 'โหลดรายการไฟล์จาก Google Drive ไม่ได้';
         renderDriveDaySelect(msg);
-        if (showErrors) Swal.fire({ icon: 'warning', title: 'โหลดรายการไฟล์ Drive ไม่ได้', text: msg });
+        if (showErrors) Swal.fire({ icon: 'warning', title: 'โหลดรายการไฟล์ Drive ไม่ได้', html: `<div style="white-space:pre-line;text-align:left">${escapeHtmlLite(msg)}</div>` });
       }
     }
 

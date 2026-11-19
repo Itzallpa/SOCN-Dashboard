@@ -45,6 +45,8 @@ const LH_TRIP_SOURCE_CONFIG = {
   TIME_ZONE: "Asia/Bangkok"
 };
 
+const RELAY_VERSION_ = "2026-11-19 daily";
+
 function doPost(e) {
   let params = {};
   try {
@@ -78,10 +80,13 @@ function safeHandle_(params) {
 }
 
 function handleRequest_(params) {
-  if (!params.key || params.key !== LH_TRIP_SOURCE_CONFIG.API_SECRET_KEY) {
-    return { success: false, error: "Unauthorized: Invalid API Key" };
-  }
   const page = String(params.page || "lhtrip").toLowerCase();
+  // no key needed: shows which code version is deployed at this URL
+  if (page === "version") return { success: true, page: "version", version: RELAY_VERSION_ };
+  if (!params.key) return { success: false, error: "Unauthorized: missing key (version " + RELAY_VERSION_ + ")" };
+  if (params.key !== LH_TRIP_SOURCE_CONFIG.API_SECRET_KEY) {
+    return { success: false, error: "Unauthorized: Invalid API Key (version " + RELAY_VERSION_ + ")" };
+  }
   if (page === "lhtrip") return readLhTrip_(params.spreadsheetId, params.gid, params.sheetName);
   if (page === "listdaily") return listDailyRaw_();
   if (page === "readdaily") return readDailyRaw_(params.fileId);

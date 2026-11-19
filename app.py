@@ -4745,6 +4745,10 @@ def load_ob_bl():
 
 GAS_OB_BL_URL = "https://script.google.com/a/spxexpress.com/macros/s/AKfycbxFOtGts0EfjNswnThfQhN57Q7zG5G6gPRGAG80lboIQfzhCh9W9t_d_uEP32Fi1Bc/exec"
 GAS_API_KEY = "SOCN_OBBL_2026_SECRET_KEY_XK9M3"
+# Company Apps Script with the daily-raw pages (listdaily/readdaily/refs/savedaily).
+# Used by the LH Trip daily view unless lhTripDriveSync.dailyRelayUrl is set, so every host
+# works after git pull even when its saved sheetRelayUrl points to an older deployment.
+DEFAULT_DAILY_RELAY_URL = "https://script.google.com/a/macros/spxexpress.com/s/AKfycbzceMnedtE_RMclvw9U3rvIbOOxtmS6D0GNQo8fKoagcD9XdYEx2u-NmbsDhXOZHLQt/exec"
 
 @app.route("/api/sync-ob-bl-gas", methods=["POST"])
 def sync_ob_bl_gas():
@@ -7536,7 +7540,9 @@ def lh_trip_drive_settings_api():
         return jsonify({"success": True, "message": "บันทึกการตั้งค่า Google Drive สำเร็จ", "settings": drive_cfg})
 
     # relayKey: the LH Trip page calls the company Apps Script from the browser (JSONP) with this key
-    return jsonify({"success": True, "settings": settings.get("lhTripDriveSync", {}), "relayKey": GAS_API_KEY})
+    drive_cfg = settings.get("lhTripDriveSync", {})
+    daily_url = (drive_cfg.get("dailyRelayUrl") or "").strip() or DEFAULT_DAILY_RELAY_URL
+    return jsonify({"success": True, "settings": drive_cfg, "relayKey": GAS_API_KEY, "dailyRelayUrl": daily_url})
 
 
 @app.route("/api/lh-trip/ingest-sheet/latest", methods=["GET"])
