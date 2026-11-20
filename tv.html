@@ -239,10 +239,23 @@
       }
     }
 
+    // Charts inside a slide keep the size they had when drawn (e.g. before full screen / while hidden) →
+    // make every Chart.js chart in the slide fit its box again.
+    function refitSlide(f) {
+      try {
+        const w = f.contentWindow;
+        if (w.Chart && w.Chart.instances) Object.values(w.Chart.instances).forEach(c => { c.resize(); c.update('none'); });
+        w.dispatchEvent(new w.Event('resize'));
+      } catch (e) { /* not ready / not same-origin */ }
+    }
+    function refitAll() { [...stage.children].forEach(refitSlide); }
+
     function show(i, p) {
       const changedPage = ((i + SLIDES.length) % SLIDES.length) !== current;
       current = (i + SLIDES.length) % SLIDES.length;
       [...stage.children].forEach((f, k) => f.classList.toggle('active', k === current));
+      refitSlide(stage.children[current]);
+      setTimeout(() => refitSlide(stage.children[current]), 400);
       const n = scrollPart(current, p || 0, !changedPage);
       part = Math.min(p || 0, n - 1);
       [...tabs.children].forEach((b, k) => {
@@ -270,15 +283,23 @@
     document.addEventListener('fullscreenchange', () => {
       const full = !!document.fullscreenElement;
       document.body.classList.toggle('tv-full', full);
+      setTimeout(refitAll, 300);
       document.getElementById('tvFull').innerHTML = `<i class="fa-solid ${full ? 'fa-compress' : 'fa-expand'}" aria-hidden="true"></i>`;
     });
 
     let barTimer = null;
+    function setCursorHidden(hidden) {
+      document.documentElement.style.cursor = hidden ? 'none' : '';
+      [...stage.children].forEach(f => { try { f.contentDocument.documentElement.style.cursor = hidden ? 'none' : ''; } catch (e) {} });
+    }
     function revealBar() {
-      if (!document.body.classList.contains('tv-full')) return;
-      document.body.classList.add('show-bar');
+      setCursorHidden(false);
+      if (document.body.classList.contains('tv-full')) document.body.classList.add('show-bar');
       clearTimeout(barTimer);
-      barTimer = setTimeout(() => document.body.classList.remove('show-bar'), 2500);
+      barTimer = setTimeout(() => {
+        document.body.classList.remove('show-bar');
+        if (document.body.classList.contains('tv-full')) setCursorHidden(true);   // pointer disappears on the TV
+      }, 2500);
     }
     document.addEventListener('mousemove', revealBar);
 
@@ -306,7 +327,9 @@
     setPlaying(playing);
     show(Math.max(0, SLIDES.findIndex(s => s.id === startId)), 0);
     // the page height changes as data loads → re-apply the current part's scroll position
-    window.addEventListener('resize', () => scrollPart(current, part, false));
+    window.addEventListener('resize', () => { refitAll(); scrollPart(current, part, false); });
+    // data and charts load a little after the page: fit them again once they are drawn
+    [...stage.children].forEach(f => f.addEventListener('load', () => { setTimeout(() => refitSlide(f), 1500); setTimeout(() => refitSlide(f), 6000); }));
   </script>
 </body>
 </html>
