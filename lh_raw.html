@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LH Raw Data</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="theme.css?v=7" rel="stylesheet">
+  <style>
+    .raw-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .raw-meta { font-size: .82rem; color: var(--app-muted); }
+    .raw-table-wrap { max-height: calc(100vh - 290px); min-height: 320px; overflow: auto; border: 1px solid var(--app-border); border-radius: var(--app-radius); background: var(--app-surface); }
+    .raw-table { font-size: .8rem; margin: 0; white-space: nowrap; }
+    .raw-table thead th {
+      position: sticky; top: 0; z-index: 2; background: var(--app-surface-2); color: var(--app-text-2);
+      font-weight: 650; border-bottom: 1px solid var(--app-border-strong); cursor: pointer; user-select: none;
+    }
+    .raw-table thead th:first-child, .raw-table tbody td:first-child { position: sticky; left: 0; z-index: 1; background: var(--app-surface); color: var(--app-faint); text-align: right; }
+    .raw-table thead th:first-child { z-index: 3; background: var(--app-surface-2); }
+    .raw-table td { font-variant-numeric: tabular-nums; }
+    .raw-table tbody tr:hover td { background: var(--app-primary-soft); }
+    .sort-ind { color: var(--app-brand); margin-left: 4px; }
+    .raw-empty { padding: 48px 16px; text-align: center; color: var(--app-muted); }
+    .pager { display: flex; align-items: center; gap: 6px; font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <nav></nav>
+
+  <div class="container-fluid px-3 py-3" style="max-width: 1720px; margin: 0 auto;">
+    <header class="page-head">
+      <div class="page-head-title">
+        <h1 class="page-title">LH Raw Data</h1>
+        <p class="page-subtitle">ข้อมูลดิบจากชีท LH Trip (แท็บ Table / raw data) สำหรับดูและ Export · แยกจากบอร์ดข้อมูลสด</p>
+      </div>
+      <div class="page-head-actions">
+        <div class="btn-group btn-group-sm seg-toggle" role="group" aria-label="มุมมอง" id="viewPicker">
+          <button type="button" class="btn btn-primary px-3" data-view="dash" onclick="selectView('dash')"><i class="fa-solid fa-chart-pie me-1"></i> Dashboard</button>
+          <button type="button" class="btn btn-outline-secondary px-3" data-view="table" onclick="selectView('table')"><i class="fa-solid fa-table-cells me-1"></i> ตาราง</button>
+        </div>
+        <div class="btn-group btn-group-sm seg-toggle" role="group" aria-label="เลือกแท็บ" id="tabPicker">
+          <button type="button" class="btn btn-primary px-3" data-tab="Table" onclick="selectTab('Table')"><i class="fa-solid fa-table me-1"></i> Table</button>
+          <button type="button" class="btn btn-outline-secondary px-3" data-tab="raw data" onclick="selectTab('raw data')"><i class="fa-solid fa-database me-1"></i> raw data</button>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btnSyncRaw" onclick="syncRawTab()"><i class="fa-solid fa-rotate me-1"></i> Sync แท็บนี้</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="exportCsv()"><i class="fa-solid fa-file-csv me-1"></i> Export CSV</button>
+      </div>
+    </header>
+
+    <!-- Dashboard view: the LH Trip page fed by the saved copy of this tab (no live sync) -->
+    <div id="dashView">
+      <iframe id="dashFrame" title="LH Trip Dashboard จากข้อมูลที่ Sync" style="width:100%; height: calc(100vh - 150px); min-height: 600px; border: 0; background: transparent;"></iframe>
+    </div>
+
+    <div class="card p-3 mb-3 d-none" id="tableView">
+      <div class="raw-toolbar mb-2">
+        <div class="input-group input-group-sm" style="max-width: 360px;">
+          <span class="input-group-text"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>
+          <input type="search" class="form-control" id="searchBox" placeholder="ค้นหา (Trip, ทะเบียน, ปลายทาง, คนขับ ...)" aria-label="ค้นหา" oninput="onSearch()">
+        </div>
+        <select class="form-select form-select-sm" id="colFilterCol" style="width:auto; max-width: 240px;" aria-label="กรองตามคอลัมน์" onchange="onColFilterCol()">
+          <option value="">กรองตามคอลัมน์...</option>
+        </select>
+        <select class="form-select form-select-sm" id="colFilterVal" style="width:auto; max-width: 280px;" aria-label="ค่าที่ต้องการ" onchange="applyView()" disabled>
+          <option value="">ทั้งหมด</option>
+        </select>
+        <button class="btn btn-sm btn-outline-secondary" onclick="clearFilters()"><i class="fa-solid fa-xmark me-1"></i> ล้างตัวกรอง</button>
+        <span class="ms-auto raw-meta" id="rawMeta">กำลังโหลด...</span>
+      </div>
+      <div class="raw-table-wrap" id="tableWrap">
+        <div class="raw-empty">กำลังโหลด...</div>
+      </div>
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2">
+        <span class="raw-meta" id="rowCount"></span>
+        <div class="pager">
+          <label for="pageSize" class="raw-meta">แถวต่อหน้า</label>
+          <select id="pageSize" class="form-select form-select-sm" style="width:auto;" onchange="page = 0; renderTable()">
+            <option>100</option><option selected>200</option><option>500</option><option>1000</option>
+          </select>
+          <button class="btn btn-sm btn-outline-secondary" onclick="goPage(-1)" aria-label="หน้าก่อนหน้า"><i class="fa-solid fa-chevron-left"></i></button>
+          <span id="pageInfo" class="raw-meta"></span>
+          <button class="btn btn-sm btn-outline-secondary" onclick="goPage(1)" aria-label="หน้าถัดไป"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="auth_guard.js"></script>
+  <script src="progress_popup.js?v=1"></script>
+  <script src="relay_client.js?v=1"></script>
+  <script>
+    // Raw view of a sheet tab. Sync = read the tab (company Apps Script, browser login) and keep a copy on the
+    // server, so anyone can open this page later. Does not touch the LH Trip / Hourly live data.
+    let currentTab = 'Table';
+    let currentView = 'dash';
+
+    function selectView(v) {
+      currentView = v;
+      document.querySelectorAll('#viewPicker [data-view]').forEach(b => {
+        const on = b.dataset.view === v;
+        b.classList.toggle('btn-primary', on);
+        b.classList.toggle('btn-outline-secondary', !on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      document.getElementById('dashView').classList.toggle('d-none', v !== 'dash');
+      document.getElementById('tableView').classList.toggle('d-none', v !== 'table');
+      if (v === 'dash') reloadDash();
+    }
+
+    function reloadDash() {
+      const f = document.getElementById('dashFrame');
+      const src = 'lh_trip.html?embed=1&rawtab=' + encodeURIComponent(currentTab) + '&_=' + Date.now();
+      f.src = src;
+    }
+    let doc = { headers: [], rows: [] };
+    let view = [];             // indexes of rows after search / filter / sort
+    let page = 0;
+    let sortCol = -1, sortDir = 1;
+    let searchTimer = null;
+
+    const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function selectTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('#tabPicker [data-tab]').forEach(b => {
+        const on = b.dataset.tab === tab;
+        b.classList.toggle('btn-primary', on);
+        b.classList.toggle('btn-outline-secondary', !on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      loadSaved();
+      if (currentView === 'dash') reloadDash();
+    }
+
+    async function loadSaved() {
+      document.getElementById('rawMeta').textContent = 'กำลังโหลด...';
+      try {
+        const r = await (await fetch('/api/lh-trip/raw-view?tab=' + encodeURIComponent(currentTab))).json();
+        doc = r && r.success ? r : { headers: [], rows: [] };
+      } catch (e) { doc = { headers: [], rows: [] }; }
+      setupData();
+    }
+
+    function setupData() {
+      sortCol = -1; sortDir = 1; page = 0;
+      const sel = document.getElementById('colFilterCol');
+      sel.innerHTML = '<option value="">กรองตามคอลัมน์...</option>' +
+        (doc.headers || []).map((h, i) => h ? `<option value="${i}">${esc(h)}</option>` : '').join('');
+      document.getElementById('colFilterVal').innerHTML = '<option value="">ทั้งหมด</option>';
+      document.getElementById('colFilterVal').disabled = true;
+      const meta = document.getElementById('rawMeta');
+      if (!doc.rows || !doc.rows.length) {
+        meta.textContent = doc.syncedAt ? `Sync ล่าสุด ${doc.syncedAt} · แท็บว่าง` : 'ยังไม่เคย Sync แท็บนี้ — กด "Sync แท็บนี้"';
+      } else {
+        meta.textContent = `แท็บ "${doc.sheet || currentTab}" · Sync ล่าสุด ${doc.syncedAt || '-'}${doc.syncedBy ? ' โดย ' + doc.syncedBy : ''}`;
+      }
+      applyView();
+    }
+
+    function onSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(applyView, 200); }
+
+    function onColFilterCol() {
+      const ci = document.getElementById('colFilterCol').value;
+      const valSel = document.getElementById('colFilterVal');
+      if (ci === '') { valSel.innerHTML = '<option value="">ทั้งหมด</option>'; valSel.disabled = true; applyView(); return; }
+      const counts = new Map();
+      (doc.rows || []).forEach(r => { const v = r[ci] == null ? '' : String(r[ci]); counts.set(v, (counts.get(v) || 0) + 1); });
+      const vals = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 500);
+      valSel.innerHTML = '<option value="">ทั้งหมด</option>' + vals.map(([v, n]) => `<option value="${esc(v)}">${esc(v || '(ว่าง)')} (${n.toLocaleString()})</option>`).join('');
+      valSel.disabled = false;
+      applyView();
+    }
+
+    function clearFilters() {
+      document.getElementById('searchBox').value = '';
+      document.getElementById('colFilterCol').value = '';
+      onColFilterCol();
+    }
+
+    function applyView() {
+      const q = document.getElementById('searchBox').value.trim().toLowerCase();
+      const ci = document.getElementById('colFilterCol').value;
+      const cv = document.getElementById('colFilterVal').value;
+      const rows = doc.rows || [];
+      view = [];
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        if (ci !== '' && !document.getElementById('colFilterVal').disabled && cv !== '' && String(r[ci] == null ? '' : r[ci]) !== cv) continue;
+        if (q && !r.some(v => String(v == null ? '' : v).toLowerCase().includes(q))) continue;
+        view.push(i);
+      }
+      if (sortCol >= 0) {
+        const num = (v) => { const n = Number(String(v).replace(/,/g, '')); return isFinite(n) && String(v).trim() !== '' ? n : null; };
+        view.sort((a, b) => {
+          const x = rows[a][sortCol], y = rows[b][sortCol];
+          const nx = num(x), ny = num(y);
+          const c = nx != null && ny != null ? nx - ny : String(x == null ? '' : x).localeCompare(String(y == null ? '' : y), 'th');
+          return c * sortDir;
+        });
+      }
+      page = 0;
+      renderTable();
+    }
+
+    function sortBy(i) {
+      if (sortCol === i) sortDir = -sortDir; else { sortCol = i; sortDir = 1; }
+      applyView();
+    }
+
+    function goPage(d) {
+      const size = Number(document.getElementById('pageSize').value);
+      const last = Math.max(0, Math.ceil(view.length / size) - 1);
+      page = Math.min(last, Math.max(0, page + d));
+      renderTable();
+    }
+
+    function renderTable() {
+      const wrap = document.getElementById('tableWrap');
+      const headers = doc.headers || [];
+      const rows = doc.rows || [];
+      const size = Number(document.getElementById('pageSize').value);
+      const pages = Math.max(1, Math.ceil(view.length / size));
+      page = Math.min(page, pages - 1);
+      document.getElementById('pageInfo').textContent = `${page + 1} / ${pages}`;
+      document.getElementById('rowCount').textContent = rows.length
+        ? `แสดง ${view.length.toLocaleString()} จาก ${rows.length.toLocaleString()} แถว`
+        : '';
+      if (!headers.length) {
+        wrap.innerHTML = '<div class="raw-empty"><i class="fa-regular fa-folder-open fa-2x mb-2 d-block"></i>ยังไม่มีข้อมูล — กด "Sync แท็บนี้" เพื่อดึงจาก Google Sheet</div>';
+        return;
+      }
+      const start = page * size;
+      const slice = view.slice(start, start + size);
+      const head = '<tr><th scope="col">#</th>' + headers.map((h, i) =>
+        `<th scope="col" onclick="sortBy(${i})" title="เรียงตาม ${esc(h)}">${esc(h)}${sortCol === i ? `<span class="sort-ind">${sortDir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('') + '</tr>';
+      const body = slice.map((ri, k) => '<tr><td>' + (start + k + 1).toLocaleString() + '</td>' +
+        headers.map((_, ci) => `<td>${esc(rows[ri][ci])}</td>`).join('') + '</tr>').join('');
+      wrap.innerHTML = `<table class="table table-sm table-bordered raw-table"><thead>${head}</thead><tbody>${body || `<tr><td colspan="${headers.length + 1}" class="raw-empty">ไม่พบข้อมูลที่ตรงกับตัวกรอง</td></tr>`}</tbody></table>`;
+      wrap.scrollTop = 0;
+    }
+
+    async function syncRawTab() {
+      const btn = document.getElementById('btnSyncRaw');
+      btn.disabled = true;
+      const pg = openProgressModal(`กำลัง Sync แท็บ "${currentTab}"`);
+      try {
+        const cfg = await getRelayCfg();
+        pg.step(`อ่านแท็บ "${currentTab}" จาก Google Sheet...`, 75, 12000);
+        const res = await callRelay('lhtrip', { spreadsheetId: cfg.sourceSheetId, sheetName: currentTab }, 240000);
+        pg.step(`บันทึก ${(res.totalRows || 0).toLocaleString()} แถว...`, 95, 3000);
+        const save = await (await fetch('/api/lh-trip/raw-view', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tab: currentTab, sheet: res.sheet, fetchedAt: res.fetchedAt, headers: res.headers, rows: res.rows })
+        })).json();
+        if (!save.success) throw new Error(save.error || 'บันทึกไม่สำเร็จ');
+        pg.done();
+        await loadSaved();
+        if (currentView === 'dash') reloadDash();
+        Swal.fire({ icon: 'success', title: 'Sync แล้ว', text: `แท็บ "${currentTab}" · ${(save.totalRows || 0).toLocaleString()} แถว`, timer: 1800, showConfirmButton: false });
+      } catch (err) {
+        pg.stop();
+        Swal.fire('Sync ไม่สำเร็จ', err.message || String(err), 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function exportCsv() {
+      const headers = doc.headers || [];
+      if (!headers.length) { Swal.fire('ยังไม่มีข้อมูล', 'กด "Sync แท็บนี้" ก่อน', 'info'); return; }
+      const cell = (v) => { const t = String(v == null ? '' : v); return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+      const lines = [headers.map(cell).join(',')].concat(view.map(i => headers.map((_, ci) => cell(doc.rows[i][ci])).join(',')));
+      const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `LH_${currentTab.replace(/\s+/g, '_')}_${(doc.syncedAt || '').replace(/[: ]/g, '-') || 'export'}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      if (window.AuthGuard && window.AuthGuard.logExport) window.AuthGuard.logExport('LH Raw Data CSV', `${currentTab} ${view.length} rows`);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => selectTab('Table'));   // Dashboard view is the default
+  </script>
+</body>
+</html>

@@ -7680,6 +7680,82 @@ def _ingest_lh_live_table(headers, rows, fetched_at=None, sheet=None, extra_meta
     return data
 
 
+# ---------------------------------------------------------------------------
+# "LH Raw Data" page (lh_raw.html): a plain copy of a sheet tab ("Table" / "raw data") for people who want
+# to see the rows themselves. Separate from the live board — nothing here changes the dashboard data.
+# ---------------------------------------------------------------------------
+LH_RAW_VIEW_TABS = ("Table", "raw data")
+
+
+def _raw_view_path(tab):
+    return os.path.join(LH_TRIP_HISTORY_DIR, "raw_view_" + re.sub(r"[^A-Za-z0-9]+", "_", tab).strip("_").lower() + ".json")
+
+
+@app.route("/api/lh-trip/raw-view", methods=["GET", "POST"])
+def lh_trip_raw_view_api():
+    if request.method == "POST":
+        req = request.get_json(silent=True) or {}
+        tab = str(req.get("tab") or "")
+        if tab not in LH_RAW_VIEW_TABS:
+            return jsonify({"success": False, "error": "แท็บไม่ถูกต้อง"}), 400
+        headers, rows = req.get("headers") or [], req.get("rows") or []
+        if not isinstance(headers, list) or not isinstance(rows, list):
+            return jsonify({"success": False, "error": "ข้อมูลไม่ถูกต้อง"}), 400
+        doc = {"tab": tab, "sheet": req.get("sheet") or tab, "fetchedAt": req.get("fetchedAt"),
+               "syncedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+               "syncedBy": session.get("user_name") or req.get("syncedBy") or "",
+               "headers": headers, "rows": rows}
+        with open(_raw_view_path(tab), "w", encoding="utf-8") as f:
+            json.dump(doc, f, ensure_ascii=False)
+        log_activity("LH_RAW_VIEW_SYNC", f"🔄 Sync แท็บ {tab} (LH Raw Data) {len(rows):,} แถว")
+        return jsonify({"success": True, "tab": tab, "syncedAt": doc["syncedAt"], "totalRows": len(rows)})
+
+    tab = request.args.get("tab", "Table")
+    if tab not in LH_RAW_VIEW_TABS:
+        return jsonify({"success": False, "error": "แท็บไม่ถูกต้อง"}), 400
+    try:
+        with open(_raw_view_path(tab), "r", encoding="utf-8") as f:
+            doc = json.load(f)
+    except Exception:
+        return jsonify({"success": True, "tab": tab, "empty": True, "headers": [], "rows": []})
+    doc["success"] = True
+    return jsonify(doc)
+
+
+@app.route("/api/lh-trip/raw-view/dashboard", methods=["GET"])
+def lh_trip_raw_view_dashboard_api():
+    """LH Trip dashboard data from the copy saved by the LH Raw Data page ("Table" as is, "raw data" through
+    lh_raw_table). Read only — the live board is not touched."""
+    tab = request.args.get("tab", "Table")
+    if tab not in LH_RAW_VIEW_TABS:
+        return jsonify({"success": False, "error": "แท็บไม่ถูกต้อง"}), 400
+    try:
+        with open(_raw_view_path(tab), "r", encoding="utf-8") as f:
+            doc = json.load(f)
+    except Exception:
+        return jsonify({"success": False, "error": f'ยังไม่เคย Sync แท็บ "{tab}" — ไปที่หน้า LH Raw Data แล้วกด Sync'})
+    headers, rows = doc.get("headers") or [], doc.get("rows") or []
+    if not headers or not rows:
+        return jsonify({"success": False, "error": f'แท็บ "{tab}" ว่าง ไม่มีข้อมูล'})
+    try:
+        if tab == "raw data":
+            from lh_raw_table import build_table_rows
+            from raw_dates import normalize_rows
+            rows, _order = normalize_rows(headers, rows)
+            with open(LH_TRIP_REFS_CACHE, "r", encoding="utf-8") as f:
+                refs = json.load(f)
+            headers, rows = build_table_rows(headers, rows, refs)
+        df = pd.read_csv(io.StringIO(rows_to_csv_text(headers, rows)), low_memory=False, on_bad_lines='skip')
+        data = process_table_sheet(df)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"คำนวณ Dashboard จากแท็บ {tab} ไม่สำเร็จ: {e}"})
+    data.update({"success": True, "source": "raw-view", "tab": tab, "syncedAt": doc.get("syncedAt"),
+                 "syncedBy": doc.get("syncedBy"), "filename": f"LH Raw Data · {tab}"})
+    return jsonify(data)
+
+
 @app.route("/api/lh-trip/live-raw", methods=["POST"])
 def lh_trip_live_raw_api():
     """Live LH Trip from a raw-data tab (test sheet "Copy of raw data", read by the browser through the

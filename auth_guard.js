@@ -1527,6 +1527,7 @@
     { href: 'skip_process.html',   label: 'Skip Monitor',   icon: 'fa-forward' },
     { href: 'cutoff_master.html',  label: 'Cutoff Master',  icon: 'fa-clock' },
     { href: 'lh_trip.html',        label: 'LH Trip & OB Late', icon: 'fa-truck' },
+    { href: 'lh_raw.html',         label: 'LH Raw Data',    icon: 'fa-table-list' },
     { href: 'ob_bl.html',          label: 'OB Backlog',     icon: 'fa-boxes-stacked' },
     { href: 'ob_bl_compare.html',  label: 'Backlog Compare', icon: 'fa-code-compare' },
     { href: 'hourly_tracker.html', label: 'Hourly Tracker', icon: 'fa-chart-line' },
@@ -1550,6 +1551,7 @@
     // shown as a slide inside tv.html → no navigation bar at all
     var inTv = false;
     try { inTv = window.top !== window.self && /tv\.html$/i.test(window.top.location.pathname); } catch (e) {}
+    if (/[?&]embed=1(&|$)/.test(location.search)) inTv = true;   // page shown inside another page (iframe)
     if (inTv) {
       document.querySelectorAll('body > nav, body > .top-nav, body > header.portal-status-bar, .app-nav').forEach(function (n) { n.remove(); });
       return;

@@ -588,7 +588,30 @@
     // snapshot date (YYYY-MM-DD) of what is on screen; 'live' for live / Drive-day views
     function snapshotDateOf() { return /^\d{4}-\d{2}-\d{2}$/.test(currentLoadedDate) ? currentLoadedDate : 'live'; }
 
+    // ?rawtab=Table | raw data → show the copy saved by the LH Raw Data page (no live sync on this page)
+    const RAW_VIEW_TAB = new URLSearchParams(location.search).get('rawtab');
+    if (new URLSearchParams(location.search).get('embed') === '1') {
+      document.documentElement.classList.add('embed-mode');
+      document.head.insertAdjacentHTML('beforeend', '<style>.embed-mode .tv-hide{display:none!important}</style>');
+    }
+
+    async function loadRawViewDashboard(tab) {
+      const banner = document.getElementById('lhStatusMsg');
+      try {
+        const data = await safeApiFetch('/api/lh-trip/raw-view/dashboard?tab=' + encodeURIComponent(tab));
+        if (!data || !data.success) throw new Error((data && data.error) || 'โหลดข้อมูลไม่สำเร็จ');
+        applyLhSyncedData(data, true);
+        if (banner) banner.innerHTML = `<div class="small text-muted py-1"><i class="fa-solid fa-table-list me-1"></i>ข้อมูลจากหน้า LH Raw Data · แท็บ "${escapeHtmlLite(tab)}" · Sync ล่าสุด ${escapeHtmlLite(data.syncedAt || '-')} (ไม่ใช่ข้อมูลสด)</div>`;
+      } catch (err) {
+        const empty = { rows: [], outboundRawRows: [], totalTrips: 0, lateTrips: 0, onTimeTrips: 0 };
+        latestSyncedData = empty; rawTripRecords = [];
+        renderLHData(empty);
+        if (banner) banner.innerHTML = `<div class="small text-warning-emphasis py-1"><i class="fa-solid fa-triangle-exclamation me-1"></i>${escapeHtmlLite(err.message || String(err))}</div>`;
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
+      if (RAW_VIEW_TAB) { loadRawViewDashboard(RAW_VIEW_TAB); return; }
       // Load available archived snapshot dates
       loadHistoryDatesDropdown();
       loadDriveDays(false);
