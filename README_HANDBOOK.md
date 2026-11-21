@@ -19,7 +19,7 @@
 
 ### 🏢 1. สำหรับเน็ตบริษัท (Bypass Firewall ทะลุบล็อก 100%):
 ```cmd
-ssh -R 80:localhost:5000 free.pinggy.io
+ssh -R 80:localhost:5001 free.pinggy.io
 ```
 > ระบบจะสุ่มลิงก์ HTTPS เช่น `https://xxxx.free.pinggy.link` ก๊อปปี้ไปเปิดดูบนมือถือได้ทันที
 
@@ -27,7 +27,7 @@ ssh -R 80:localhost:5000 free.pinggy.io
 
 ### 🏠 2. สำหรับเน็ตบ้าน / Hotspot มือถือ (Cloudflare):
 ```cmd
-cloudflared.exe tunnel --protocol http2 --url http://localhost:5000
+cloudflared.exe tunnel --protocol http2 --url http://localhost:5001
 ```
 
 ---

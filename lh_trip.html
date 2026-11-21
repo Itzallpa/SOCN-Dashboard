@@ -656,8 +656,10 @@
       if (window.location.protocol !== 'file:') {
         urlsToTry.push(path);
       }
-      urlsToTry.push('http://localhost:5000' + path);
-      urlsToTry.push('http://127.0.0.1:5000' + path);
+      else {   // opened as a local file only; never fall back to another server (production runs on :5000)
+        urlsToTry.push('http://localhost:5001' + path);
+        urlsToTry.push('http://127.0.0.1:5001' + path);
+      }
 
       let lastError = null;
       for (let u of urlsToTry) {

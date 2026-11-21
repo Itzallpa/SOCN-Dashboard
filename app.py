@@ -9019,7 +9019,8 @@ start_obi_daily_1500_auto_sync()
 
 if __name__ == "__main__":
     print("=" * 60)
-    print(" Server started at http://localhost:5000")
+    PORT = int(os.environ.get("PORT", "5001"))  # UAT: 5001 so it never clashes with production on 5000
+    print(f" Server started at http://localhost:{PORT}")
     print(f" Uploaded files will be stored in: {UPLOAD_FOLDER}")
     print("=" * 60)
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=PORT, debug=True)
