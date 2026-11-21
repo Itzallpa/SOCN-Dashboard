@@ -3853,49 +3853,376 @@ def get_cutoff_schedule_api():
         if not os.path.exists(path):
             continue
         try:
-            df = pd.read_csv(path)
-            for idx in range(1, len(df)):
-                row = df.iloc[idx]
-                station_name = str(row.get('LM Station Name', '') or '').strip()
-                if not station_name or station_name.lower() == 'nan':
-                    continue
-                
-                entry = {
-                    'area_group': area_type,
-                    'area': str(row.get('Area', '') or '' if pd.notna(row.get('Area')) else ''),
-                    'route_type': str(row.get('Route Type', '') or '' if pd.notna(row.get('Route Type')) else ''),
-                    'status': str(row.get('Status', '') or '' if pd.notna(row.get('Status')) else ''),
-                    'mapping': str(row.get('Mapping', '') or '' if pd.notna(row.get('Mapping')) else ''),
-                    'station_id': str(row.get('LM Station ID', '') or '' if pd.notna(row.get('LM Station ID')) else '').replace('.0', ''),
-                    'station_name': station_name,
-                    'province': str(row.get('Province', '') or '' if pd.notna(row.get('Province')) else ''),
-                    'district': str(row.get('District', '') or '' if pd.notna(row.get('District')) else ''),
-                    'op_type': str(row.get('Operation Type', '') or '' if pd.notna(row.get('Operation Type')) else ''),
-                    'cut0_ob': str(row.get('Cut 0', '') or '' if pd.notna(row.get('Cut 0')) else ''),
-                    'cut0_arr': str(row.get('Unnamed: 11', '') or '' if pd.notna(row.get('Unnamed: 11')) else ''),
-                    'cut0_travel': str(row.get('Unnamed: 12', '') or '' if pd.notna(row.get('Unnamed: 12')) else ''),
-                    'cut1_ob': str(row.get('Cut 1', '') or '' if pd.notna(row.get('Cut 1')) else ''),
-                    'cut1_arr': str(row.get('Unnamed: 14', '') or '' if pd.notna(row.get('Unnamed: 14')) else ''),
-                    'cut1_rec': str(row.get('Unnamed: 15', '') or '' if pd.notna(row.get('Unnamed: 15')) else ''),
-                    'cut1_travel': str(row.get('Unnamed: 16', '') or '' if pd.notna(row.get('Unnamed: 16')) else ''),
-                    'cut2_ob': str(row.get('Cut 2', '') or '' if pd.notna(row.get('Cut 2')) else ''),
-                    'cut2_arr': str(row.get('Unnamed: 18', '') or '' if pd.notna(row.get('Unnamed: 18')) else ''),
-                    'cut2_rec': str(row.get('Unnamed: 19', '') or '' if pd.notna(row.get('Unnamed: 19')) else ''),
-                    'cut2_travel': str(row.get('Unnamed: 20', '') or '' if pd.notna(row.get('Unnamed: 20')) else ''),
-                    'cut3_ob': str(row.get('Cut 3', '') or '' if pd.notna(row.get('Cut 3')) else ''),
-                    'cut3_arr': str(row.get('Unnamed: 22', '') or '' if pd.notna(row.get('Unnamed: 22')) else ''),
-                    'cut3_travel': str(row.get('Unnamed: 23', '') or '' if pd.notna(row.get('Unnamed: 23')) else ''),
-                }
-                entry['zone'] = infer_cutoff_zone(entry, area_type)
-                if 'Sunday Cut' in df.columns:
-                    entry['sun_ob'] = str(row.get('Sunday Cut', '') or '' if pd.notna(row.get('Sunday Cut')) else '')
-                    entry['sun_arr'] = str(row.get('Unnamed: 25', '') or '' if pd.notna(row.get('Unnamed: 25')) else '')
-                    entry['sun_rec'] = str(row.get('Unnamed: 26', '') or '' if pd.notna(row.get('Unnamed: 26')) else '')
-                    entry['sun_travel'] = str(row.get('Unnamed: 27', '') or '' if pd.notna(row.get('Unnamed: 27')) else '')
-                cutoff_list.append(entry)
+            cutoff_list.extend(_cutoff_entries_from_df(pd.read_csv(path), area_type))
         except Exception as e:
             print("Error parsing cutoff file", path, e)
     return jsonify({"success": True, "is_custom": False, "total": len(cutoff_list), "data": cutoff_list})
+
+
+def _cutoff_entries_from_df(df, area_type):
+    """One SOCN_GBKK / SOCN_UPC_Direct / SOCN_UPC_Milkrun tab (row 1 = headers, row 2 = sub headers)."""
+    cutoff_list = []
+    for idx in range(1, len(df)):
+        row = df.iloc[idx]
+        station_name = str(row.get('LM Station Name', '') or '').strip()
+        if not station_name or station_name.lower() == 'nan':
+            continue
+        
+        entry = {
+            'area_group': area_type,
+            'area': str(row.get('Area', '') or '' if pd.notna(row.get('Area')) else ''),
+            'route_type': str(row.get('Route Type', '') or '' if pd.notna(row.get('Route Type')) else ''),
+            'status': str(row.get('Status', '') or '' if pd.notna(row.get('Status')) else ''),
+            'mapping': str(row.get('Mapping', '') or '' if pd.notna(row.get('Mapping')) else ''),
+            'station_id': str(row.get('LM Station ID', '') or '' if pd.notna(row.get('LM Station ID')) else '').replace('.0', ''),
+            'station_name': station_name,
+            'province': str(row.get('Province', '') or '' if pd.notna(row.get('Province')) else ''),
+            'district': str(row.get('District', '') or '' if pd.notna(row.get('District')) else ''),
+            'op_type': str(row.get('Operation Type', '') or '' if pd.notna(row.get('Operation Type')) else ''),
+            'cut0_ob': str(row.get('Cut 0', '') or '' if pd.notna(row.get('Cut 0')) else ''),
+            'cut0_arr': str(row.get('Unnamed: 11', '') or '' if pd.notna(row.get('Unnamed: 11')) else ''),
+            'cut0_travel': str(row.get('Unnamed: 12', '') or '' if pd.notna(row.get('Unnamed: 12')) else ''),
+            'cut1_ob': str(row.get('Cut 1', '') or '' if pd.notna(row.get('Cut 1')) else ''),
+            'cut1_arr': str(row.get('Unnamed: 14', '') or '' if pd.notna(row.get('Unnamed: 14')) else ''),
+            'cut1_rec': str(row.get('Unnamed: 15', '') or '' if pd.notna(row.get('Unnamed: 15')) else ''),
+            'cut1_travel': str(row.get('Unnamed: 16', '') or '' if pd.notna(row.get('Unnamed: 16')) else ''),
+            'cut2_ob': str(row.get('Cut 2', '') or '' if pd.notna(row.get('Cut 2')) else ''),
+            'cut2_arr': str(row.get('Unnamed: 18', '') or '' if pd.notna(row.get('Unnamed: 18')) else ''),
+            'cut2_rec': str(row.get('Unnamed: 19', '') or '' if pd.notna(row.get('Unnamed: 19')) else ''),
+            'cut2_travel': str(row.get('Unnamed: 20', '') or '' if pd.notna(row.get('Unnamed: 20')) else ''),
+            'cut3_ob': str(row.get('Cut 3', '') or '' if pd.notna(row.get('Cut 3')) else ''),
+            'cut3_arr': str(row.get('Unnamed: 22', '') or '' if pd.notna(row.get('Unnamed: 22')) else ''),
+            'cut3_travel': str(row.get('Unnamed: 23', '') or '' if pd.notna(row.get('Unnamed: 23')) else ''),
+        }
+        entry['zone'] = infer_cutoff_zone(entry, area_type)
+        if 'Sunday Cut' in df.columns:
+            entry['sun_ob'] = str(row.get('Sunday Cut', '') or '' if pd.notna(row.get('Sunday Cut')) else '')
+            entry['sun_arr'] = str(row.get('Unnamed: 25', '') or '' if pd.notna(row.get('Unnamed: 25')) else '')
+            entry['sun_rec'] = str(row.get('Unnamed: 26', '') or '' if pd.notna(row.get('Unnamed: 26')) else '')
+            entry['sun_travel'] = str(row.get('Unnamed: 27', '') or '' if pd.notna(row.get('Unnamed: 27')) else '')
+        cutoff_list.append(entry)
+    return cutoff_list
+
+
+# Clone page cutoff_master_clone.html: cut times read live from the test sheet tabs (through the company
+# Apps Script in the browser) instead of Source/*.csv or an uploaded file. Separate cache; the original
+# /api/cutoff-schedule and its upload file are not touched.
+CUTOFF_SHEET_CACHE = os.path.join(DATA_DIR, "cutoff_sheet_cache.json")
+CUTOFF_SHEET_TABS = {"UPC Milkrun": "SOCN_UPC_Milkrun", "UPC Direct": "SOCN_UPC_Direct", "GBKK": "SOCN_GBKK"}
+
+
+@app.route("/api/cutoff-schedule/sheet", methods=["GET", "POST"])
+def cutoff_schedule_sheet_api():
+    if request.method == "GET":
+        try:
+            with open(CUTOFF_SHEET_CACHE, "r", encoding="utf-8") as f:
+                return jsonify(json.load(f))
+        except Exception:
+            return jsonify({"success": True, "is_custom": False, "source": "sheet", "total": 0, "data": [], "updatedAt": ""})
+    req = request.get_json(silent=True) or {}
+    tabs = req.get("tabs") or {}
+    cutoff_list, counts, errors = [], {}, []
+    for area_type in CUTOFF_SHEET_TABS:
+        values = tabs.get(area_type) or []
+        if len(values) < 2:
+            errors.append(f"{CUTOFF_SHEET_TABS[area_type]} ว่าง")
+            continue
+        try:
+            width = max(len(r) for r in values)   # sub-header row is longer than row 1: pad, else pandas makes an index
+            values = [list(r) + [""] * (width - len(r)) for r in values]
+            df = pd.read_csv(io.StringIO(rows_to_csv_text(values[0], values[1:])), dtype=str, keep_default_na=False)
+            entries = _cutoff_entries_from_df(df, area_type)
+            counts[area_type] = len(entries)
+            cutoff_list.extend(entries)
+        except Exception as e:
+            errors.append(f"{CUTOFF_SHEET_TABS[area_type]}: {e}")
+    if not cutoff_list:
+        return jsonify({"success": False, "error": "อ่านตาราง Cut จากชีทไม่ได้: " + "; ".join(errors)})
+    doc = {"success": True, "is_custom": False, "source": "sheet", "total": len(cutoff_list), "data": cutoff_list,
+           "counts": counts, "errors": errors, "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+    try:
+        with open(CUTOFF_SHEET_CACHE, "w", encoding="utf-8") as f:
+            json.dump(doc, f, ensure_ascii=False)
+    except Exception:
+        pass
+    return jsonify(doc)
+
+
+# ---------------------------------------------------------------------------
+# SPX Outbound Monitor (spx.shopee.co.th/#/outbound-monitor/list). SPX signs every API request inside its
+# own page, but the list API also answers with the login cookie alone, so the server fetches it itself
+# (spx_fetch_outbound_now below). /api/spx-outbound/ingest also accepts a JSON copied from the SPX page
+# (the "upload JSON" button) as a manual fallback.
+# Only the fields the boards need are kept (no driver data).
+# ---------------------------------------------------------------------------
+SPX_OUTBOUND_FILE = os.path.join(DATA_DIR, "spx_outbound_latest.json")
+SPX_INGEST_KEY = "SOCN_SPX_OUTBOUND_2026"
+
+
+def _spx_ts(v):
+    try:
+        v = int(v or 0)
+    except (TypeError, ValueError):
+        return ""
+    return datetime.fromtimestamp(v).strftime("%Y-%m-%d %H:%M") if v > 0 else ""
+
+
+def _spx_trip_state(t):
+    """Status at SOCN from the times SPX fills in: Departed > Loading > Arrived > Pending."""
+    if int(t.get("atd") or 0) > 0:
+        return "Departed"
+    if int(t.get("loading_time") or 0) > 0 or (t.get("dock_name") and int(t.get("load_quantity") or 0) > 0):
+        return "Loading"
+    if int(t.get("ata") or 0) > 0:
+        return "Arrived"
+    return "Pending"
+
+
+def normalize_spx_outbound(data):
+    data = (data or {}).get("data", data) or {}
+    dests, trips = [], {}
+    for z in data.get("zone_list") or []:
+        zone = str(z.get("zone_name") or "")
+        for d in z.get("destination_list") or []:
+            dest_trips = []
+            for t in d.get("trip_list") or []:
+                num = str(t.get("trip_number") or "").strip()
+                if not num:
+                    continue
+                rec = {
+                    "trip": num, "state": _spx_trip_state(t), "tripStatus": t.get("trip_status"),
+                    "stationStatus": t.get("trip_station_status"), "destination": d.get("destination_name") or "",
+                    "zone": zone, "dock": t.get("dock_name") or "", "vehicleType": t.get("vehicle_type_name") or "",
+                    "tripName": t.get("trip_name") or "", "loadQty": t.get("load_quantity") or 0,
+                    "loadPercent": t.get("load_percent") or 0, "capacity": t.get("vehicle_capacity") or 0,
+                    "sta": _spx_ts(t.get("sta")), "std": _spx_ts(t.get("std")), "ata": _spx_ts(t.get("ata")),
+                    "loadingTime": _spx_ts(t.get("loading_time")), "atd": _spx_ts(t.get("atd")),
+                    "isCot": bool(t.get("is_cot")),
+                }
+                trips[num] = rec
+                dest_trips.append(num)
+            dests.append({
+                "destination": d.get("destination_name") or "", "destinationId": d.get("destination"),
+                "zone": zone, "staged": d.get("staged_order_quantity") or 0, "stagedTo": d.get("staged_to_quantity") or 0,
+                "stagedWeight": d.get("staged_order_weight") or 0, "stagedVolume": d.get("staged_volume") or 0,
+                "toPack": d.get("to_pack") or "", "loadingProcess": d.get("loading_process") or 0,
+                "nextStd": _spx_ts(d.get("std")), "vehicleType": d.get("vehicle_type_name") or "",
+                "trips": dest_trips,
+                "loading": [n for n in dest_trips if trips[n]["state"] == "Loading"],
+            })
+    from collections import Counter
+    states = Counter(t["state"] for t in trips.values())
+    return {
+        "overview": data.get("outbound_monitor_overview") or {},
+        "destinations": dests, "trips": trips,
+        "summary": {"destinations": len(dests), "trips": len(trips), "staged": sum(d["staged"] for d in dests),
+                    "loading": states.get("Loading", 0), "arrived": states.get("Arrived", 0),
+                    "pending": states.get("Pending", 0), "departed": states.get("Departed", 0)},
+    }
+
+
+@app.route("/api/spx-outbound/ingest", methods=["POST", "OPTIONS"])
+def spx_outbound_ingest_api():
+    if request.method == "OPTIONS":
+        return ("", 204)
+    req = request.get_json(silent=True) or {}
+    if str(req.get("key") or request.headers.get("X-SPX-Key") or "") != SPX_INGEST_KEY:
+        return jsonify({"success": False, "error": "key ไม่ถูกต้อง"}), 403
+    payload = req.get("response") or {}
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except Exception:
+            return jsonify({"success": False, "error": "response ไม่ใช่ JSON"}), 400
+    if payload.get("retcode") not in (None, 0):
+        return jsonify({"success": False, "error": f"SPX retcode {payload.get('retcode')}: {payload.get('message')}"}), 400
+    doc = normalize_spx_outbound(payload)
+    if not doc["trips"] and not doc["destinations"]:
+        return jsonify({"success": False, "error": "ไม่พบข้อมูล zone_list ใน response"}), 400
+    doc.update({"success": True, "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "capturedAt": req.get("capturedAt") or "", "source": req.get("source") or "tampermonkey",
+                "url": str(req.get("url") or "")[:300]})
+    with open(SPX_OUTBOUND_FILE, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+    return jsonify({"success": True, "updatedAt": doc["updatedAt"], "summary": doc["summary"]})
+
+
+@app.route("/api/spx-outbound/latest", methods=["GET"])
+def spx_outbound_latest_api():
+    try:
+        with open(SPX_OUTBOUND_FILE, "r", encoding="utf-8") as f:
+            doc = json.load(f)
+    except Exception:
+        return jsonify({"success": True, "empty": True, "destinations": [], "trips": {}, "summary": {}, "overview": {}, "updatedAt": ""})
+    try:
+        doc["ageMinutes"] = round((datetime.now() - datetime.strptime(doc["updatedAt"], "%Y-%m-%d %H:%M:%S")).total_seconds() / 60, 1)
+    except Exception:
+        doc["ageMinutes"] = None
+    return jsonify(doc)
+
+
+# ---- Server-side fetch: the Outbound Monitor API accepts the login cookie alone (no page signature needed,
+# tested 2026-11-21), so the server calls it every SPX_FETCH_INTERVAL_SEC with a cookie an admin pastes once.
+# The cookie is kept only in data/spx_session.json (never returned by any endpoint).
+SPX_SESSION_FILE = os.path.join(DATA_DIR, "spx_session.json")
+SPX_LIST_URL = "https://spx.shopee.co.th/api/admin/transportation/trip/outbound_monitor/trip/list"
+SPX_STATION_ID = 2621            # SOCN
+SPX_FETCH_INTERVAL_SEC = 180
+_spx_fetch_lock = __import__("threading").Lock()
+
+
+def _spx_session_load():
+    try:
+        with open(SPX_SESSION_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _spx_session_save(doc):
+    with open(SPX_SESSION_FILE, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False, indent=2)
+
+
+SPX_LOGIN_COOKIES = ("spx_st", "fms_user_skey")   # the session itself (names seen 2026-11-21)
+
+
+def _spx_merge_set_cookies(sess, resp):
+    """Rolling session: when SPX answers with Set-Cookie (a refreshed token), keep the new value so the
+    saved session lives on instead of expiring. Also remember when the login cookies say they expire."""
+    try:
+        jar = resp.cookies
+    except Exception:
+        return
+    if not jar:
+        return
+    parts = [p.strip() for p in str(sess.get("cookie") or "").split(";") if p.strip()]
+    changed = []
+    for c in jar:
+        if not c.name or c.value is None:
+            continue
+        hit = False
+        for i, p in enumerate(parts):
+            if p.split("=", 1)[0].strip() == c.name:
+                if p != f"{c.name}={c.value}":
+                    parts[i] = f"{c.name}={c.value}"
+                    changed.append(c.name)
+                hit = True
+        if not hit:
+            parts.append(f"{c.name}={c.value}")
+            changed.append(c.name)
+        if c.name in SPX_LOGIN_COOKIES and c.expires:
+            sess.setdefault("cookieExpires", {})[c.name] = datetime.fromtimestamp(c.expires).strftime("%Y-%m-%d %H:%M")
+    if changed:
+        sess["cookie"] = "; ".join(parts)
+        sess["cookieRefreshedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        sess["cookieRefreshed"] = sorted(set(changed))[:20]
+
+
+def spx_fetch_outbound_now():
+    """Call the Outbound Monitor list API with the saved cookie; save like the browser relay does."""
+    with _spx_fetch_lock:
+        sess = _spx_session_load()
+        cookie = str(sess.get("cookie") or "").strip()
+        if not cookie:
+            return {"success": False, "error": "ยังไม่ได้ใส่ SPX cookie"}
+        now = int(time.time())
+        params = {"outbound_station": SPX_STATION_ID, "sta_range": f"{now - 12 * 3600},{now + 24 * 3600}",
+                  "with_default_zone": 1, "trigger_source": 1}
+        headers = {
+            "Cookie": cookie, "Accept": "application/json, text/plain, */*", "App": "FMS Portal",
+            "Referer": "https://spx.shopee.co.th/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36",
+        }
+        err = ""
+        try:
+            r = requests.get(SPX_LIST_URL, params=params, headers=headers, timeout=60)
+            try:
+                payload = r.json()
+            except Exception:
+                payload = None
+            if r.status_code in (401, 403) or (payload and payload.get("retcode") not in (0, None) and "login" in str(payload.get("message", "")).lower()):
+                err = f"SPX session หมดอายุ / ไม่มีสิทธิ์ (HTTP {r.status_code}) — ใส่ cookie ใหม่"
+            elif payload is None:
+                err = f"SPX ตอบกลับไม่ใช่ JSON (HTTP {r.status_code}) — cookie อาจหมดอายุ"
+            elif payload.get("retcode") != 0:
+                err = f"SPX retcode {payload.get('retcode')}: {payload.get('message')}"
+        except Exception as e:
+            err = f"เชื่อมต่อ SPX ไม่ได้: {e}"
+            payload = None
+
+        sess["lastAttemptAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if not err:
+            _spx_merge_set_cookies(sess, r)
+        if err:
+            sess["lastError"] = err
+            _spx_session_save(sess)
+            return {"success": False, "error": err}
+        doc = normalize_spx_outbound(payload)
+        doc.update({"success": True, "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "capturedAt": sess["lastAttemptAt"], "source": "server", "url": SPX_LIST_URL})
+        with open(SPX_OUTBOUND_FILE, "w", encoding="utf-8") as f:
+            json.dump(doc, f, ensure_ascii=False)
+        sess["lastOkAt"] = doc["updatedAt"]
+        sess["lastError"] = ""
+        _spx_session_save(sess)
+        return {"success": True, "updatedAt": doc["updatedAt"], "summary": doc["summary"]}
+
+
+@app.route("/api/spx-outbound/session", methods=["GET", "POST"])
+def spx_outbound_session_api():
+    """GET: status only (the cookie itself is never returned). POST {key, cookie}: save + test right away."""
+    if request.method == "GET":
+        sess = _spx_session_load()
+        return jsonify({"success": True, "configured": bool(sess.get("cookie")), "savedAt": sess.get("savedAt", ""),
+                        "savedBy": sess.get("savedBy", ""), "lastOkAt": sess.get("lastOkAt", ""),
+                        "lastAttemptAt": sess.get("lastAttemptAt", ""), "lastError": sess.get("lastError", ""),
+                        "cookieRefreshedAt": sess.get("cookieRefreshedAt", ""), "cookieExpires": sess.get("cookieExpires", {}),
+                        "intervalSec": SPX_FETCH_INTERVAL_SEC})
+    req = request.get_json(silent=True) or {}
+    if str(req.get("key") or "") != SPX_INGEST_KEY:
+        return jsonify({"success": False, "error": "key ไม่ถูกต้อง"}), 403
+    cookie = str(req.get("cookie") or "").strip()
+    if cookie.lower().startswith("cookie:"):
+        cookie = cookie[7:].strip()
+    if req.get("clear"):
+        _spx_session_save({})
+        return jsonify({"success": True, "cleared": True})
+    if len(cookie) < 20 or "=" not in cookie:
+        return jsonify({"success": False, "error": "cookie ไม่ถูกต้อง — copy ค่าของ cookie ทั้งบรรทัดจาก Request Headers"}), 400
+    _spx_session_save({"cookie": cookie, "savedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                       "savedBy": str(req.get("by") or "")[:80]})
+    res = spx_fetch_outbound_now()
+    log_activity("SPX_SESSION", "บันทึก SPX cookie สำหรับดึง Outbound Monitor" + (" (ทดสอบผ่าน)" if res.get("success") else f" (ทดสอบไม่ผ่าน: {res.get('error')})"))
+    return jsonify(res)
+
+
+@app.route("/api/spx-outbound/fetch-now", methods=["POST"])
+def spx_outbound_fetch_now_api():
+    return jsonify(spx_fetch_outbound_now())
+
+
+def start_spx_outbound_auto_fetch():
+    import threading
+
+    def worker():
+        time.sleep(10)
+        while True:
+            try:
+                if _spx_session_load().get("cookie"):
+                    res = spx_fetch_outbound_now()
+                    if not res.get("success"):
+                        print(f"[SPX Outbound] {res.get('error')}")
+            except Exception as e:
+                print(f"[SPX Outbound fetch error]: {e}")
+            time.sleep(SPX_FETCH_INTERVAL_SEC)
+
+    threading.Thread(target=worker, daemon=True).start()
+
+
+# debug mode starts this file twice (reloader parent + worker): fetch only in the serving process
+if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or "--no-reload" in sys.argv:
+    start_spx_outbound_auto_fetch()
 
 
 @app.route("/api/cutoff-schedule/upload", methods=["POST"])
@@ -4083,7 +4410,7 @@ def ttb_registration_config_api():
         "updatedAt": ""
     })})
 
-def process_and_save_ttb_rows(raw_rows, source_sheet_name="TTB - Registration"):
+def process_and_save_ttb_rows(raw_rows, source_sheet_name="TTB - Registration", target_file=None):
     cutoff_master_entries = []
     zone_a_count = 0
     zone_b_count = 0
@@ -4203,6 +4530,13 @@ def process_and_save_ttb_rows(raw_rows, source_sheet_name="TTB - Registration"):
         },
         "rows": raw_rows
     }
+    if target_file:   # clone page: its own file, the original TTB live data is not touched
+        try:
+            with open(target_file, "w", encoding="utf-8") as f:
+                json.dump(live_data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print("Error saving TTB clone file:", e)
+        return live_data
     save_ttb_registration_live(live_data)
     log_activity("TTB_SHEET_SYNC", f"🔄 ซิงค์ข้อมูล TTB Registration สำเร็จ ({len(raw_rows):,} คัน, {len(cutoff_master_entries)} สถานี)")
     return live_data
@@ -4374,6 +4708,58 @@ def ttb_registration_sync_api():
         })
     except Exception as e:
         return jsonify({"success": False, "requiresClientFetch": True, "url": url, "error": f"เกิดข้อผิดพลาดในการเชื่อมต่อ Google Sheets: {str(e)}"}), 500
+
+# ---- Clone page (cutoff_master_clone.html): TTB data from the "TTB-Register Clone" sheet ----------------
+# The browser reads tab "[OG] TimetableFullSocn" through the company Apps Script (page=dump, from row 2 =
+# header row) and posts the values here. Same columns as the TTB - Registration sheet (B..AH).
+TTB_CLONE_FILE = os.path.join(DATA_DIR, "ttb_registration_clone.json")
+TTB_CLONE_COLS = {
+    "driverId": 1, "driverName": 2, "plate": 3, "vehicleType": 4, "arrivedTruck": 6, "arrivedTime": 7,
+    "status": 8, "assignStatus": 9, "lhTrip": 10, "standbyTime": 13, "loadingTime": 14, "departureTime": 15,
+    "destination": 16, "truckTypeReq": 17, "wheels": 17, "dock": 19, "subcon": 20, "route": 20, "cot": 18,
+    "newTrip": 22, "remarkLh": 23, "warningAlert": 23, "obZone": 24, "arrivalStatus": 25, "remarkOb": 26,
+    "lateType": 27, "cutoff": 29, "dockedTime": 30, "planDeparture": 32, "completeTime": 33,
+}
+
+
+def _ttb_rows_from_values(values):
+    rows = []
+    for i, r in enumerate(values[1:] if values else []):
+        cell = lambda j: (str(r[j]).strip() if j < len(r) and r[j] is not None else "")
+        if not cell(10) or not cell(16):
+            continue
+        d = {k: cell(j) for k, j in TTB_CLONE_COLS.items()}
+        if not d["cot"] or "COT" not in d["cot"].upper():
+            d["cot"] = cell(28) or d["cot"]   # column AC carries the same COT
+        for k, v in list(d.items()):
+            if v.upper() in ("#N/A", "#REF!"):
+                d[k] = ""
+        if d["arrivalStatus"].lower().replace(" ", "").replace("-", "") == "ontime":
+            d["arrivalStatus"] = "On-time"   # sheet writes "Ontime"; the stats count "on-time"
+        d["rowIndex"] = i + 3   # sheet row (row 2 = header)
+        rows.append(d)
+    return rows
+
+
+@app.route("/api/ttb-registration-clone/save", methods=["POST"])
+def ttb_registration_clone_save_api():
+    req = request.get_json(silent=True) or {}
+    rows = req.get("rows") or _ttb_rows_from_values(req.get("values") or [])
+    if not rows:
+        return jsonify({"success": False, "error": "ไม่พบแถวข้อมูล (LH Trips / ปลายทาง) ในชีท TTB-Register Clone"})
+    live = process_and_save_ttb_rows(rows, req.get("sheetName") or "TTB-Register Clone", target_file=TTB_CLONE_FILE)
+    return jsonify({"success": True, "data": live,
+                    "message": f"ดึงข้อมูลจาก TTB-Register Clone สำเร็จ ({len(rows):,} คัน)"})
+
+
+@app.route("/api/ttb-registration-clone/live", methods=["GET"])
+def ttb_registration_clone_live_api():
+    try:
+        with open(TTB_CLONE_FILE, "r", encoding="utf-8") as f:
+            return jsonify({"success": True, "data": json.load(f)})
+    except Exception:
+        return jsonify({"success": True, "data": {"updatedAt": "", "total": 0, "rows": [], "stats": {}}})
+
 
 @app.route("/api/ttb-registration/live", methods=["GET"])
 def get_ttb_registration_live_api():
@@ -7797,6 +8183,41 @@ def lh_trip_live_raw_api():
     return jsonify(data)
 
 
+@app.route("/api/lh-trip/live-raw-cot", methods=["POST"])
+def lh_trip_live_raw_cot_api():
+    """Test page lh_trip_cot.html: same as /api/lh-trip/live-raw, but Late/On time follows the TTB-Register COT
+    (COT1 -> Cut 1, COT2 -> Cut 2). Computed and returned only: the live cache, the 14:00 snapshot and the
+    other boards are NOT touched, so the main LH Trip page keeps working as before."""
+    from lh_raw_table import build_table_rows
+    from raw_dates import normalize_rows
+    req = request.get_json(silent=True) or {}
+    raw = req.get("raw") or {}
+    raw_headers, raw_rows = raw.get("headers") or [], raw.get("rows") or []
+    if not raw_headers or not raw_rows:
+        return jsonify({"success": False, "error": "raw data ว่าง ไม่มีข้อมูล"})
+    raw_rows, date_order = normalize_rows(raw_headers, raw_rows)
+    refs = req.get("refs")
+    if not (refs and refs.get("hub")):
+        try:
+            with open(LH_TRIP_REFS_CACHE, "r", encoding="utf-8") as f:
+                refs = json.load(f)
+        except Exception:
+            return jsonify({"success": False, "error": "ไม่มีตารางอ้างอิง (Hub / Cut / TTB) — กรุณา Sync ใหม่อีกครั้ง", "needRefs": True})
+    try:
+        headers, rows = build_table_rows(raw_headers, raw_rows, refs, ttb_cot_map(req.get("ttbCot")))
+        df = pd.read_csv(io.StringIO(rows_to_csv_text(headers, rows)), low_memory=False, on_bad_lines='skip')
+        data = process_table_sheet(df)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"คำนวณข้อมูลจาก raw data ไม่สำเร็จ: {e}"})
+    data.update({"success": True, "source": "live-raw-cot", "sheet": req.get("sheet") or "Copy of raw data",
+                 "archivedAt": req.get("fetchedAt") or "", "rawRows": len(raw_rows), "dateOrder": date_order,
+                 "cotTrips": sum(1 for r in rows if r[-1]), "ttbCotRows": len(req.get("ttbCot") or []),
+                 "ttbMissing": not bool((refs or {}).get("ttb"))})
+    return jsonify(data)
+
+
 @app.route("/api/lh-trip/upload-drive", methods=["POST"])
 def upload_lh_trip_to_drive_api():
     req = request.get_json(silent=True) or {}
@@ -7834,6 +8255,34 @@ def upload_lh_trip_to_drive_api():
 # rows go through process_table_sheet exactly like the live sync. Nothing live is overwritten.
 # ---------------------------------------------------------------------------
 LH_TRIP_REFS_CACHE = os.path.join(DATA_DIR, "lh_trip_refs_cache.json")
+TTB_COT_CACHE = os.path.join(DATA_DIR, "ttb_cot_cache.json")
+TTB_COT_KEEP_DAYS = 14
+
+
+def ttb_cot_map(new_pairs=None):
+    """LH Trip Number -> COT ("COT1" / "in COT2" ...) from the TTB-Register sheet (column S).
+    The browser reads the sheet through the company Apps Script and sends [[trip, cot], ...]; trips are
+    kept for TTB_COT_KEEP_DAYS days so older daily files can still be judged by their COT."""
+    from datetime import timedelta as _td
+    try:
+        with open(TTB_COT_CACHE, "r", encoding="utf-8") as f:
+            doc = json.load(f)
+    except Exception:
+        doc = {}
+    trips = doc.get("trips") or {}
+    if new_pairs:
+        today = datetime.now().strftime("%Y-%m-%d")
+        for p in new_pairs:
+            if isinstance(p, (list, tuple)) and len(p) >= 2 and str(p[0]).strip() and str(p[1]).strip():
+                trips[str(p[0]).strip()] = {"cot": str(p[1]).strip(), "seen": today}
+        cutoff = (datetime.now() - _td(days=TTB_COT_KEEP_DAYS)).strftime("%Y-%m-%d")
+        trips = {k: v for k, v in trips.items() if str(v.get("seen") or "") >= cutoff}
+        try:
+            with open(TTB_COT_CACHE, "w", encoding="utf-8") as f:
+                json.dump({"updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "trips": trips}, f, ensure_ascii=False)
+        except Exception:
+            pass
+    return {k: v.get("cot") for k, v in trips.items()}
 
 
 @app.route("/api/sheet-dump", methods=["POST"])
@@ -7888,7 +8337,8 @@ def lh_trip_daily_raw_api():
         pass
 
     try:
-        headers, rows = build_table_rows(raw_headers, raw_rows, refs)
+        cot = ttb_cot_map(req.get("ttbCot")) if req.get("useCot") else None   # only the COT test page
+        headers, rows = build_table_rows(raw_headers, raw_rows, refs, cot)
         df = pd.read_csv(io.StringIO(rows_to_csv_text(headers, rows)), low_memory=False, on_bad_lines='skip')
         data = process_table_sheet(df)
     except Exception as e:
@@ -7903,6 +8353,7 @@ def lh_trip_daily_raw_api():
         "refsFetchedAt": (refs or {}).get("fetchedAt"),
         "ttbMissing": not bool((refs or {}).get("ttb")),
         "rawRows": len(raw_rows),
+        "cotTrips": sum(1 for r in rows if r[-1]),
     })
     log_activity("LH_TRIP_DAILY_RAW", f"เปิดดู LH Trip รายวันจาก Google Drive: {data['filename']} ({len(rows):,} เที่ยว จาก raw {len(raw_rows):,} แถว)")
     return jsonify(data)

@@ -1004,6 +1004,7 @@
     const u = getStoredUser();
     // nav links that only Admin may see (e.g. TV Slideshow)
     document.querySelectorAll('[data-admin-only-link]').forEach(function (el) { el.hidden = !isAdminUser(); });
+    if (window.refitAppNav) window.refitAppNav();   // admin links shown/hidden -> re-fit the bar
     const isAdmin = u && (u.role === 'Admin' || u.role === 'admin');
     const canAccessAdmin = u && (u.role === 'Admin' || u.role === 'Supervisor');
 
@@ -1526,11 +1527,14 @@
     { href: 'investigation.html',  label: 'Investigation',  icon: 'fa-magnifying-glass' },
     { href: 'skip_process.html',   label: 'Skip Monitor',   icon: 'fa-forward' },
     { href: 'cutoff_master.html',  label: 'Cutoff Master',  icon: 'fa-clock' },
+    { href: 'cutoff_master_clone.html', label: 'Cutoff Master (clone)', icon: 'fa-flask' },
     { href: 'lh_trip.html',        label: 'LH Trip & OB Late', icon: 'fa-truck' },
+    { href: 'lh_trip_cot.html',    label: 'LH Trip (COT test)', icon: 'fa-flask' },
     { href: 'lh_raw.html',         label: 'LH Raw Data',    icon: 'fa-table-list' },
     { href: 'ob_bl.html',          label: 'OB Backlog',     icon: 'fa-boxes-stacked' },
     { href: 'ob_bl_compare.html',  label: 'Backlog Compare', icon: 'fa-code-compare' },
     { href: 'hourly_tracker.html', label: 'Hourly Tracker', icon: 'fa-chart-line' },
+    { href: 'spx_outbound.html',   label: 'SPX Outbound',   icon: 'fa-dolly' },
     { href: 'obi_monitor.html',    label: 'OBI Monitor',    icon: 'fa-gauge-high' },
     { href: 'tv.html',             label: 'TV Slideshow',   icon: 'fa-tv', adminOnly: true }
   ];
@@ -1567,10 +1571,10 @@
       nav.parentNode.replaceChild(replacement, nav);
       nav = replacement;
     }
-    var links = APP_NAV_LINKS.map(function (l) {
+    var links = APP_NAV_LINKS.map(function (l, idx) {
       var active = page === l.href;
       var hide = l.adminOnly && !isAdminUser();
-      return '<a class="app-link' + (active ? ' active' : '') + '" href="' + l.href + '"' + (active ? ' aria-current="page"' : '') +
+      return '<a class="app-link' + (active ? ' active' : '') + '" data-idx="' + idx + '" href="' + l.href + '"' + (active ? ' aria-current="page"' : '') +
              (l.adminOnly ? ' data-admin-only-link="1"' : '') + (hide ? ' hidden' : '') + '>' +
              '<i class="fa-solid ' + l.icon + '" aria-hidden="true"></i><span>' + l.label + '</span></a>';
     }).join('');
@@ -1581,9 +1585,78 @@
       '<a class="app-brand" href="index.html"><span class="app-brand-mark"><i class="fa-solid fa-cube" aria-hidden="true"></i></span>' +
       '<span class="app-brand-text">SOC Operations</span></a>' +
       '<div class="app-links">' + links + '</div>';
-    var active = nav.querySelector('.app-link.active');
-    if (active && active.scrollIntoView) { try { active.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e) {} }
+    setupNavOverflow(nav);
   }
+
+  /* Links that do not fit the screen go into a "เพิ่มเติม" (More) menu instead of being cut off.
+     Re-fitted whenever the bar changes size (window resize, profile badge added, fonts loaded). */
+  function injectNavOverflowCss() {
+    if (document.getElementById('app-nav-overflow-css')) return;
+    var st = document.createElement('style');
+    st.id = 'app-nav-overflow-css';
+    st.textContent =
+      '.app-nav .app-links{overflow:hidden !important}' +
+      '.app-nav .app-more{position:relative;flex-shrink:0;height:100%;display:flex;align-items:stretch}' +
+      '.app-nav .app-more-btn{background:none;border:0;cursor:pointer;font-family:inherit}' +
+      '.app-nav .app-more.has-active .app-more-btn{color:var(--app-text) !important;font-weight:600;border-bottom-color:var(--app-brand)}' +
+      '.app-nav .app-more-menu{display:none;position:absolute;top:100%;right:0;min-width:230px;max-height:70vh;overflow:auto;' +
+        'background:var(--app-surface);border:1px solid var(--app-border);border-radius:10px;box-shadow:var(--app-shadow-md,0 8px 24px rgba(0,0,0,.12));padding:6px;z-index:1030}' +
+      '.app-nav .app-more.open .app-more-menu{display:block}' +
+      '.app-nav .app-more-menu .app-link{display:flex;height:auto;padding:8px 10px;border:0 !important;border-radius:6px}' +
+      '.app-nav .app-more-menu .app-link:hover{background:var(--app-surface-2)}' +
+      '.app-nav .app-more-menu .app-link.active{background:var(--app-primary-soft,rgba(0,0,0,.05))}';
+    document.head.appendChild(st);
+  }
+
+  function fitAppNav(nav) {
+    var bar = nav.querySelector('.app-links'), more = nav.querySelector('.app-more');
+    if (!bar || !more) return;
+    var menu = more.querySelector('.app-more-menu');
+    // put everything back in its original order, then move the overflow out from the end
+    Array.prototype.slice.call(menu.children).forEach(function (a) { bar.appendChild(a); });
+    Array.prototype.slice.call(bar.children)
+      .sort(function (a, b) { return (+a.getAttribute('data-idx')) - (+b.getAttribute('data-idx')); })
+      .forEach(function (a) { bar.appendChild(a); });
+    more.style.display = 'none';
+    more.classList.remove('has-active');
+    if (bar.scrollWidth <= bar.clientWidth + 1) return;
+    more.style.display = '';
+    var items = Array.prototype.slice.call(bar.querySelectorAll('.app-link:not([hidden])'));
+    for (var i = items.length - 1; i >= 0 && bar.scrollWidth > bar.clientWidth + 1; i--) {
+      if (items[i].classList.contains('active')) continue;   // keep the current page visible
+      menu.insertBefore(items[i], menu.firstChild);
+    }
+    if (menu.querySelector('.app-link.active')) more.classList.add('has-active');
+  }
+
+  function setupNavOverflow(nav) {
+    injectNavOverflowCss();
+    var bar = nav.querySelector('.app-links');
+    if (!bar || nav.querySelector('.app-more')) return;
+    var more = document.createElement('div');
+    more.className = 'app-more';
+    more.innerHTML = '<button type="button" class="app-link app-more-btn" aria-haspopup="true" aria-expanded="false">' +
+      '<i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span>เพิ่มเติม</span><i class="fa-solid fa-chevron-down" style="font-size:.65rem" aria-hidden="true"></i></button>' +
+      '<div class="app-more-menu" role="menu"></div>';
+    bar.parentNode.insertBefore(more, bar.nextSibling);
+    var btn = more.querySelector('.app-more-btn');
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = more.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', function () { more.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { more.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); } });
+    var refit = function () { fitAppNav(nav); };
+    refit();
+    window.addEventListener('resize', refit);
+    if (window.ResizeObserver) { try { new ResizeObserver(refit).observe(nav); } catch (e) {} }
+    // the profile badge is added to the bar later (after login check) and takes width from the links
+    if (window.MutationObserver) { try { new MutationObserver(refit).observe(nav, { childList: true }); } catch (e) {} }
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
+    setTimeout(refit, 500);
+  }
+  window.refitAppNav = function () { var n = document.querySelector('.app-nav'); if (n) fitAppNav(n); };
 
   // run as early as possible (script tag sits right after the <nav>) to avoid a flash of the old nav
   try { ensureThemeStylesheet(); renderAppNav(); } catch (e) {}

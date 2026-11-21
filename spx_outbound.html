@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPX Outbound Monitor</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="theme.css?v=7" rel="stylesheet">
+  <style>
+    .kpi { background: var(--app-surface); border: 1px solid var(--app-border); border-radius: var(--app-radius); padding: 12px 14px; height: 100%; }
+    .kpi-label { font-size: .78rem; color: var(--app-muted); font-weight: 600; }
+    .kpi-value { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+    .kpi-sub { font-size: .75rem; color: var(--app-faint); }
+    .spx-table-wrap { max-height: calc(100vh - 360px); min-height: 280px; overflow: auto; border: 1px solid var(--app-border); border-radius: var(--app-radius); background: var(--app-surface); }
+    .spx-table { font-size: .82rem; margin: 0; white-space: nowrap; }
+    .spx-table thead th { position: sticky; top: 0; z-index: 2; background: var(--app-surface-2); color: var(--app-text-2); font-weight: 650; cursor: pointer; user-select: none; }
+    .spx-table td { font-variant-numeric: tabular-nums; vertical-align: middle; }
+    .num { text-align: right; }
+    .bar { height: 6px; background: var(--app-surface-2); border-radius: 3px; overflow: hidden; min-width: 70px; }
+    .bar > span { display: block; height: 100%; background: var(--app-brand); }
+    .stale { color: #b42318; font-weight: 600; }
+    .dest-row { cursor: pointer; }
+    .dest-row .caret { display: inline-block; width: 14px; color: var(--app-faint); transition: transform .15s; }
+    .dest-row.open .caret { transform: rotate(90deg); }
+    .trip-sub td { background: var(--app-surface-2); font-size: .78rem; border-bottom-color: var(--app-border); }
+    .trip-sub td:first-child { padding-left: 30px; }
+    .trip-sub.departed td { color: var(--app-faint); }
+    .trip-sub.next td { background: var(--app-primary-soft); }
+    .take-staged { background: #1d4ed8; color: #fff; }
+  </style>
+</head>
+<body>
+  <nav></nav>
+
+  <div class="container-fluid px-3 py-3" style="max-width: 1720px; margin: 0 auto;">
+    <header class="page-head">
+      <div class="page-head-title">
+        <h1 class="page-title">SPX Outbound Monitor</h1>
+        <p class="page-subtitle">รถที่กำลัง Loading และ Staged Orders ต่อปลายทาง · ข้อมูลจากหน้า spx.shopee.co.th Outbound Monitor (Server ดึงให้อัตโนมัติทุก 3 นาที)</p>
+      </div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="small text-muted" id="spxUpdated">กำลังโหลด...</span>
+        <button class="btn btn-outline-secondary btn-sm" onclick="loadSpx()"><i class="fa-solid fa-rotate me-1"></i>รีเฟรช</button>
+        <label class="btn btn-outline-secondary btn-sm mb-0" title="อัปโหลดไฟล์ JSON ที่ Copy response จากหน้า SPX (สำรอง ถ้าสคริปต์ใช้ไม่ได้)">
+          <i class="fa-solid fa-upload me-1"></i>อัปโหลด JSON
+          <input type="file" accept=".json,.txt" class="d-none" onchange="uploadSpxFile(this)">
+        </label>
+      </div>
+    </header>
+
+    <div id="spxSetup" class="card-custom p-3 mb-3 d-none">
+      <div data-admin-only-link>
+        <div class="fw-bold mb-1"><i class="fa-solid fa-server text-danger me-1"></i>เชื่อมต่อ SPX — ใส่ cookie ใหม่ (หมดอายุ / ยังไม่ได้ใส่)</div>
+        <div class="small mb-2" id="spxSessionStatus">กำลังตรวจสอบ...</div>
+        <ol class="small mb-2">
+          <li>เปิด <a href="https://spx.shopee.co.th/#/outbound-monitor/list" target="_blank">SPX Outbound Monitor</a> → กด <b>F12</b> → แท็บ <b>Network</b> → กด Search ในหน้า SPX 1 ครั้ง</li>
+          <li>คลิก request <code>list?outbound_station=2621...</code> → แท็บ <b>Headers</b> → เลื่อนลงไปที่ <b>Request Headers</b> → แถว <b>cookie</b> → <b>คลิกขวา → Copy value</b></li>
+          <li>วางในช่องด้านล่าง แล้วกด <b>บันทึก + ทดสอบ</b></li>
+        </ol>
+        <div class="d-flex gap-2 align-items-start flex-wrap mb-1">
+          <input type="password" id="spxCookieInput" class="form-control form-control-sm font-monospace" style="max-width: 520px"
+                 autocomplete="off" spellcheck="false" data-lpignore="true" name="spx-cookie-noautofill"
+                 placeholder="วาง cookie ที่นี่ (Ctrl+V) — ตัวอักษรจะถูกซ่อน ไม่แสดงบนหน้าเว็บ">
+          <span class="small text-muted align-self-center" id="spxCookieLen"></span>
+          <button class="btn btn-success btn-sm" onclick="saveSpxCookie()"><i class="fa-solid fa-floppy-disk me-1"></i>บันทึก + ทดสอบ</button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="spxFetchNow()"><i class="fa-solid fa-download me-1"></i>ดึงเดี๋ยวนี้</button>
+          <button class="btn btn-outline-danger btn-sm" onclick="clearSpxCookie()" title="ลบ cookie ออกจาก Server"><i class="fa-solid fa-trash"></i></button>
+        </div>
+        <div class="small text-muted">cookie คือการ Login SPX ของคุณ — Server ใช้ดึงเฉพาะหน้า Outbound Monitor · เมื่อหมดอายุ (Logout / ครบเวลา) หน้านี้จะแจ้ง แล้วใส่ใหม่ได้เลย</div>
+      </div>
+    </div>
+
+    <div class="row g-2 mb-3" id="spxKpis">
+      <div class="col-6 col-md-2"><div class="kpi"><div class="kpi-label"><i class="fa-solid fa-dolly me-1"></i>กำลัง Loading</div><div class="kpi-value" id="kLoading">--</div><div class="kpi-sub">คัน (มี Dock / เริ่มโหลด ยังไม่ออก)</div></div></div>
+      <div class="col-6 col-md-2"><div class="kpi"><div class="kpi-label"><i class="fa-solid fa-truck-arrow-right me-1"></i>มาถึงแล้ว รอโหลด</div><div class="kpi-value" id="kArrived">--</div><div class="kpi-sub">คัน</div></div></div>
+      <div class="col-6 col-md-2"><div class="kpi"><div class="kpi-label"><i class="fa-solid fa-boxes-stacked me-1"></i>Staged Orders รวม</div><div class="kpi-value" id="kStaged">--</div><div class="kpi-sub" id="kStagedSub">orders</div></div></div>
+      <div class="col-6 col-md-2"><div class="kpi"><div class="kpi-label"><i class="fa-solid fa-clock me-1"></i>Late Arrival</div><div class="kpi-value" id="kLateArr">--</div><div class="kpi-sub">ทริป (SPX overview)</div></div></div>
+      <div class="col-6 col-md-2"><div class="kpi"><div class="kpi-label"><i class="fa-solid fa-hourglass-end me-1"></i>Late Departure</div><div class="kpi-value" id="kLateDep">--</div><div class="kpi-sub">ทริป (SPX overview)</div></div></div>
+      <div class="col-6 col-md-2"><div class="kpi"><div class="kpi-label"><i class="fa-solid fa-route me-1"></i>ทริปทั้งหมด</div><div class="kpi-value" id="kTrips">--</div><div class="kpi-sub" id="kTripsSub">-</div></div></div>
+    </div>
+
+    <h2 class="h6 fw-bold mb-2"><i class="fa-solid fa-dolly text-warning me-1"></i>รถที่กำลัง Loading / มาถึงแล้ว</h2>
+    <div class="spx-table-wrap mb-3" style="max-height: 320px; min-height: 0;">
+      <table class="table table-sm table-hover spx-table">
+        <thead><tr><th>สถานะ</th><th>LH Trip</th><th>ปลายทาง</th><th>Dock</th><th>Load</th><th>เริ่มโหลด</th><th>มาถึง</th><th>STD (แผนออก)</th><th>รถ</th><th class="num">Staged ปลายทาง</th></tr></thead>
+        <tbody id="loadingBody"><tr><td colspan="10" class="text-center text-muted py-3">--</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+      <h2 class="h6 fw-bold mb-0 me-2"><i class="fa-solid fa-boxes-stacked text-primary me-1"></i>Staged Orders ต่อปลายทาง</h2>
+      <input id="destSearch" class="form-control form-control-sm" style="max-width: 240px" placeholder="ค้นหาปลายทาง / Trip" oninput="renderDest()">
+      <select id="zoneSel" class="form-select form-select-sm" style="max-width: 220px" onchange="renderDest()"><option value="">ทุกโซน</option></select>
+      <div class="form-check form-check-inline small mb-0 ms-1">
+        <input class="form-check-input" type="checkbox" id="onlyStaged" onchange="renderDest()" checked>
+        <label class="form-check-label" for="onlyStaged">เฉพาะที่มี Staged</label>
+      </div>
+      <div class="form-check form-check-inline small mb-0">
+        <input class="form-check-input" type="checkbox" id="expandAll" onchange="openDests.clear(); renderDest()">
+        <label class="form-check-label" for="expandAll">แสดงทุก Trip</label>
+      </div>
+      <div class="form-check form-check-inline small mb-0">
+        <input class="form-check-input" type="checkbox" id="hideDeparted" onchange="renderDest()" checked>
+        <label class="form-check-label" for="hideDeparted">ซ่อน Trip ที่ออกแล้ว</label>
+      </div>
+      <span class="small text-muted ms-auto" id="destCount"></span>
+    </div>
+    <div class="spx-table-wrap">
+      <table class="table table-sm table-hover spx-table">
+        <thead><tr>
+          <th onclick="sortDest('destination')">ปลายทาง</th><th onclick="sortDest('zone')">Zone (SPX)</th>
+          <th class="num" onclick="sortDest('staged')">Staged Orders</th><th class="num" onclick="sortDest('stagedTo')">Staged TO</th>
+          <th class="num" onclick="sortDest('stagedWeight')">น้ำหนัก (kg)</th><th>To Pack</th>
+          <th onclick="sortDest('loadingCount')">กำลังโหลด</th><th onclick="sortDest('nextStd')">รถคันถัดไป (STD)</th><th class="num" onclick="sortDest('tripCount')">ทริป</th>
+        </tr></thead>
+        <tbody id="destBody"><tr><td colspan="9" class="text-center text-muted py-3">--</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="auth_guard.js"></script>
+  <script>
+    let spx = null;
+    let destSort = { key: 'staged', asc: false };
+    const STATE_BADGE = { Loading: 'bg-warning text-dark', Arrived: 'bg-info text-dark', Departed: 'bg-success', Pending: 'bg-light text-muted border' };
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const fmt = n => Number(n || 0).toLocaleString();
+    const hm = s => (s ? String(s).slice(5).replace('-', '/') : '-');
+
+    async function loadSpx() {
+      try {
+        const r = await fetch('/api/spx-outbound/latest');
+        spx = await r.json();
+      } catch (e) {
+        document.getElementById('spxUpdated').textContent = 'โหลดข้อมูลไม่สำเร็จ';
+        return;
+      }
+      render();
+    }
+
+    function render() {
+      const empty = !spx || spx.empty;
+      const up = document.getElementById('spxUpdated');
+      if (empty) { up.textContent = 'ยังไม่มีข้อมูล'; renderLoading(); renderDest(); return; }
+      const stale = spx.ageMinutes != null && spx.ageMinutes > 10;
+      up.innerHTML = `อัปเดต ${esc(spx.updatedAt)}` + (stale ? ` <span class="stale">· ข้อมูลเก่า ${Math.round(spx.ageMinutes)} นาที (หน้า SPX ปิดอยู่?)</span>` : '');
+      const sm = spx.summary || {}, ov = spx.overview || {};
+      document.getElementById('kLoading').textContent = fmt(sm.loading);
+      document.getElementById('kArrived').textContent = fmt(sm.arrived);
+      document.getElementById('kStaged').textContent = fmt(sm.staged);
+      document.getElementById('kStagedSub').textContent = `orders · ${fmt((spx.destinations || []).filter(d => d.staged > 0).length)} ปลายทาง`;
+      document.getElementById('kLateArr').textContent = fmt(ov.late_arrival_trip_count);
+      document.getElementById('kLateDep').textContent = fmt(ov.late_departure_trip_count);
+      document.getElementById('kTrips').textContent = fmt(sm.trips);
+      document.getElementById('kTripsSub').textContent = `ออกแล้ว ${fmt(sm.departed)} · รอ ${fmt(sm.pending)}`;
+      const zones = [...new Set((spx.destinations || []).map(d => d.zone).filter(Boolean))].sort();
+      const sel = document.getElementById('zoneSel'), cur = sel.value;
+      sel.innerHTML = '<option value="">ทุกโซน</option>' + zones.map(z => `<option${z === cur ? ' selected' : ''}>${esc(z)}</option>`).join('');
+      renderLoading();
+      renderDest();
+    }
+
+    function stagedOf(dest) {
+      const d = (spx.destinations || []).find(x => x.destination === dest);
+      return d ? d.staged : 0;
+    }
+
+    function renderLoading() {
+      const body = document.getElementById('loadingBody');
+      const list = empty() ? [] : Object.values(spx.trips || {}).filter(t => t.state === 'Loading' || t.state === 'Arrived')
+        .sort((a, b) => (a.state === b.state ? String(a.std).localeCompare(String(b.std)) : (a.state === 'Loading' ? -1 : 1)));
+      if (!list.length) { body.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-3">${empty() ? '--' : 'ตอนนี้ไม่มีรถกำลังโหลด'}</td></tr>`; return; }
+      body.innerHTML = list.map(t => `<tr>
+        <td><span class="badge ${STATE_BADGE[t.state]}">${esc(t.state)}</span></td>
+        <td class="font-monospace fw-semibold">${esc(t.trip)}</td>
+        <td>${esc(t.destination)}</td>
+        <td>${esc(t.dock || '-')}</td>
+        <td><div class="d-flex align-items-center gap-2"><div class="bar"><span style="width:${Math.min(100, t.loadPercent || 0)}%"></span></div><span>${t.loadPercent || 0}%</span><span class="text-muted small">(${fmt(t.loadQty)})</span></div></td>
+        <td>${hm(t.loadingTime)}</td><td>${hm(t.ata)}</td><td>${hm(t.std)}</td>
+        <td class="small">${esc(t.vehicleType)}</td>
+        <td class="num">${fmt(stagedOf(t.destination))}</td></tr>`).join('');
+    }
+
+    function empty() { return !spx || spx.empty; }
+
+    function sortDest(k) {
+      destSort = destSort.key === k ? { key: k, asc: !destSort.asc } : { key: k, asc: k === 'destination' || k === 'zone' || k === 'nextStd' };
+      renderDest();
+    }
+
+    // ---- destinations, each one expandable into its trips ----
+    const openDests = new Set();
+    function toggleDest(name) {
+      if (openDests.has(name)) openDests.delete(name); else openDests.add(name);
+      renderDest();
+    }
+    function cotOf(tripName) {   // '... > 7-LH-NSS > in COT201' -> 'in COT2'
+      const m = String(tripName || '').match(/(in\s*)?COT\s*(\d)/i);
+      return m ? (m[1] ? 'in ' : '') + 'COT' + m[2] : '';
+    }
+    function subconOf(tripName) {
+      const parts = String(tripName || '').split(' > ');
+      return parts.length >= 3 ? parts[parts.length - 2] : '';
+    }
+    function tripsOfDest(d) {
+      const order = { Loading: 0, Arrived: 1, Pending: 2, Departed: 3 };
+      return (d.trips || []).map(n => spx.trips[n]).filter(Boolean)
+        .sort((a, b) => String(a.std || '9').localeCompare(String(b.std || '9')) || order[a.state] - order[b.state]);
+    }
+    function nextTripOf(list) {   // the truck that takes the orders staged right now
+      return list.find(t => t.state === 'Loading') || list.find(t => t.state === 'Arrived') || list.find(t => t.state === 'Pending') || null;
+    }
+
+    function renderDest() {
+      const body = document.getElementById('destBody');
+      if (empty()) { body.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">--</td></tr>'; return; }
+      const q = document.getElementById('destSearch').value.trim().toLowerCase();
+      const z = document.getElementById('zoneSel').value;
+      const only = document.getElementById('onlyStaged').checked;
+      const all = document.getElementById('expandAll').checked;
+      const hideDep = document.getElementById('hideDeparted').checked;
+      let rows = (spx.destinations || []).map(d => Object.assign({}, d, { loadingCount: (d.loading || []).length, tripCount: (d.trips || []).length }))
+        .filter(d => (!only || d.staged > 0) && (!z || d.zone === z) &&
+          (!q || d.destination.toLowerCase().includes(q) || (d.trips || []).some(t => t.toLowerCase().includes(q))));
+      const k = destSort.key, dir = destSort.asc ? 1 : -1;
+      rows.sort((a, b) => (typeof a[k] === 'number' ? (a[k] - b[k]) : String(a[k] || '').localeCompare(String(b[k] || ''))) * dir);
+      document.getElementById('destCount').textContent = `${fmt(rows.length)} ปลายทาง · Staged ${fmt(rows.reduce((s, d) => s + d.staged, 0))}`;
+      if (!rows.length) { body.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">ไม่พบข้อมูลตามตัวกรอง</td></tr>'; return; }
+
+      body.innerHTML = rows.map(d => {
+        const trips = tripsOfDest(d);
+        const next = nextTripOf(trips);
+        const open = all || openDests.has(d.destination) || (q && trips.some(t => t.trip.toLowerCase().includes(q)));
+        const loading = (d.loading || []).map(n => spx.trips[n]).filter(Boolean)
+          .map(t => `<span class="badge bg-warning text-dark me-1" title="${esc(t.trip)}">${esc(t.dock || 'Loading')} · ${t.loadPercent || 0}%</span>`).join('');
+        const head = `<tr class="dest-row${open ? ' open' : ''}" onclick="toggleDest(${esc(JSON.stringify(d.destination))})" title="คลิกเพื่อดูแยกราย Trip">
+          <td class="fw-semibold"><span class="caret"><i class="fa-solid fa-chevron-right"></i></span> ${esc(d.destination)}</td><td class="small text-muted">${esc(d.zone)}</td>
+          <td class="num fw-bold">${fmt(d.staged)}</td><td class="num">${fmt(d.stagedTo)}</td>
+          <td class="num">${fmt(Math.round((d.stagedWeight || 0) / 1000))}</td><td class="small">${esc(d.toPack || '-')}</td>
+          <td>${loading || '<span class="text-muted small">-</span>'}</td>
+          <td>${next ? `${hm(next.std)} <span class="text-muted small font-monospace">${esc(next.trip)}</span>` : hm(d.nextStd)}</td>
+          <td class="num">${fmt(d.tripCount)}</td></tr>`;
+        if (!open) return head;
+        const shown = trips.filter(t => !hideDep || t.state !== 'Departed');
+        const hidden = trips.length - shown.length;
+        const sub = shown.map(t => {
+          const isNext = next && t.trip === next.trip;
+          const cot = cotOf(t.tripName);
+          return `<tr class="trip-sub${t.state === 'Departed' ? ' departed' : ''}${isNext ? ' next' : ''}">
+            <td><span class="font-monospace fw-semibold">${esc(t.trip)}</span>
+              ${isNext && d.staged > 0 ? `<span class="badge take-staged ms-1" title="Staged orders ตอนนี้จะไปกับรถคันนี้">📦 รับ Staged ${fmt(d.staged)}</span>` : ''}</td>
+            <td><span class="badge ${STATE_BADGE[t.state]}">${esc(t.state)}</span>
+              ${cot ? `<span class="badge bg-light text-dark border ms-1">${esc(cot)}</span>` : ''}</td>
+            <td colspan="2" class="small">${esc(subconOf(t.tripName))}</td>
+            <td class="num" title="Load qty / capacity">${t.state === 'Pending' ? '-' : `${fmt(t.loadQty)} <span class="text-muted">(${t.loadPercent || 0}%)</span>`}</td>
+            <td class="small">${esc(t.vehicleType || '-')}</td>
+            <td class="small">${t.dock ? esc(t.dock) : '-'}${t.loadingTime ? ` · เริ่ม ${hm(t.loadingTime)}` : ''}</td>
+            <td class="small">STA ${hm(t.sta)} · STD <b>${hm(t.std)}</b>${t.atd ? ` · ออก ${hm(t.atd)}` : ''}</td>
+            <td></td></tr>`;
+        }).join('');
+        const more = hidden ? `<tr class="trip-sub departed"><td colspan="9" class="text-muted">+ ออกไปแล้ว ${hidden} trip (เอาเครื่องหมาย "ซ่อน Trip ที่ออกแล้ว" ออกเพื่อดู)</td></tr>` : '';
+        const none = !trips.length ? '<tr class="trip-sub"><td colspan="9" class="text-muted">ไม่มี trip ในช่วงเวลานี้</td></tr>' : '';
+        return head + sub + more + none;
+      }).join('');
+    }
+
+    // fallback: upload the JSON copied from the SPX page (Copy response)
+    async function uploadSpxFile(input) {
+      const file = input.files && input.files[0];
+      input.value = '';
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const r = await fetch('/api/spx-outbound/ingest', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'SOCN_SPX_OUTBOUND_2026', response: JSON.parse(text.replace(/^﻿/, '')), source: 'upload:' + file.name })
+        });
+        const d = await r.json();
+        if (!d.success) throw new Error(d.error || 'อัปโหลดไม่สำเร็จ');
+        Swal.fire({ icon: 'success', title: 'อัปเดตข้อมูลแล้ว', text: `Loading ${d.summary.loading} คัน · Staged ${fmt(d.summary.staged)}`, timer: 2000, showConfirmButton: false });
+        loadSpx();
+      } catch (e) {
+        Swal.fire({ icon: 'error', title: 'อ่านไฟล์ไม่ได้', text: e.message || String(e) });
+      }
+    }
+
+    // ---- server-side fetch (cookie saved on the server) ----
+    const SPX_KEY = 'SOCN_SPX_OUTBOUND_2026';
+    async function loadSpxSession() {
+      const el = document.getElementById('spxSessionStatus');
+      if (!el) return;
+      try {
+        const d = await (await fetch('/api/spx-outbound/session')).json();
+        const box = document.getElementById('spxSetup');
+        if (box) box.classList.toggle('d-none', !!(d.configured && !d.lastError));
+        if (!d.configured) { el.innerHTML = '<span class="text-secondary"><i class="fa-solid fa-circle me-1"></i>ยังไม่ได้ใส่ cookie</span>'; return; }
+        el.innerHTML = d.lastError
+          ? `<span class="text-danger fw-semibold"><i class="fa-solid fa-circle-exclamation me-1"></i>${esc(d.lastError)}</span> <span class="text-muted">· ลองล่าสุด ${esc(d.lastAttemptAt)}</span>`
+          : `<span class="text-success fw-semibold"><i class="fa-solid fa-circle-check me-1"></i>เชื่อมต่อแล้ว — Server ดึงทุก ${Math.round((d.intervalSec || 180) / 60)} นาที</span> <span class="text-muted">· สำเร็จล่าสุด ${esc(d.lastOkAt || '-')} · ใส่ cookie เมื่อ ${esc(d.savedAt)}</span>`;
+      } catch (e) { el.textContent = 'ตรวจสอบสถานะไม่ได้'; }
+    }
+    async function saveSpxCookie() {
+      const cookie = document.getElementById('spxCookieInput').value.trim();
+      if (!cookie) { Swal.fire({ icon: 'warning', title: 'ยังไม่ได้วาง cookie' }); return; }
+      Swal.fire({ title: 'กำลังทดสอบกับ SPX...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      let by = '';
+      try { by = (JSON.parse(localStorage.getItem('socn_user') || sessionStorage.getItem('socn_user') || '{}').email) || ''; } catch (e) {}
+      try {
+        const d = await (await fetch('/api/spx-outbound/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: SPX_KEY, cookie, by }) })).json();
+        document.getElementById('spxCookieInput').value = '';
+        document.getElementById('spxCookieLen').textContent = '';
+        if (!d.success) throw new Error(d.error || 'ทดสอบไม่ผ่าน');
+        Swal.fire({ icon: 'success', title: 'เชื่อมต่อ SPX สำเร็จ', text: `Loading ${d.summary.loading} คัน · Staged ${fmt(d.summary.staged)} — Server จะดึงให้ทุก 3 นาที`, timer: 2500, showConfirmButton: false });
+        loadSpx();
+      } catch (e) {
+        Swal.fire({ icon: 'error', title: 'ใช้ cookie นี้ไม่ได้', text: e.message || String(e) });
+      }
+      loadSpxSession();
+    }
+    async function spxFetchNow() {
+      try {
+        const d = await (await fetch('/api/spx-outbound/fetch-now', { method: 'POST' })).json();
+        if (!d.success) throw new Error(d.error);
+        loadSpx();
+      } catch (e) { Swal.fire({ icon: 'error', title: 'ดึงไม่สำเร็จ', text: e.message || String(e) }); }
+      loadSpxSession();
+    }
+    async function clearSpxCookie() {
+      const ok = await Swal.fire({ icon: 'warning', title: 'ลบ SPX cookie ออกจาก Server?', text: 'Server จะหยุดดึงข้อมูลจนกว่าจะใส่ใหม่', showCancelButton: true, confirmButtonText: 'ลบ', cancelButtonText: 'ยกเลิก' });
+      if (!ok.isConfirmed) return;
+      await fetch('/api/spx-outbound/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: SPX_KEY, clear: true }) });
+      loadSpxSession();
+    }
+    (function () {   // show only how much was pasted, never the cookie text itself
+      const inp = document.getElementById('spxCookieInput'), len = document.getElementById('spxCookieLen');
+      if (inp && len) inp.addEventListener('input', () => { len.textContent = inp.value ? `วางแล้ว ${inp.value.length.toLocaleString()} ตัวอักษร` : ''; });
+    })();
+    loadSpxSession();
+    setInterval(loadSpxSession, 60000);
+
+    loadSpx();
+    setInterval(loadSpx, 60000);
+  </script>
+</body>
+</html>

@@ -18,3 +18,7 @@ users_db.json
 
 # Media recordings
 *.mp4
+
+# SPX login cookie and SPX data: never commit
+data/spx_session.json
+data/spx_outbound_*.json

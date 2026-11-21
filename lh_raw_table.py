@@ -23,7 +23,7 @@ TABLE_HEADERS = [
     "Unique Rank", "Trip+Station Key", "Actual ops date", "Cut 0", "Cut 1", "Cut 2", "Cut 3",
     "Standby Time", "Assign Time", "Actual Dep cut", "Date", "show on time/late", "RMK",
     "Non Intentional", "Intentional", "Region", "Zone", "", "Order", "", "Day", "Month",
-    "Year/Time", "Year", "Com Time", "MM/DD/YYYY", "Trip Occurrence Key",
+    "Year/Time", "Year", "Com Time", "MM/DD/YYYY", "Trip Occurrence Key", "TTB COT",
 ]
 
 _TOD_RE = re.compile(r"(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])?")
@@ -31,6 +31,23 @@ _DT_RE = re.compile(r"^\s*(\d{1,2})/(\d{1,2})/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d
 _H = 1 / 24.0
 _DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 USE_TTB_DEPART = False   # see build_table_rows: matches what the Table tab actually computes
+_COT_RE = re.compile(r"COT\s*(\d)", re.I)
+
+
+def parse_cot(v):
+    """'COT1' / 'in COT2' (TTB-Register column S) -> 1 / 2 ; anything else -> None."""
+    m = _COT_RE.search(str(v or ""))
+    return int(m.group(1)) if m else None
+
+
+def cot_cut_status(actual_tod, cut_txt):
+    """TTB says which cut-off round the trip belongs to (COTn): On Time when it departs by that Cut n
+    (times shifted to an 18:00 day start, like the cut windows). None when the cut time is missing."""
+    c = parse_tod(cut_txt)
+    if c is None:
+        return None
+    sh = lambda m: (m - 18 * 60) % 1440
+    return "On Time" if sh(_minutes(actual_tod)) <= sh(_minutes(c)) else "Late"
 
 
 def parse_tod(v):
@@ -223,8 +240,10 @@ def _ops_date_of(rows, g):
     return best.strftime("%d/%m/%y") if best else ""
 
 
-def build_table_rows(raw_headers, raw_rows, refs):
-    """raw data (headers + rows) -> (TABLE_HEADERS, rows) like the Table tab."""
+def build_table_rows(raw_headers, raw_rows, refs, cot_map=None):
+    """raw data (headers + rows) -> (TABLE_HEADERS, rows) like the Table tab.
+    cot_map = {LH Trip Number: "COT1"/"in COT2"...} from the TTB-Register sheet (column S): a trip found
+    there is judged against the destination's Cut n of its COT; other trips keep the cut-window rule."""
     hdr = [str(h or "").strip() for h in raw_headers]
 
     def col(name):
@@ -266,6 +285,7 @@ def build_table_rows(raw_headers, raw_rows, refs):
         dep_dt = parse_dt(g(first, "dep"))
         dep_txt = dep_dt.strftime("%d/%m/%Y %H:%M") if dep_dt else ""
 
+        cot_n = parse_cot((cot_map or {}).get(t))
         weekday, status = "", ""
         if dep_dt:
             weekday = _DAYS[(dep_dt - timedelta(hours=13)).weekday()]
@@ -277,7 +297,11 @@ def build_table_rows(raw_headers, raw_rows, refs):
             if ttb_t is not None:
                 status = "On Time" if _minutes(actual) <= _minutes(ttb_t) + 30 else "Late"
             else:
-                status = cut_status(actual, cuts)
+                status = None
+                if cot_n is not None and 0 <= cot_n < len(cuts):
+                    status = cot_cut_status(actual, cuts[cot_n])
+                if status is None:
+                    status = cut_status(actual, cuts)
 
         hub = ref.hub_row(dest)
         intent = _cell(hub, 2) if hub else ""
@@ -300,5 +324,6 @@ def build_table_rows(raw_headers, raw_rows, refs):
             "Non-intentional" if intent == "Non-intentional" else "",
             "Intentional" if intent == "Intentional" else "",
             region, zone, "", g(first, "order"), "", day, month, yt, year, ctime, mdy, f"{t}_1",
+            f"COT{cot_n}" if cot_n is not None else "",
         ])
     return TABLE_HEADERS, out
