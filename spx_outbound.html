@@ -17,7 +17,46 @@
     .kpi-value { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
     .kpi-sub { font-size: .75rem; color: var(--app-faint); }
     .spx-table-wrap { max-height: calc(100vh - 360px); min-height: 280px; overflow: auto; border: 1px solid var(--app-border); border-radius: var(--app-radius); background: var(--app-surface); }
-    .spx-table { font-size: .82rem; margin: 0; white-space: nowrap; }
+    .spx-table { font-size: .92rem; margin: 0; white-space: nowrap; }
+    .spx-table td, .spx-table th { padding-top: .45rem; padding-bottom: .45rem; }
+    /* Loading / Arrived board: one big card per truck, no inner scrolling */
+    .lf-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
+    .lf-tab { border: 2px solid var(--app-border); background: var(--app-surface); border-radius: 12px; padding: 8px 18px; font-size: 1rem; font-weight: 600; color: var(--app-text-2); cursor: pointer; min-height: 48px; }
+    .lf-tab b { font-size: 1.5rem; margin: 0 4px; font-variant-numeric: tabular-nums; }
+    .lf-tab.active[data-lf="Loading"] { border-color: #f59e0b; background: #fff7e6; color: #92400e; }
+    .lf-tab.active[data-lf="Arrived"] { border-color: #0ea5e9; background: #e8f6fd; color: #075985; }
+    .lf-tab.active[data-lf=""] { border-color: var(--app-text-2); color: var(--app-text); }
+    .truck-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+    .truck { background: var(--app-surface); border: 1px solid var(--app-border); border-left: 6px solid #f59e0b; border-radius: 10px; padding: 10px 12px; }
+    .truck.arrived { border-left-color: #0ea5e9; }
+    .truck.overdue { border-color: #dc2626; border-left-color: #dc2626; background: #fef2f2; }
+    .truck-dest { font-size: 1.15rem; font-weight: 700; line-height: 1.25; }
+    .truck-dock { font-size: 1rem; font-weight: 700; }
+    .truck-pct { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+    .truck .bar { height: 10px; border-radius: 5px; }
+    .truck .bar > span { background: #f59e0b; }
+    .truck .bar.full > span { background: #16a34a; }
+    .truck-meta { font-size: .85rem; color: var(--app-muted); }
+    .truck-meta b { color: var(--app-text); }
+    /* UPC Near NDD: 53 hubs that must leave SOCN before their cut (sheet column M) */
+    .cw-alert { border-radius: 12px; padding: 10px 14px; font-size: 1rem; font-weight: 600; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+    .cw-alert.bad { background: #fef2f2; border: 2px solid #dc2626; color: #991b1b; }
+    .cw-alert.warn { background: #fff7e6; border: 2px solid #f59e0b; color: #92400e; }
+    .cw-alert.ok { background: #ecfdf3; border: 2px solid #16a34a; color: #166534; }
+    .cw-alert .n { font-size: 1.5rem; font-weight: 800; margin-right: 4px; font-variant-numeric: tabular-nums; }
+    .cw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+    .cw { background: var(--app-surface); border: 1px solid var(--app-border); border-left: 6px solid #94a3b8; border-radius: 10px; padding: 8px 10px; }
+    .cw.late, .cw.over { border-color: #dc2626; border-left-color: #dc2626; background: #fef2f2; }
+    .cw.urgent { border-color: #ef4444; border-left-color: #ef4444; background: #fff1f2; }
+    .cw.near { border-left-color: #f59e0b; background: #fffbeb; }
+    .cw.done { border-left-color: #16a34a; }
+    .cw-hub { font-weight: 700; font-size: 1rem; line-height: 1.2; }
+    .cw-left { font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+    .cw-meta { font-size: .8rem; color: var(--app-muted); }
+    .cw-meta b { color: var(--app-text); }
+    @keyframes cwBlink { 50% { opacity: .55; } }
+    .cw.over .cw-left, .cw.urgent .cw-left { animation: cwBlink 1.2s ease-in-out infinite; }
+    @media (prefers-reduced-motion: reduce) { .cw.over .cw-left, .cw.urgent .cw-left { animation: none; } }
     .spx-table thead th { position: sticky; top: 0; z-index: 2; background: var(--app-surface-2); color: var(--app-text-2); font-weight: 650; cursor: pointer; user-select: none; }
     .spx-table td { font-variant-numeric: tabular-nums; vertical-align: middle; }
     .num { text-align: right; }
@@ -55,9 +94,20 @@
 
     <div id="spxSetup" class="card-custom p-3 mb-3 d-none">
       <div data-admin-only-link>
-        <div class="fw-bold mb-1"><i class="fa-solid fa-server text-danger me-1"></i>เชื่อมต่อ SPX — ใส่ cookie ใหม่ (หมดอายุ / ยังไม่ได้ใส่)</div>
+        <div class="fw-bold mb-1"><i class="fa-solid fa-server text-danger me-1"></i>เชื่อมต่อ SPX</div>
         <div class="small mb-2" id="spxSessionStatus">กำลังตรวจสอบ...</div>
-        <ol class="small mb-2">
+        <div class="border rounded p-2 mb-2" style="background: var(--app-surface-2)">
+          <div class="small fw-semibold mb-1"><i class="fa-solid fa-wand-magic-sparkles text-primary me-1"></i>แบบอัตโนมัติ (แนะนำ) — Login ครั้งเดียว ไม่ต้องใส่ cookie อีก</div>
+          <ol class="small mb-2">
+            <li>กด <b>Login SPX</b> → จะมีหน้าต่าง Chrome เปิดขึ้นที่<b>เครื่อง Server</b></li>
+            <li>Login SPX ในหน้าต่างนั้นให้เข้าหน้า Outbound Monitor ได้</li>
+            <li>กลับมากด <b>Login เสร็จแล้ว</b> — หน้าต่างจะปิด แล้ว Server ต่ออายุ cookie เองเบื้องหลัง</li>
+          </ol>
+          <button class="btn btn-primary btn-sm" onclick="spxBrowserLogin('open')"><i class="fa-solid fa-right-to-bracket me-1"></i>Login SPX</button>
+          <button class="btn btn-success btn-sm" onclick="spxBrowserLogin('done')"><i class="fa-solid fa-check me-1"></i>Login เสร็จแล้ว</button>
+        </div>
+        <details class="small"><summary class="text-muted">หรือใส่ cookie เอง (แบบเดิม)</summary>
+        <ol class="small mb-2 mt-2">
           <li>เปิด <a href="https://spx.shopee.co.th/#/outbound-monitor/list" target="_blank">SPX Outbound Monitor</a> → กด <b>F12</b> → แท็บ <b>Network</b> → กด Search ในหน้า SPX 1 ครั้ง</li>
           <li>คลิก request <code>list?outbound_station=2621...</code> → แท็บ <b>Headers</b> → เลื่อนลงไปที่ <b>Request Headers</b> → แถว <b>cookie</b> → <b>คลิกขวา → Copy value</b></li>
           <li>วางในช่องด้านล่าง แล้วกด <b>บันทึก + ทดสอบ</b></li>
@@ -71,7 +121,8 @@
           <button class="btn btn-outline-secondary btn-sm" onclick="spxFetchNow()"><i class="fa-solid fa-download me-1"></i>ดึงเดี๋ยวนี้</button>
           <button class="btn btn-outline-danger btn-sm" onclick="clearSpxCookie()" title="ลบ cookie ออกจาก Server"><i class="fa-solid fa-trash"></i></button>
         </div>
-        <div class="small text-muted">cookie คือการ Login SPX ของคุณ — Server ใช้ดึงเฉพาะหน้า Outbound Monitor · เมื่อหมดอายุ (Logout / ครบเวลา) หน้านี้จะแจ้ง แล้วใส่ใหม่ได้เลย</div>
+        <div class="small text-muted">cookie คือการ Login SPX ของคุณ — Server ใช้ดึงเฉพาะหน้า Outbound Monitor · แบบนี้หมดอายุในไม่กี่ชั่วโมง</div>
+        </details>
       </div>
     </div>
 
@@ -84,13 +135,30 @@
       <div class="col-6 col-md-2"><div class="kpi"><div class="kpi-label"><i class="fa-solid fa-route me-1"></i>ทริปทั้งหมด</div><div class="kpi-value" id="kTrips">--</div><div class="kpi-sub" id="kTripsSub">-</div></div></div>
     </div>
 
-    <h2 class="h6 fw-bold mb-2"><i class="fa-solid fa-dolly text-warning me-1"></i>รถที่กำลัง Loading / มาถึงแล้ว</h2>
-    <div class="spx-table-wrap mb-3" style="max-height: 320px; min-height: 0;">
-      <table class="table table-sm table-hover spx-table">
-        <thead><tr><th>สถานะ</th><th>LH Trip</th><th>ปลายทาง</th><th>Dock</th><th>Load</th><th>เริ่มโหลด</th><th>มาถึง</th><th>STD (แผนออก)</th><th>รถ</th><th class="num">Staged ปลายทาง</th></tr></thead>
-        <tbody id="loadingBody"><tr><td colspan="10" class="text-center text-muted py-3">--</td></tr></tbody>
-      </table>
+    <section id="cutWatch" class="mb-4">
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <h2 class="h5 fw-bold mb-0 me-2"><i class="fa-solid fa-stopwatch text-danger me-1"></i>UPC Near NDD — Hub ที่ต้องปล่อยก่อน Cut</h2>
+        <div class="lf-tabs" role="group" aria-label="กรองสถานะ Hub">
+          <button type="button" class="lf-tab active" data-cw="todo" onclick="setCutFilter(this)">ยังไม่ปล่อย</button>
+          <button type="button" class="lf-tab" data-cw="all" onclick="setCutFilter(this)">ทั้งหมด</button>
+        </div>
+        <span class="small text-muted ms-auto" id="cwSource">-</span>
+        <button class="btn btn-outline-secondary btn-sm" onclick="pullHubSheet(true)" title="อ่าน Hub + เวลา Cut ใหม่จากชีท"><i class="fa-solid fa-table-cells me-1"></i>อ่านชีทใหม่</button>
+      </div>
+      <div id="cwAlert" class="cw-alert ok mb-2">-</div>
+      <div id="cwGrid" class="cw-grid"></div>
+    </section>
+
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+      <h2 class="h5 fw-bold mb-0 me-2"><i class="fa-solid fa-dolly text-warning me-1"></i>รถที่ SOCN ตอนนี้</h2>
+      <div class="lf-tabs" role="group" aria-label="กรองสถานะรถ">
+        <button type="button" class="lf-tab active" data-lf="Loading" onclick="setLoadFilter(this)">กำลัง Loading <b id="lfLoading">0</b> คัน</button>
+        <button type="button" class="lf-tab" data-lf="Arrived" onclick="setLoadFilter(this)">มาถึงแล้ว รอโหลด <b id="lfArrived">0</b> คัน</button>
+        <button type="button" class="lf-tab" data-lf="" onclick="setLoadFilter(this)">ทั้งหมด <b id="lfAll">0</b></button>
+      </div>
+      <span class="small text-muted ms-auto">เรียงตาม STD · <span class="text-danger fw-semibold">กรอบแดง = เลยเวลา STD แล้ว</span></span>
     </div>
+    <div id="loadingBody" class="truck-grid mb-4"><div class="text-muted">--</div></div>
 
     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
       <h2 class="h6 fw-bold mb-0 me-2"><i class="fa-solid fa-boxes-stacked text-primary me-1"></i>Staged Orders ต่อปลายทาง</h2>
@@ -116,13 +184,14 @@
           <th onclick="sortDest('destination')">ปลายทาง</th><th onclick="sortDest('zone')">Zone (SPX)</th>
           <th class="num" onclick="sortDest('staged')">Staged Orders</th><th class="num" onclick="sortDest('stagedTo')">Staged TO</th>
           <th class="num" onclick="sortDest('stagedWeight')">น้ำหนัก (kg)</th><th>To Pack</th>
-          <th onclick="sortDest('loadingCount')">กำลังโหลด</th><th onclick="sortDest('nextStd')">รถคันถัดไป (STD)</th><th class="num" onclick="sortDest('tripCount')">ทริป</th>
+          <th class="num" onclick="sortDest('nLoading')" title="จำนวนรถที่กำลังโหลด">Load (คัน)</th><th class="num" onclick="sortDest('nArrived')" title="จำนวนรถที่มาถึงแล้ว รอโหลด">Arrive (คัน)</th><th onclick="sortDest('loadingCount')">Dock ที่กำลังโหลด</th><th onclick="sortDest('nextStd')">รถคันถัดไป (STD)</th><th class="num" onclick="sortDest('tripCount')">ทริป</th>
         </tr></thead>
-        <tbody id="destBody"><tr><td colspan="9" class="text-center text-muted py-3">--</td></tr></tbody>
+        <tbody id="destBody"><tr><td colspan="11" class="text-center text-muted py-3">--</td></tr></tbody>
       </table>
     </div>
   </div>
 
+  <script src="relay_client.js?v=1"></script>
   <script src="auth_guard.js"></script>
   <script>
     let spx = null;
@@ -163,6 +232,7 @@
       sel.innerHTML = '<option value="">ทุกโซน</option>' + zones.map(z => `<option${z === cur ? ' selected' : ''}>${esc(z)}</option>`).join('');
       renderLoading();
       renderDest();
+      renderCutWatch();
     }
 
     function stagedOf(dest) {
@@ -170,23 +240,165 @@
       return d ? d.staged : 0;
     }
 
+    let loadFilter = 'Loading';
+    function setLoadFilter(btn) {
+      loadFilter = btn.dataset.lf;
+      document.querySelectorAll('[data-lf]').forEach(b => b.classList.toggle('active', b === btn));
+      renderLoading();
+    }
     function renderLoading() {
       const body = document.getElementById('loadingBody');
-      const list = empty() ? [] : Object.values(spx.trips || {}).filter(t => t.state === 'Loading' || t.state === 'Arrived')
+      const both = empty() ? [] : Object.values(spx.trips || {}).filter(t => t.state === 'Loading' || t.state === 'Arrived');
+      const nL = both.filter(t => t.state === 'Loading').length;
+      document.getElementById('lfAll').textContent = fmt(both.length);
+      document.getElementById('lfLoading').textContent = fmt(nL);
+      document.getElementById('lfArrived').textContent = fmt(both.length - nL);
+      const list = both.filter(t => !loadFilter || t.state === loadFilter)
         .sort((a, b) => (a.state === b.state ? String(a.std).localeCompare(String(b.std)) : (a.state === 'Loading' ? -1 : 1)));
-      if (!list.length) { body.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-3">${empty() ? '--' : 'ตอนนี้ไม่มีรถกำลังโหลด'}</td></tr>`; return; }
-      body.innerHTML = list.map(t => `<tr>
-        <td><span class="badge ${STATE_BADGE[t.state]}">${esc(t.state)}</span></td>
-        <td class="font-monospace fw-semibold">${esc(t.trip)}</td>
-        <td>${esc(t.destination)}</td>
-        <td>${esc(t.dock || '-')}</td>
-        <td><div class="d-flex align-items-center gap-2"><div class="bar"><span style="width:${Math.min(100, t.loadPercent || 0)}%"></span></div><span>${t.loadPercent || 0}%</span><span class="text-muted small">(${fmt(t.loadQty)})</span></div></td>
-        <td>${hm(t.loadingTime)}</td><td>${hm(t.ata)}</td><td>${hm(t.std)}</td>
-        <td class="small">${esc(t.vehicleType)}</td>
-        <td class="num">${fmt(stagedOf(t.destination))}</td></tr>`).join('');
+      if (!list.length) { body.innerHTML = `<div class="text-muted py-3">${empty() ? '--' : 'ตอนนี้ไม่มีรถในสถานะนี้'}</div>`; return; }
+      const now = Date.now();
+      body.innerHTML = list.map(t => {
+        const pct = Math.min(100, t.loadPercent || 0);
+        const stdMs = t.std ? new Date(String(t.std).replace(' ', 'T')).getTime() : 0;
+        const overdue = stdMs && stdMs < now;
+        const arrived = t.state === 'Arrived';
+        return `<div class="truck${arrived ? ' arrived' : ''}${overdue ? ' overdue' : ''}" title="${esc(t.tripName || t.trip)}">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div class="truck-dest">${esc(t.destination)}</div>
+            <span class="badge ${STATE_BADGE[t.state]} flex-shrink-0">${arrived ? 'มาถึงแล้ว' : 'Loading'}</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-end mt-2">
+            <div class="truck-dock"><i class="fa-solid fa-warehouse me-1 text-muted"></i>${esc((t.dock || '-').replace(/^OB\s*/i, ''))}</div>
+            ${arrived ? '' : `<div class="truck-pct">${t.loadPercent || 0}<small class="fs-6">%</small></div>`}
+          </div>
+          ${arrived ? '' : `<div class="bar my-2${pct >= 100 ? ' full' : ''}"><span style="width:${pct}%"></span></div>`}
+          <div class="truck-meta mt-1">STD <b class="${overdue ? 'text-danger' : ''}">${hm(t.std)}</b>${overdue ? ' <span class="text-danger fw-semibold">เลยแล้ว</span>' : ''}
+            · ${arrived ? `มาถึง ${hm(t.ata)}` : `โหลด ${fmt(t.loadQty)} ชิ้น`}</div>
+          <div class="truck-meta">Staged ปลายทาง <b>${fmt(stagedOf(t.destination))}</b> · <span class="font-monospace">${esc(t.trip)}</span></div>
+        </div>`;
+      }).join('');
     }
 
     function empty() { return !spx || spx.empty; }
+
+    // ---- UPC Near NDD cut watch: hub (sheet column G) must leave SOCN before its cut (column M) ----
+    // Ops day runs 18:00 -> 18:00: the cut (e.g. 09:00) is the morning after the 18:00 start.
+    const HUB_SHEET_MAX_AGE_MIN = 60;
+    const CW_NEAR_MIN = 60, CW_URGENT_MIN = 30;
+    let cutHubs = [], cutHubsAt = '', cutFilter = 'todo';
+    const cwAlerted = new Set();
+    const toMs = s => (s ? new Date(String(s).replace(' ', 'T')).getTime() : 0);
+    const hmOf = ms => { const d = new Date(ms); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+    const leftTxt = min => { const a = Math.abs(Math.round(min)); return a >= 60 ? `${Math.floor(a / 60)} ชม. ${a % 60} นาที` : `${a} นาที`; };
+
+    function setCutFilter(btn) {
+      cutFilter = btn.dataset.cw;
+      document.querySelectorAll('[data-cw]').forEach(b => b.classList.toggle('active', b === btn));
+      renderCutWatch();
+    }
+
+    async function loadHubCuts() {
+      try {
+        const d = await (await fetch('/api/upc-ndd-hubs')).json();
+        cutHubs = d.hubs || []; cutHubsAt = d.updatedAt || '';
+        const age = cutHubsAt ? (Date.now() - toMs(cutHubsAt)) / 60000 : 1e9;
+        if (age > HUB_SHEET_MAX_AGE_MIN) pullHubSheet(false);   // keep the cache fresh (silently)
+      } catch (e) { /* keep what we have */ }
+      renderCutWatch();
+    }
+
+    async function pullHubSheet(loud) {
+      try {
+        if (typeof callRelay !== 'function') throw new Error('โหลด relay_client.js ไม่ได้');
+        const d0 = await (await fetch('/api/upc-ndd-hubs')).json();
+        const d = await callRelay('dump', { spreadsheetId: d0.sheetId, sheetName: d0.tab, startRow: 1, maxRows: 400, maxCols: 20 }, 120000);
+        const r = await (await fetch('/api/upc-ndd-hubs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ values: d.values || [] }) })).json();
+        if (!r.success) throw new Error(r.error || 'บันทึกไม่สำเร็จ');
+        cutHubs = r.hubs; cutHubsAt = r.updatedAt;
+        renderCutWatch();
+        if (loud) Swal.fire({ icon: 'success', title: 'อ่านชีทแล้ว', text: `${r.hubs.length} Hub`, timer: 1500, showConfirmButton: false });
+      } catch (e) {
+        if (loud) Swal.fire({ icon: 'warning', title: 'อ่านชีท Hub ไม่ได้', text: (e.message || String(e)) + ' — ใช้ข้อมูลที่เก็บไว้ล่าสุดแทน' });
+      }
+    }
+
+    // one hub -> {state, minutesLeft, trip, ...}
+    function cutStatusOf(h, now) {
+      const [hh, mm] = h.cut.split(':').map(Number);
+      const opsDay = new Date(now); if (opsDay.getHours() >= 18) opsDay.setDate(opsDay.getDate() + 1);
+      const cutMs = new Date(opsDay.getFullYear(), opsDay.getMonth(), opsDay.getDate(), hh, mm).getTime();
+      const startMs = new Date(opsDay.getFullYear(), opsDay.getMonth(), opsDay.getDate() - 1, 18, 0).getTime();
+      const endMs = startMs + 24 * 3600 * 1000;
+      const code = h.code.toUpperCase();
+      const dest = (spx && spx.destinations || []).find(d => String(d.destination).split(' - ')[0].trim().toUpperCase() === code);
+      const trips = (dest ? dest.trips : []).map(n => spx.trips[n]).filter(Boolean)
+        .filter(t => { const x = toMs(t.atd) || toMs(t.std); return x >= startMs && x < endMs; })
+        .sort((a, b) => toMs(a.std) - toMs(b.std));
+      const out = { h, cutMs, dest, staged: dest ? dest.staged : 0, minutesLeft: (cutMs - now) / 60000 };
+      // the truck that has to make the cut = the last one planned to leave at or before it
+      // (none planned before the cut -> the first one after it, flagged "แผนออกหลัง Cut")
+      const before = trips.filter(t => toMs(t.std) && toMs(t.std) <= cutMs);
+      const t = before.length ? before[before.length - 1] : (trips.find(x => toMs(x.std) > cutMs) || null);
+      const stdAfterCut = !!(t && toMs(t.std) > cutMs);
+      const atd = t ? toMs(t.atd) : 0;
+      if (atd && atd <= cutMs) return Object.assign(out, { state: 'done', trip: t, rank: 9 });
+      if (atd) return Object.assign(out, { state: 'late', trip: t, rank: 1, stdAfterCut });
+      if (now > cutMs) return Object.assign(out, { state: 'over', trip: t, rank: 0, stdAfterCut });
+      const left = out.minutesLeft;
+      const state = left <= CW_URGENT_MIN ? 'urgent' : (left <= CW_NEAR_MIN ? 'near' : 'wait');
+      return Object.assign(out, { state, trip: t, rank: state === 'urgent' ? 2 : state === 'near' ? 3 : 4, stdAfterCut });
+    }
+
+    function renderCutWatch() {
+      const grid = document.getElementById('cwGrid'), alertEl = document.getElementById('cwAlert');
+      if (!grid) return;
+      document.getElementById('cwSource').textContent = cutHubs.length ? `${cutHubs.length} Hub · ชีทอ่านเมื่อ ${cutHubsAt || '-'}` : 'ยังไม่มีรายชื่อ Hub — กด "อ่านชีทใหม่"';
+      if (!cutHubs.length || empty()) { grid.innerHTML = ''; alertEl.className = 'cw-alert ok mb-2'; alertEl.textContent = empty() ? 'ยังไม่มีข้อมูลจาก SPX' : 'ยังไม่มีรายชื่อ Hub'; return; }
+      const now = Date.now();
+      const list = cutHubs.map(h => cutStatusOf(h, now)).sort((a, b) => a.rank - b.rank || a.cutMs - b.cutMs);
+      const n = k => list.filter(x => x.state === k).length;
+      const over = n('over'), late = n('late'), urgent = n('urgent'), near = n('near'), done = n('done'), wait = n('wait');
+      alertEl.className = 'cw-alert mb-2 ' + (over || urgent ? 'bad' : near ? 'warn' : 'ok');
+      alertEl.innerHTML = [
+        over ? `<span><i class="fa-solid fa-triangle-exclamation me-1"></i><span class="n">${over}</span>เลย Cut ยังไม่ออก</span>` : '',
+        urgent ? `<span><i class="fa-solid fa-bell me-1"></i><span class="n">${urgent}</span>เหลือ ≤ ${CW_URGENT_MIN} นาที</span>` : '',
+        near ? `<span><span class="n">${near}</span>ใกล้ Cut (≤ ${CW_NEAR_MIN} นาที)</span>` : '',
+        late ? `<span><span class="n">${late}</span>ออกหลัง Cut</span>` : '',
+        `<span class="text-success"><i class="fa-solid fa-circle-check me-1"></i><span class="n">${done}</span>ปล่อยทัน Cut</span>`,
+        wait ? `<span class="text-muted fw-normal">ยังไม่ถึงเวลา ${wait}</span>` : ''
+      ].filter(Boolean).join('');
+
+      // pop-up once per hub per ops day when it turns urgent / passes the cut
+      const fresh = list.filter(x => (x.state === 'urgent' || x.state === 'over') && !cwAlerted.has(x.h.code + '@' + x.cutMs + x.state));
+      fresh.forEach(x => cwAlerted.add(x.h.code + '@' + x.cutMs + x.state));
+      if (fresh.length && cwAlerted.size > fresh.length && !Swal.isVisible()) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', timer: 8000, showConfirmButton: false,
+          title: `${fresh.length} Hub ใกล้ / เลย Cut`, text: fresh.slice(0, 5).map(x => `${x.h.code} (Cut ${x.h.cut})`).join(', ') });
+      }
+
+      const shown = cutFilter === 'all' ? list : list.filter(x => x.state !== 'done' && x.state !== 'late');
+      grid.innerHTML = shown.length ? shown.map(x => {
+        const t = x.trip;
+        let big, sub;
+        if (x.state === 'done') { big = `<span class="text-success">ปล่อยแล้ว ${hmOf(toMs(t.atd))}</span>`; sub = `ก่อน Cut ${leftTxt((x.cutMs - toMs(t.atd)) / 60000)}`; }
+        else if (x.state === 'late') { big = `<span class="text-danger">ออก ${hmOf(toMs(t.atd))}</span>`; sub = `หลัง Cut ${leftTxt((toMs(t.atd) - x.cutMs) / 60000)}`; }
+        else if (x.state === 'over') { big = `<span class="text-danger">เลย ${leftTxt(-x.minutesLeft)}</span>`; sub = 'ยังไม่ออกจาก SOCN'; }
+        else { big = `เหลือ ${leftTxt(x.minutesLeft)}`; sub = 'ก่อนถึง Cut'; }
+        const tripTxt = !t ? '<span class="text-danger fw-semibold">ไม่พบรถในรอบนี้</span>'
+          : t.state === 'Loading' ? `<b>Loading</b> ${esc((t.dock || '').replace(/^OB\s*/i, ''))} · ${t.loadPercent || 0}%`
+          : t.state === 'Arrived' ? `<b>รถมาถึงแล้ว</b> รอโหลด`
+          : t.state === 'Pending' ? `รถยังไม่มา · STD ${hm(t.std)}` : `ออกแล้ว · ${hm(t.atd)}`;
+        return `<div class="cw ${x.state}" title="${esc(x.h.hub)}${t ? ' · ' + esc(t.trip) : ''}">
+          <div class="d-flex justify-content-between gap-2"><div class="cw-hub">${esc(x.h.hub)}</div><span class="badge bg-dark flex-shrink-0">Cut ${esc(x.h.cut)}</span></div>
+          <div class="cw-left mt-1">${big}</div>
+          <div class="cw-meta">${sub}</div>
+          <div class="cw-meta mt-1">${tripTxt}${x.stdAfterCut ? ' <span class="text-danger fw-semibold">· แผนออกหลัง Cut!</span>' : ''}</div>
+          <div class="cw-meta">Staged <b>${fmt(x.staged)}</b>${t && x.state !== 'done' ? ` · STD ${hm(t.std)}` : ''}</div>
+        </div>`;
+      }).join('') : '<div class="text-success fw-semibold py-2"><i class="fa-solid fa-circle-check me-1"></i>ทุก Hub ปล่อยทัน Cut แล้ว</div>';
+    }
+    loadHubCuts();
+    setInterval(renderCutWatch, 30000);   // countdown moves even between SPX refreshes
 
     function sortDest(k) {
       destSort = destSort.key === k ? { key: k, asc: !destSort.asc } : { key: k, asc: k === 'destination' || k === 'zone' || k === 'nextStd' };
@@ -218,19 +430,21 @@
 
     function renderDest() {
       const body = document.getElementById('destBody');
-      if (empty()) { body.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">--</td></tr>'; return; }
+      if (empty()) { body.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-3">--</td></tr>'; return; }
       const q = document.getElementById('destSearch').value.trim().toLowerCase();
       const z = document.getElementById('zoneSel').value;
       const only = document.getElementById('onlyStaged').checked;
       const all = document.getElementById('expandAll').checked;
       const hideDep = document.getElementById('hideDeparted').checked;
-      let rows = (spx.destinations || []).map(d => Object.assign({}, d, { loadingCount: (d.loading || []).length, tripCount: (d.trips || []).length }))
+      let rows = (spx.destinations || []).map(d => Object.assign({}, d, { loadingCount: (d.loading || []).length, tripCount: (d.trips || []).length,
+          nLoading: (d.trips || []).filter(n => (spx.trips[n] || {}).state === 'Loading').length,
+          nArrived: (d.trips || []).filter(n => (spx.trips[n] || {}).state === 'Arrived').length }))
         .filter(d => (!only || d.staged > 0) && (!z || d.zone === z) &&
           (!q || d.destination.toLowerCase().includes(q) || (d.trips || []).some(t => t.toLowerCase().includes(q))));
       const k = destSort.key, dir = destSort.asc ? 1 : -1;
       rows.sort((a, b) => (typeof a[k] === 'number' ? (a[k] - b[k]) : String(a[k] || '').localeCompare(String(b[k] || ''))) * dir);
-      document.getElementById('destCount').textContent = `${fmt(rows.length)} ปลายทาง · Staged ${fmt(rows.reduce((s, d) => s + d.staged, 0))}`;
-      if (!rows.length) { body.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">ไม่พบข้อมูลตามตัวกรอง</td></tr>'; return; }
+      document.getElementById('destCount').textContent = `${fmt(rows.length)} ปลายทาง · Load ${fmt(rows.reduce((s, d) => s + d.nLoading, 0))} คัน · Arrive ${fmt(rows.reduce((s, d) => s + d.nArrived, 0))} คัน · Staged ${fmt(rows.reduce((s, d) => s + d.staged, 0))}`;
+      if (!rows.length) { body.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-3">ไม่พบข้อมูลตามตัวกรอง</td></tr>'; return; }
 
       body.innerHTML = rows.map(d => {
         const trips = tripsOfDest(d);
@@ -242,6 +456,8 @@
           <td class="fw-semibold"><span class="caret"><i class="fa-solid fa-chevron-right"></i></span> ${esc(d.destination)}</td><td class="small text-muted">${esc(d.zone)}</td>
           <td class="num fw-bold">${fmt(d.staged)}</td><td class="num">${fmt(d.stagedTo)}</td>
           <td class="num">${fmt(Math.round((d.stagedWeight || 0) / 1000))}</td><td class="small">${esc(d.toPack || '-')}</td>
+          <td class="num">${d.nLoading ? `<span class="badge bg-warning text-dark">${d.nLoading}</span>` : '<span class="text-muted">0</span>'}</td>
+          <td class="num">${d.nArrived ? `<span class="badge bg-info text-dark">${d.nArrived}</span>` : '<span class="text-muted">0</span>'}</td>
           <td>${loading || '<span class="text-muted small">-</span>'}</td>
           <td>${next ? `${hm(next.std)} <span class="text-muted small font-monospace">${esc(next.trip)}</span>` : hm(d.nextStd)}</td>
           <td class="num">${fmt(d.tripCount)}</td></tr>`;
@@ -258,13 +474,13 @@
               ${cot ? `<span class="badge bg-light text-dark border ms-1">${esc(cot)}</span>` : ''}</td>
             <td colspan="2" class="small">${esc(subconOf(t.tripName))}</td>
             <td class="num" title="Load qty / capacity">${t.state === 'Pending' ? '-' : `${fmt(t.loadQty)} <span class="text-muted">(${t.loadPercent || 0}%)</span>`}</td>
-            <td class="small">${esc(t.vehicleType || '-')}</td>
+            <td class="small" colspan="3">${esc(t.vehicleType || '-')}</td>
             <td class="small">${t.dock ? esc(t.dock) : '-'}${t.loadingTime ? ` · เริ่ม ${hm(t.loadingTime)}` : ''}</td>
             <td class="small">STA ${hm(t.sta)} · STD <b>${hm(t.std)}</b>${t.atd ? ` · ออก ${hm(t.atd)}` : ''}</td>
             <td></td></tr>`;
         }).join('');
-        const more = hidden ? `<tr class="trip-sub departed"><td colspan="9" class="text-muted">+ ออกไปแล้ว ${hidden} trip (เอาเครื่องหมาย "ซ่อน Trip ที่ออกแล้ว" ออกเพื่อดู)</td></tr>` : '';
-        const none = !trips.length ? '<tr class="trip-sub"><td colspan="9" class="text-muted">ไม่มี trip ในช่วงเวลานี้</td></tr>' : '';
+        const more = hidden ? `<tr class="trip-sub departed"><td colspan="11" class="text-muted">+ ออกไปแล้ว ${hidden} trip (เอาเครื่องหมาย "ซ่อน Trip ที่ออกแล้ว" ออกเพื่อดู)</td></tr>` : '';
+        const none = !trips.length ? '<tr class="trip-sub"><td colspan="11" class="text-muted">ไม่มี trip ในช่วงเวลานี้</td></tr>' : '';
         return head + sub + more + none;
       }).join('');
     }
@@ -297,12 +513,24 @@
       try {
         const d = await (await fetch('/api/spx-outbound/session')).json();
         const box = document.getElementById('spxSetup');
-        if (box) box.classList.toggle('d-none', !!(d.configured && !d.lastError));
+        if (box) box.classList.toggle('d-none', !!(d.configured && !d.lastError && !d.loginWindowOpen));
+        if (d.loginWindowOpen) { el.innerHTML = '<span class="text-primary fw-semibold"><i class="fa-solid fa-window-maximize me-1"></i>หน้าต่าง Login SPX เปิดอยู่ที่เครื่อง Server — login ให้เสร็จแล้วกด "Login เสร็จแล้ว"</span>'; return; }
         if (!d.configured) { el.innerHTML = '<span class="text-secondary"><i class="fa-solid fa-circle me-1"></i>ยังไม่ได้ใส่ cookie</span>'; return; }
         el.innerHTML = d.lastError
           ? `<span class="text-danger fw-semibold"><i class="fa-solid fa-circle-exclamation me-1"></i>${esc(d.lastError)}</span> <span class="text-muted">· ลองล่าสุด ${esc(d.lastAttemptAt)}</span>`
-          : `<span class="text-success fw-semibold"><i class="fa-solid fa-circle-check me-1"></i>เชื่อมต่อแล้ว — Server ดึงทุก ${Math.round((d.intervalSec || 180) / 60)} นาที</span> <span class="text-muted">· สำเร็จล่าสุด ${esc(d.lastOkAt || '-')} · ใส่ cookie เมื่อ ${esc(d.savedAt)}</span>`;
+          + (d.autoRenew && d.browserError ? `<div class="text-danger small mt-1">ต่ออายุอัตโนมัติไม่ได้: ${esc(d.browserError)}</div>` : '')
+          : `<span class="text-success fw-semibold"><i class="fa-solid fa-circle-check me-1"></i>เชื่อมต่อแล้ว — Server ดึงทุก ${Math.round((d.intervalSec || 180) / 60)} นาที</span> <span class="text-muted">· สำเร็จล่าสุด ${esc(d.lastOkAt || '-')}${d.autoRenew ? ` · ต่ออายุอัตโนมัติ ${esc(d.browserRefreshedAt || '-')}` : ` · ใส่ cookie เมื่อ ${esc(d.savedAt)}`}</span>`;
       } catch (e) { el.textContent = 'ตรวจสอบสถานะไม่ได้'; }
+    }
+    async function spxBrowserLogin(step) {
+      Swal.fire({ title: step === 'open' ? 'กำลังเปิด Chrome ที่เครื่อง Server...' : 'กำลังรับ login จาก Chrome...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      try {
+        const d = await (await fetch('/api/spx-outbound/browser-login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: SPX_KEY, step }) })).json();
+        if (!d.success) throw new Error(d.error || 'ไม่สำเร็จ');
+        if (step === 'open') Swal.fire({ icon: 'info', title: 'Login SPX ในหน้าต่าง Chrome', text: 'หน้าต่างเปิดอยู่ที่เครื่อง Server — login ให้เข้าหน้า Outbound Monitor ได้ แล้วกลับมากด "Login เสร็จแล้ว"' });
+        else { Swal.fire({ icon: 'success', title: 'เชื่อมต่อ SPX อัตโนมัติแล้ว', text: `Loading ${d.summary.loading} คัน · Staged ${fmt(d.summary.staged)} — ต่อไปไม่ต้องใส่ cookie อีก`, timer: 3000, showConfirmButton: false }); loadSpx(); }
+      } catch (e) { Swal.fire({ icon: 'error', title: 'ไม่สำเร็จ', text: e.message }); }
+      loadSpxSession();
     }
     async function saveSpxCookie() {
       const cookie = document.getElementById('spxCookieInput').value.trim();

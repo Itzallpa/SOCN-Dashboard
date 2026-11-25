@@ -88,6 +88,7 @@
       <a href="hourly_tracker.html" style="color:#cbd5e1; text-decoration:none; padding:6px 14px; border-radius:6px; font-weight:600; font-size:0.88rem; background:rgba(255,255,255,0.08); transition:all 0.2s;"> Hourly Tracker</a>
     </div>
   </nav>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="auth_guard.js"></script>
   <script src="progress_popup.js?v=1"></script>
 
@@ -141,6 +142,10 @@
       <button class="btn btn-outline-secondary btn-sm" onclick="loadDriveDays(true)" title="รีเฟรชรายการไฟล์ใน Google Drive" aria-label="รีเฟรชรายการไฟล์ใน Google Drive">
         <i class="fa-solid fa-arrows-rotate"></i>
       </button>
+      <label class="btn btn-outline-primary btn-sm mb-0" title="เปิดไฟล์ LH Trip (.xlsx) ที่มีแท็บ raw data — เช่น LH Trip 21 Nov 26.xlsx">
+        <i class="fa-solid fa-file-excel me-1"></i> เปิดไฟล์ Excel
+        <input type="file" accept=".xlsx,.xls,.csv" class="d-none" onchange="openLocalLhFile(this)">
+      </label>
       <button class="btn btn-primary btn-sm" onclick="saveDailyRawNow()" title="copy แท็บ raw data ของวันนี้ลง Google Drive เพื่อดูย้อนหลัง">
         <i class="fa-solid fa-floppy-disk me-1"></i> บันทึก Raw Data
       </button>
@@ -153,6 +158,9 @@
     </div>
 
     <div id="lhStatusMsg" class="mb-3"></div>
+
+    <!-- SPX Outbound Monitor (fetched by the server): trucks loading now + staged orders -->
+    <div id="spxPanel" class="card-custom p-2 px-3 mb-3 small tv-hide" style="display:none"></div>
 
     <!-- SECTION 1: DASHBOARD VIEW -->
     <div id="viewDashboardSection" style="display: block;">
@@ -775,6 +783,46 @@
       return dailyRelayCfg;
     }
 
+    // TTB-Register (tab "[OG] TimetableFullSocn"): column K = LH Trips, column S = COT1 / COT2 / in COT1 ...
+    // The server judges a trip found here against the destination's Cut n of its COT (COT1 = Cut 1).
+    const TTB_COT_SOURCES = [
+      { id: '1HGyF8EqEI4RKSYDobuG8XI63iTLo4PCFA9BE_k_tNso', tab: '[OG] TimetableFullSocn' },   // TTB-Register Clone
+      { id: '11Se39YEz-mpyduJ3DU--Dfdlut6rzf9xcNYBxe9jHL0', tab: '[OG] TimetableFullSocn' }    // original sheet
+    ];
+    let ttbCotSourceIdx = 0;
+    async function fetchTtbCot() {
+      for (let i = 0; i < TTB_COT_SOURCES.length; i++) {
+        const k = (ttbCotSourceIdx + i) % TTB_COT_SOURCES.length;
+        const src = TTB_COT_SOURCES[k];
+        try {
+          const pairs = [];
+          let start = 2, ti = 10;   // row 2 = header row (row 1 = "ห้ามแก้ไข")
+          for (let page = 0; page < 5; page++) {
+            const d = await callDailyRelay('dump', { spreadsheetId: src.id, sheetName: src.tab, startRow: start, maxRows: 2000, maxCols: 29 }, 120000);
+            if (!d || !d.success || !Array.isArray(d.values)) throw new Error((d && d.error) || 'อ่านชีท TTB ไม่ได้');
+            let body = d.values;
+            if (start === 2) {
+              const h = (body[0] || []).map(x => String(x).trim()).indexOf('LH Trips');
+              if (h >= 0) ti = h;
+              body = body.slice(1);
+            }
+            body.forEach(r => {
+              const t = String(r[ti] || '').trim();
+              const cot = [18, 28].map(j => String(r[j] || '').trim()).find(v => /COT\s*\d/i.test(v));
+              if (t && cot) pairs.push([t, cot]);
+            });
+            if (!d.rows || start + d.rows - 1 >= (d.lastRow || 0)) break;
+            start += d.rows;
+          }
+          ttbCotSourceIdx = k;
+          return pairs;
+        } catch (e) {
+          console.warn('TTB COT read failed:', src.id, e);
+        }
+      }
+      return null;   // server falls back to its cached copy
+    }
+
     async function callDailyRelay(page, extra, timeoutMs) {
       const cfg = await getDailyRelayCfg();
       const res = await fetchJsonpGeneric(cfg.url, Object.assign({ key: cfg.key, page }, extra || {}), timeoutMs);
@@ -824,26 +872,38 @@
       const pg = openProgressModal(`กำลังโหลด ${label}`);
       try {
         pg.step('อ่าน raw data จาก Google Drive...', 70, dailyRefs ? 8000 : 12000);
-        const [day, refs] = await Promise.all([
+        const [day, refs, ttbCot] = await Promise.all([
           callDailyRelay('readdaily', { fileId }, 180000),
-          dailyRefs ? Promise.resolve(dailyRefs) : callDailyRelay('refs', {}, 120000)
+          dailyRefs ? Promise.resolve(dailyRefs) : callDailyRelay('refs', {}, 120000),
+          fetchTtbCot().catch(() => null)
         ]);
         if (!day || !day.success) throw new Error((day && day.error) || 'อ่านไฟล์ไม่สำเร็จ');
         if (!refs || !refs.success) throw new Error((refs && refs.error) || 'อ่านตารางอ้างอิง (Hub / Cut / TTB) ไม่สำเร็จ');
         dailyRefs = refs;
+        await showDailyDay(day, refs, label, pg, { key: 'drive:' + ((day.date || meta.date) || fileId), date: meta.date, ttbCot });
+      } catch (err) {
+        pg.stop();
+        Swal.fire({ icon: 'error', title: 'โหลดข้อมูลจาก Drive ไม่สำเร็จ', text: err.message || String(err) });
+      }
+    }
+
+    // Shared by the Drive daily view and "เปิดไฟล์ Excel": compute + show one day's raw data.
+    // refs may be null when the relay is unreachable -> the server uses its last cached Hub / Cut / TTB.
+    async function showDailyDay(day, refs, label, pg, opts) {
+        opts = opts || {};
+        const meta = { date: opts.date || '' };
         pg.step(`คำนวณ Late / On time (${(day.totalRows || 0).toLocaleString()} แถว)...`, 92, 3000);
         const data = await safeApiFetch('/api/lh-trip/daily-raw', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             date: day.date || meta.date || '', fileName: day.fileName, fileUrl: day.fileUrl, updatedAt: day.updatedAt,
-            raw: { headers: day.headers, rows: day.rows }, refs
+            raw: { headers: day.headers, rows: day.rows }, refs, ttbCot: opts.ttbCot || null, useCot: true
           })
         });
         if (!data || !data.success) throw new Error((data && data.error) || 'คำนวณข้อมูลไม่สำเร็จ');
 
         pg.step('แสดงผล Dashboard...', 99, 800);
-        const dateStr = day.date || meta.date || '';
-        currentLoadedDate = 'drive:' + (dateStr || fileId);
+        currentLoadedDate = opts.key;
         latestSyncedData = data;
         rawTripRecords = (data.outboundRawRows && data.outboundRawRows.length) ? data.outboundRawRows : (data.rows || []);
         renderRealSummaryData(data);
@@ -856,15 +916,15 @@
         if (link && day.fileUrl) { link.href = day.fileUrl; link.classList.remove('d-none'); }
 
         const trips = (data.totalTrips || rawTripRecords.length || 0);
-        const ttbNote = (refs.ttbError || data.ttbMissing) ? ' · <span class="text-danger">อ่าน TTB ไม่ได้ — สถานะคิดจาก Cut อย่างเดียว</span>' : '';
+        const ttbNote = ((refs && refs.ttbError) || data.ttbMissing) ? ' · <span class="text-danger">อ่าน TTB ไม่ได้ — สถานะคิดจาก Cut อย่างเดียว</span>' : '';
         const banner = document.getElementById('lhStatusMsg');
         if (banner) {
           banner.innerHTML = `
             <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 px-3 rounded-3 mb-0">
               <div>
-                <i class="fa-brands fa-google-drive me-2"></i>
-                <strong>ข้อมูลรายวันจาก Google Drive · ${escapeHtmlLite(day.fileName || '')}</strong>
-                <span class="text-muted ms-2">${trips.toLocaleString()} เที่ยว (raw ${(day.totalRows || 0).toLocaleString()} แถว) · ไฟล์แก้ไขล่าสุด ${escapeHtmlLite(day.updatedAt || '-')}${ttbNote}</span>
+                <i class="${opts.local ? 'fa-solid fa-file-excel' : 'fa-brands fa-google-drive'} me-2"></i>
+                <strong>${opts.local ? 'ข้อมูลจากไฟล์ Excel' : 'ข้อมูลรายวันจาก Google Drive'} · ${escapeHtmlLite(day.fileName || '')}</strong>
+                <span class="text-muted ms-2">${trips.toLocaleString()} เที่ยว (raw ${(day.totalRows || 0).toLocaleString()} แถว) · ${opts.local ? 'ไฟล์แก้ไขล่าสุด' : 'ไฟล์แก้ไขล่าสุด'} ${escapeHtmlLite(day.updatedAt || '-')}${ttbNote}</span>
               </div>
               <button class="btn btn-sm btn-outline-secondary" onclick="backToLiveFromDrive()">
                 <i class="fa-solid fa-rotate-left me-1"></i> กลับสู่ข้อมูลสด
@@ -874,9 +934,68 @@
         pg.done();
         await new Promise(r => setTimeout(r, 350));
         Swal.fire({ icon: 'success', title: 'โหลดข้อมูลแล้ว', text: `${label} · ${trips.toLocaleString()} เที่ยวรถ`, timer: 1600, showConfirmButton: false });
+    }
+
+    // ---- open a local "LH Trip <d Mon yy>.xlsx" (tab "raw data" = same columns as the sheet) ----
+    function dateFromLhFileName(name) {   // 'LH Trip 21 Nov 26.xlsx' -> '2026-11-21'
+      const m = String(name || '').match(/(\d{1,2})[\s\-_.]*([A-Za-z]{3})[A-Za-z]*[\s\-_.]*(\d{2,4})/);
+      if (!m) return '';
+      const mon = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(m[2].toLowerCase());
+      if (mon < 0) return '';
+      const y = m[3].length === 2 ? '20' + m[3] : m[3];
+      return `${y}-${String(mon + 1).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
+    }
+    async function openLocalLhFile(input) {
+      const file = input.files && input.files[0];
+      input.value = '';
+      if (!file) return;
+      const pg = openProgressModal(`กำลังเปิด ${file.name}`);
+      try {
+        if (typeof XLSX === 'undefined') throw new Error('โหลดตัวอ่าน Excel ไม่สำเร็จ — ตรวจอินเทอร์เน็ตแล้วลองใหม่');
+        pg.step('อ่านไฟล์ Excel...', 40, 6000);
+        const wb = XLSX.read(new Uint8Array(await file.arrayBuffer()), { type: 'array' });
+        const toAoa = n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: false, defval: '', blankrows: false });
+        let sheetName = wb.SheetNames.find(n => String(n).trim().toLowerCase() === 'raw data');
+        let aoa = sheetName ? toAoa(sheetName) : null;
+        if (!aoa) {
+          for (const n of wb.SheetNames) {   // no "raw data" tab: the first tab whose header has "LH Trip Number"
+            const a = toAoa(n);
+            if ((a[0] || []).some(h => String(h).trim().toLowerCase() === 'lh trip number')) { sheetName = n; aoa = a; break; }
+          }
+        }
+        if (!aoa || !aoa.length) throw new Error('ไม่พบแท็บ "raw data" (หัวคอลัมน์ต้องมี LH Trip Number)');
+        const headers = aoa[0].map(h => String(h).trim());
+        const rows = aoa.slice(1).filter(r => r.some(c => String(c).trim() !== '')).map(r => r.map(c => String(c)));
+        if (!rows.length) throw new Error(`แท็บ "${sheetName}" ไม่มีข้อมูล`);
+        pg.step('อ่านตารางอ้างอิง (Hub / Cut / TTB)...', 70, 10000);
+        let refs = dailyRefs;
+        if (!refs) {
+          try { refs = await callDailyRelay('refs', {}, 120000); if (refs && refs.success) dailyRefs = refs; else refs = null; }
+          catch (e) { refs = null; }   // the server falls back to its last cached refs
+        }
+        const date = dateFromLhFileName(file.name);
+        let ttbCot = null;
+        const ttbTab = wb.SheetNames.find(n => /timetablefullsocn/i.test(String(n).replace(/[\s\[\]]/g, '')));
+        if (ttbTab) {
+          const t = toAoa(ttbTab);
+          const hr = t.findIndex(r => r.some(c => String(c).trim() === 'LH Trips'));
+          if (hr >= 0) {
+            const ti = t[hr].findIndex(c => String(c).trim() === 'LH Trips');
+            ttbCot = [];
+            t.slice(hr + 1).forEach(r => {
+              const trip = String(r[ti] || '').trim();
+              const cot = [18, 28].map(j => String(r[j] || '').trim()).find(v => /COT\s*\d/i.test(v));
+              if (trip && cot) ttbCot.push([trip, cot]);
+            });
+          }
+        }
+        if (!ttbCot) ttbCot = await fetchTtbCot().catch(() => null);   // no TTB tab in the file: read the sheet
+        const day = { success: true, headers, rows, totalRows: rows.length, fileName: file.name, date,
+                      updatedAt: new Date(file.lastModified || Date.now()).toLocaleString('th-TH') };
+        await showDailyDay(day, refs, file.name, pg, { key: 'file:' + (date || file.name), date, local: true, ttbCot });
       } catch (err) {
         pg.stop();
-        Swal.fire({ icon: 'error', title: 'โหลดข้อมูลจาก Drive ไม่สำเร็จ', text: err.message || String(err) });
+        Swal.fire({ icon: 'error', title: 'เปิดไฟล์ไม่สำเร็จ', text: err.message || String(err) });
       }
     }
 
@@ -915,6 +1034,33 @@
       if (snapSel) snapSel.value = 'live';
       onSnapshotDateChange('live');
     }
+
+    // ---- SPX Outbound Monitor panel (fetched by the server, read via /api/spx-outbound/latest) ----
+    async function loadSpxPanel() {
+      const el = document.getElementById('spxPanel');
+      if (!el) return;
+      let d = null;
+      try { d = await (await fetch('/api/spx-outbound/latest')).json(); } catch (e) { return; }
+      el.style.display = 'block';
+      if (!d || d.empty) {
+        el.innerHTML = '<i class="fa-solid fa-plug-circle-xmark text-secondary me-1"></i>SPX Outbound Monitor: ยังไม่มีข้อมูล — <a href="spx_outbound.html">ดูหน้า SPX Outbound</a>';
+        return;
+      }
+      const sm = d.summary || {};
+      const stale = d.ageMinutes != null && d.ageMinutes > 10;
+      const loading = Object.values(d.trips || {}).filter(t => t.state === 'Loading')
+        .sort((a, b) => String(a.std).localeCompare(String(b.std)));
+      const stagedOf = name => ((d.destinations || []).find(x => x.destination === name) || {}).staged || 0;
+      const chips = loading.slice(0, 12).map(t => `<span class="badge bg-warning text-dark me-1 mb-1" title="${escapeHtmlLite(t.trip)} · STD ${escapeHtmlLite(t.std)} · Staged ${stagedOf(t.destination)}">`
+        + `<i class="fa-solid fa-dolly me-1"></i>${escapeHtmlLite(t.destination.split(' - ')[0])} · ${escapeHtmlLite(t.dock || '-')} · ${t.loadPercent || 0}%</span>`).join('');
+      el.innerHTML = `<div class="d-flex flex-wrap align-items-center gap-2">`
+        + `<span><i class="fa-solid fa-satellite-dish ${stale ? 'text-danger' : 'text-success'} me-1"></i><b>SPX Outbound Monitor</b></span>`
+        + `<span>Loading <b>${sm.loading || 0}</b> คัน</span><span>· Staged รวม <b>${Number(sm.staged || 0).toLocaleString()}</b> orders</span>`
+        + `<span class="text-muted">· อัปเดต ${escapeHtmlLite(d.updatedAt || '-')}${stale ? ' <span class="text-danger">(เก่า ' + Math.round(d.ageMinutes) + ' นาที)</span>' : ''}</span>`
+        + `<a class="ms-auto" href="spx_outbound.html">ดูทั้งหมด <i class="fa-solid fa-arrow-right"></i></a></div>`
+        + (chips ? `<div class="mt-1">${chips}${loading.length > 12 ? `<span class="text-muted">+${loading.length - 12}</span>` : ''}</div>` : '');
+    }
+    document.addEventListener('DOMContentLoaded', () => { loadSpxPanel(); setInterval(loadSpxPanel, 60000); });
 
     function escapeHtmlLite(t) {
       return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1313,9 +1459,10 @@
         // rebuilds the Table logic (lh_raw_table.py). Hub / Cut / TTB tables: once per page, else server cache.
         const idm = String(sheetUrl || '').match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
         if (!idm) throw new Error('ลิงก์ Google Sheet ต้นทางไม่ถูกต้อง');
-        const [day, refs] = await Promise.all([
+        const [day, refs, ttbCot] = await Promise.all([
           callDailyRelay('readdaily', { fileId: idm[1], sheetName: LH_LIVE_TAB }, 180000),
-          dailyRefs ? Promise.resolve(null) : callDailyRelay('refs', {}, 120000).catch(() => null)
+          dailyRefs ? Promise.resolve(null) : callDailyRelay('refs', {}, 120000).catch(() => null),
+          fetchTtbCot().catch(() => null)
         ]);
         if (!day || !day.success) throw new Error((day && day.error) || 'อ่าน raw data ไม่สำเร็จ');
         if (refs && refs.success) dailyRefs = refs;
@@ -1327,7 +1474,7 @@
         const data = await safeApiFetch('/api/lh-trip/live-raw', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ raw: { headers: day.headers, rows: day.rows }, refs: refs && refs.success ? refs : null, sheet: day.sheet, fetchedAt: day.updatedAt })
+          body: JSON.stringify({ raw: { headers: day.headers, rows: day.rows }, refs: refs && refs.success ? refs : null, ttbCot, sheet: day.sheet, fetchedAt: day.updatedAt })
         });
         if (!data || !data.success) throw new Error((data && data.error) || 'Server ประมวลผลไม่สำเร็จ');
         applyLhSyncedData(data, silent);
@@ -1904,6 +2051,8 @@
     let selectedCutIdx = null; // null = all cuts
     function cutIndexOf(r) {
       const ok = v => { const t = String(v || '').trim(); return t && t !== 'nan' && t !== '—' && t !== '-'; };
+      const cot = String(r.ttb_cot || '').match(/COT\s*(\d)/i);   // TTB-Register says which round (COT1 = Cut 1)
+      if (cot) return Number(cot[1]);
       if (ok(r.cut0)) return 0;
       if (ok(r.cut1)) return 1;
       if (ok(r.cut2)) return 2;
@@ -2177,7 +2326,7 @@
     function renderLHData(data) {
       let depIdx = 21, statIdx = 23, destIdx = 7, tripIdx = 1, vehIdx = 3, plateIdx = 4, driverIdx = 5, origIdx = 6;
       let standbyIdx = 19, assignIdx = 20, rmkIdx = 24, intentIdx = 25;
-      let c0Idx = 15, c1Idx = 16, c2Idx = 17, c3Idx = 18, zoneIdx = 27, regionIdx = 26, catIdx = 2;
+      let c0Idx = 15, c1Idx = 16, c2Idx = 17, c3Idx = 18, cotIdx = -1, zoneIdx = 27, regionIdx = 26, catIdx = 2;
       let obOrderIdx = 30, obWeightIdx = 31, obToIdx = 29;
       
       if (Array.isArray(data.headers) && data.headers.length > 0) {
@@ -2199,6 +2348,7 @@
           if (str.includes('cut 1') || str.includes('cut1')) c1Idx = idx;
           if (str.includes('cut 2') || str.includes('cut2')) c2Idx = idx;
           if (str.includes('cut 3') || str.includes('cut3')) c3Idx = idx;
+          if (str === 'ttb cot') cotIdx = idx;
           if (str.includes('zone') || str.includes('โซน')) zoneIdx = idx;
           if (str.includes('region') || str.includes('ภาค')) regionIdx = idx;
           if (str.includes('category') || str.includes('trip type')) catIdx = idx;
@@ -2276,6 +2426,7 @@
             cut1: getItem(c1Idx, [16], ['cut1', 'cut_1']),
             cut2: getItem(c2Idx, [17], ['cut2', 'cut_2']),
             cut3: getItem(c3Idx, [18], ['cut3', 'cut_3']),
+            ttb_cot: cotIdx >= 0 ? getItem(cotIdx, [], ['ttb_cot']) : '',
             actual_dep_cut: getItem(depIdx, [21, 19, 13, 14, 20, 18], ['actual_dep_cut', 'actual_departure', 'actual_ops_date', 'dep_time', 'time']),
             rmk: getItem(rmkIdx, [24, 22], ['rmk', 'remark', 'reason']),
             intentional: getItem(intentIdx, [25, 23], ['intentional', 'intent']),
@@ -3043,7 +3194,7 @@
     }
 
     function getOpsDateForExport() {
-      const driveM = /^drive:(\d{4}-\d{2}-\d{2})$/.exec(currentLoadedDate || '');
+      const driveM = /^(?:drive|file):(\d{4}-\d{2}-\d{2})$/.exec(currentLoadedDate || '');
       if (driveM) return driveM[1];
       let baseDate = new Date();
       if (currentLoadedDate && currentLoadedDate !== 'live') {

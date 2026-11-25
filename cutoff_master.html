@@ -200,6 +200,7 @@
     </div>
   </nav>
   <script src="auth_guard.js"></script>
+  <script src="relay_client.js"></script>
 
   <div class="container-fluid px-4 py-3">
 
@@ -214,8 +215,8 @@
           <i class="fa-solid fa-stopwatch text-warning"></i>
           <span id="liveClockDisplay">--:--:--</span>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="openUploadCutoffModal()">
-          <i class="fa-solid fa-cloud-arrow-up me-1"></i> อัปโหลดไฟล์ Excel
+        <button class="btn btn-primary btn-sm" id="btnPullCutSheet" onclick="fetchCutoffData(false)" title="อ่านเวลา Cut ใหม่จากแท็บ SOCN_GBKK / SOCN_UPC_Direct / SOCN_UPC_Milkrun">
+          <i class="fa-solid fa-table-cells me-1"></i> ดึง Cut จาก Sheet
         </button>
         <button class="btn btn-outline-secondary btn-sm" id="btnSyncGoogleSheet" onclick="syncFromGoogleSheet()">
           <i class="fa-solid fa-rotate me-1" id="iconSyncSpinner"></i> Sync ลิงก์ Sheet
@@ -295,7 +296,7 @@
         <div class="card-custom p-3 bg-white" style="border-left: 6px solid #2563eb !important;">
           <div class="d-flex align-items-center justify-content-between mb-1">
             <span class="text-primary fw-bold small"><i class="fa-solid fa-database me-1"></i> สถานีปลายทางทั้งหมด</span>
-            <span class="badge bg-primary" id="masterDataSourceBadge">System Default</span>
+            <span class="badge bg-secondary" id="masterDataSourceBadge">Google Sheet</span>
           </div>
           <div class="h3 fw-bold text-slate-800 mb-1" id="kpiTotalStations">0</div>
           <div class="text-muted small" id="kpiTotalStationsDetails">โหลดจาก Master Data</div>
@@ -647,6 +648,7 @@
                       </button>
                     </div>
                   </th>
+                  <th style="width: 130px;" class="text-center" title="สถานะจาก SPX Outbound Monitor (Server ดึงจาก SPX ทุก 3 นาที)">SPX · Staged</th>
                   <th style="width: 85px;" class="text-center">
                     <div class="excel-th-container justify-content-center">
                       <span style="cursor:pointer;" onclick="sortLiveTable('cot')">COT (AC) <span id="sort_icon_cot" class="text-muted small">⇅</span></span>
@@ -723,7 +725,7 @@
                 </tr>
               </thead>
               <tbody id="ttbLiveTableBody">
-                <tr><td colspan="13" class="text-center py-4 text-muted">กำลังโหลดข้อมูล TTB Registration...</td></tr>
+                <tr><td colspan="14" class="text-center py-4 text-muted">กำลังโหลดข้อมูล TTB Registration...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1191,8 +1193,60 @@
       });
     }
 
+    // Cut times come straight from the sheet tabs (company Apps Script, page=dump) and are cached
+    // on the server (/api/cutoff-schedule/sheet). Silent refreshes read the cache; the sheet is read again
+    // every CUT_SHEET_PULL_MS or when the button is pressed. The original page / upload file are not touched.
+    const CUT_SHEET_TABS = { 'GBKK': 'SOCN_GBKK', 'UPC Direct': 'SOCN_UPC_Direct', 'UPC Milkrun': 'SOCN_UPC_Milkrun' };
+    const CUT_SHEET_PULL_MS = 5 * 60 * 1000;
+    let cutSheetPulledAt = 0;
+    let cutSheetError = '';
+
+    async function dumpWholeTab(spreadsheetId, sheetName) {
+      let values = [], start = 1;
+      for (let page = 0; page < 5; page++) {
+        const d = await callRelay('dump', { spreadsheetId, sheetName, startRow: start, maxRows: 2000, maxCols: 40 }, 120000);
+        values = values.concat(d.values || []);
+        if (!d.rows || start + d.rows - 1 >= (d.lastRow || 0)) break;
+        start += d.rows;
+      }
+      return values;
+    }
+
+    async function pullCutoffFromSheet() {
+      const cfg = await getRelayCfg();
+      const areas = Object.keys(CUT_SHEET_TABS);
+      const all = await Promise.all(areas.map(a => dumpWholeTab(cfg.sourceSheetId, CUT_SHEET_TABS[a])));
+      const tabs = {};
+      areas.forEach((a, i) => { tabs[a] = all[i]; });
+      const data = await safeFetchJson('/api/cutoff-schedule/sheet', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tabs })
+      });
+      if (!data || !data.success) throw new Error((data && data.error) || 'บันทึกตาราง Cut ไม่สำเร็จ');
+      return data;
+    }
+
+    async function loadCutoffSource(isSilent) {
+      const btn = document.getElementById('btnPullCutSheet');
+      if (!isSilent || Date.now() - cutSheetPulledAt > CUT_SHEET_PULL_MS) {
+        cutSheetPulledAt = Date.now();
+        if (btn && !isSilent) btn.disabled = true;
+        try {
+          const data = await pullCutoffFromSheet();
+          cutSheetError = '';
+          return data;
+        } catch (e) {
+          cutSheetError = e.message || String(e);
+          console.warn('Cut sheet pull failed:', e);
+          if (!isSilent && typeof Swal !== 'undefined') Swal.fire({ icon: 'warning', title: 'อ่านเวลา Cut จาก Sheet ไม่ได้', text: cutSheetError + ' — แสดงข้อมูลล่าสุดที่เคยดึงไว้แทน' });
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      }
+      return safeFetchJson('/api/cutoff-schedule/sheet');
+    }
+
     function fetchCutoffData(isSilent = false) {
-      return safeFetchJson('/api/cutoff-schedule')
+      return loadCutoffSource(isSilent)
         .then(data => {
           if (data.success && data.data) {
             globalCutoffData = data.data;
@@ -1203,13 +1257,9 @@
             
             const srcBadge = document.getElementById('masterDataSourceBadge');
             if (srcBadge) {
-              if (data.is_custom) {
-                srcBadge.innerText = 'Custom Uploaded';
-                srcBadge.className = 'badge bg-success';
-              } else {
-                srcBadge.innerText = 'System Default';
-                srcBadge.className = 'badge bg-primary';
-              }
+              srcBadge.innerText = cutSheetError ? 'Sheet (ข้อมูลเก่า)' : 'Google Sheet';
+              srcBadge.className = cutSheetError ? 'badge bg-warning text-dark' : 'badge bg-success';
+              srcBadge.title = (data.updatedAt ? 'ดึงล่าสุด ' + data.updatedAt : 'ยังไม่เคยดึง') + (cutSheetError ? ' · ' + cutSheetError : '');
             }
 
             populateDynamicZoneFilters(globalCutoffData);
@@ -1727,114 +1777,54 @@
         .catch(err => console.error('Error loading TTB config:', err));
     }
 
-    function syncFromGoogleSheet(isSilent = false) {
+    // TTB data comes from the "TTB-Register Clone" sheet (tab [OG] TimetableFullSocn), read through the
+    // company Apps Script (page=dump) and saved in its own file on the server — the original page's TTB data,
+    // its settings and the write-back sheet are not used.
+    const TTB_CLONE_SHEET_ID = '1HGyF8EqEI4RKSYDobuG8XI63iTLo4PCFA9BE_k_tNso';
+    const TTB_CLONE_TAB = '[OG] TimetableFullSocn';
+
+    async function readTtbCloneSheet() {
+      let values = [], start = 2;   // row 1 = "ห้ามแก้ไข", row 2 = headers
+      for (let page = 0; page < 5; page++) {
+        const d = await callRelay('dump', { spreadsheetId: TTB_CLONE_SHEET_ID, sheetName: TTB_CLONE_TAB, startRow: start, maxRows: 2000, maxCols: 34 }, 120000);
+        values = values.concat(d.values || []);
+        if (!d.rows || start + d.rows - 1 >= (d.lastRow || 0)) break;
+        start += d.rows;
+      }
+      return values;
+    }
+
+    async function syncFromGoogleSheet(isSilent = false) {
       const btn = document.getElementById('btnSyncGoogleSheet');
       const icon = document.getElementById('iconSyncSpinner');
       if (!isSilent && btn) btn.disabled = true;
       if (icon) icon.className = 'fa-solid fa-rotate fa-spin me-1';
-
-      const performClientSideFetch = (targetUrl) => {
-        return fetch(targetUrl, { credentials: 'include' })
-          .then(res => res.json())
-          .then(gData => {
-            if (gData && gData.success && Array.isArray(gData.rows)) {
-              return safeFetchJson('/api/ttb-registration/save-client-data', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(gData)
-              });
-            } else {
-              throw new Error(gData.error || 'โครงสร้างข้อมูลจาก Google Sheets ไม่ถูกต้อง');
-            }
-          });
-      };
-
-      return safeFetchJson('/api/ttb-registration/sync', { method: 'POST' })
-        .then(res => {
-          if (res.success && res.data) {
-            globalTTBLiveData = res.data;
-            updateTTBSyncUI(res.data);
-            fetchCutoffData(true); // Reload Cutoff master table since cutoffs were updated
-            renderTTBLiveTable();
-            if (!isSilent) {
-              if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                  icon: 'success',
-                  title: 'ซิงค์ข้อมูลสำเร็จ!',
-                  text: res.message,
-                  confirmButtonColor: '#10b981'
-                });
-              } else {
-                alert('✅ ' + res.message);
-              }
-            }
-          }
-        })
-        .catch(err => {
-          // Check if fallback URL is available or try client side
-          const cfgUrl = document.getElementById('ttbWebAppUrlInput')?.value?.trim();
-          if (cfgUrl) {
-            // Attempt client-side browser fetch with user's spxexpress.com login session
-            return performClientSideFetch(cfgUrl)
-              .then(savedRes => {
-                if (savedRes.success && savedRes.data) {
-                  globalTTBLiveData = savedRes.data;
-                  updateTTBSyncUI(savedRes.data);
-                  fetchCutoffData(true);
-                  renderTTBLiveTable();
-                  if (!isSilent) {
-                    if (typeof Swal !== 'undefined') {
-                      Swal.fire({
-                        icon: 'success',
-                        title: 'ซิงค์ข้อมูลสำเร็จ (Browser Session)!',
-                        text: savedRes.message,
-                        confirmButtonColor: '#10b981'
-                      });
-                    } else {
-                      alert('✅ ' + savedRes.message);
-                    }
-                  }
-                }
-              })
-              .catch(clientErr => {
-                console.error(clientErr);
-                if (!isSilent) {
-                  if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                      icon: 'error',
-                      title: 'ไม่สามารถซิงค์ข้อมูลได้',
-                      html: `${clientErr.message || err.message}<br><br><button class="btn btn-sm btn-primary" onclick="openTTBConfigModal(); Swal.close();">⚙️ ตรวจสอบการตั้งค่า Web App URL</button>`,
-                      confirmButtonColor: '#dc2626'
-                    });
-                  } else {
-                    alert('❌ ' + (clientErr.message || err.message));
-                  }
-                }
-              });
-          }
-
-          console.error(err);
-          if (!isSilent) {
-            if (typeof Swal !== 'undefined') {
-              Swal.fire({
-                icon: 'error',
-                title: 'ไม่สามารถซิงค์ข้อมูลได้',
-                html: `${err.message}<br><br><button class="btn btn-sm btn-primary" onclick="openTTBConfigModal(); Swal.close();">⚙️ ตรวจสอบการตั้งค่า Web App URL</button>`,
-                confirmButtonColor: '#dc2626'
-              });
-            } else {
-              alert('❌ ' + err.message);
-            }
-          }
-        })
-        .finally(() => {
-          if (!isSilent && btn) btn.disabled = false;
-          if (icon) icon.className = 'fa-solid fa-rotate me-1';
+      try {
+        const values = await readTtbCloneSheet();
+        const res = await safeFetchJson('/api/ttb-registration-clone/save', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ values, sheetName: 'TTB-Register Clone' })
         });
+        if (!res || !res.success) throw new Error((res && res.error) || 'บันทึกข้อมูลไม่สำเร็จ');
+        globalTTBLiveData = res.data;
+        updateTTBSyncUI(res.data);
+        renderTTBLiveTable();
+        if (!isSilent && typeof Swal !== 'undefined') {
+          Swal.fire({ icon: 'success', title: 'ซิงค์ข้อมูลสำเร็จ!', text: res.message, timer: 2000, showConfirmButton: false });
+        }
+      } catch (err) {
+        console.error(err);
+        if (!isSilent && typeof Swal !== 'undefined') {
+          Swal.fire({ icon: 'error', title: 'อ่านชีท TTB-Register Clone ไม่ได้', text: err.message || String(err) });
+        }
+      } finally {
+        if (!isSilent && btn) btn.disabled = false;
+        if (icon) icon.className = 'fa-solid fa-rotate me-1';
+      }
     }
 
     function fetchTTBLiveData(isSilent = false) {
-      return safeFetchJson('/api/ttb-registration/live')
+      return safeFetchJson('/api/ttb-registration-clone/live')
         .then(res => {
           if (res.success && res.data) {
             globalTTBLiveData = res.data;
@@ -2123,6 +2113,59 @@
       }
       return null;
     }
+
+    // ---- SPX Outbound Monitor (fetched by the server every 3 minutes, see /api/spx-outbound/*) ----
+    let spxData = null;
+    const SPX_STATE_STYLE = {
+      Loading: 'bg-warning text-dark', Arrived: 'bg-info text-dark', Departed: 'bg-success', Pending: 'bg-light text-muted border'
+    };
+    function spxDestOf(name) {
+      if (!spxData || !name) return null;
+      if (!spxData._destMap) {
+        spxData._destMap = {};
+        (spxData.destinations || []).forEach(d => { spxData._destMap[String(d.destination).trim().toLowerCase()] = d; });
+      }
+      return spxData._destMap[String(name).trim().toLowerCase()] || null;
+    }
+    function spxCellHtml(r) {
+      if (!spxData || spxData.empty) return '<span class="text-muted small">-</span>';
+      const t = (spxData.trips || {})[String(r.lhTrip || '').trim()];
+      const d = spxDestOf(r.destination);
+      const state = t ? `<span class="badge ${SPX_STATE_STYLE[t.state] || 'bg-secondary'}" title="${escapeHtml((t.dock || '') + (t.loadingTime ? ' · เริ่มโหลด ' + t.loadingTime : '') + (t.atd ? ' · ออก ' + t.atd : ''))}">${t.state === 'Loading' ? '<i class="fa-solid fa-dolly me-1"></i>' : ''}${escapeHtml(t.state)}${t.state === 'Loading' ? ' ' + (t.loadPercent || 0) + '%' : ''}</span>${t.dock ? `<div class="text-muted" style="font-size:.7rem">${escapeHtml(t.dock)}</div>` : ''}`
+        : '<span class="text-muted small">ไม่พบใน SPX</span>';
+      const staged = d ? `<div class="small mt-1" title="Staged orders ของปลายทางนี้">Staged <b>${Number(d.staged || 0).toLocaleString()}</b></div>` : '';
+      return state + staged;
+    }
+    function renderSpxBanner() {
+      let el = document.getElementById('spxSummaryBanner');
+      const body = document.getElementById('ttbLiveTableBody');
+      if (!el && body) {
+        el = document.createElement('div');
+        el.id = 'spxSummaryBanner';
+        el.className = 'small mb-2 px-2 py-1 rounded border bg-light';
+        const wrap = body.closest('table').parentElement;
+        wrap.parentElement.insertBefore(el, wrap);
+      }
+      if (!el) return;
+      if (!spxData || spxData.empty) {
+        el.innerHTML = '<i class="fa-solid fa-plug-circle-xmark text-secondary me-1"></i>ยังไม่มีข้อมูลจาก SPX Outbound Monitor — ดูที่หน้า <a href="spx_outbound.html">SPX Outbound</a> · <a href="spx_outbound.html">ดูรายละเอียด</a>';
+        return;
+      }
+      const sm = spxData.summary || {};
+      const stale = spxData.ageMinutes != null && spxData.ageMinutes > 10;
+      el.innerHTML = `<i class="fa-solid fa-satellite-dish ${stale ? 'text-danger' : 'text-success'} me-1"></i>SPX Outbound Monitor: `
+        + `<b>Loading ${sm.loading || 0}</b> คัน · Arrived ${sm.arrived || 0} · Staged รวม <b>${Number(sm.staged || 0).toLocaleString()}</b> orders`
+        + ` · อัปเดต ${escapeHtml(spxData.updatedAt || '-')}${stale ? ' <span class="text-danger">(ข้อมูลเก่า ' + Math.round(spxData.ageMinutes) + ' นาที)</span>' : ''}`
+        + ` · <a href="spx_outbound.html">ดูทั้งหมด</a>`;
+    }
+    function loadSpxOutbound() {
+      return safeFetchJson('/api/spx-outbound/latest').then(d => {
+        spxData = d && d.success ? d : null;
+        renderSpxBanner();
+        if (typeof renderTTBLiveTable === 'function') renderTTBLiveTable();
+      }).catch(() => {});
+    }
+    document.addEventListener('DOMContentLoaded', () => { loadSpxOutbound(); setInterval(loadSpxOutbound, 60000); });
 
     function renderTTBLiveTable() {
       const rows = globalTTBLiveData.rows || [];
@@ -2420,7 +2463,7 @@
       }
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="14" class="text-center py-5 text-muted"><i class="fa-solid fa-satellite-dish fs-3 mb-2 d-block text-secondary"></i>ไม่พบข้อมูลเที่ยวรถตรงตามเงื่อนไขที่เลือก (กดปุ่ม "ดึงข้อมูลล่าสุดจาก Sheet" เพื่อโหลดข้อมูล)</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="15" class="text-center py-5 text-muted"><i class="fa-solid fa-satellite-dish fs-3 mb-2 d-block text-secondary"></i>ไม่พบข้อมูลเที่ยวรถตรงตามเงื่อนไขที่เลือก (กดปุ่ม "ดึงข้อมูลล่าสุดจาก Sheet" เพื่อโหลดข้อมูล)</td></tr>';
         return;
       }
 
@@ -2503,6 +2546,7 @@
             <td class="fw-bold font-monospace text-primary">${escapeHtml(r.lhTrip)}</td>
             <td class="fw-bold text-dark">${escapeHtml(r.destination)}</td>
             <td class="text-center">${zoneBadge}</td>
+            <td class="text-center">${spxCellHtml(r)}</td>
             <td class="text-center">${cotBadge}</td>
             <td class="text-center">${departBadge}</td>
             <td class="text-center">${cutoffTargetBadge}</td>
@@ -2634,6 +2678,10 @@
     }
 
     function submitTTBRowEdit(evt) {
+      // read-only: edits are made in the TTB-Register sheet itself
+      if (evt && evt.preventDefault) evt.preventDefault();
+      if (typeof Swal !== 'undefined') Swal.fire({ icon: 'info', title: 'แก้ไขที่ชีท TTB-Register', text: 'หน้านี้อ่านอย่างเดียว — แก้ข้อมูลในชีท TTB-Register Clone แล้วกด Sync ลิงก์ Sheet' });
+      return;
       evt.preventDefault();
       const rowIndex = parseInt(document.getElementById('editRowIndexInput')?.value, 10);
       const lhTrip = document.getElementById('editLhTripInput')?.value.trim() || '';
@@ -3048,11 +3096,11 @@
       const btn = document.getElementById('btnConfirmPasteSave');
       if (btn) btn.disabled = true;
 
-      fetch('/api/ttb-registration/save-client-data', {
+      fetch('/api/ttb-registration-clone/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sheetName: 'TTB - Registration (Pasted)',
+          sheetName: 'TTB-Register Clone (Pasted)',
           rows: parsedPasteRows
         })
       })

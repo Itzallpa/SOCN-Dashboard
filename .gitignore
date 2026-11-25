@@ -22,3 +22,4 @@ users_db.json
 # SPX login cookie and SPX data: never commit
 data/spx_session.json
 data/spx_outbound_*.json
+data/spx_chrome_profile/

@@ -7,7 +7,7 @@ py -m pip install -r requirements.txt
 
 echo.
 echo ====================================================
-echo  Starting SOC Dashboard Server on http://localhost:5001
+echo  Starting SOC Dashboard Server on http://localhost:5000
 echo ====================================================
 py app.py
 pause

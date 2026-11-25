@@ -4047,6 +4047,59 @@ def spx_outbound_ingest_api():
     return jsonify({"success": True, "updatedAt": doc["updatedAt"], "summary": doc["summary"]})
 
 
+# ---- UPC Near NDD focus hubs: hub (column G) -> SOC outbound cut (column M) ----
+# Sheet "Clone [SOCN] Focus 53 Hub UPC Near NDD", tab "UPC Near NDD Performance ". It is not public, so the
+# browser reads it through the company Apps Script (page=dump) and posts the values here to cache.
+UPC_NDD_FILE = os.path.join(DATA_DIR, "upc_ndd_hubs.json")
+UPC_NDD_SHEET_ID = "1XIyfD5O6pQGPgXA4VvDMr23UyF-lqUyYnqbCCBOzIPA"
+UPC_NDD_TAB = "UPC Near NDD Performance "
+
+
+def _hm_of(v):
+    """'9:00:00' / '09:00' / '9.30' -> '09:00' ('' when it is not a time)."""
+    m = re.match(r"^\s*(\d{1,2})[:.](\d{2})", str(v or ""))
+    if not m or int(m.group(1)) > 23:
+        return ""
+    return f"{int(m.group(1)):02d}:{m.group(2)}"
+
+
+@app.route("/api/upc-ndd-hubs", methods=["GET", "POST"])
+def upc_ndd_hubs_api():
+    if request.method == "GET":
+        try:
+            with open(UPC_NDD_FILE, "r", encoding="utf-8") as f:
+                doc = json.load(f)
+        except Exception:
+            doc = {"hubs": [], "updatedAt": ""}
+        doc.update({"success": True, "sheetId": UPC_NDD_SHEET_ID, "tab": UPC_NDD_TAB})
+        return jsonify(doc)
+    values = (request.get_json(silent=True) or {}).get("values") or []
+    hub_i, cut_i, grp_i, hdr = 6, 12, 16, 0          # G, M, Q (traveling group)
+    for i, r in enumerate(values[:5]):
+        names = [str(c).strip().lower() for c in r]
+        if "lm_station_th_name" in names:
+            hdr, hub_i = i, names.index("lm_station_th_name")
+            cut_i = names.index("soc_outbound_cot") if "soc_outbound_cot" in names else cut_i
+            grp_i = names.index("traveling group") if "traveling group" in names else grp_i
+            break
+    hubs, seen = [], set()
+    for r in values[hdr + 1:]:
+        hub = str(r[hub_i]).strip() if hub_i < len(r) else ""
+        cut = _hm_of(r[cut_i]) if cut_i < len(r) else ""
+        if not hub or not cut or hub in seen:
+            continue
+        seen.add(hub)
+        hubs.append({"hub": hub, "code": hub.split(" - ")[0].strip(), "cut": cut,
+                     "group": str(r[grp_i]).strip() if grp_i < len(r) else ""})
+    if not hubs:
+        return jsonify({"success": False, "error": "ไม่พบ Hub (คอลัมน์ G) + เวลา Cut (คอลัมน์ M) ในชีท"})
+    doc = {"hubs": hubs, "updatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+    with open(UPC_NDD_FILE, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+    doc["success"] = True
+    return jsonify(doc)
+
+
 @app.route("/api/spx-outbound/latest", methods=["GET"])
 def spx_outbound_latest_api():
     try:
@@ -4142,7 +4195,7 @@ def spx_fetch_outbound_now():
             except Exception:
                 payload = None
             if r.status_code in (401, 403) or (payload and payload.get("retcode") not in (0, None) and "login" in str(payload.get("message", "")).lower()):
-                err = f"SPX session หมดอายุ / ไม่มีสิทธิ์ (HTTP {r.status_code}) — ใส่ cookie ใหม่"
+                err = f"SPX session หมดอายุ / ไม่มีสิทธิ์ (HTTP {r.status_code})"
             elif payload is None:
                 err = f"SPX ตอบกลับไม่ใช่ JSON (HTTP {r.status_code}) — cookie อาจหมดอายุ"
             elif payload.get("retcode") != 0:
@@ -4169,6 +4222,183 @@ def spx_fetch_outbound_now():
         return {"success": True, "updatedAt": doc["updatedAt"], "summary": doc["summary"]}
 
 
+# ---- Auto-renew the SPX cookie with a hidden Chrome (no more pasting cookies) ----
+# SPX login goes through Google SSO and the cookie dies after a few hours, with no Set-Cookie refresh.
+# So the server keeps its own Chrome profile (data/spx_chrome_profile, gitignored). An admin logs in to
+# SPX in that profile once (a normal Chrome window opens on the server PC). After that, whenever SPX says
+# 401 (and once an hour to keep the login warm), a hidden headless Chrome opens the SPX page with that
+# profile, SPX/Google renew the session by themselves, and the fresh cookies are read over the DevTools
+# protocol (127.0.0.1 only). The cookie never leaves the server.
+SPX_BROWSER_PROFILE = os.path.join(DATA_DIR, "spx_chrome_profile")
+SPX_CDP_PORT = 9333
+SPX_PAGE_URL = "https://spx.shopee.co.th/#/outbound-monitor/list"
+SPX_BROWSER_KEEPALIVE_SEC = 3600
+SPX_BROWSER_MIN_GAP_SEC = 600
+_spx_browser_lock = __import__("threading").Lock()
+
+
+def _spx_chrome_exe():
+    for c in (os.path.join(os.environ.get("PROGRAMFILES", r"C:\Program Files"), r"Google\Chrome\Application\chrome.exe"),
+              os.path.join(os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)"), r"Google\Chrome\Application\chrome.exe"),
+              os.path.join(os.environ.get("LOCALAPPDATA", ""), r"Google\Chrome\Application\chrome.exe")):
+        if c and os.path.exists(c):
+            return c
+    return ""
+
+
+def _spx_cdp(path, method="GET"):
+    r = requests.request(method, f"http://127.0.0.1:{SPX_CDP_PORT}{path}", timeout=5)
+    r.raise_for_status()
+    return r.json() if r.text.strip().startswith(("{", "[")) else {}
+
+
+def _spx_cdp_up():
+    try:
+        _spx_cdp("/json/version")
+        return True
+    except Exception:
+        return False
+
+
+def _spx_browser_close():
+    """Close whatever Chrome is on our DevTools port (the hidden one or the login window)."""
+    try:
+        import websocket
+        ws = websocket.create_connection(_spx_cdp("/json/version")["webSocketDebuggerUrl"], timeout=5)
+        ws.send(json.dumps({"id": 1, "method": "Browser.close"}))
+        ws.close()
+    except Exception:
+        pass
+    for _ in range(20):
+        if not _spx_cdp_up():
+            return
+        time.sleep(0.5)
+
+
+def _spx_browser_launch(headless):
+    import subprocess
+    exe = _spx_chrome_exe()
+    if not exe:
+        raise RuntimeError("ไม่พบ Google Chrome บนเครื่อง server")
+    os.makedirs(SPX_BROWSER_PROFILE, exist_ok=True)
+    args = [exe, f"--user-data-dir={SPX_BROWSER_PROFILE}", f"--remote-debugging-port={SPX_CDP_PORT}",
+            "--remote-debugging-address=127.0.0.1", "--no-first-run", "--no-default-browser-check"]
+    if headless:
+        args += ["--headless=new", "--disable-gpu", "--window-size=1400,900", "about:blank"]
+    else:
+        args += ["--new-window", SPX_PAGE_URL]
+    subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if headless else 0)
+    for _ in range(40):
+        if _spx_cdp_up():
+            return
+        time.sleep(0.5)
+    raise RuntimeError("เปิด Chrome ไม่สำเร็จ (DevTools port ไม่ตอบ)")
+
+
+def _spx_browser_mode():
+    return _spx_session_load().get("mode") == "browser" and os.path.isdir(SPX_BROWSER_PROFILE)
+
+
+def spx_browser_refresh_cookie(reason=""):
+    """Open SPX in the hidden Chrome, let it renew the login, take the cookies. Returns {success, error}."""
+    import websocket
+    with _spx_browser_lock:
+        sess = _spx_session_load()
+        if sess.get("loginWindowOpen"):
+            return {"success": False, "error": "หน้าต่าง Login SPX ยังเปิดอยู่ — login ให้เสร็จแล้วกด 'Login เสร็จแล้ว'"}
+        ws = target = None
+        try:
+            if not _spx_cdp_up():
+                _spx_browser_launch(headless=True)
+            target = _spx_cdp("/json/new?about:blank", method="PUT")
+            ws = websocket.create_connection(target["webSocketDebuggerUrl"], timeout=30)
+            seq = [0]
+
+            def call(method, params=None):
+                seq[0] += 1
+                ws.send(json.dumps({"id": seq[0], "method": method, "params": params or {}}))
+                while True:
+                    m = json.loads(ws.recv())
+                    if m.get("id") == seq[0]:
+                        return m.get("result") or {}
+
+            call("Network.enable")
+            call("Page.navigate", {"url": SPX_PAGE_URL})
+            href, ok = "", False
+            for _ in range(30):          # up to ~30s for SSO redirects + the SPX app to boot
+                time.sleep(1)
+                href = (call("Runtime.evaluate", {"expression": "location.href", "returnByValue": True})
+                        .get("result", {}).get("value") or "")
+                names = {c["name"] for c in call("Network.getCookies", {"urls": ["https://spx.shopee.co.th/"]}).get("cookies", [])}
+                if "spx.shopee.co.th" in href and "login" not in href.lower() and "spx_st" in names:
+                    ok = True
+                    time.sleep(2)
+                    break
+            if not ok:
+                raise RuntimeError("SPX ต้องการ login ใหม่ — กดปุ่ม 'Login SPX' แล้ว login ในหน้าต่าง Chrome ที่เปิดขึ้นบนเครื่อง server")
+            cookies = call("Network.getCookies", {"urls": ["https://spx.shopee.co.th/"]}).get("cookies", [])
+            cookie = "; ".join(f"{c['name']}={c['value']}" for c in cookies if c.get("name"))
+            sess = _spx_session_load()
+            sess.update({"cookie": cookie, "mode": "browser", "browserError": "",
+                         "browserRefreshedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                         "browserRefreshReason": reason[:60]})
+            for c in cookies:
+                if c.get("name") in SPX_LOGIN_COOKIES and c.get("expires", -1) > 0:
+                    sess.setdefault("cookieExpires", {})[c["name"]] = datetime.fromtimestamp(c["expires"]).strftime("%Y-%m-%d %H:%M")
+            _spx_session_save(sess)
+            return {"success": True}
+        except Exception as e:
+            sess = _spx_session_load()
+            sess["browserError"] = str(e)[:300]
+            sess["browserErrorAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            _spx_session_save(sess)
+            return {"success": False, "error": str(e)[:300]}
+        finally:
+            try:
+                if ws:
+                    ws.close()
+                if target:
+                    _spx_cdp(f"/json/close/{target['id']}")
+            except Exception:
+                pass
+
+
+@app.route("/api/spx-outbound/browser-login", methods=["POST"])
+def spx_outbound_browser_login_api():
+    """{key, step:'open'}  -> open a normal Chrome window (server PC) on SPX with the server's own profile.
+       {key, step:'done'}  -> close it, switch to the hidden Chrome, take the cookie and fetch once."""
+    req = request.get_json(silent=True) or {}
+    if str(req.get("key") or "") != SPX_INGEST_KEY:
+        return jsonify({"success": False, "error": "key ไม่ถูกต้อง"}), 403
+    step = req.get("step")
+    try:
+        if step == "open":
+            with _spx_browser_lock:
+                _spx_browser_close()
+                _spx_browser_launch(headless=False)
+                sess = _spx_session_load()
+                sess["loginWindowOpen"] = True
+                _spx_session_save(sess)
+            return jsonify({"success": True})
+        if step == "done":
+            with _spx_browser_lock:
+                _spx_browser_close()
+                sess = _spx_session_load()
+                sess["loginWindowOpen"] = False
+                sess["mode"] = "browser"
+                _spx_session_save(sess)
+            r = spx_browser_refresh_cookie("login")
+            if not r.get("success"):
+                return jsonify(r)
+            res = spx_fetch_outbound_now()
+            log_activity("SPX_SESSION", "Login SPX (Chrome อัตโนมัติ)" + (" สำเร็จ" if res.get("success") else f" แต่ดึงข้อมูลไม่ผ่าน: {res.get('error')}"))
+            return jsonify(res)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)[:300]})
+    return jsonify({"success": False, "error": "step ไม่ถูกต้อง"}), 400
+
+
 @app.route("/api/spx-outbound/session", methods=["GET", "POST"])
 def spx_outbound_session_api():
     """GET: status only (the cookie itself is never returned). POST {key, cookie}: save + test right away."""
@@ -4178,7 +4408,9 @@ def spx_outbound_session_api():
                         "savedBy": sess.get("savedBy", ""), "lastOkAt": sess.get("lastOkAt", ""),
                         "lastAttemptAt": sess.get("lastAttemptAt", ""), "lastError": sess.get("lastError", ""),
                         "cookieRefreshedAt": sess.get("cookieRefreshedAt", ""), "cookieExpires": sess.get("cookieExpires", {}),
-                        "intervalSec": SPX_FETCH_INTERVAL_SEC})
+                        "intervalSec": SPX_FETCH_INTERVAL_SEC, "autoRenew": _spx_browser_mode(),
+                        "loginWindowOpen": bool(sess.get("loginWindowOpen")),
+                        "browserRefreshedAt": sess.get("browserRefreshedAt", ""), "browserError": sess.get("browserError", "")})
     req = request.get_json(silent=True) or {}
     if str(req.get("key") or "") != SPX_INGEST_KEY:
         return jsonify({"success": False, "error": "key ไม่ถูกต้อง"}), 403
@@ -4207,10 +4439,22 @@ def start_spx_outbound_auto_fetch():
 
     def worker():
         time.sleep(10)
+        last_renew = 0
         while True:
             try:
+                auto = _spx_browser_mode()
+                if auto and time.time() - last_renew > SPX_BROWSER_KEEPALIVE_SEC:
+                    last_renew = time.time()
+                    r = spx_browser_refresh_cookie("keepalive")
+                    if not r.get("success"):
+                        print(f"[SPX Outbound] renew: {r.get('error')}")
                 if _spx_session_load().get("cookie"):
                     res = spx_fetch_outbound_now()
+                    if not res.get("success") and auto and "หมดอายุ" in str(res.get("error")) \
+                            and time.time() - last_renew > SPX_BROWSER_MIN_GAP_SEC:
+                        last_renew = time.time()
+                        r = spx_browser_refresh_cookie("401")
+                        res = spx_fetch_outbound_now() if r.get("success") else {"error": r.get("error")}
                     if not res.get("success"):
                         print(f"[SPX Outbound] {res.get('error')}")
             except Exception as e:
@@ -4747,7 +4991,7 @@ def ttb_registration_clone_save_api():
     rows = req.get("rows") or _ttb_rows_from_values(req.get("values") or [])
     if not rows:
         return jsonify({"success": False, "error": "ไม่พบแถวข้อมูล (LH Trips / ปลายทาง) ในชีท TTB-Register Clone"})
-    live = process_and_save_ttb_rows(rows, req.get("sheetName") or "TTB-Register Clone", target_file=TTB_CLONE_FILE)
+    live = process_and_save_ttb_rows(rows, req.get("sheetName") or "TTB-Register Clone")   # real TTB live data
     return jsonify({"success": True, "data": live,
                     "message": f"ดึงข้อมูลจาก TTB-Register Clone สำเร็จ ({len(rows):,} คัน)"})
 
@@ -4755,8 +4999,7 @@ def ttb_registration_clone_save_api():
 @app.route("/api/ttb-registration-clone/live", methods=["GET"])
 def ttb_registration_clone_live_api():
     try:
-        with open(TTB_CLONE_FILE, "r", encoding="utf-8") as f:
-            return jsonify({"success": True, "data": json.load(f)})
+        return jsonify({"success": True, "data": load_ttb_registration_live()})
     except Exception:
         return jsonify({"success": True, "data": {"updatedAt": "", "total": 0, "rows": [], "stats": {}}})
 
@@ -8169,7 +8412,8 @@ def lh_trip_live_raw_api():
         except Exception:
             return jsonify({"success": False, "error": "ไม่มีตารางอ้างอิง (Hub / Cut / TTB) — กรุณา Sync ใหม่อีกครั้ง", "needRefs": True})
     try:
-        headers, rows = build_table_rows(raw_headers, raw_rows, refs)
+        # Late / On time by the TTB-Register COT (COT1 -> Cut 1, COT2 -> Cut 2); trips not in TTB keep the cut window rule
+        headers, rows = build_table_rows(raw_headers, raw_rows, refs, ttb_cot_map(req.get("ttbCot")))
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -8178,7 +8422,8 @@ def lh_trip_live_raw_api():
                                  {"source": "raw", "rawRows": len(raw_rows)})
     if data.get("success"):
         data.update({"source": "live-raw", "sheet": req.get("sheet") or "Copy of raw data", "rawRows": len(raw_rows), "dateOrder": date_order,
-                     "ttbMissing": not bool((refs or {}).get("ttb"))})
+                     "ttbMissing": not bool((refs or {}).get("ttb")), "cotTrips": sum(1 for r in rows if r[-1]),
+                     "ttbCotRows": len(req.get("ttbCot") or [])})
         log_activity("SYNC_GOOGLE_SHEET", f"🔄 Sync LH Trip จาก raw data ({req.get('sheet') or 'Copy of raw data'}) {len(rows):,} เที่ยว / raw {len(raw_rows):,} แถว")
     return jsonify(data)
 
@@ -8337,7 +8582,7 @@ def lh_trip_daily_raw_api():
         pass
 
     try:
-        cot = ttb_cot_map(req.get("ttbCot")) if req.get("useCot") else None   # only the COT test page
+        cot = ttb_cot_map(req.get("ttbCot"))   # Late / On time by the TTB-Register COT (cached copy when none sent)
         headers, rows = build_table_rows(raw_headers, raw_rows, refs, cot)
         df = pd.read_csv(io.StringIO(rows_to_csv_text(headers, rows)), low_memory=False, on_bad_lines='skip')
         data = process_table_sheet(df)
@@ -9019,7 +9264,7 @@ start_obi_daily_1500_auto_sync()
 
 if __name__ == "__main__":
     print("=" * 60)
-    PORT = int(os.environ.get("PORT", "5001"))  # UAT: 5001 so it never clashes with production on 5000
+    PORT = int(os.environ.get("PORT", "5000"))  # production 5000; UAT sets PORT=5001 (run_uat.bat)
     print(f" Server started at http://localhost:{PORT}")
     print(f" Uploaded files will be stored in: {UPLOAD_FOLDER}")
     print("=" * 60)

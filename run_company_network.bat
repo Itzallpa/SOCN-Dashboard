@@ -5,7 +5,7 @@ echo ========================================================
 echo   SOC Outbound Late Dashboard - Corporate Network Mode
 echo ========================================================
 echo.
-echo [1/2] Starting Flask Backend Server (http://localhost:5001)...
+echo [1/2] Starting Flask Backend Server (http://localhost:5000)...
 start "Flask Server (app.py)" cmd /k "py app.py"
 
 timeout /t 3 /nobreak >nul
@@ -16,5 +16,5 @@ echo ========================================================
 echo  LOOK BELOW FOR YOUR ONLINE HTTPS URL (pinggy.link)
 echo ========================================================
 echo.
-ssh -o StrictHostKeyChecking=no -p 443 -R 80:localhost:5001 free.pinggy.io
+ssh -o StrictHostKeyChecking=no -p 443 -R 80:localhost:5000 free.pinggy.io
 pause
