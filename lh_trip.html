@@ -790,30 +790,46 @@
       { id: '11Se39YEz-mpyduJ3DU--Dfdlut6rzf9xcNYBxe9jHL0', tab: '[OG] TimetableFullSocn' }    // original sheet
     ];
     let ttbCotSourceIdx = 0;
+    // The TTB sheet is big and changes rarely: read it at most every 30 min (was: on every Sync → Sync took ~2 min)
+    const TTB_COT_TTL_MS = 30 * 60 * 1000;
+    let ttbCotMem = null, ttbCotAt = 0, ttbCotPending = null;
     async function fetchTtbCot() {
+      if (ttbCotMem && Date.now() - ttbCotAt < TTB_COT_TTL_MS) return ttbCotMem;
+      if (!ttbCotPending) {
+        ttbCotPending = readTtbCotSheet()
+          .then(p => { if (p && p.length) { ttbCotMem = p; ttbCotAt = Date.now(); } return p || ttbCotMem; })
+          .finally(() => { ttbCotPending = null; });
+      }
+      return ttbCotPending;
+    }
+    // Live Sync never waits for TTB: last copy (or null = server uses its cached copy), refresh in the background
+    function ttbCotNoWait() {
+      const fresh = ttbCotMem && Date.now() - ttbCotAt < TTB_COT_TTL_MS;
+      if (!fresh) fetchTtbCot().catch(() => null);
+      return ttbCotMem;
+    }
+    async function readTtbCotSheet() {
+      const PAGE = 2000;
       for (let i = 0; i < TTB_COT_SOURCES.length; i++) {
         const k = (ttbCotSourceIdx + i) % TTB_COT_SOURCES.length;
         const src = TTB_COT_SOURCES[k];
         try {
+          const dump = start => callDailyRelay('dump', { spreadsheetId: src.id, sheetName: src.tab, startRow: start, maxRows: PAGE, maxCols: 29 }, 120000)
+            .then(d => { if (!d || !d.success || !Array.isArray(d.values)) throw new Error((d && d.error) || 'อ่านชีท TTB ไม่ได้'); return d; });
+          // row 2 = header row (row 1 = "ห้ามแก้ไข"); the first page tells the last row → read the rest in parallel
+          const first = await dump(2);
+          const starts = [];
+          for (let s = 2 + (first.rows || PAGE); first.rows && s <= (first.lastRow || 0) && starts.length < 4; s += PAGE) starts.push(s);
+          const rest = await Promise.all(starts.map(dump));
+          let ti = 10;
+          const h = (first.values[0] || []).map(x => String(x).trim()).indexOf('LH Trips');
+          if (h >= 0) ti = h;
           const pairs = [];
-          let start = 2, ti = 10;   // row 2 = header row (row 1 = "ห้ามแก้ไข")
-          for (let page = 0; page < 5; page++) {
-            const d = await callDailyRelay('dump', { spreadsheetId: src.id, sheetName: src.tab, startRow: start, maxRows: 2000, maxCols: 29 }, 120000);
-            if (!d || !d.success || !Array.isArray(d.values)) throw new Error((d && d.error) || 'อ่านชีท TTB ไม่ได้');
-            let body = d.values;
-            if (start === 2) {
-              const h = (body[0] || []).map(x => String(x).trim()).indexOf('LH Trips');
-              if (h >= 0) ti = h;
-              body = body.slice(1);
-            }
-            body.forEach(r => {
-              const t = String(r[ti] || '').trim();
-              const cot = [18, 28].map(j => String(r[j] || '').trim()).find(v => /COT\s*\d/i.test(v));
-              if (t && cot) pairs.push([t, cot]);
-            });
-            if (!d.rows || start + d.rows - 1 >= (d.lastRow || 0)) break;
-            start += d.rows;
-          }
+          [first.values.slice(1)].concat(rest.map(d => d.values)).forEach(body => body.forEach(r => {
+            const t = String(r[ti] || '').trim();
+            const cot = [18, 28].map(j => String(r[j] || '').trim()).find(v => /COT\s*\d/i.test(v));
+            if (t && cot) pairs.push([t, cot]);
+          }));
           ttbCotSourceIdx = k;
           return pairs;
         } catch (e) {
@@ -1462,7 +1478,7 @@
         const [day, refs, ttbCot] = await Promise.all([
           callDailyRelay('readdaily', { fileId: idm[1], sheetName: LH_LIVE_TAB }, 180000),
           dailyRefs ? Promise.resolve(null) : callDailyRelay('refs', {}, 120000).catch(() => null),
-          fetchTtbCot().catch(() => null)
+          Promise.resolve(ttbCotNoWait())
         ]);
         if (!day || !day.success) throw new Error((day && day.error) || 'อ่าน raw data ไม่สำเร็จ');
         if (refs && refs.success) dailyRefs = refs;

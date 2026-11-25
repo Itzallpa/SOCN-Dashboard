@@ -101,8 +101,11 @@
     // Slides: each page stays loaded (its own auto-refresh keeps running); only visibility changes.
     const SLIDES = [
       { id: 'lh', label: 'LH Trip & OB Late', icon: 'fa-truck', src: 'lh_trip.html', maxParts: 3 },
-      { id: 'hourly', label: 'Hourly Tracker', icon: 'fa-chart-line', src: 'hourly_tracker.html' }
+      { id: 'hourly', label: 'Hourly Tracker', icon: 'fa-chart-line', src: 'hourly_tracker.html' },
+      // truck board: instead of jumping screen by screen it scrolls up slowly until every truck was on screen
+      { id: 'spx', label: 'รถที่ SOCN ตอนนี้', icon: 'fa-dolly', src: 'spx_outbound.html?tv=1', scroll: true }
     ];
+    const SCROLL_PX_PER_SEC = 45, SCROLL_HOLD_SEC = 6;   // speed, and the pause at the top and at the bottom
     // inside the slides: no top navigation, no scrollbars jumping in
     const KIOSK_CSS = 'nav, .app-nav, .top-nav, header.portal-status-bar { display: none !important; } body { padding-top: 0 !important; }' +
       ' html { scrollbar-width: none; } ::-webkit-scrollbar { display: none; }' +
@@ -162,11 +165,44 @@
       });
     }
 
+    // ---- Scrolling slides: hold at the top, glide down to the bottom, hold, then the next page ----
+    let scrollRaf = null, scrollDone = false;
+    function scrollRange(i) {
+      try {
+        const f = stage.children[i];
+        return Math.max(0, f.contentDocument.documentElement.scrollHeight - f.clientHeight);
+      } catch (e) { return 0; }
+    }
+    function scrollSeconds(i) {
+      return Math.max(seconds() / 2, Math.ceil(SCROLL_HOLD_SEC * 2 + scrollRange(i) / SCROLL_PX_PER_SEC));
+    }
+    function stopAutoScroll() { if (scrollRaf) cancelAnimationFrame(scrollRaf); scrollRaf = null; }
+    function startAutoScroll(i) {
+      stopAutoScroll();
+      const f = stage.children[i], t0 = performance.now();
+      let bottomAt = 0;
+      scrollDone = false;
+      const frame = now => {
+        if (current !== i || !playing) { scrollRaf = null; return; }
+        const range = scrollRange(i);
+        const y = Math.min(range, Math.max(0, ((now - t0) / 1000 - SCROLL_HOLD_SEC) * SCROLL_PX_PER_SEC));
+        // reached the bottom → hold there, then the slide may move on (the page may grow while data loads)
+        if (y >= range && now - t0 > SCROLL_HOLD_SEC * 1000) { bottomAt = bottomAt || now; scrollDone = now - bottomAt >= SCROLL_HOLD_SEC * 1000; }
+        else { bottomAt = 0; scrollDone = false; }
+        try { f.contentWindow.scrollTo({ top: y, behavior: 'instant' }); } catch (e) {}
+        scrollRaf = requestAnimationFrame(frame);
+      };
+      scrollRaf = requestAnimationFrame(frame);
+    }
+
     function restartTimer() {
       clearInterval(tickTimer);
-      remaining = seconds();
+      stopAutoScroll();
+      const scrolling = !!SLIDES[current].scroll;
+      remaining = scrolling ? scrollSeconds(current) : seconds();
       setBars(0, 0);
       if (!playing) { countdownEl.textContent = 'หยุด'; return; }
+      if (scrolling) startAutoScroll(current);
       // force a reflow so the bar animates from 0 again
       void progress.offsetWidth;
       setBars(100, remaining);
@@ -174,6 +210,8 @@
       tickTimer = setInterval(() => {
         remaining -= 1;
         countdownEl.textContent = Math.max(remaining, 0) + 's';
+        // a scrolling slide waits until it has really shown the last truck
+        if (remaining <= 0 && scrolling && !scrollDone) { remaining = 1; return; }
         if (remaining <= 0) step(1);
       }, 1000);
     }
@@ -182,6 +220,7 @@
     // Break points snap to the top of a dashboard row so cards are not cut in half when possible.
     function breakPoints(i) {
       const f = stage.children[i];
+      if (SLIDES[i].scroll) return [0];   // scrolls by itself (startAutoScroll)
       try {
         const doc = f.contentDocument, win = f.contentWindow;
         const view = f.clientHeight, total = doc.documentElement.scrollHeight;
@@ -327,7 +366,7 @@
     setPlaying(playing);
     show(Math.max(0, SLIDES.findIndex(s => s.id === startId)), 0);
     // the page height changes as data loads → re-apply the current part's scroll position
-    window.addEventListener('resize', () => { refitAll(); scrollPart(current, part, false); });
+    window.addEventListener('resize', () => { refitAll(); if (!SLIDES[current].scroll) scrollPart(current, part, false); });
     // data and charts load a little after the page: fit them again once they are drawn
     [...stage.children].forEach(f => f.addEventListener('load', () => { setTimeout(() => refitSlide(f), 1500); setTimeout(() => refitSlide(f), 6000); }));
   </script>

@@ -57,6 +57,14 @@
     @keyframes cwBlink { 50% { opacity: .55; } }
     .cw.over .cw-left, .cw.urgent .cw-left { animation: cwBlink 1.2s ease-in-out infinite; }
     @media (prefers-reduced-motion: reduce) { .cw.over .cw-left, .cw.urgent .cw-left { animation: none; } }
+    .cw-collapsed #cwGrid, .cw-collapsed [data-cw] { display: none !important; }
+    #cwToggle .fa-chevron-down { transition: transform .15s; }
+    .cw-collapsed #cwToggle .fa-chevron-down { transform: rotate(-90deg); }
+    /* TV slideshow (?tv=1): only the truck board, its heading stays on top while the page scrolls */
+    body.tv-trucks .container-fluid > :not(#truckHead):not(#loadingBody) { display: none !important; }
+    html:has(body.tv-trucks), body.tv-trucks { overflow-x: clip !important; overflow-y: visible !important; }   /* overflow-x:hidden would stop the sticky heading */
+    body.tv-trucks #truckHead { position: sticky; top: 0; z-index: 5; background: var(--app-bg); padding: 10px 0; margin-bottom: 0 !important; }
+    body.tv-trucks .truck-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
     .spx-table thead th { position: sticky; top: 0; z-index: 2; background: var(--app-surface-2); color: var(--app-text-2); font-weight: 650; cursor: pointer; user-select: none; }
     .spx-table td { font-variant-numeric: tabular-nums; vertical-align: middle; }
     .num { text-align: right; }
@@ -137,7 +145,11 @@
 
     <section id="cutWatch" class="mb-4">
       <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-        <h2 class="h5 fw-bold mb-0 me-2"><i class="fa-solid fa-stopwatch text-danger me-1"></i>UPC Near NDD — Hub ที่ต้องปล่อยก่อน Cut</h2>
+        <button type="button" id="cwToggle" class="btn btn-link p-0 text-decoration-none text-reset d-flex align-items-center gap-2" onclick="toggleCutGrid()" aria-controls="cwGrid" aria-expanded="true" title="พับ / แสดงการ์ด Hub">
+          <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+          <span class="h5 fw-bold mb-0"><i class="fa-solid fa-stopwatch text-danger me-1"></i>UPC Near NDD — Hub ที่ต้องปล่อยก่อน Cut</span>
+          <span class="small text-muted" id="cwToggleText">(พับ)</span>
+        </button>
         <div class="lf-tabs" role="group" aria-label="กรองสถานะ Hub">
           <button type="button" class="lf-tab active" data-cw="todo" onclick="setCutFilter(this)">ยังไม่ปล่อย</button>
           <button type="button" class="lf-tab" data-cw="all" onclick="setCutFilter(this)">ทั้งหมด</button>
@@ -149,7 +161,7 @@
       <div id="cwGrid" class="cw-grid"></div>
     </section>
 
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+    <div id="truckHead" class="d-flex flex-wrap align-items-center gap-2 mb-2">
       <h2 class="h5 fw-bold mb-0 me-2"><i class="fa-solid fa-dolly text-warning me-1"></i>รถที่ SOCN ตอนนี้</h2>
       <div class="lf-tabs" role="group" aria-label="กรองสถานะรถ">
         <button type="button" class="lf-tab active" data-lf="Loading" onclick="setLoadFilter(this)">กำลัง Loading <b id="lfLoading">0</b> คัน</button>
@@ -290,6 +302,24 @@
     const toMs = s => (s ? new Date(String(s).replace(' ', 'T')).getTime() : 0);
     const hmOf = ms => { const d = new Date(ms); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
     const leftTxt = min => { const a = Math.abs(Math.round(min)); return a >= 60 ? `${Math.floor(a / 60)} ชม. ${a % 60} นาที` : `${a} นาที`; };
+
+    // The 53 hub cards are long: folded by default (the alert banner above still shows late / near hubs)
+    function applyCutCollapsed(c) {
+      document.getElementById('cutWatch').classList.toggle('cw-collapsed', c);
+      document.getElementById('cwToggle').setAttribute('aria-expanded', c ? 'false' : 'true');
+      document.getElementById('cwToggleText').textContent = c ? '(กดเพื่อดูการ์ด)' : '(พับ)';
+    }
+    function toggleCutGrid() {
+      const c = !document.getElementById('cutWatch').classList.contains('cw-collapsed');
+      try { localStorage.setItem('spx_cw_collapsed', c ? '1' : '0'); } catch (e) {}
+      applyCutCollapsed(c);
+    }
+    (function () {
+      let c = true;
+      try { c = localStorage.getItem('spx_cw_collapsed') !== '0'; } catch (e) {}
+      applyCutCollapsed(c);
+      if (new URLSearchParams(location.search).get('tv') === '1') document.body.classList.add('tv-trucks');
+    })();
 
     function setCutFilter(btn) {
       cutFilter = btn.dataset.cw;
